@@ -52,6 +52,20 @@
 # sorted by cumulative CPU time, to help find orphaned zig processes
 # (which compile to anonymous .zig-cache names).  No command needed.
 #
+# T548 (2026-08-22) --reap-orphans mode.  Standalone: find abandoned zig
+# suite binaries (`.zig-cache/o/<hash>/test`) whose live ancestry reaches
+# init through no worker marker (subagent / claude -p / runner /
+# fleet-keeper) and no live session (console/terminal/interactive shell),
+# and SIGKILL those seen orphaned on two passes --orphan-pass-min apart
+# (default 45 s).  The runner reaps its own descendant tree on every exit
+# path (C1/C2/C3), but a SIGKILLed/crashed runner cannot reap — its suite
+# children survive reparented to init and hold multi-GB RSS until the
+# abandoned suite finishes.  The sweeper is the backstop that collects
+# those.  State persists in /tmp/weizigo/runner-orphan-sweep.json
+# (disposable per-host; --orphan-state-file to override).  Every reap is
+# logged with pid, RSS and the reason (stderr + --orphan-log).
+# --orphan-dry-run reports without killing.
+#
 # WORKER-CHANNEL (2026-07-29): --task-id for identity, heartbeat emission
 # to untracked/heartbeat.jsonl, directive checking via tasks.json.  On every
 # invocation: prints pending directives on stderr, exits non-zero when a
@@ -596,6 +610,266 @@ def sweep():
     sys.exit(0)
 
 
+# ── orphan sweeper (T548, 2026-08-22) ──────────────────────────────────
+# The runner reaps its OWN descendant tree on every exit path (C1/C2/C3,
+# via `managent treekill`), but a SIGKILLed/crashed runner cannot reap —
+# its suite children survive reparented to init and hold multi-GB RSS.
+# The fleet measured the leak continuously (2026-08-20: 9.1 GB at free
+# 0.06 GB, then 2.8 GB again while memory was HEALTHY), so the sweeper is
+# the primary backstop: a standalone host-level command, timer/keeper-
+# friendly, that finds abandoned suite binaries and kills them.
+#
+# Conservatism — a reaper that kills live work is far worse than the
+# leak — is three guards plus one hardening earned on this host:
+#   (a) match ONLY `.zig-cache/o/<hash>/test` suite binaries (the
+#       multi-GB memory holders; never the small zig compilers/daemons);
+#   (b) walk the live ancestry and skip anything whose chain contains a
+#       worker marker (`subagent` / `claude -p` / `runner` /
+#       `fleet-keeper`, the brief's guard list) OR any live non-zig
+#       session ancestor (console, terminal, interactive shell).  Only
+#       chains that reach init (pid 1) through zig-build processes and
+#       dead pids are orphans.  The live-session half is the hardening:
+#       on 2026-08-22 three live suite binaries on this host had NO
+#       worker marker in their chain (a `nohup zig build test` under
+#       ppid 1, and a `pi` console chain) — the literal guard set would
+#       have reaped live work;
+#   (c) two-pass guard: a candidate must be seen orphaned on two runs at
+#       least --orphan-pass-min apart (default 45 s), so a freshly
+#       spawned test whose parent link is not yet visible is never hit.
+# Every reap is logged with pid, RSS and the reason (stderr + the orphan
+# log, default /tmp/weizigo/orphan-reap.log — silent process killing is
+# unauditable, and today's whole problem was infrastructure deaths being
+# invisible).  --orphan-dry-run reports without killing.
+
+ORPHAN_GUARD_PATTERNS = ("subagent", "claude -p", "runner", "fleet-keeper")
+ORPHAN_STATE_DEFAULT = "/tmp/weizigo/runner-orphan-sweep.json"
+ORPHAN_LOG_DEFAULT = "/tmp/weizigo/orphan-reap.log"
+ORPHAN_TEST_RE = re.compile(r"\.zig-cache/o/[^/\s]+/test(?:\s|$)")
+ORPHAN_MAX_DEPTH = 64
+
+
+def _ps_proc_table():
+    """Snapshot pid -> {ppid, rss_kb, state, start, cmd} for every process.
+
+    One `ps -axo pid=,ppid=,rss=,state=,lstart=,command=` call (both macOS
+    and Linux support all six columns; lstart is the absolute start time,
+    the identity anchor against pid reuse).  The command is the full argv
+    re-joined after the fixed columns — commands containing spaces survive.
+    Zombies are dropped (they are already dead; a kill is a no-op).
+    Returns {} on any failure (the caller treats that as fatal).
+    """
+    try:
+        out = subprocess.run(
+            ["ps", "-axo", "pid=,ppid=,rss=,state=,lstart=,command="],
+            capture_output=True, text=True, timeout=5.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {}
+    if out.returncode != 0:
+        return {}
+    rows = {}
+    for line in out.stdout.splitlines():
+        toks = line.split()
+        # pid ppid rss state Mon Aug 22 09:00:23 2026 <command...>
+        if len(toks) < 10:
+            continue
+        try:
+            pid = int(toks[0])
+            ppid = int(toks[1])
+            rss_kb = int(toks[2])
+        except ValueError:
+            continue
+        if toks[3].startswith("Z"):
+            continue  # zombies are already dead — never claimed
+        rows[pid] = {
+            "ppid": ppid,
+            "rss_kb": rss_kb,
+            "start": " ".join(toks[4:9]),  # lstart: "Mon Aug 22 09:00:23 2026"
+            "cmd": " ".join(toks[9:]),
+        }
+    return rows
+
+
+def _is_zig_tree_cmd(cmd):
+    """True when the process is part of a zig build tree: a zig compiler /
+    daemon / test binary, or the launcher shell that invoked zig (its
+    command carries `zig build` / `zig test` / the cache path).
+
+    Deliberately broad: a live session ancestor reached THROUGH a zig
+    launcher still protects the candidate (the walk continues past zig
+    processes and skips at the session), so over-classifying zig-ness is
+    always the safe direction — it can only ADD an ancestor to walk
+    through, never a candidate to kill.
+    """
+    if not cmd:
+        return False
+    first = cmd.split()[0]
+    return (
+        os.path.basename(first) == "zig"
+        or ".zig-cache" in cmd
+        or "zig build" in cmd
+        or "zig test" in cmd
+    )
+
+
+def _classify_suite_orphan(pid, rows):
+    """Walk the LIVE ancestry of a `.zig-cache/o/*/test` candidate.
+
+    Returns ("orphan", reason) when the chain reaches init (pid 1) through
+    only zig-build-tree processes (the seat's DARGUS criterion: "ancestry
+    ending at init, with no live worker in the chain"), or ("skip",
+    reason) when a worker marker or a live session ancestor is found, or
+    when the walk dead-ends at a pid missing from the table (a transient
+    ps/reparent race — the two-pass guard resolves it on the next run).
+    Skipping is always the safe direction: a false negative costs memory,
+    a false positive kills live work.
+    """
+    cur = pid
+    depth = 0
+    while True:
+        row = rows.get(cur)
+        if row is None:
+            return ("skip", f"ancestor pid {cur} not in table (transient?)")
+        if cur == 1:
+            return ("orphan", "ancestry ends at init through zig build tree")
+        cmd = row["cmd"]
+        if any(g in cmd for g in ORPHAN_GUARD_PATTERNS):
+            return ("skip", f"worker marker in ancestry (pid {cur}: {cmd[:60]!r})")
+        if not _is_zig_tree_cmd(cmd):
+            return ("skip", f"live session ancestor (pid {cur}: {cmd[:60]!r})")
+        nxt = row["ppid"]
+        if nxt == cur or nxt <= 0:
+            return ("skip", f"broken ppid chain at pid {cur}")
+        cur = nxt
+        depth += 1
+        if depth > ORPHAN_MAX_DEPTH:
+            return ("skip", "ancestry depth cap exceeded")
+
+
+def _load_orphan_state(path):
+    """Read the two-pass state file {pid: {first_seen, start}}, or {}."""
+    if not path or not os.path.isfile(path):
+        return {}
+    try:
+        with open(path) as f:
+            state = json.load(f)
+        return state if isinstance(state, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _save_orphan_state(path, state):
+    """Atomically write the two-pass state (tmp + rename — a torn state
+    file would reset the guard and could double-reap)."""
+    if not path:
+        return
+    tmp = path + ".tmp"
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(tmp, "w") as f:
+            json.dump(state, f, sort_keys=True)
+            f.write("\n")
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+        except OSError:
+            pass
+
+
+def _append_orphan_log(path, line):
+    """Append one reap line to the audit log (best-effort)."""
+    if not path:
+        return
+    try:
+        with open(path, "a") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
+
+
+def reap_orphans(state_file=ORPHAN_STATE_DEFAULT, pass_min=45.0,
+                 dry_run=False, log_file=ORPHAN_LOG_DEFAULT):
+    """One pass of the suite-orphan sweeper (T548).
+
+    Finds `.zig-cache/o/<hash>/test` binaries whose live ancestry contains
+    no worker marker and no live session (i.e. the chain reaches init), and
+    SIGKILLs those seen orphaned on a previous pass at least `pass_min`
+    seconds ago.  Emits one parseable summary line on stdout (data —
+    `orphan-sweep: candidates=N reaped=M tracked=K ...`) and per-process
+    diagnostics on stderr.  Exit 0 always: a sweep is report + reap, never
+    a gate.  Never kills pid <= 1, itself, or its parent (defensive — the
+    matcher makes self-kill impossible anyway: the sweeper's own command
+    is never a `.zig-cache/o/*/test` binary).
+    """
+    rows = _ps_proc_table()
+    if not rows:
+        print("[runner] orphan-sweep: FATAL — process table unreadable (ps failed)", file=sys.stderr)
+        sys.exit(1)
+    self_pid = os.getpid()
+    parent_pid = os.getppid()
+    candidates = []  # (pid, row, reason)
+    for pid, row in rows.items():
+        if pid <= 1 or pid == self_pid or pid == parent_pid:
+            continue
+        if ORPHAN_TEST_RE.search(row["cmd"]):
+            verdict, reason = _classify_suite_orphan(pid, rows)
+            if verdict == "orphan":
+                candidates.append((pid, row, reason))
+
+    state = _load_orphan_state(state_file)
+    now = time.time()
+    due = []  # (pid, row, reason, age) — reap these
+    new_state = {}
+    for pid, row, reason in candidates:
+        key = str(pid)
+        prior = state.get(key)
+        start = row["start"]
+        if isinstance(prior, dict) and prior.get("start") == start:
+            first_seen = float(prior.get("first_seen", now))
+            age = now - first_seen
+            if age >= pass_min:
+                due.append((pid, row, reason, age))
+                continue  # reaped (or due) — do not carry into new_state
+            new_state[key] = {"first_seen": first_seen, "start": start}
+        else:
+            # pass 1 for this pid (or pid reuse — lstart differs)
+            new_state[key] = {"first_seen": now, "start": start}
+            rss_mb = row["rss_kb"] // 1024
+            print(f"[runner] orphan-sweep: track pid {pid} RSS {rss_mb} MB "
+                  f"(pass 1; will reap on a second orphaned pass >= {pass_min:.0f}s)",
+                  file=sys.stderr)
+
+    _save_orphan_state(state_file, new_state)
+
+    reaped = 0
+    for pid, row, reason, age in due:
+        rss_mb = row["rss_kb"] // 1024
+        why = f"abandoned zig suite binary (pid {pid} RSS {rss_mb} MB, " \
+              f"orphaned {age:.0f}s; {reason})"
+        if dry_run:
+            print(f"[runner] orphan-sweep: WOULD REAP {why}", file=sys.stderr)
+            continue
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            print(f"[runner] orphan-sweep: pid {pid} vanished before reap (race, OK)", file=sys.stderr)
+            continue
+        except PermissionError:
+            print(f"[runner] orphan-sweep: pid {pid} REFUSED (permission — not ours)", file=sys.stderr)
+            continue
+        line = (f"orphan-reap ts={time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} "
+                f"pid={pid} rss_mb={rss_mb} age_s={age:.0f} reason={reason}")
+        print(f"[runner] orphan-sweep: REAP {why}", file=sys.stderr)
+        _append_orphan_log(log_file, line)
+        reaped += 1
+
+    mode = "dry-run" if dry_run else "kill"
+    print(f"orphan-sweep: candidates={len(candidates)} reaped={reaped} "
+          f"tracked={len(new_state)} mode={mode}")
+
+
 # ── process tree walking ─────────────────────────────────────────────
 
 def _descendant_pids_linux(root_pid):
@@ -962,20 +1236,50 @@ def _log_peaks(peak_rss, peak_cpu=None, t0=None):
 
 # ── main ─────────────────────────────────────────────────────────────
 
+def _drain_stream(stream, deadline, chunk_size=65536):
+    """Read available text from `stream` until EOF or `deadline`.
+
+    `stream` is left non-blocking (the monitor loop's setting).  A leaked
+    grandchild that INHERITED the runner's pipe keeps the write end open
+    after the child exits (the T548 leak shape: `zig build`'s test
+    binaries hold the build pipe), so EOF may never come — a blocking read
+    would hang the runner forever, the C2 reap (which kills those very
+    holders) would never run, and the leaked memory would be held
+    indefinitely.  The deadline bounds the wait; the caller's exit-path
+    reap then closes the pipe by killing the holder.  TextIO on a
+    non-blocking fd raises BlockingIOError when no data is ready — loop
+    on it with a short grace so a slow writer is not cut off early.
+    """
+    chunks = []
+    while True:
+        if time.monotonic() >= deadline:
+            break
+        try:
+            chunk = stream.read(chunk_size)
+        except BlockingIOError:
+            time.sleep(0.02)
+            continue
+        except (ValueError, OSError):
+            break
+        if not chunk:
+            break  # EOF — every writer closed the pipe
+        chunks.append(chunk)
+    return "".join(chunks)
+
+
 def _drain_stderr(proc, progress_seen, last_progress_time, task_identity, command, repo_root):
     """Read any remaining stderr from the child after it exits.
 
     Forwards lines to the runner's stderr, checks for [progress] markers,
     and emits a heartbeat on each one found.  Returns the remaining text
     so the caller can accumulate it into the full-stream capture (T521).
+    Time-bounded (T548): a leaked grandchild holding the pipe must not
+    hang the normal-exit path — 2 s of grace, then the caller's C2 reap
+    kills the holder and the runner exits.
     """
     remaining = ""
     try:
-        import fcntl as _fcntl
-        fd = proc.stderr.fileno()
-        fl = _fcntl.fcntl(fd, _fcntl.F_GETFL)
-        _fcntl.fcntl(fd, _fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
-        remaining = proc.stderr.read() or ""
+        remaining = _drain_stream(proc.stderr, time.monotonic() + 2.0)
         if remaining:
             for line in remaining.splitlines():
                 print(line, file=sys.stderr)
@@ -991,15 +1295,13 @@ def _drain_stdout(proc, forward):
 
     forward=False buffers only (a claude JSON lane — the envelope is
     unwrapped after parsing, never streamed raw).  Returns the remaining
-    text for the full-stream capture.
+    text for the full-stream capture.  Time-bounded (T548): see
+    _drain_stderr — a leaked pipe-holding grandchild must not hang the
+    normal-exit path.
     """
     remaining = ""
     try:
-        import fcntl as _fcntl
-        fd = proc.stdout.fileno()
-        fl = _fcntl.fcntl(fd, _fcntl.F_GETFL)
-        _fcntl.fcntl(fd, _fcntl.F_SETFL, fl & ~os.O_NONBLOCK)
-        remaining = proc.stdout.read() or ""
+        remaining = _drain_stream(proc.stdout, time.monotonic() + 2.0)
         if remaining and forward:
             sys.stdout.write(remaining)
             sys.stdout.flush()
@@ -1309,6 +1611,25 @@ def main():
     ap.add_argument("--sweep", action="store_true",
                     help="standalone: list top CPU consumers on the host "
                          "(no command needed)")
+    ap.add_argument("--reap-orphans", action="store_true",
+                    help="standalone: sweep for abandoned zig suite binaries "
+                         "(`.zig-cache/o/*/test` whose live ancestry reaches "
+                         "init through no worker/session) and kill those seen "
+                         "orphaned on two passes --orphan-pass-min apart (T548). "
+                         "State: --orphan-state-file; --orphan-dry-run reports "
+                         "without killing.")
+    ap.add_argument("--orphan-state-file", type=str, default=None,
+                    help="state file for the two-pass orphan guard "
+                         f"(default {ORPHAN_STATE_DEFAULT!r})")
+    ap.add_argument("--orphan-pass-min", type=float, default=45.0,
+                    help="minimum seconds between the two orphan observations "
+                         "required before a reap (default 45)")
+    ap.add_argument("--orphan-dry-run", action="store_true",
+                    help="with --reap-orphans: report candidates and due reaps "
+                         "without killing anything")
+    ap.add_argument("--orphan-log", type=str, default=None,
+                    help="append every reap (pid, RSS, reason) to this file "
+                         f"(default {ORPHAN_LOG_DEFAULT!r})")
     ap.add_argument("rest", nargs=argparse.REMAINDER,
                     help="command and arguments after `--`")
     args = ap.parse_args()
@@ -1317,6 +1638,16 @@ def main():
     if args.sweep:
         sweep()
         # sweep() calls sys.exit, but be safe:
+        return
+
+    # Handle --reap-orphans (standalone; T548)
+    if args.reap_orphans:
+        reap_orphans(
+            state_file=args.orphan_state_file or ORPHAN_STATE_DEFAULT,
+            pass_min=args.orphan_pass_min,
+            dry_run=args.orphan_dry_run,
+            log_file=args.orphan_log or ORPHAN_LOG_DEFAULT,
+        )
         return
 
     # argparse.REMAINDER includes the leading `--` if present; strip it

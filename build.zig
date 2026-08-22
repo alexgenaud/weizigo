@@ -306,6 +306,22 @@ pub fn build(b: *std.Build) void {
     runner_guard_regression.cwd = b.path(".");
     test_step.dependOn(&runner_guard_regression.step);
 
+    // ── suite-child reaping controls (T548) ───────────────────────────
+    // Dead workers must not leak suite children: on 2026-08-20 the fleet
+    // measured orphaned `zig test` binaries holding multi-GB RSS (9.1 GB at
+    // 16:51, free memory 0.06 GB) — the runner killed only its process
+    // group and `zig build`'s children escaped it.  Arms: worker killed
+    // with child + setsid-escapee reaped (A1), the same via each exit path
+    // — wall, RSS cap, host floor (injected reading), directive kill — with
+    // treekill survivors=0 (A2a-d), live worker's child untouched by the
+    // sweeper + reaped on the runner's normal exit even when it holds the
+    // runner's pipe (A3, the drain hang), sweeper takes a pre-existing
+    // orphan only (A4), one-pass orphan never reaped (A5), session-
+    // attached child never reaped (A6, the live-session hardening).
+    const runner_reap_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-reap.sh" });
+    runner_reap_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_reap_regression.step);
+
     // ── orphan-reaper controls (T364) ─────────────────────────────────
     // Parent-side exit records + `managent reap`: the 2026-08-04 incident
     // (SIGKILLed runners wrote no exit heartbeat; rows sat in_progress with
