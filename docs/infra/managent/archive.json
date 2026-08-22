@@ -349,22 +349,22 @@
   },
   "TL1A": {
     "status": "in_progress",
-    "agent": "deepseek-v4-pro",
+    "agent": "deepseek-v4-flash",
     "model": null,
-    "bundle": "/Users/alex/Project/Zig/weizigo/untracked/TL1A-load.md",
+    "bundle": "untracked/TL1A-load.md",
     "set": "A",
     "holds": [],
     "needs": [],
     "caps": [],
-    "added": "2026-08-21T18:07:52Z",
-    "claimed": "2026-08-21T18:13:08Z",
+    "added": "2026-08-22T08:11:24Z",
+    "claimed": "2026-08-22T08:11:24Z",
     "done": null,
     "dispatched": null,
     "dispatched_to": null,
     "note": "T559 load-test dummy lane",
     "verdict": null,
     "verdict_note": null,
-    "claim_count": 2,
+    "claim_count": 1,
     "duty": false,
     "due_after": 5,
     "last_chunk_closes": 0,
@@ -374,7 +374,7 @@
     "acceptance": null,
     "skip_acceptance_reason": null,
     "amendments": [],
-    "epitaph": "T559 load-test dummy lane; gate PASS (findings/T559-reap-under-load.json); never actually closed — scrubbed by T567"
+    "epitaph": "test"
   },
   "T316": {
     "status": "done",
@@ -3016,7 +3016,7 @@
     "epitaph": null
   },
   "_sys": {
-    "next_id": 467,
+    "next_id": 571,
     "directive_next": 21,
     "assertion_next": 19,
     "closes": 91,

@@ -23,3 +23,8 @@ go to the JSONL (measured) or the archive append (impressions), not here.
 - **race1 (T447 read-only-audit replication, graded by flash, n=1 provisional):** opus 46 > sonnet 26 > haiku 0 (haiku false-negative "no escape paths"). No tier emitted (n=1, per methodology §5). Matrix-cell fold deferred to after T565.
 dispatch-verify 2026-08-22 T574 deepseek-v4-flash report=success verified=pass
 dispatch-verify 2026-08-22 T575 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T572 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T571 claude-opus-5 report=success verified=pass
+dispatch-verify 2026-08-22 T577 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T573 deepseek-v4-pro report=success verified=fail fail=exit
+dispatch-verify 2026-08-22 T576 claude-opus-5 report=success verified=pass
