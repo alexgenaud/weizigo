@@ -28,3 +28,8 @@ dispatch-verify 2026-08-22 T571 claude-opus-5 report=success verified=pass
 dispatch-verify 2026-08-22 T577 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T573 deepseek-v4-pro report=success verified=fail fail=exit
 dispatch-verify 2026-08-22 T576 claude-opus-5 report=success verified=pass
+dispatch-verify 2026-08-22 T544 deepseek-v4-pro report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T524 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T579 claude-opus-5 report=success verified=pass
+dispatch-verify 2026-08-22 T548 deepseek-v4-flash report=success verified=pass
+dispatch-verify 2026-08-22 T530 deepseek-v4-pro report=incomplete verified=fail fail=row
