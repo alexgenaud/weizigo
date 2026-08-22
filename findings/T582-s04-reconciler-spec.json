@@ -1,0 +1,30 @@
+{
+  "task_id": "T582",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T582",
+  "claims": [],
+  "new_rows": [],
+  "verdict": "pass",
+  "rulings": [
+    {"ruling": "§7c.11 appetite 0–9 per model short name", "spec_home": "§2.4 REC-LIFE-9 (appetite table); initial values ollama-cloud 0, fable 2, opus 4, qwen 4, sonnet 6, haiku 6, dspro 6, flash 6"},
+    {"ruling": "§7c.12 can vs should axes", "spec_home": "§2.1 REC-LIFE-6 (dial records can-use; should-use is ladder + appropriateness, never reconciler invention); §2.4 REC-LIFE-9"},
+    {"ruling": "§7c.13 short-name resolution", "spec_home": "§2.4 REC-LIFE-9 (table note: short names resolve to latest active version; retirement re-points, never rewrites)"},
+    {"ruling": "§7c.14 escalation contract + premise-violated + >8h irreversible", "spec_home": "§4 REC-ESC-1 (three categories: irreversible incl. >8h wasted, scope-changing, premise-violated)"},
+    {"ruling": "§7c.18 runaway constants renamed, kernel-attested caller identity, verb boundary mechanical", "spec_home": "§3 REC-VERB-3 (lineage_depth=3), REC-VERB-4 (kernel-attested identity via held-child table, never env self-declaration; mechanical boundary)"},
+    {"ruling": "§7c.19 escalation posture — blocker = research opportunity, one bounded read-only investigation lane", "spec_home": "§3 REC-VERB-3 (one investigation lane, lineage-tracked, justification=blocker); §4 REC-ESC-3 (panic-halt reserved for thrash)"},
+    {"ruling": "§7c.20 concern channel first-class", "spec_home": "§4 REC-ESC-4 (assert + findings; input to reconciler, never a discharge)"},
+    {"ruling": "§7c.21 two-tier closure + audit-loop cap 3", "spec_home": "§3 REC-VERB-5 (two-tier done); §4 REC-ESC-7 (third audit blocks and escalates)"},
+    {"ruling": "§7c.22 never-idle + idle-work ladder", "spec_home": "§2.1 REC-LIFE-4 (reconciler never waits idle; never-idle is a fleet property); §6 REC-GATE-4 (standing rows dispatched, not run)"},
+    {"ruling": "§7c.23 no-cheating mechanical", "spec_home": "§3 REC-VERB-6 (reconciler cannot edit any row's gate/brief/acceptance)"},
+    {"ruling": "§7c.24/26 AUTOPILOT-5H L2 unlock + ACTIVE autopilot", "spec_home": "§6 REC-GATE-2 (N consecutive unattended 5h runs, zero orphans/runaways/breaker-trips, every lane accounted, real work each run; ACTIVE — delegation + resolution + closes per hour; proposed N=3 pending operator number)"},
+    {"ruling": "§7c.25 token-window exhaustion agent-free / family rotation", "spec_home": "§5 REC-CTRL-4 (handler is agent-free tooling and/or family rotation; never self-handling)"},
+    {"finding": "F4 holds= mandatory at mint (prerequisite)", "spec_home": "§2.3 REC-LIFE-8"},
+    {"finding": "F6 self-correction through the store", "spec_home": "§3 REC-VERB-7 (retraction is a store verb, not an escalation)"},
+    {"finding": "F7 inbound one shape; route blocking file to owning row; forbid report", "spec_home": "§4 REC-ESC-5"},
+    {"finding": "F8 templated directives", "spec_home": "§3 REC-VERB-8"},
+    {"finding": "scope = verdict + triage only (25/129 = 19.4%)", "spec_home": "§1 REC-GOAL-2"},
+    {"finding": "column (b) lookup is data entry, not design", "spec_home": "§1 REC-GOAL-4; §2.4 REC-LIFE-9"}
+  ],
+  "notes": "T582 — S04 phase 1 spec authorship: docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md, authored per the seed + the Phase 0 counted table (decision-log.md). One writer: only the held file (spec.md) and this findings file were produced; no writes to src/, tools/, the kanban store, the seed, or the decision-log. Scope derived from data: the reconciler covers verdict (15) + triage (10) = 25/129 = 19.4 % of recorded seat decisions; relay/doctrine/scope (31 rows) explicitly out. Every §7c ruling 11-26 and every study finding F4/F6/F7/F8 maps to a normative id (REC-*) with a control arm; §5 is the control table and §8 the traceability table. Verb boundary is mechanical (managent, kernel-attested caller identity via the held-child table, never env self-declaration), not prose. AUTOPILOT-5H stated testable (N consecutive unattended 5h runs, ACTIVE), proposed default N=3 flagged for operator ratification. Seed §11 open questions closed at spec where the spec may decide them (wake policy, verb-boundary mechanism, duty chunks) and deferred to design only for concrete plumbing. Inbox polled three times (claim, mid-work, close): empty every time, no directive IDs to record."
+}
