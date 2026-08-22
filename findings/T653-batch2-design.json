@@ -1,0 +1,119 @@
+{
+  "task_id": "T653",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "design": "Race G batch 2 — adversarial arm. Design-and-seal only: the seat sequences the lane run; this task dispatches nothing.",
+  "deliverables": [
+    "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-g-claim-doubt/target-set-batch2.md",
+    "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-g-claim-doubt/target-set-batch2.json"
+  ],
+  "target_set": {
+    "n": 25,
+    "labels": "G26..G50",
+    "ids": [
+      "4x4.C1", "4x4.F3", "4x4.FP1", "CODE.I5-INSTRUMENT-ADJUDICATION", "GLOBAL.FP2",
+      "3x3.BRACKET-NOT-KO", "3x3.E2-RUN1", "3x3.E2-RUN2", "2x2.T12", "WZO2.I2-CLEAN",
+      "CODE.ACCEPT-KOKEY", "CODE.ADR0011-FMT", "CODE.CLAIMLINT-C7-NEWROWS", "CODE.VB-STUBS", "GLOBAL.ADR0003-AREA",
+      "GLOBAL.ADR0009-HONESTY", "GLOBAL.FP1", "GLOBAL.FP3",
+      "GLOBAL.H1-COMPUTABLE", "QA-026", "QA-027", "GLOBAL.ADR0005-CACHE", "GLOBAL.FP2-bounded", "GLOBAL.LONGCYCLE", "GLOBAL.P3"
+    ],
+    "sha256_of_ids": "977bedf9d9657dcc0eb0d7e907ef4710611a0c80c54476c900cfcb708c933758",
+    "overlap_with_batch1": "none — verified programmatically (set intersection empty)"
+  },
+  "selection_rule": {
+    "rule": "Identical to batch 1: Tier A = top 10 by dependent count (any status); Tier B = next 8 PROVEN* with >=1 dependent; Tier C = next 7 FALSE* with >=1 dependent; ties by claim ID ascending; batch 1's 25 excluded before the rule runs.",
+    "counting_method": "dependent count = comma- or semicolon-separated items in the hand-written `dependents` column of CLAIMS.md, parenthesised sub-clauses not split, em-dash/empty = 0. This is the method the batch-1 selector used, independently re-derived by the winning batch-1 lane's audit (which reproduced Tier A exactly: H1-MARKOV 12, ADR0006-EYE 6, F1 6, T13 5, D3 5, ADR0015-BURDEN 5, AUDITOR 5, BRUTE-ALIASING 5, C3 5, QA-023 5).",
+    "reproduces_batch1": "Tier A exactly; batch-1's full 25 with two boundary substitutions at the count-3 tie line (CODE.ACCEPT-KOKEY and GLOBAL.H1-COMPUTABLE in, QA-021 and QA-022 out) caused by the batch-1 selector's hand-count of a few prose phrases. No effect on batch 2: batch 1's 25 are excluded either way.",
+    "rejected_alternative": "The winning batch-1 lane's audit recommended ranking batch 2 on the COMPUTED reverse in-degree of the `depends-on` edges instead of the hand-written `dependents` column (computed top: GLOBAL.S2 14, GLOBAL.INVSYM 11, GLOBAL.FP1 9, GLOBAL.S4 7 — none in batch 1; the register's own §4 in-degree table agrees with the computed view, not the column). REJECTED for this batch: switching the ranking method would confound the stance comparison, which is the whole point of the arm. The comparison requires the arms to differ only in stance. Recorded as a finding for a later batch, not acted on here."
+  },
+  "canaries": {
+    "requirement": "operator ruling §6.2 (untracked/fable-absorption-gaps-2026-08-22.md): batch 2 needs blind positives — rows genuinely defective at HEAD — so 'all verified' is falsifiable. Source from the dossier §3 gaps; fabricate only if fewer than 3 real survive.",
+    "source_note": "T668 and T670 were told (per the T653 brief) to publish a `canary-hold` list. Neither published one — T668 verified all five flagged proposals already dispositioned (no rows added); T670 produced an ABSORB triage but no canary-hold key. So the canaries below are derived from T670's ABSORB list, which IS the dossier §3 gaps triaged (the same source §6.2 names). Every canary re-verified still-defective at HEAD immediately before sealing, with the command, below.",
+    "real_count": 4,
+    "fabricated_count": 0,
+    "ratio_note": "4 real / 0 fabricated. That ratio is itself a fact about the register: it has at least four rows a careful lane can find defective at HEAD, and none of the four has been repaired by any row since T670's triage (T670 was read-only; no absorption row has run).",
+    "list": [
+      {
+        "G_label": "G34",
+        "id": "2x2.T12",
+        "defect_class": "HARD — headline claim false as stated",
+        "defect": "Row claims '2×2 admits no reachable non-root cycles' unqualified. False under basic ko: docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md §2(a) records a 144-vertex non-trivial SCC under the shipped rule and a 160-vertex one under the corrected rule. The row should be rescoped to positional superko (where the claim is true) or withdrawn.",
+        "correct_verdict": "status_correct: no (claim text false as scoped; MEASUREMENT status misleads), rationale_fresh: no",
+        "verification_command": "grep -n 'no reachable non-root cycles' docs/epistemic/CLAIMS.md -> line 330; grep -n '144-vertex non-trivial SCC' docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md -> lines 390-391 (still defective at HEAD)"
+      },
+      {
+        "G_label": "G26",
+        "id": "4x4.C1",
+        "defect_class": "cite gap — rationale/evidence incomplete",
+        "defect": "The I11 clause is load-bearing (0/48,636,330 SMD1 slice records and 0/99,133,036 stored entries, exhaustive T473) but the evidence column cites only findings/T473-i11-exhaustive.json, not docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md, which carries the artifact identity, commands, cross-checks and measurement the register's own convention requires cited.",
+        "correct_verdict": "status_correct: yes (CLAIMED), rationale_fresh: no (missing PROVENANCE cite)",
+        "verification_command": "grep -c 'I11-4x4-EXHAUSTIVE/PROVENANCE.md' docs/epistemic/CLAIMS.md -> 0 (the doc exists on disk, uncited anywhere in the register)"
+      },
+      {
+        "G_label": "G43",
+        "id": "GLOBAL.FP3",
+        "defect_class": "cite gap — rationale/evidence incomplete",
+        "defect": "PROVEN 'Bellman iteration terminates in finitely many sweeps' but the evidence column cites only prose (CONCEPTS.md:43-46; 4x3/EPISTEMIC.md:31), not the DCLAIM probe docs/evidence/GLOBAL-FP3/probe_fp3_finite_lattice_2026_08_22.zig + its run log — a re-runnable empirical re-derivation (verified REPRODUCED: 0 violations / 2118 monotone maps) that keeps the row tier-B instead of prose-only.",
+        "correct_verdict": "status_correct: yes (PROVEN), rationale_fresh: no (evidence is prose-only; the probe that re-derives it is uncited)",
+        "verification_command": "grep -c 'GLOBAL-FP3/probe_fp3_finite_lattice_2026_08_22.zig' docs/epistemic/CLAIMS.md -> 0 (doc exists on disk, uncited)"
+      },
+      {
+        "G_label": "G35",
+        "id": "WZO2.I2-CLEAN",
+        "defect_class": "cite gap — rationale/evidence incomplete",
+        "defect": "The row's R8-independence property (a fully independent instrument) is carried by docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py, but the evidence column cites only the narrative .md and raw result jsons, not the instrument itself.",
+        "correct_verdict": "status_correct: yes (MEASUREMENT), rationale_fresh: no (missing instrument cite)",
+        "verification_command": "grep -c 'i2-wzo2-T270/check_i2_wzo2.py' docs/epistemic/CLAIMS.md -> 0 (doc exists on disk, uncited)"
+      }
+    ],
+    "blindness": "The target-set .md tells lanes only that blind positives are seeded and that reporting all-verified is wrong by construction; it does NOT reveal the count or identities. Count + identities sealed here for the grader."
+  },
+  "stance": {
+    "chosen": "The premise section of the brief in target-set-batch2.md: 'Approach every row assuming it has NOT been checked at HEAD, and treat \"the row says so\" or \"the document it cites says so\" as no evidence at all... Your job is to find what does not hold at HEAD... A verdict of \"holds\" is earned only by failing to break the row after trying; it is not the default. Where a row does hold, say so plainly.'",
+    "argued_against_own_draft": "First draft included the sentence 'A row you can find nothing wrong with is a row you have not yet looked at hard enough.' I reject that sentence: it edges toward a per-row quota — it pressures a lane to find something wrong in EVERY row, which would inflate false positives and poison the measurement exactly as the brief warns ('find at least five refutations is a quota'). Removed. Also considered 'your job is not to confirm the rows' and softened it to 'find what does not hold... a verdict of holds is earned by failing to break the row' so the brief presses doubt without forbidding a genuine 'holds'.",
+    "not_a_quota": "Nowhere does the brief state a minimum number of refutations. The only numerical anchor is the blind-positive warning ('reporting every row holds is wrong'), which is true by construction (4 verified canaries) and does not tell the lane how many."
+  },
+  "two_field_verdict": {
+    "field_names": "status_correct (is the headline status right?) and rationale_fresh (is the rationale fresh at HEAD?). Names taken from the operator ruling §6.1, which is the ratified authority; T664 (register verdict attachment) is still queued behind T663 and has not landed, so these are the §6.1 names, not T664-minted ones. T664 should adopt/confirm these exact names when it lands.",
+    "unknown_rule": "unknown means the lane could not settle that field at HEAD, not that it did not try; when unknown, the lane must say which (missing evidence / instrument gone / out of scope) and still give the other field if it can.",
+    "keying": "Every verdict entry carries BOTH the G26..G50 label AND the backtick-quoted claim ID as separate fields; the brief states this twice (once in the verdict-cost section, once as a standalone sentence) to prevent the batch-1 keying mismatch recurring."
+  },
+  "preregistration": {
+    "purpose": "Pre-registered BEFORE the lanes run, so the arm comparison cannot be read after the fact to suit whatever came out. Written 2026-08-22.",
+    "batch1_baselines": {
+      "claude-opus-5": "10 refuted / 25 (40%)",
+      "claude-sonnet-5": "0 refuted / 25 (0%)",
+      "deepseek-v4-pro": "0 refuted / 25 (0%)",
+      "claude-haiku-4-5-20251001": "4 refuted / 25 (16%), and its 4 refutations argued FOR the rows they stamped (grader-caught self-contradiction)",
+      "deepseek-v4-flash": "0 refuted / 24 ruled (0%), 1 pending"
+    },
+    "batch2_metric": "defect rate = fraction of the 25 rows where the lane reports status_correct:no OR rationale_fresh:no. Known defect floor = the 4 seeded canaries (1 status-wrong, 3 rationale-stale); a perfect lane finds >=4 and plausibly 5-7 (GLOBAL.LONGCYCLE G49 and QA-026/QA-027 G45/G46 also carry the stale '2232/322/34/34' corrected-kernel census framing that reproduces in no build at HEAD).",
+    "covariate_caveat": "The arms differ in TWO ways, not one: stance (neutral vs adversarial) AND verdict format (batch-1 single verdict vs batch-2 two-field). The two-field format is the operator-ratified §6.1 change, mandatory for batch 2, and it makes batch-2 defect rates structurally HIGHER than batch-1 refutation rates for compliant lanes (rationale-staleness is now a separately-scored field, where batch 1 could only express it as 'verified with a stale clause'). This is recorded as an explicit covariate so no future reader compares the two arms without seeing it. The cleanest cross-arm field is status_correct (closest to batch 1's single verdict); rationale_fresh is new and measures exactly what batch 1 could not.",
+    "per_model": {
+      "claude-sonnet-5": {
+        "compliance": "defect rate >= 12% (finds >=3 rows defective, including at least 2 of the 4 canaries) — its batch-1 0% was the brief, not the model.",
+        "disposition": "defect rate <= 4% (misses the canaries) — its batch-1 rubber-stamp is a stable property, not brief-driven."
+      },
+      "deepseek-v4-pro": {
+        "compliance": "defect rate >= 12% (finds >=3 rows defective, including at least 2 of the 4 canaries).",
+        "disposition": "defect rate <= 4% (misses the canaries)."
+      },
+      "deepseek-v4-flash": {
+        "compliance": "defect rate >= 12% (finds >=3 rows defective, including at least 2 of the 4 canaries).",
+        "disposition": "defect rate <= 4% (misses the canaries)."
+      },
+      "claude-haiku-4-5-20251001": {
+        "compliance": "defect rate >= 16% AND the flags land on at least 3 of the 4 canaries with self-consistent rationale (batch-1 haiku's 4 refutations were self-contradictory — they argued for the rows they stamped).",
+        "disposition": "defect rate ~16% with the same self-contradictory/anchored pattern (flags not on canaries, or arguing for the rows)."
+      },
+      "claude-opus-5": {
+        "compliance": "defect rate >= 40% (stays at its batch-1 ceiling under the adversarial brief) AND its flags include all 4 canaries, especially 2x2.T12's hard contradiction.",
+        "disposition": "defect rate stays ~40% while the other four models rise toward it — opus's strictness was a disposition (it refutes regardless of brief), not brief-compliance. The discriminator for opus is therefore RELATIVE: do the other lanes converge to opus's rate (brief drives refutation) or diverge (disposition)?"
+      }
+    },
+    "cross_model_reading": "If the three 0%-batch-1 models (sonnet, dspro, dsflash) each rise >=12pp and land on the canaries, the brief drives refutation and batch 1's spread was the brief, not disposition — the three were compliant all along. If they stay ~0% while the canaries are verifiably defective, their 0% is a disposition (rubber-stamping under any brief). Opus is the within-model control: T649 already observed opus-as-lane (10 refuted) vs opus-as-grader (0 refuted) same day under different briefs — direct evidence that brief-framing dominated model identity for opus; batch 2 extends that test to the other four."
+  },
+  "notes": "Race G batch 2 (adversarial arm) — designed and sealed; lanes NOT dispatched (the seat sequences the run). Deliverables: the sealed 25-claim target set (G26-G50) + adversarial brief in target-set-batch2.md, the machine-readable ID list target-set-batch2.json, and this findings file.\n\nWHAT THIS ARM TESTS: is a lane's refutation rate a property of the model or of the brief? Batch 1 (neutral) had three lanes refute nothing and one refute ten. Batch 2 keeps everything identical except the stance (adversarial) and the verdict format (two-field, operator-ratified §6.1).\n\nCANARIES: 4 real / 0 fabricated, all sourced from the dossier §3 gaps via T670's triage (the T668/T670 canary-hold list was never published, so the canaries were derived from T670's ABSORB list and re-verified defective at HEAD with the commands recorded above). 2x2.T12 is a hard contradiction (claim false as stated); 4x4.C1, GLOBAL.FP3, WZO2.I2-CLEAN are cite gaps. All four remain unrepaired at HEAD (T670 was read-only; no absorption row has run).\n\nSELECTION: same deterministic rule as batch 1, reproduced with the batch-1 selector's own counting method (re-derived by the winning lane's audit). Batch 1's 25 excluded; zero overlap verified. The winning lane's recommendation to re-rank on computed reverse in-degree was REJECTED for this batch (would confound the stance comparison) and recorded as a finding for a later batch.\n\nTWO-FIELD VERDICT: uses the operator-ruled §6.1 names (status_correct / rationale_fresh); T664 has not landed (queued behind T663) and should adopt these names. Keying mandates both G26..G50 labels AND claim IDs, stated twice in the brief.\n\nINBOX / DIRECTIVES: bin/managent inbox T653 --ack polled at claim and at the final checkpoint; no directives pending, 0 acked, no D0NN to record. VERIFY-NONCE: NONCE-7e2dff9e14332a9a (this task's dispatch nonce)."
+}

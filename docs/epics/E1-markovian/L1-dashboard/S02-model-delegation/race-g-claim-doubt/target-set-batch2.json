@@ -1,0 +1,33 @@
+{
+ "batch": 2,
+ "n": 25,
+ "ids": [
+  "4x4.C1",
+  "4x4.F3",
+  "4x4.FP1",
+  "CODE.I5-INSTRUMENT-ADJUDICATION",
+  "GLOBAL.FP2",
+  "3x3.BRACKET-NOT-KO",
+  "3x3.E2-RUN1",
+  "3x3.E2-RUN2",
+  "2x2.T12",
+  "WZO2.I2-CLEAN",
+  "CODE.ACCEPT-KOKEY",
+  "CODE.ADR0011-FMT",
+  "CODE.CLAIMLINT-C7-NEWROWS",
+  "CODE.VB-STUBS",
+  "GLOBAL.ADR0003-AREA",
+  "GLOBAL.ADR0009-HONESTY",
+  "GLOBAL.FP1",
+  "GLOBAL.FP3",
+  "GLOBAL.H1-COMPUTABLE",
+  "QA-026",
+  "QA-027",
+  "GLOBAL.ADR0005-CACHE",
+  "GLOBAL.FP2-bounded",
+  "GLOBAL.LONGCYCLE",
+  "GLOBAL.P3"
+ ],
+ "selection_rule": "tierA top10 by dependents; tierB next8 PROVEN* with >=1 dependent; tierC next7 FALSE* with >=1 dependent; ties by id asc; excluding batch 1's 25; 3 blind-positive canaries seeded (2x2.T12, GLOBAL.FP3, WZO2.I2-CLEAN) replacing lowest-cascade same-tier members per operator ruling 6.2",
+ "sha256_of_ids": "977bedf9d9657dcc0eb0d7e907ef4710611a0c80c54476c900cfcb708c933758"
+}
