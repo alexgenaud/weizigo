@@ -1,0 +1,92 @@
+{
+ "task_id": "T626",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T626",
+ "claims": [],
+ "new_rows": [],
+ "variance": {
+  "question": "when the same model runs the same sealed, already-graded brief repeatedly, how much does its score move?",
+  "design": "K=5 repeats per lane of the sealed T447 brief (byte-identical wrapped prompt, sha256 84ec2845...), fresh --no-session contexts per repeat, frozen fixture worktree at 111c141 (the tree the key answers). Same grader model (claude-opus-5, G3-clean for both lanes) for all repeats of a lane; blind grading of anonymized repeats.",
+  "epoch": "2026-08-22",
+  "seals": {
+   "brief_sha256": "12f79202c74da8c9d81fcb3906506f7f13aa603e703426e280bb7966909978f9",
+   "key_sha256": "0d2ac295eb9b2493614a52159caa823084ed551523c77e14690dc9b039da2fd4",
+   "prompt_sha256": "84ec2845b6708745df96a36eaae950138f716a0506871b149517a8b1eda66c83",
+   "verified": true
+  },
+  "lanes": {
+   "deepseek-v4-flash": {
+    "n": 5,
+    "grader": "claude-opus-5",
+    "blind": true,
+    "scores": [
+     28,
+     33,
+     37,
+     36,
+     22
+    ],
+    "itemized": [
+     24,
+     25,
+     26,
+     28,
+     28
+    ],
+    "mean": 31.2,
+    "sd": 6.22,
+    "min": 22,
+    "max": 37,
+    "range": 15,
+    "walls_s": [
+     433.4,
+     335.7,
+     451.1,
+     349.8,
+     480.0
+    ],
+    "bytes": [
+     16960,
+     14584,
+     16511,
+     13505,
+     20271
+    ]
+   },
+   "qwen3.8:27b-mlx": {
+    "n_completed": 0,
+    "n_started": 0,
+    "status": "in-flight"
+   }
+  },
+  "matrix_gap_comparison": {
+   "anchor_lane_mean": 31.2,
+   "noise_floor_sd": 6.22,
+   "noise_floor_range": 15,
+   "gaps_below_sd": {
+    "glm-5.2 (T447)": 1.2,
+    "deepseek-v4-pro (T447)": 2.8,
+    "minimax-m3 (T447)": 4.2,
+    "claude-sonnet-5 (T447-rep)": 5.2
+   },
+   "gaps_above_sd": {
+    "kimi-k2.7 (T447)": 6.2,
+    "deepseek-v4-flash (T447)": 6.8,
+    "claude-opus-5 (T447-rep)": 14.8,
+    "claude-haiku-4-5-20251001 (T447-rep)": 31.2
+   }
+  },
+  "honest_read": "DeepSeek-v4-flash's within-model noise floor on this sealed brief is sd \u2248 6.2, range 15 (scores 22\u201337) on a 30-point rubric, measured blind by the same grader model (claude-opus-5) who scored the original T447 lane. Every adjacent gap in the T-A matrix smaller than ~1 sd is below this lane's own noise: flash(38)\u2013pro(34)=4, pro(34)\u2013glm(30)=4, glm(30)\u2013minimax(27)=3, minimax(27)\u2013sonnet(26)=1 and sonnet(26)\u2013kimi(25)=1 are all unrankable as written; the only robust readings are opus(46) above the field and haiku(0) below it, each >2 sd from the pack. Worse for the ladder: the original n=1 flash score of 38 sits at the top of this lane's own repeat distribution (max 37) \u2014 the single-shot reading that crowned flash rank-1 was one draw from a spread as wide as the field it beat. Where the variance lives is the actionable finding: all five independent repeats found the key's structural findings (8/8 Class B sites in every output, 4/5 perfect Class A reachability, zero false Class-C alarms), and the spread collapses to 5 points (36\u201341) once citation-address penalties are removed \u2014 the instrument's noise is line-number fidelity, not reasoning quality, which argues for a mechanical citation-verification pass in the harness rather than more grader effort. Caveats: the noise floor is measured for the anchor lane only (the qwen lane is in flight overnight); cross-model noise is assumed, not measured; and the T447-rep cells (opus/sonnet/haiku) were graded by a different grader, so their gaps carry grader variance on top of model variance."
+ },
+ "notes": "DS lane: 5 independent repeats of the sealed T447 brief (byte-identical wrapped prompt, sha256 84ec2845...) in fresh --no-session pi contexts, frozen worktree /tmp/weizigo/race1-t447 @ 111c141. Graded blind (A-E anonymized, sealed map ds-map.sealed.json opened after grading) by claude-opus-5 in one session (782.7s, 1,931,993 in / 59,736 out tokens, session 9408abf2-1c86-44e8-9da9-4ef4ef4837cd) \u2014 the SAME grader model as the original T447 race, so the original 38 is on the same grader scale. Fleet load during runs (4-5 concurrent suites/consoles) \u2014 walls recorded as facts, timing anchors load-affected per grand-race.md \u00a73. qwen lane IN-FLIGHT: the suite gate (no local inference during a measured suite run) held r1 from starting while 4-5 concurrent suites ran 20:43-21:28+; drive-qwen.sh runs detached overnight and qwen-watcher.sh grades completed repeats via the same claude-opus-5 grader model and appends T626-qwen-r* rows to docs/infra/model-task-metrics.jsonl when ALL DONE. Epoch 2026-08-22 throughout; no mid-experiment bump. No inbox directives received (0 acked). git-commit-mine refused at 21:31 (index held another console's staged docs/status/ROADMAP-2026-08-21.md, T268 class); committed by name via pathspec `git commit <my 2 paths>` after a 3-min wait, leaving the foreign staged file untouched.",
+ "artifacts": {
+  "run_root": "untracked/bakeoff/t626-variance/",
+  "ds_lane_outputs": "untracked/bakeoff/t626-variance/lanes/deepseek-v4-flash/r1..r5/out.md",
+  "qwen_lane_outputs": "untracked/bakeoff/t626-variance/lanes/qwen3.8:27b-mlx/r1..r5/out.md (in flight)",
+  "grader_briefs": "untracked/bakeoff/t626-variance/grading/grader-brief-ds.md, grader-brief-qwen.md",
+  "sealed_maps": "untracked/bakeoff/t626-variance/grading/ds-map.sealed.json, qwen-map.sealed.json",
+  "frozen_worktree": "/tmp/weizigo/race1-t447 (commit 111c141)",
+  "jsonl_rows": "docs/infra/model-task-metrics.jsonl (run_id T626-ds-r*, T626-qwen-r*)"
+ }
+}
