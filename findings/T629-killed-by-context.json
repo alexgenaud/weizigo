@@ -1,0 +1,61 @@
+{
+  "task_id": "T629",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T629",
+  "kind": "context-dump",
+  "claims": [],
+  "new_rows": [],
+  "red_quotes": {
+    "regression-model-profiles.sh arm m": "m. T629: censored rows never score; the census prints scored/censored/unattributed\n  FAIL: no census key in --json (Ruling 32: skip counts print with the figure)\n  FAIL: censored row scored beta completion_close n=1 (must be refused)",
+    "regression-orcha-acceptance.sh arm F": "F. AC6: censored verified=fail rows are skipped and counted (T629)\n  FAIL: arm F exit 2 (expected 0 — the only fail is censored)\n  FAIL: arm F AC6 detail wrong (expected '0 verified=fail … (1 censored…)': 1 verified=fail line(s) in the last 40 perf entries — each needs a reason or a re-dispatch",
+    "regression-fleet-keeper.sh arm T629": "T629. seeded: least_data_model excludes censored rows and prints the census\n  FAIL: expected T923 → deepseek-v4-flash (rc=0); got:\n  | dispatched T923 deepseek-v4-pro\n  FAIL: no census line with censored=1 in the keeper output",
+    "regression-directive-kill.sh arm 10": "10. seeded (T629): runner stamps killed_by=wall on a wall-kill run record\n  FAIL: runner rc=124; expected a run record with killed_by=wall\n  | {\"task\": \"T6261\", \"killed\": \"wall ceiling 1s (1s) reached at 1.1s elapsed (no [progress] lines seen)\", \"signal\": 9, ...}  (no killed_by field)",
+    "regression-dispatch-verification.sh arms 16-19": "16. seeded: a wall-kill run record writes killed_by=wall on the perf line\n  FAIL: rc=2; expected the perf line to carry killed_by=wall\n  | dispatch-verify 2026-08-22 T1008 deepseek-v4-flash report=incomplete verified=fail fail=row\n  (likewise arms 17/18/19: no killed_by field on the T1009/T1010/T1011 lines)"
+  },
+  "green_quotes": {
+    "regression-model-profiles.sh arm m": "m. T629: censored rows never score; the census prints scored/censored/unattributed\n  PASS: census scored=2 censored=1 unattributed=1; censored row refused; pass and legacy-fail still grade\n=== regression-model-profiles: ALL CONTROLS PASSED ===",
+    "regression-orcha-acceptance.sh arm F": "F. AC6: censored verified=fail rows are skipped and counted (T629)\n  PASS: arm F exit 0\n  PASS: arm F AC6 counts 0, prints the skip: 0 verified=fail in the last 40 perf entries (1 censored, skipped)\n  PASS: arm F summary is ACCEPTANCE PASS",
+    "regression-fleet-keeper.sh arm T629": "T629. seeded: least_data_model excludes censored rows and prints the census\n  PASS: censored row excluded — T923 (model-less) dispatched to deepseek-v4-flash\n  PASS: the skip count prints alongside the choice (censored=1)\n=== regression-fleet-keeper: ALL CONTROLS PASSED ===",
+    "regression-directive-kill.sh arms 6+10": "6. seeded: launch-time directive kill writes a run record (kill_class=directive)\n  PASS: exit 124 AND run record names the directive (kill_class=directive, killed_by=directive, killed=\"directive ...\")\n10. seeded (T629): runner stamps killed_by=wall on a wall-kill run record\n  PASS: wall-kill record carries killed_by=wall (rc=124)\n=== regression-directive-kill: all controls passed ===",
+    "regression-dispatch-verification.sh arms 16-19": "16. seeded: a wall-kill run record writes killed_by=wall on the perf line\n  PASS: wall-kill row recorded verified=fail fail=row killed_by=wall (rc=2)\n17. seeded: a provider refusal writes killed_by=provider-limit on the perf line\n  PASS: provider refusal row recorded killed_by=provider-limit (rc=2)\n18. null: a clean pass writes killed_by=none on the perf line\n  PASS: clean pass recorded verified=pass killed_by=none (rc=0)\n19. seeded: a genuine failure stays verified=fail fail=row killed_by=none (not laundered)\n  PASS: genuine failure recorded killed_by=none, still a scored fail (rc=2)\n=== regression-dispatch-verification: ALL CONTROLS PASSED ==="
+  },
+  "derivation_unit_smoke": {
+    "T1 runner-stamped wall": "wall",
+    "T2 old-format wall kill (no stamp)": "wall",
+    "T3 startup liveness (kill_class=liveness)": "liveness",
+    "T4 progress timeout": "watchdog",
+    "T5 clean exit": "none",
+    "T6 directive launch refusal": "directive",
+    "T7 no record + 429 log": "provider-limit",
+    "T8 harness kill whose tail shows the refusal (T616 shape)": "provider-limit",
+    "T9 exit 1 + claude envelope refusal (T617 shape)": "provider-limit",
+    "T10 watchdog kill + mid-log 429 quote (T526 shape, quote outside the window)": "watchdog",
+    "T11 no record, clean log": "none",
+    "bare dispatch (task None)": null
+  },
+  "census_live_ledger_2026-08-22": {
+    "total_dispatch_rows": 60,
+    "scoreable": 51,
+    "censored": 9,
+    "unattributed": 0,
+    "both": 0,
+    "censored_rows": [
+      "T544 deepseek-v4-pro directive",
+      "T544 deepseek-v4-flash directive",
+      "T615 claude-fable-5 provider-limit",
+      "T617 claude-sonnet-5 provider-limit",
+      "T616 claude-opus-5 provider-limit",
+      "T622 claude-opus-5 provider-limit",
+      "T621 claude-sonnet-5 provider-limit",
+      "T526 deepseek-v4-flash watchdog",
+      "T616 claude-opus-5 provider-limit (re-dispatch)"
+    ],
+    "store_level_unattributed_rows": 196,
+    "note": "store-level attribution is T544's domain; attribution and killed_by are two conditions on the same denominator, neither alone makes a cell publishable (Ruling 32 consequence 2)."
+  },
+  "commits": [
+    "2e36495 T629: killed_by schema; readers refuse guard-killed rows",
+    "55c99fa T629: re-key hand-annotated rows; drop DO-NOT-SCORE prose"
+  ]
+}
