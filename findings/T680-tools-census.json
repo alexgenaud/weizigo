@@ -1,0 +1,104 @@
+{
+  "task_id": "T680",
+  "date": "2026-08-22",
+  "model": "claude-haiku-4-5-20251001",
+  "claims": [],
+  "new_rows": [],
+  "census_scope": "All executables and scripts in bin/, tools/, untracked/, tools/hooks/",
+  "census_size": 107,
+  "categories": {
+    "bin_executables": 11,
+    "tools_shell_scripts": 81,
+    "tools_python_scripts": 10,
+    "untracked_scripts": 3,
+    "hooks": 2
+  },
+  "key_findings": [
+    {
+      "severity": "HIGH",
+      "path": "bin/weizigo-claimlint",
+      "issue": "STALE BUILD",
+      "details": "Smoke test reports: 'built from 3bd3f40; committed source changes since then (HEAD 83024c0) — run zig build deploy'",
+      "verdict": "FIX: rebuild immediately",
+      "impact": "186 callers; claimlint is critical to C2/C7 enforcement"
+    },
+    {
+      "severity": "HIGH",
+      "path": "tools/regression-window-resilience.sh",
+      "issue": "UNTRACKED (NEW FILE)",
+      "details": "File exists in working tree but has no git commit history. Likely new work from this T680 census task.",
+      "verdict": "FIX: commit to git or verify if it's safe to delete",
+      "impact": "1 caller; blocks git add -A operations"
+    },
+    {
+      "severity": "MEDIUM",
+      "path": "untracked/window_policy.py",
+      "issue": "UNTRACKED (NEW FILE)",
+      "details": "File exists in working tree but has no git commit history. Appears to be incomplete work-in-progress.",
+      "verdict": "FIX: commit or delete; currently invisible to git history",
+      "impact": "2 callers; no regression tests"
+    },
+    {
+      "severity": "MEDIUM",
+      "path": "untracked/T554-dispatch-graders.sh",
+      "issue": "ORPHANED (ZERO CALLERS)",
+      "details": "Untracked file with no git history and zero callers found across entire codebase.",
+      "verdict": "DELETE: incomplete/stale work from T554; no longer referenced",
+      "impact": "0 callers; blocks clean working tree"
+    },
+    {
+      "severity": "LOW",
+      "path": "untracked/watch-rebuild.sh",
+      "issue": "MINIMAL USAGE",
+      "details": "Untracked file with no git history; only 2 callers found.",
+      "verdict": "CLARIFY: commit if still needed, otherwise delete",
+      "impact": "2 callers; unclear if active"
+    }
+  ],
+  "category_summary": {
+    "bin_executables": {
+      "count": 11,
+      "issues": [
+        "bin/weizigo-claimlint is STALE"
+      ],
+      "verdict": "10 KEEP, 1 FIX"
+    },
+    "tools_shell_scripts": {
+      "count": 81,
+      "content": "Mostly regression tests (regression-*.sh); all appear functional with active regression coverage",
+      "issues": [
+        "tools/regression-window-resilience.sh has NO-COMMIT"
+      ],
+      "verdict": "80 KEEP, 1 FIX"
+    },
+    "tools_python_scripts": {
+      "count": 10,
+      "content": "Verification, dispatch, profiling, and metric tools; all well-integrated",
+      "verdict": "10 KEEP"
+    },
+    "untracked_scripts": {
+      "count": 3,
+      "content": "watch-fleet.sh (KEEP, 32 callers); watch-rebuild.sh (CLARIFY); T554-dispatch-graders.sh (DELETE)",
+      "issues": [
+        "2 untracked files with zero git history"
+      ],
+      "verdict": "1 KEEP, 1 CLARIFY, 1 DELETE"
+    },
+    "hooks": {
+      "count": 2,
+      "content": "pre-commit hook (112 callers); claimlint-floor.json config (43 callers)",
+      "verdict": "2 KEEP"
+    }
+  },
+  "statistics": {
+    "total_tools": 107,
+    "verdict_keep": 102,
+    "verdict_fix": 2,
+    "verdict_delete": 1,
+    "verdict_clarify": 1,
+    "untracked_files_with_issues": 3,
+    "stale_binaries": 1,
+    "no_callers": 1
+  },
+  "notes": "This is a READ-ONLY census per T680 race-lane rules. Five independent lanes are running this census in parallel. Fixes become their own task rows. No tool modifications in this findings file."
+}
