@@ -5,7 +5,27 @@ The 12:47Z outage was discovered by accident; this time the outcomes are written
 the fleet's behaviour is *tested* rather than merely observed. Whichever serial lane straddles
 the wall is the canary, and this file is the key it is graded against.
 
-## Standing rule for this window (operator, 2026-08-22)
+## AMENDED ~14:58Z, before any lane launched — the operator revised the concurrency rule
+
+The operator's later instruction supersedes the serial rule for **one race**: *"I believe we can
+get one full race in parallel before we approach the five hour limit… After a full race
+finishes, then if we still have token left without limit, continue Claude runs in serial (DS in
+parallel, full speed)."* So Race G's three Claude seats — opus, sonnet, haiku — launch
+**together**, and the serial discipline below resumes for everything after this race.
+
+**The expectations in this file are unchanged** and were written before any lane launched; only
+the concurrency rule changed. What the change costs, stated plainly so the bet is on the record:
+a parallel race means the wall can claim **all three** Claude lanes instead of one. That is
+accepted because every Race G lane is told to flush its findings file after each claim and the
+batch is ordered by cascade risk, so three wall-killed lanes leave three salvageable prefixes of
+the valuable half rather than three empty files — and the T616/T617 precedent for adjudicating a
+killed lane's artifact is now established practice rather than an improvisation.
+
+`claude-fable-5` is **not** a lane. Per the operator it may serve only as grader, final arbiter,
+evaluator or tie-breaker — so Race G's primary grade goes to a non-Claude seat under G3, and
+Fable is held for arbitration of contested verdicts.
+
+## Standing rule for this window (operator, 2026-08-22) — applies after this race
 
 **One live heavy Claude lane at a time.** The wall can then claim at most one lane. Short haiku
 lanes (< ~5 min expected) may interleave — they beat the last wall and losing one is cheap.
