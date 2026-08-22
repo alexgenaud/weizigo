@@ -1,0 +1,966 @@
+{
+ "task_id": "T592",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "claims": [],
+ "new_rows": [],
+ "tools": [
+  {
+   "id": "R01",
+   "path": "bin/argus",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "6e0c02d 2026-08-20 T432: argus never presumes death \u2014 brief + docstring reworded",
+   "referenced_by": "334 files: ./build.zig, ./docs/audits/2026-08-01-coherence-audit.md, ./docs/audits/2026-08-01-context-dump-synthesis.md, ./docs/audits/2026-08-01-sprint-bookend-disposition.md, ./docs/audits/2026-08-20-fleet-and-model-audit.md\u2026",
+   "regression_coverage": "mentioned in 2 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help clean; covered by regression-argus-doctor.sh + regression-claim-lifecycle.sh (liveness/doctor arms)."
+  },
+  {
+   "id": "R02",
+   "path": "bin/dispatch",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "735db2b 2026-08-22 T677: cooldown arms from run records only; override + subagent gate",
+   "referenced_by": "2085 files: ./.zig-cache/h/000790d6ac3c51f6dec919a6045d97fc.txt, ./.zig-cache/h/011a6c9c381acb8f025395b83250dacf.txt, ./.zig-cache/h/066434581dbc64db1dce8b34c7164894.txt, ./.zig-cache/h/0782aef286ae1a8e05b432bf3251e561.txt, ./.zig-cache/h/0799ae9d3264fec2b2ee84a15911bad4.txt\u2026",
+   "regression_coverage": "dedicated: tools/regression-dispatch.sh",
+   "verdict": "KEEP",
+   "notes": "usage clean. Dedicated regression-dispatch.sh + ~6 more. NOTE: had an uncommitted working-tree diff at census time (in-flight edit by another console)."
+  },
+  {
+   "id": "R03",
+   "path": "bin/managent",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "2048 files: ./.zig-cache/h/47a8baee9387f00bd90c3ed20aa527b4.txt, ./.zig-cache/h/59b52dc05d3ee6f2f967700630e9aef3.txt, ./.zig-cache/h/7dd923941c87d042a441acc2ce2f86fe.txt, ./.zig-cache/h/8be42abdd1b7b1500e4d129763208b4e.txt, ./.zig-cache/h/8f08f4f68b15f0050b84ec0ac76428f2.txt\u2026",
+   "regression_coverage": "mentioned in 52 wired regressions",
+   "verdict": "FIX",
+   "notes": "FINDING (independent repro, 2 ways): `managent agent <id> <model>` SEGFAULTS (Abort trap 6/RC=134) on the mutate-success render path \u2014 store write completes, then crash in std Io/Writer.zig:1040 alignBufferOptions via src/managent/main.zig:1236 cmdAgent. Caught by WIRED tools/regression-managent-lock.sh control 2, which is RED right now; the red is NOT in docs/infra/suite-truth.md's 4-known-reds manifest \u2192 an unregistered new suite red. status/liveness/orient/help/whoami/needs/sync/why all work on c8ce08d-dirty. The brief's specimen (`managent liveness` \u2192 SyntaxError on build 5036557-dirty) does NOT reproduce on current builds \u2014 fixed since; liveness now has invocation coverage (regression-claim-lifecycle.sh T432 arms)."
+  },
+  {
+   "id": "R04",
+   "path": "bin/subagent",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "735db2b 2026-08-22 T677: cooldown arms from run records only; override + subagent gate",
+   "referenced_by": "640 files: ./AGENTS.md, ./bin/dispatch, ./build.zig, ./docs/INDEX.md, ./docs/README.md\u2026",
+   "regression_coverage": "mentioned in 12 wired regressions",
+   "verdict": "KEEP",
+   "notes": "usage-on-missing-flag (no --help flag; documented). Covered by regression-subagent-prompt.sh + 8 more."
+  },
+  {
+   "id": "R05",
+   "path": "bin/weizigo-arena",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "95 files: ./AGENTS.md, ./build.zig, ./docs/audits/2026-07-28-muhtasib-audit-chunk4.md, ./docs/audits/2026-08-02-grand-audit/arm-infra-tooling.md, ./docs/evidence/GLOBAL.HYPOTHESES/reality-check-2026-07-28.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "FIX",
+   "notes": "no-arg run: `error: FileNotFound` \u2014 hardcoded default artifact path data/oracle-4x4.wzo does not exist. ZERO dedicated regression coverage AND absent from tools/smoke.sh deploy_check. Least-verified game binary."
+  },
+  {
+   "id": "R06",
+   "path": "bin/weizigo-chainability",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "197 files: ./archives/register/rows/2x2.M4.md, ./build.zig, ./docs/INDEX-claim-evidence.md, ./docs/audits/2026-07-28-muhtasib-audit-chunk1.md, ./docs/audits/2026-07-28-muhtasib-audit-plan.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "needs an artifact arg (error: NoArtifact bare). Smoke deploy_check covers build freshness only; no behavioral regression."
+  },
+  {
+   "id": "R07",
+   "path": "bin/weizigo-claimlint",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "391 files: ./AGENTS.md, ./archives/register/rows/CODE.STANDING-ABSORB.md, ./archives/register/rows/CODE.STANDING-C3-DEAD.md, ./bin/argus, ./build.zig\u2026",
+   "regression_coverage": "mentioned in 22 wired regressions",
+   "verdict": "KEEP",
+   "notes": "no-arg runs a full verify pass (slow, 8856-file index); heavily covered by 4 dedicated regression-claimlint-*.sh + ~15 incidental."
+  },
+  {
+   "id": "R08",
+   "path": "bin/weizigo-engine-vs-engine",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "79 files: ./build.zig, ./docs/audits/2026-07-28-muhtasib-audit-chunk4.md, ./docs/evidence/ORACLE-V2/releasesafe-attempt-T313-2026-08-03.log, ./docs/evidence/SUITE-BISECT/T392-suite-56973b0.stdout, ./docs/infra/versioning.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "usage message on no-args. Smoke deploy_check only; no behavioral regression."
+  },
+  {
+   "id": "R09",
+   "path": "bin/weizigo-gtp",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "294 files: ./build.zig, ./docs/audits/2026-08-02-grand-audit/arm-infra-tooling.md, ./docs/audits/2026-08-08-week-close-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-b-discernment/brief.md, ./docs/evidence/ENGINE-VS-ENGINE/old-vs-new-4x4-2026-08-05.md\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "banner + deferred mode OK; covered by regression-gtp-boardsize.sh + smoke deploy_check."
+  },
+  {
+   "id": "R10",
+   "path": "bin/weizigo-oracle",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "3406 files: ./AGENTS.md, ./archives/register/rows/CODE.WZO2-UNRUN.md, ./bin/argus, ./build.zig, ./docs/audits/2026-07-28-muhtasib-audit-chunk4.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "FIX",
+   "notes": "byte-level alias of weizigo-gtp (deploy.sh copy; banner says 'weizigo-gtp'). ZERO dedicated regression AND absent from smoke.sh deploy_check (smoke covers gtp but not oracle) \u2014 the weakest-verified surface; T534 records a prior silent breakage of this alias."
+  },
+  {
+   "id": "R11",
+   "path": "bin/weizigo-reachcensus",
+   "kind": "exec",
+   "works": "compiled binary \u2014 probed",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "86 files: ./build.zig, ./docs/epistemic/GLOSSARY.md, ./docs/epistemic/critique-2026-07-28.md, ./docs/evidence/GLOBAL.DENOMINATORS/PROVENANCE.md, ./docs/evidence/GLOBAL.DENOMINATORS/sweep-2026-07-28.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "needs artifact arg (error: NoArtifact bare). Smoke deploy_check only."
+  },
+  {
+   "id": "R12",
+   "path": "tools/attribution-backfill.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "8076156 2026-08-22 T544: model-attribution write path + backfill",
+   "referenced_by": "56 files: ./build.zig, ./docs/infra/managent/directives.jsonl, ./docs/status/recovered/console-assessments-2026-08-22.md, ./findings/T544-attribution.json, ./findings/T544-context.json\u2026",
+   "regression_coverage": "dedicated: tools/regression-attribution-backfill.sh",
+   "verdict": "KEEP",
+   "notes": "runs via python3 (no exec bit); dedicated regression-attribution-backfill.sh. --help clean."
+  },
+  {
+   "id": "R13",
+   "path": "tools/bakeoff-dryrun-task.md",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "89baf9a 2026-08-05 T328 deepseek-v4-flash: bake-off harness + protocol + dry-run proof. tools/bakeoff.sh dispatches one lane per roster model under tools/runner (wall/CPU/RSS trailer + heartbeat), per-lane untracked/bakeoff/<run>/<model>/out.md + lanes.json dispatch record, --emit for human one-console replay; claude lanes emit-only behind WEIZIGO_BAKEOFF_ALLOW_CLAUDE (T328 bar, structural). docs/infra/bakeoff.md = T316-hardened protocol: answer key committed before dispatch, identical brief per lane, blind grading with null + seeded-defect grader controls and family exclusion, mechanical anchors first, label hygiene, both clocks from the runner trailer, operator-collected verbatim token readouts, tokens-not-prices. Dry run dryrun-2026-08-05b proved plumbing end-to-end: deepseek-v4-flash lane exit 0, out.md 18 B exact, trailer wall 1.7 s cpu 0.48 s rss 194 MB; claude lane refused by the gate (run exit 1 as designed). Findings disclose the acceptance: zig build test is red at HEAD b045bff pre-existing (src/vb_i11.zig:58 imports 'engine' but build.zig:407 clears that test target's import table \u2014 broken by construction since T346 partial 9d2fd76; regression-managent-standing controls 3-5 fail in a scratch repo; src/ unmodified by this row) \u2014 report-don't-adapt, no src/ or build.zig touched. Fixture files committed via --explicit (outside the bundle deliverables=; Orcha may re-scope the bundle).",
+   "referenced_by": "45 files: ./docs/infra/bakeoff.md, ./findings/T328-bakeoff.json, ./findings/T328-context.json, ./findings/T376-bakeoff-worktree.json, ./findings/T678-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "frozen fixture, not a tool."
+  },
+  {
+   "id": "R14",
+   "path": "tools/bakeoff-dryrun.roster",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "89baf9a 2026-08-05 T328 deepseek-v4-flash: bake-off harness + protocol + dry-run proof. tools/bakeoff.sh dispatches one lane per roster model under tools/runner (wall/CPU/RSS trailer + heartbeat), per-lane untracked/bakeoff/<run>/<model>/out.md + lanes.json dispatch record, --emit for human one-console replay; claude lanes emit-only behind WEIZIGO_BAKEOFF_ALLOW_CLAUDE (T328 bar, structural). docs/infra/bakeoff.md = T316-hardened protocol: answer key committed before dispatch, identical brief per lane, blind grading with null + seeded-defect grader controls and family exclusion, mechanical anchors first, label hygiene, both clocks from the runner trailer, operator-collected verbatim token readouts, tokens-not-prices. Dry run dryrun-2026-08-05b proved plumbing end-to-end: deepseek-v4-flash lane exit 0, out.md 18 B exact, trailer wall 1.7 s cpu 0.48 s rss 194 MB; claude lane refused by the gate (run exit 1 as designed). Findings disclose the acceptance: zig build test is red at HEAD b045bff pre-existing (src/vb_i11.zig:58 imports 'engine' but build.zig:407 clears that test target's import table \u2014 broken by construction since T346 partial 9d2fd76; regression-managent-standing controls 3-5 fail in a scratch repo; src/ unmodified by this row) \u2014 report-don't-adapt, no src/ or build.zig touched. Fixture files committed via --explicit (outside the bundle deliverables=; Orcha may re-scope the bundle).",
+   "referenced_by": "46 files: ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/infra/bakeoff.md, ./findings/T328-bakeoff.json, ./findings/T328-context.json, ./findings/T574-pass2-spec-reaudit.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "frozen fixture, not a tool."
+  },
+  {
+   "id": "R15",
+   "path": "tools/bakeoff.sh",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "5899c2f 2026-08-22 T526 (orphaned, UNVERIFIED): blind-grading subcommand rescued from a watchdog kill",
+   "referenced_by": "195 files: ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/roster-2026-08-20b.txt\u2026",
+   "regression_coverage": "mentioned in 3 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help clean. NOTE: its own latest commit message self-declares the `grade` subcommand orphaned/UNVERIFIED (rescued from a watchdog kill) \u2014 a declared trust gap to fix or retire."
+  },
+  {
+   "id": "R16",
+   "path": "tools/battery-baseline-compare.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "f25e615 2026-08-03 T292: golden-master baselines + battery gate \u2014 recorded per-check baselines (status, counts, modes, SHA, binary stamp) for all seven WZO1 artifacts and WZO2 0c3366f0; wired the fast-path baseline comparison into zig build test (+3.3s) and the slow 4x4+WZO2 sweep behind zig build battery-sweep; fixed verify-battery writeResult dropping denominators; stride-97 coprimality discharged (group sizes {2,4,5,6,7,8}); v1 I2 fail reproduces 4x4.V1-INVSYM-BROKEN exactly",
+   "referenced_by": "59 files: ./docs/epics/E1-markovian/sprints/verify-battery/pass1/baselines.md, ./findings/T292-baselines.json, ./findings/T292-context.json, ./findings/T309-context.json, ./findings/T391-context.json\u2026",
+   "regression_coverage": "mentioned in 2 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help clean; wired via regression-battery-baselines.sh/sweep.sh."
+  },
+  {
+   "id": "R17",
+   "path": "tools/claimlint-redirect-short.fixture",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "81f37d2 2026-08-03 T307: fix claimlint redirect truncation \u2014 persistent File.Writer",
+   "referenced_by": "45 files: ./docs/evidence/SUITE-BISECT/T392-suite-56973b0.stdout, ./findings/T307-context.json, ./findings/T307-redirect-truncation.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "golden-output fixture consumed by regression-claimlint-output.sh (sampled PASS this census)."
+  },
+  {
+   "id": "R18",
+   "path": "tools/complementarity-record.json",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "2c40f03 2026-08-22 T661: portfolio complementarity \u2014 two races reduced to a standing record",
+   "referenced_by": "27 files: ./docs/infra/complementarity.md, ./findings/T637-complementarity.json, ./findings/T661-portfolio.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "FIX",
+   "notes": "10 citation labels double the T: findings/TT620-624-race-c + TT638-642-race-g \u2014 ALL dead links; the single-T twins (findings/T620-race-c.json etc.) exist on disk. Cosmetic in a data record but breaks machine lookup."
+  },
+  {
+   "id": "R19",
+   "path": "tools/complementarity.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "13ff364 2026-08-22 T637: complementarity reduction, wired into zig build test",
+   "referenced_by": "34 files: ./build.zig, ./docs/infra/complementarity.md, ./docs/infra/managent/tasks.json, ./findings/T637-complementarity.json, ./findings/T661-portfolio.json\u2026",
+   "regression_coverage": "dedicated: tools/regression-complementarity.sh",
+   "verdict": "KEEP",
+   "notes": "runs via python3 (no exec bit); dedicated regression-complementarity.sh wired."
+  },
+  {
+   "id": "R20",
+   "path": "tools/deploy.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "ae29552 2026-08-02 T268: deploy via remove-copy-sign; smoke tests run the deployed copy",
+   "referenced_by": "93 files: ./build.zig, ./docs/infra/managent/tasks.json, ./findings/DARGUS-2026-08-22b.json, ./findings/T268-context.json, ./findings/T268-deploy.json\u2026",
+   "regression_coverage": "mentioned in 10 wired regressions",
+   "verdict": "KEEP",
+   "notes": "build.zig deploy primitive (remove-copy-sign); no --help/dry-run by design. Indirect coverage via regression-managent-store-write-utf8.sh."
+  },
+  {
+   "id": "R21",
+   "path": "tools/directive_policy.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "4aee950 2026-08-22 T625: stale pauses discharge; directive kills never score as failures",
+   "referenced_by": "43 files: ./bin/dispatch, ./findings/T625-directive-kill.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json, ./findings/T681-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "library module, no CLI; exercised indirectly via regression-directive-*.sh."
+  },
+  {
+   "id": "R22",
+   "path": "tools/dispatch_verify.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "referenced_by": "189 files: ./bin/subagent, ./build.zig, ./docs/audits/2026-08-08-week-close-audit.md, ./docs/audits/2026-08-20-fleet-and-model-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md\u2026",
+   "regression_coverage": "mentioned in 3 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help falls through to its default dry-run (read-only). Default run at census time flagged findings/T687-race-h.json, T692/T693-race-g2.json as schema-non-conforming \u2014 in-flight graders (snapshot), matches orcha-acceptance AC9."
+  },
+  {
+   "id": "R23",
+   "path": "tools/fleet-cooldown.sh",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "7d0efea 2026-08-20 T496: fleet-keeper loop + cooldown flag (DFLEET duty)",
+   "referenced_by": "57 files: ./docs/audits/2026-08-20-fleet-and-model-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/infra/duties.md, ./docs/infra/managent/tasks.json, ./docs/status/ROADMAP-2026-08-20.md\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "cooldown flag tool; covered via regression-fleet-keeper.sh."
+  },
+  {
+   "id": "R24",
+   "path": "tools/fleet-keeper.sh",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "757138e 2026-08-22 T651: autopilot keeper loop \u2014 lease, idle-exit, appetite/cap, wake",
+   "referenced_by": "201 files: ./bin/dispatch, ./build.zig, ./docs/audits/2026-08-20-fleet-and-model-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/01-spec-qwen3.8:27b-mlx.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/audit-disposition.md\u2026",
+   "regression_coverage": "dedicated: tools/regression-fleet-keeper.sh",
+   "verdict": "KEEP",
+   "notes": "daemon loop; dedicated regression-fleet-keeper.sh wired. NOTE: uncommitted working-tree diff at census time (in-flight)."
+  },
+  {
+   "id": "R25",
+   "path": "tools/gen-indices",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "b1c443f 2026-08-07 T406: absorption machinery fixed at both broken sites \u2014 weizigo-absorb parses the 11-column register via the header-derived shared parser (empty parse is a HARD error naming the counts, never 'nothing to do'; add_row directives carry the TREE-ASSIGN placeholder, C9-gated) and gen-indices (the second vacuous consumer \u2014 its 10-column guard wrote empty INDEX files while reporting success) is guarded with a 13-part check and a 0-claims hard error; registerStanding RE-OPENS a done/failed standing row to dispatchable on re-trigger (canonical row reopened, note updated), a live instance is NOT re-registered with a refusal that reads as inaction, shared by all five standing templates. Controls test-first in tools/regression-absorption-machinery.sh (wired into zig build test): A1 221-rows/11-col, A2 10-col hard error, A3 null, B1 221 indexed, B2 loud 0-claim refusal, C1 done->dispatchable, C2 live guard, C3 family-wide, C4 standing null \u2014 ALL CONTROLS PASSED standalone. Deployed (full zig build deploy; window open, T407 done) + smoke zero STALE; claimlint byte-identical to committed baseline (C7 3, C2 11, C3 48, C1a/b 0, C6 0, C9 0, calibration PASS, non-conforming 0) \u2014 CLAIMS.md untouched. INDEX regeneration is a follow-up, not this row. Landmark: advances L4 (the ledger is clean) \u2014 the safety nets that failed during T404 now fail loudly instead of reporting success while doing nothing. First worker infra-killed mid-suite (dispatch CPU ceiling); console measured suite 609.7 s with this regression green. Paths beyond the bundle deliverables= meta (claims_register.zig, gen-indices, build.zig) per T409 console continuation directive.",
+   "referenced_by": "113 files: ./build.zig, ./docs/INDEX-claim-evidence.md, ./docs/INDEX-claim-task.md, ./docs/audits/2026-08-01-coherence-audit.md, ./docs/audits/2026-08-02-grand-audit/GRAND-AUDIT.md\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "FIX",
+   "notes": "CONFIRMED HAZARD (first-hand): NO argument parsing \u2014 `--help` (or anything) silently rewrites docs/INDEX-claim-{evidence,deps,task}.md in place. This census's probe dirtied all three tracked files; reverted via git checkout. Anyone probing it read-only will mutate tracked docs."
+  },
+  {
+   "id": "R26",
+   "path": "tools/gen-version.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "ae29552 2026-08-02 T268: deploy via remove-copy-sign; smoke tests run the deployed copy",
+   "referenced_by": "92 files: ./build.zig, ./docs/audits/2026-08-02-grand-audit/GRAND-AUDIT.md, ./docs/audits/2026-08-02-grand-audit/arm-infra-tooling.md, ./docs/evidence/ENGINE-VS-ENGINE/symmetric-2026-08-05.md, ./docs/evidence/RESCUED-tmp-2026-08-08/T421-baseline-claimlint.txt\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "codegen wired directly into build.zig:25; ran clean (stdout only)."
+  },
+  {
+   "id": "R27",
+   "path": "tools/git-commit-mine",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "4ed5ab2 2026-08-20 T547: commit mutex + holds check against shared-index absorption",
+   "referenced_by": "497 files: ./AGENTS.md, ./build.zig, ./docs/audits/2026-08-08-week-close-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/OWNER-LOG.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/T447-escape-sweep.md\u2026",
+   "regression_coverage": "dedicated: tools/regression-git-commit-mine.sh",
+   "verdict": "KEEP",
+   "notes": "dedicated regression-git-commit-mine.sh + -hook.sh wired."
+  },
+  {
+   "id": "R28",
+   "path": "tools/git-commit-mine-lib.sh",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "31dce73 2026-08-20 T540: pre-commit hook splits unreadable-store from no-holders",
+   "referenced_by": "144 files: ./docs/infra/absorption-spec.md, ./docs/infra/managent/tasks.json, ./docs/status/sprint-2026-08-20.md, ./findings/DARGUS-chunk.json, ./findings/T282-context.json\u2026",
+   "regression_coverage": "mentioned in 2 wired regressions",
+   "verdict": "KEEP",
+   "notes": "shared lib for git-commit-mine + pre-commit hook; covered via both."
+  },
+  {
+   "id": "R29",
+   "path": "tools/model-profiles.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "referenced_by": "104 files: ./build.zig, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race.md, ./docs/evidence/OLLAMA-CONC/driver-summaries.json, ./docs/infra/archive/model-perf-2026-08-21.md\u2026",
+   "regression_coverage": "dedicated: tools/regression-model-profiles.sh",
+   "verdict": "KEEP",
+   "notes": "--help clean; dedicated regression-model-profiles.sh wired."
+  },
+  {
+   "id": "R30",
+   "path": "tools/orcha-acceptance.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "referenced_by": "118 files: ./build.zig, ./docs/audits/2026-08-20-fleet-and-model-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/decision-log.md, ./docs/infra/archive/model-perf-2026-08-21.md\u2026",
+   "regression_coverage": "dedicated: tools/regression-orcha-acceptance.sh",
+   "verdict": "KEEP",
+   "notes": "live run this census: ACCEPTANCE FAIL \u2014 6 checks (AC1 claimed-no-worker \u00d74, AC4 no-landmark \u00d74, AC5 duty-blocks-landmark, AC7 2 wall-kills \u226424h, AC8 1 unabsorbed, AC9 3 non-conforming findings) + WARN AC6/AC11. Real seat-health signal, not a tool defect."
+  },
+  {
+   "id": "R31",
+   "path": "tools/pilot_gate.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "51dbf23 2026-08-19 T450: pilot_gate.sh scratch-and-verify; the gate writes into /tmp/weizigo/pilot_gate.*, verifies in scratch, and only promotes to the live tree on a clean hash match. The old version regenerated TRACKED artifacts/* in the live tree first and verified after \u2014 a determinism break left modified tracked files where the next 'git add -A' could sweep them. The --full branch did the same to data/oracle-4x4.checkpoint.wzo (258 MB, no off-disk archive) via 'rm -f' + 'mv ...prev' before a 20-min rebuild with no trap. EXIT trap wipes scratch on any exit. Engine writes routed via RETRO_SAVE_*_OUT env vars + symlinks to satisfy the hardcoded writeChecksums paths. Gate now checks the canonical checkpoint (a2174fed...) not the retracted oracle-4x4.wzo (b42c3371...).",
+   "referenced_by": "87 files: ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/T447-escape-sweep.md, ./docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/decision-log.md, ./docs/infra/managent/directives.jsonl, ./docs/infra/managent/tasks.json, ./docs/infra/model-task-metrics.jsonl\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "works; covered by regression-pilot-gate.sh. Scratch-and-verify design, no live mutation."
+  },
+  {
+   "id": "R32",
+   "path": "tools/play_oracle.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "1abb0c2 2026-07-25 GTP player, arena audit, tools, research docs",
+   "referenced_by": "54 files: ./docs/infra/delegation/DELEGATEE.md, ./docs/research/h5a-player-mitigation-2026-07-28.md, ./docs/research/retrograde-4x4.md, ./docs/status/archive/handovers/handover-minimax-m3-2026-07-29.md, ./findings/T277-context.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "FIX",
+   "notes": "no exec bit despite shebang; zero regression coverage; oldest tool (2026-07-25); --help treated as artifact path (graceful fail). Either exec-bit+regression or retire to fixtures."
+  },
+  {
+   "id": "R33",
+   "path": "tools/race-c-prepare.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "9f73667 2026-08-22 T612: Race C dispatched (mechanical, T-D) + Race B completed at ten lanes",
+   "referenced_by": "31 files: ./findings/T678-context.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json, ./findings/T681-tools-census.json, ./untracked/log/t526.log\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "CONFIRMED side-effecting on ANY invocation incl. --help: wrote 11 lane inputs + resealed untracked/race-grading/race-c/KEY.json (gitignored scratch; may have overwritten in-flight race-c state). ZERO callers by grep \u2014 orphan by reference; undiscoverable except via task history."
+  },
+  {
+   "id": "R34",
+   "path": "tools/race-p0-verify.sh",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "6fb5801 2026-08-21 T557: S1.5 residue \u2014 re-point S1 doc-move citations",
+   "referenced_by": "62 files: ./build.zig, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0-fixtures.sha256, ./docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-p0.md, ./docs/infra/suite-truth.md, ./findings/T529-grand-race-p0.json\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help clean; covered by regression-race-p0.sh."
+  },
+  {
+   "id": "R35",
+   "path": "tools/runner",
+   "kind": "shell",
+   "works": "python syntax OK",
+   "last_commit": "263232d 2026-08-22 T662: D044 rate band (peak/off-peak) on every token record",
+   "referenced_by": "1646 files: ./.zig-cache/h/000790d6ac3c51f6dec919a6045d97fc.txt, ./.zig-cache/h/011a6c9c381acb8f025395b83250dacf.txt, ./.zig-cache/h/0782aef286ae1a8e05b432bf3251e561.txt, ./.zig-cache/h/0799ae9d3264fec2b2ee84a15911bad4.txt, ./.zig-cache/h/079aec912d75748b84b800bb1a243742.txt\u2026",
+   "regression_coverage": "mentioned in 40 wired regressions",
+   "verdict": "KEEP",
+   "notes": "--help clean; 11 dedicated regression-runner-*.sh wired. Most-tested tool."
+  },
+  {
+   "id": "R36",
+   "path": "tools/smd1.zig",
+   "kind": "zig-source",
+   "works": "source \u2014 compiled via zig build test",
+   "last_commit": "5dccc3f 2026-08-04 T341 glm-5.2: SMD1 dump utility \u2014 920 lines, 14 tests, exhaustive 2x2/3x2/3x3 + sampled 4x4. Findings reconstructed by sprint console.",
+   "referenced_by": "81 files: ./.zig-cache/h/3c6ef78542901e1c4a0f343cea695750.txt, ./.zig-cache/h/59aa3b06fbcd562e6f85405980ea91d2.txt, ./.zig-cache/h/65be3f96507675bd966d2f86b6bc23c6.txt, ./.zig-cache/h/af3bf0a752859fa75c9fd8cb47b07d13.txt, ./.zig-cache/h/cb6e0512fd917bbcee221bb53f515eea.txt\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "compiled as a zig build test module (14 tests), not a standalone CLI \u2014 stronger-than-shell coverage."
+  },
+  {
+   "id": "R37",
+   "path": "tools/smoke.sh",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "99a919b 2026-08-21 T527: retire ollama-subagent wrapper \u2014 regression sweep",
+   "referenced_by": "157 files: ./bin/argus, ./build.zig, ./docs/audits/2026-08-05-handover/ROADMAP.md, ./docs/epics/E1-markovian/sprints/engine-unification/pass0/accept.md, ./docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/accept.md\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "deploy_check covers managent/claimlint/gtp/chainability/engine-vs-engine/reachcensus but NOT arena/oracle (see those rows). Wired directly into build.zig test_step."
+  },
+  {
+   "id": "R38",
+   "path": "tools/suite-truth.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "39ee966 2026-08-22 T564: ratchet suite-truth reds manifest to current failing set",
+   "referenced_by": "87 files: ./docs/audits/2026-08-05-handover/LANDMARKS.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass1/plan.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/decision-log.md, ./docs/infra/managent/tasks.json\u2026",
+   "regression_coverage": "mentioned in 1 wired regressions",
+   "verdict": "KEEP",
+   "notes": "no exec bit but every documented invocation uses `sh tools/...`; wired via regression-suite-surfaces.sh. NOTE: manifest lists 4 known reds, none of which is the live lock-regression segfault \u2014 the suite is redder than the manifest admits right now."
+  },
+  {
+   "id": "R39",
+   "path": "tools/t265_diagnostic.zig",
+   "kind": "zig-source",
+   "works": "source \u2014 NOT wired into any build (dead)",
+   "last_commit": "78057e4 2026-08-02 Absorb findings: T261 M4b triage, T263 GTP, T265 ko diagnostic",
+   "referenced_by": "32 files: ./docs/audits/2026-08-02-grand-audit/arm-infra-tooling.md, ./docs/status/ROADMAP-2026-08-20.md, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json, ./findings/T681-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "DELETE",
+   "notes": "CONFIRMED DEAD (ratified deletion only): imports tools/exp6_solve.zig + tools/colex.zig \u2014 neither exists; zero build.zig wiring; 2026-08-02 one-off diagnostic fossil. Nothing references it but two historical audit docs."
+  },
+  {
+   "id": "R40",
+   "path": "tools/token-capture.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "263232d 2026-08-22 T662: D044 rate band (peak/off-peak) on every token record",
+   "referenced_by": "79 files: ./build.zig, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/infra/managent/tasks.json, ./findings/DARGUS-chunk.json, ./findings/T521-token-capture.json\u2026",
+   "regression_coverage": "dedicated: tools/regression-token-capture.sh",
+   "verdict": "KEEP",
+   "notes": "--help clean; dedicated regression-token-capture.sh + session-capture.sh."
+  },
+  {
+   "id": "R41",
+   "path": "tools/weizigo.fleet-keeper.plist",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "757138e 2026-08-22 T651: autopilot keeper loop \u2014 lease, idle-exit, appetite/cap, wake",
+   "referenced_by": "13 files: ./findings/T651-autopilot.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json, ./findings/T681-tools-census.json, ./untracked/log/t592.log\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "launchd config data; same commit as fleet-keeper.sh."
+  },
+  {
+   "id": "R42",
+   "path": "tools/window_policy.py",
+   "kind": "python",
+   "works": "python syntax OK",
+   "last_commit": "735db2b 2026-08-22 T677: cooldown arms from run records only; override + subagent gate",
+   "referenced_by": "54 files: ./docs/infra/managent/tasks.json, ./findings/T677-false-cooldown-context.json, ./findings/T677-false-cooldown.json, ./findings/T678-context.json, ./findings/T678-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "covered by regression-window-resilience.sh (committed T677). No true --help guard (falls through to real watch(), can write untracked/fleet-window.json) \u2014 do not probe bare."
+  },
+  {
+   "id": "R43",
+   "path": "tools/hooks/claimlint-floor.json",
+   "kind": "data",
+   "works": "N/A (data/fixture)",
+   "last_commit": "6fc0814 2026-08-22 T663: H1-MARKOV register repair; C2 floor 11->13 (D036)",
+   "referenced_by": "175 files: ./AGENTS.md, ./bin/argus, ./docs/audits/2026-08-02-grand-audit/phase0-execution-audit.md, ./docs/audits/2026-08-05-handover/LANDMARKS.md, ./docs/audits/2026-08-08-week-close-audit.md\u2026",
+   "regression_coverage": "mentioned in 4 wired regressions",
+   "verdict": "KEEP",
+   "notes": "data (the honest-debt floor); read by pre-commit + regression-claimlint-promotion.sh."
+  },
+  {
+   "id": "R44",
+   "path": "tools/hooks/pre-commit",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "31dce73 2026-08-20 T540: pre-commit hook splits unreadable-store from no-holders",
+   "referenced_by": "409 files: ./AGENTS.md, ./build.zig, ./docs/audits/2026-07-30-t101-punchlist.md, ./docs/audits/2026-08-02-grand-audit/GRAND-AUDIT.md, ./docs/audits/2026-08-02-grand-audit/arm-infra-tooling.md\u2026",
+   "regression_coverage": "mentioned in 5 wired regressions",
+   "verdict": "KEEP",
+   "notes": "installed as core.hooksPath; covered by regression-precommit.sh + regression-git-commit-mine-hook.sh; claimlint floor gate present."
+  },
+  {
+   "id": "R45",
+   "path": "untracked/T554-dispatch-graders.sh",
+   "kind": "shell",
+   "works": "bash -n OK",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "10 files: ./findings/T678-tools-census.json, ./findings/T679-tools-census.json, ./findings/T680-tools-census.json, ./findings/T681-tools-census.json, ./untracked/log/t592.log\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "one-off T554 grading dispatch helper; untracked scratch, syntax OK; zero callers."
+  },
+  {
+   "id": "R46",
+   "path": "untracked/T690-build.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "none found",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "one-off race-g2 grader rebuild helper; untracked scratch, syntax OK; zero callers (appeared mid-census)."
+  },
+  {
+   "id": "R47",
+   "path": "untracked/watch-fleet.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "489e150 2026-08-22 T591: watch-fleet times column + model aliases",
+   "referenced_by": "130 files: ./build.zig, ./docs/audits/2026-08-20-fleet-and-model-audit.md, ./docs/epics/E1-markovian/L1-dashboard/S01-process-ownership/pass2/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S03-queue-layer/spec.md, ./docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/decision-log.md\u2026",
+   "regression_coverage": "dedicated: tools/regression-watch-fleet.sh",
+   "verdict": "KEEP",
+   "notes": "tracked exception under untracked/; pinned as committed contract by regression-watch-fleet.sh; human dashboard."
+  },
+  {
+   "id": "R48",
+   "path": "untracked/watch-rebuild.sh",
+   "kind": "shell",
+   "works": "sh -n OK",
+   "last_commit": "(none \u2014 untracked)",
+   "referenced_by": "14 files: ./docs/evidence/ORACLE-V2/releasesafe-rebuild-2026-08-03.md, ./findings/T313-context.json, ./findings/T313-releasesafe-invariance.json, ./findings/T678-tools-census.json, ./findings/T679-tools-census.json\u2026",
+   "regression_coverage": "NONE",
+   "verdict": "KEEP",
+   "notes": "one-off rebuild monitor; untracked; NO-ARGS HANG confirmed (blocks reading a live log argument) \u2014 a usability trap for blind smoke-probes."
+  }
+ ],
+ "regression_scripts": [
+  {
+   "path": "tools/regression-T227.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-absorption-machinery.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-argus-doctor.sh",
+   "wired": true,
+   "last_commit": "dce4faa 2026-08-20 T430: doctor console honest, exit-1 on NEEDS ACTION, fresh dry-run",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-attribution-backfill.sh",
+   "wired": true,
+   "last_commit": "8076156 2026-08-22 T544: model-attribution write path + backfill",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-bakeoff-gates.sh",
+   "wired": true,
+   "last_commit": "5899c2f 2026-08-22 T526 (orphaned, UNVERIFIED): blind-grading subcommand rescued from a watchdog kill",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-battery-baselines.sh",
+   "wired": true,
+   "last_commit": "8edc4cd 2026-08-03 T309: make acceptance strides settable, run A2/A5/A8 exhaustively on 4x4 WZO2",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-battery-sweep.sh",
+   "wired": true,
+   "last_commit": "f25e615 2026-08-03 T292: golden-master baselines + battery gate \u2014 recorded per-check baselines (status, counts, modes, SHA, binary stamp) for all seven WZO1 artifacts and WZO2 0c3366f0; wired the fast-path baseline comparison into zig build test (+3.3s) and the slow 4x4+WZO2 sweep behind zig build battery-sweep; fixed verify-battery writeResult dropping denominators; stride-97 coprimality discharged (group sizes {2,4,5,6,7,8}); v1 I2 fail reproduces 4x4.V1-INVSYM-BROKEN exactly",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-claim-lifecycle.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-claimlint-c7-json.sh",
+   "wired": true,
+   "last_commit": "ec7c3b7 2026-08-20 T482: claimlint grows c7 --json; non-conforming joins the exit condition (spec \u00a76.1/\u00a77, T481 step 1)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-claimlint-output.sh",
+   "wired": true,
+   "last_commit": "81f37d2 2026-08-03 T307: fix claimlint redirect truncation \u2014 persistent File.Writer",
+   "note": "SAMPLED THIS CENSUS: PASS \u2014 all 3 controls."
+  },
+  {
+   "path": "tools/regression-claimlint-promotion.sh",
+   "wired": true,
+   "last_commit": "b3d0209 2026-08-03 T308 \u2014 mechanize edge 5: C8 mutation-adequacy promotion gate",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-claimlint-volatile.sh",
+   "wired": true,
+   "last_commit": "f84b472 2026-08-20 Commit the T493/T505 regression residue found uncommitted after close: watch-fleet title-width arms (40-char gate, COLS=20/200 trimming checks), build.zig wiring for the runner-guard + title-gate regressions, claimlint-volatile mode fix. Work predates the rows' closes; committed in the post-close tidy per the session's completion pattern.",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-commit-concurrency.sh",
+   "wired": true,
+   "last_commit": "4ed5ab2 2026-08-20 T547: commit mutex + holds check against shared-index absorption",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-complementarity.sh",
+   "wired": true,
+   "last_commit": "13ff364 2026-08-22 T637: complementarity reduction, wired into zig build test",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-depth-enforcement.sh",
+   "wired": true,
+   "last_commit": "99a919b 2026-08-21 T527: retire ollama-subagent wrapper \u2014 regression sweep",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-directive-integrity.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-directive-kill.sh",
+   "wired": true,
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-dispatch-verification.sh",
+   "wired": true,
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-dispatch.sh",
+   "wired": true,
+   "last_commit": "1798e1a 2026-08-22 T631: stub waivers for the T522 close gate; findings record",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-duplicate-dispatch.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-fleet-keeper.sh",
+   "wired": true,
+   "last_commit": "757138e 2026-08-22 T651: autopilot keeper loop \u2014 lease, idle-exit, appetite/cap, wake",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-git-commit-mine-hook.sh",
+   "wired": true,
+   "last_commit": "2adffe0 2026-08-20 T484: wrapper/hook scope surfaces + regression arms, T483 stub fix",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-git-commit-mine.sh",
+   "wired": true,
+   "last_commit": "ec6fb20 2026-08-20 T505: enforce 40-char title and 72-char subject gates",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-gtp-boardsize.sh",
+   "wired": true,
+   "last_commit": "b35ea50 2026-08-07 T403-followup: G1 list_commands invariant regression test (control 5), G3 Sabaki recipe in usage/deferred banner",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-inbox-loop.sh",
+   "wired": true,
+   "last_commit": "99a919b 2026-08-21 T527: retire ollama-subagent wrapper \u2014 regression sweep",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-assert-store.sh",
+   "wired": true,
+   "last_commit": "d5397ac 2026-08-20 Recover T514/T517/T518 worker code from the tree, validate it, make its regression sh-portable",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-attribution.sh",
+   "wired": true,
+   "last_commit": "8076156 2026-08-22 T544: model-attribution write path + backfill",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-concurrency.sh",
+   "wired": true,
+   "last_commit": "0ea528f 2026-08-20 T545: lock all five store writers + concurrency controls",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-done-two-phase.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-duty.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-holds.sh",
+   "wired": true,
+   "last_commit": "0d3f43e 2026-08-20 T537: record D040 in findings (T538 AC6 historical-429 flag)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-impression-gate.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-integrity.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-landmark.sh",
+   "wired": true,
+   "last_commit": "(none \u2014 untracked)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-ledger-board-seam.sh",
+   "wired": true,
+   "last_commit": "e06837c 2026-08-20 T497: extend the ledger-board-seam regression for the annotation-only resolver (62+/45-). Companion to 40169c7; closes the 4th declared deliverable.",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-lock.sh",
+   "wired": true,
+   "last_commit": "74aa16d 2026-08-18 T445: a missing /tmp/weizigo sent the regression suite's arms into the live repo \u2014 now every scratch mktemp hard-fails instead.",
+   "note": "SAMPLED THIS CENSUS: FAIL \u2014 control 2 red (managent agent segfault, RC=134). Live unregistered suite red."
+  },
+  {
+   "path": "tools/regression-managent-models.sh",
+   "wired": true,
+   "last_commit": "d5397ac 2026-08-20 Recover T514/T517/T518 worker code from the tree, validate it, make its regression sh-portable",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-resume.sh",
+   "wired": true,
+   "last_commit": "74aa16d 2026-08-18 T445: a missing /tmp/weizigo sent the regression suite's arms into the live repo \u2014 now every scratch mktemp hard-fails instead.",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-standing.sh",
+   "wired": true,
+   "last_commit": "d02446a 2026-08-20 T487: archive backstop consumes c7 --json, refuses non-conforming",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-status-json.sh",
+   "wired": true,
+   "last_commit": "b5f7392 2026-08-20 T516: status --json emits added + claim_count",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-store-pollution.sh",
+   "wired": true,
+   "last_commit": "a554fb6 2026-08-22 T572: load-test lanes never touch the live kanban store",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-store-write-utf8.sh",
+   "wired": true,
+   "last_commit": "57a9958 2026-08-22 T587: store write path is byte-correct; UTF-8 round-trip regression",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-model-profiles.sh",
+   "wired": true,
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-ollama-dispatcher.sh",
+   "wired": true,
+   "last_commit": "99a919b 2026-08-21 T527: retire ollama-subagent wrapper \u2014 regression sweep",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-orcha-acceptance.sh",
+   "wired": true,
+   "last_commit": "2e36495 2026-08-22 T629: killed_by schema; readers refuse guard-killed rows",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-orient.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-orphan-reaper.sh",
+   "wired": true,
+   "last_commit": "44a6045 2026-08-20 T364: parent-side run records, managent reap, resume stalls",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-pilot-gate.sh",
+   "wired": true,
+   "last_commit": "e3c7451 2026-08-19 T450: regression test for the scratch-and-verify gate; four controls (fast-null, fast-seeded, --full-restore-path, gate-source-contract) prove (1) an unmodified tree passes and the live tree is byte-identical, (2) a determinism break in scratch is caught and the live tree stays byte-identical, (3) a forced rebuild failure exits non-zero, the EXIT trap wipes scratch, and live data/ is byte-identical \u2014 the 258 MB checkpoint is never at risk, (4) the gate source has no destructive ops, checks the canonical a2174fed... checkpoint hash, has an EXIT trap, and routes RETRO_SAVE_*_OUT into scratch. Control 3 uses a fake 'zig' in PATH (per brief: 'you do not need to run it to fix it \u2014 reason from the code and prove the restore path with a stubbed rebuild that fails deliberately'); control 1 takes ~40s because it rebuilds the four small-goban artifacts. Wired into zig build test.",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-precommit.sh",
+   "wired": true,
+   "last_commit": "31dce73 2026-08-20 T540: pre-commit hook splits unreadable-store from no-holders",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-race-p0.sh",
+   "wired": true,
+   "last_commit": "6fb5801 2026-08-21 T557: S1.5 residue \u2014 re-point S1 doc-move citations",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-agent-progress.sh",
+   "wired": true,
+   "last_commit": "acd7451 2026-08-22 T659: shared p95 table \u2014 both liveness fuses read it (7c.34)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-brief-telemetry.sh",
+   "wired": true,
+   "last_commit": "029f1fa 2026-08-20 T520: record brief_bytes at dispatch + per-class wall guidance",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-claude-liveness.sh",
+   "wired": true,
+   "last_commit": "9876467 2026-08-22 T634: per-harness liveness fuse (claude mtime, not stdout)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-guard.sh",
+   "wired": true,
+   "last_commit": "bec8be2 2026-08-21 T557: pass-1 treekill verb + runner cannibalization + acceptance suite",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-harness-p95.sh",
+   "wired": true,
+   "last_commit": "acd7451 2026-08-22 T659: shared p95 table \u2014 both liveness fuses read it (7c.34)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-reap.sh",
+   "wired": true,
+   "last_commit": "f9acfe7 2026-08-22 T548: reap suite children on every exit path + orphan sweeper",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-reporting.sh",
+   "wired": true,
+   "last_commit": "4e473c3 2026-08-20 T512: isolate runner suites from live telemetry (F3)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-run-records.sh",
+   "wired": true,
+   "last_commit": "a4eac54 2026-08-22 T650: run records never overwritten (attempt archives)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-startup-liveness.sh",
+   "wired": true,
+   "last_commit": "ecbb0a7 2026-08-22 T586: fix pi-worker nonce-stall (json stream + startup liveness)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-taskid.sh",
+   "wired": true,
+   "last_commit": "21990fb 2026-08-22 T566: runner forwards degraded claude lane text (no 0-byte)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-runner-worktree.sh",
+   "wired": true,
+   "last_commit": "4aee950 2026-08-22 T625: stale pauses discharge; directive kills never score as failures",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-session-capture.sh",
+   "wired": true,
+   "last_commit": "5bb6c08 2026-08-20 T552: capture the resumable session handle at dispatch",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-subagent-prompt.sh",
+   "wired": true,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-suite-surfaces.sh",
+   "wired": true,
+   "last_commit": "39ee966 2026-08-22 T564: ratchet suite-truth reds manifest to current failing set",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-token-capture.sh",
+   "wired": true,
+   "last_commit": "263232d 2026-08-22 T662: D044 rate band (peak/off-peak) on every token record",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-watch-fleet.sh",
+   "wired": true,
+   "last_commit": "774de9f 2026-08-22 absorb: T530 mutation fixtures + T591 watch-fleet regression",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-window-resilience.sh",
+   "wired": true,
+   "last_commit": "735db2b 2026-08-22 T677: cooldown arms from run records only; override + subagent gate",
+   "note": ""
+  },
+  {
+   "path": "tools/regression-managent-done-git.sh",
+   "wired": false,
+   "last_commit": "ee28e62 2026-08-22 T522: impression-or-waiver gate at close (G6/D-b)",
+   "note": "NOT WIRED into zig build test. Controls folded into regression-managent-done-two-phase.sh + regression-managent-integrity.sh (T337 S5 removed the wiring as stale). Keep as fixture."
+  },
+  {
+   "path": "tools/regression-managent-memory-safety.sh",
+   "wired": false,
+   "last_commit": "0988e5a 2026-07-31 T122 final (DSFlash): bus-error fix confirmed, garbled output fix (writeStreamingAll), spec updated, 8-test regression script added",
+   "note": "NOT WIRED into zig build test. audit no-crash/JSON arms overlap regression-managent-integrity.sh (T204); unique stdout-ordering arms unwired. Merge-or-rewire decision needed."
+  },
+  {
+   "path": "tools/regression-process-ownership.sh",
+   "wired": false,
+   "last_commit": "6fb5801 2026-08-21 T557: S1.5 residue \u2014 re-point S1 doc-move citations",
+   "note": "NOT WIRED into zig build test. T364/T557-era heavy controls; the `own` verb's CLI path has no other automated coverage."
+  },
+  {
+   "path": "tools/regression-task-identity.sh",
+   "wired": false,
+   "last_commit": "74aa16d 2026-08-18 T445: a missing /tmp/weizigo sent the regression suite's arms into the live repo \u2014 now every scratch mktemp hard-fails instead.",
+   "note": "NOT WIRED into zig build test. T445-era MANAGENT_TASK_ID identity controls; not replaced by regression-runner-taskid.sh (runner-side only)."
+  }
+ ],
+ "notes": "Snapshot census, read-only. Covers bin/ (11), tools/ (incl. 70 regression scripts), tools/hooks (2), untracked/*.sh (4) \u2014 118 surfaces. Methods: git log -1 per path; repo-wide grep for callers; syntax-check (bash -n / python ast.parse) on every script; read-only CLI probes; 3 full regression samples (lock=FAIL/segfault, claimlint-output=PASS, battery-baselines=needs-artifact-arg). HEADLINE FINDING: `managent agent` SEGFAULTS (RC=134) on its mutate-success render path (main.zig:1236 -> Io/Writer.zig:1040), deterministically reproduced 2x against scratch stores; the wired regression-managent-lock.sh control 2 catches it, so `zig build test` is currently red on an UNREGISTERED red (not in docs/infra/suite-truth.md's 4-known-reds). The brief's specimen (`managent liveness` SyntaxError on 5036557-dirty) does NOT reproduce on c8ce08d-dirty \u2014 fixed; liveness has invocation coverage today. Verbs with ZERO regression invocation coverage: needs, sync, whoami, why (all work today, all spec'd, all uncovered); assign/shape CLI paths have algorithm unit tests but no CLI-invocation coverage. 4 regression scripts unwired: done-git (folded into done-two-phase+integrity), memory-safety (overlaps integrity), process-ownership + task-identity (unwired orphans). 67 regression scripts wired. gen-indices and race-c-prepare.py are silent mutators (confirmed first-hand: gen-indices rewrote 3 tracked INDEX docs on --help; reverted). In-flight (uncommitted) at snapshot: build.zig+regression-managent-landmark.sh (T682), fleet-keeper.sh, bin/dispatch, main.zig, several race-g2 findings (T687/T692/T693 schema-non-conforming per dispatch_verify + orcha AC9). Census is a snapshot; the tree mutated under it (2 files vanished, 1 appeared, 2 committed mid-census)."
+}
