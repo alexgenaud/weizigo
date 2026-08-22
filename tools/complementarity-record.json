@@ -1,0 +1,945 @@
+{
+  "disclaimer": "Union coverage is coverage of the union we found, never of the truth. Every coverage fraction in this record is over n, the graded reference union this run was given; a finding every lane missed is invisible here and a reader who forgets that will over-trust a 95% figure. To absorb a later-audit finding nobody caught, add it to the union input with no lane catching it: it moves the denominator and is reported in uncaught_items.",
+  "generated_from": [
+    {
+      "input": "tools/complementarity-inputs/race-a.json",
+      "race_id": "race-a",
+      "sha256": "3128eddf4e3265723cb6ea645785601cce42bf3793fd7e27b9e481a97eac45e0"
+    },
+    {
+      "input": "tools/complementarity-inputs/race-f.json",
+      "race_id": "race-f",
+      "sha256": "eba548777fe3deb5d21897cb6aaf44e136882b1e575e275df19cc8a80dc0a742"
+    }
+  ],
+  "groups": {
+    "adjudication/2026-08-22": {
+      "best_subsets": {
+        "1": {
+          "best": [
+            [
+              "entrant-2"
+            ],
+            [
+              "entrant-3"
+            ],
+            [
+              "entrant-4"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        },
+        "2": {
+          "best": [
+            [
+              "entrant-1",
+              "entrant-2"
+            ],
+            [
+              "entrant-1",
+              "entrant-3"
+            ],
+            [
+              "entrant-1",
+              "entrant-4"
+            ],
+            [
+              "entrant-1",
+              "entrant-5"
+            ],
+            [
+              "entrant-2",
+              "entrant-3"
+            ],
+            [
+              "entrant-2",
+              "entrant-4"
+            ],
+            [
+              "entrant-2",
+              "entrant-5"
+            ],
+            [
+              "entrant-3",
+              "entrant-4"
+            ],
+            [
+              "entrant-3",
+              "entrant-5"
+            ],
+            [
+              "entrant-4",
+              "entrant-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        },
+        "3": {
+          "best": [
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-3"
+            ],
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-4"
+            ],
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-5"
+            ],
+            [
+              "entrant-1",
+              "entrant-3",
+              "entrant-4"
+            ],
+            [
+              "entrant-1",
+              "entrant-3",
+              "entrant-5"
+            ],
+            [
+              "entrant-1",
+              "entrant-4",
+              "entrant-5"
+            ],
+            [
+              "entrant-2",
+              "entrant-3",
+              "entrant-4"
+            ],
+            [
+              "entrant-2",
+              "entrant-3",
+              "entrant-5"
+            ],
+            [
+              "entrant-2",
+              "entrant-4",
+              "entrant-5"
+            ],
+            [
+              "entrant-3",
+              "entrant-4",
+              "entrant-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        },
+        "4": {
+          "best": [
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-3",
+              "entrant-4"
+            ],
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-3",
+              "entrant-5"
+            ],
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-4",
+              "entrant-5"
+            ],
+            [
+              "entrant-1",
+              "entrant-3",
+              "entrant-4",
+              "entrant-5"
+            ],
+            [
+              "entrant-2",
+              "entrant-3",
+              "entrant-4",
+              "entrant-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        },
+        "5": {
+          "best": [
+            [
+              "entrant-1",
+              "entrant-2",
+              "entrant-3",
+              "entrant-4",
+              "entrant-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        }
+      },
+      "caught_matrix": {
+        "A1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "A2": [
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "A3": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "A4": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "A6": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "B1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "B2": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "B3": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "B4": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "C1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "C2": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4"
+        ],
+        "D1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "D2": [
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "D3": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "D4": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "D5": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "D6": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "E1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "E2": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "E3": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "F1": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "F2": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "F3": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4"
+        ],
+        "F4": [
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "F6": [
+          "entrant-1",
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ],
+        "H1": [
+          "entrant-2",
+          "entrant-3",
+          "entrant-4",
+          "entrant-5"
+        ]
+      },
+      "epoch": "2026-08-22",
+      "false_raises": {
+        "entrant-1": [],
+        "entrant-2": [],
+        "entrant-3": [],
+        "entrant-4": [],
+        "entrant-5": []
+      },
+      "merges": {
+        "form": "B (caught_by declared; merges upstream)",
+        "mappings": null,
+        "merge_decisions": 0,
+        "note": "no merge decisions were made by this reduction: the input declared caught sets directly and the race's own grader documented the dedup. The input notes must name that documentation.",
+        "policy": "No merge decisions were made by this reduction: the caught sets are transcribed directly from the graded reference union of findings/T632-race-f-grade.json (union_recall.canonical_items + per_entrant), and the union is T632's canonical_items, so Race A and Race F reduce against the same graded reference union.",
+        "raw_findings": null,
+        "split_decisions": 0
+      },
+      "n": 26,
+      "n_false_excluded": 5,
+      "n_uncertain_excluded": 1,
+      "overlap_matrix": {
+        "entrant-1": {
+          "entrant-2": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-3": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-4": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-5": {
+            "jaccard": 0.769231,
+            "shared": 20
+          }
+        },
+        "entrant-2": {
+          "entrant-1": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-3": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-4": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-5": {
+            "jaccard": 0.923077,
+            "shared": 24
+          }
+        },
+        "entrant-3": {
+          "entrant-1": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-2": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-4": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-5": {
+            "jaccard": 0.923077,
+            "shared": 24
+          }
+        },
+        "entrant-4": {
+          "entrant-1": {
+            "jaccard": 0.846154,
+            "shared": 22
+          },
+          "entrant-2": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-3": {
+            "jaccard": 1.0,
+            "shared": 26
+          },
+          "entrant-5": {
+            "jaccard": 0.923077,
+            "shared": 24
+          }
+        },
+        "entrant-5": {
+          "entrant-1": {
+            "jaccard": 0.769231,
+            "shared": 20
+          },
+          "entrant-2": {
+            "jaccard": 0.923077,
+            "shared": 24
+          },
+          "entrant-3": {
+            "jaccard": 0.923077,
+            "shared": 24
+          },
+          "entrant-4": {
+            "jaccard": 0.923077,
+            "shared": 24
+          }
+        }
+      },
+      "overlap_note": null,
+      "per_lane": {
+        "entrant-1": {
+          "catches": 22,
+          "cost": 1134002,
+          "cost_note": "one clean ledger reading (untracked/tokens/tokens.jsonl T618)",
+          "cost_unit": "tokens",
+          "model": "claude-haiku-4-5-20251001",
+          "source": "untracked/race-f-grade/lanes/entrant-1.json",
+          "source_sha256": "0589cac7e461c60891872810dd5bcdd9116856f056ee537ca1c8ccc0da501ec4",
+          "task_id": "T618",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "entrant-2": {
+          "catches": 26,
+          "cost": null,
+          "cost_note": "no clean ledger reading (T616: claude api error zero-usage + startup-liveness kill entries)",
+          "cost_unit": "tokens",
+          "model": "claude-opus-5",
+          "source": "untracked/race-f-grade/lanes/entrant-2.json",
+          "source_sha256": "95bca9326684ecab8022196547756d6b57070848f3a984244fdb82d5b75137d0",
+          "task_id": "T616",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "entrant-3": {
+          "catches": 26,
+          "cost": null,
+          "cost_note": "deepseek lane: no structured usage in process output (untracked/tokens/tokens.jsonl T619)",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-flash",
+          "source": "untracked/race-f-grade/lanes/entrant-3.json",
+          "source_sha256": "975fe229c243bf48cc6e36b047149088246e4024bc13c6911500944cf80e40d6",
+          "task_id": "T619",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "entrant-4": {
+          "catches": 26,
+          "cost": 1592114,
+          "cost_note": "T615 has two ledger entries (one api-error zero-usage, one clean); clean reading used, ambiguity flagged",
+          "cost_unit": "tokens",
+          "model": "claude-fable-5",
+          "source": "untracked/race-f-grade/lanes/entrant-4.json",
+          "source_sha256": "f553b1dd8aa4327f22269970bcbc96de2e873844b0b4eee3270b3ac35a2e86fa",
+          "task_id": "T615",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "entrant-5": {
+          "catches": 24,
+          "cost": null,
+          "cost_note": "no clean ledger reading (T617: claude api error zero usage)",
+          "cost_unit": "tokens",
+          "model": "claude-sonnet-5",
+          "source": "untracked/race-f-grade/lanes/entrant-5.json",
+          "source_sha256": "646422e0d91fd90c4557e5e7d5c86c0213ee87be6cad0c8f62b45cbb196cbc1c",
+          "task_id": "T617",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        }
+      },
+      "prior_warning": true,
+      "race_ids": [
+        "race-f"
+      ],
+      "sample_note": "numbers from 1 race(s) (race-f); a complementarity number from one race is a PRIOR, labelled one, not a measurement — re-run as more races are absorbed.",
+      "spec": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md",
+      "task_type": "adjudication",
+      "uncaught_items": []
+    },
+    "spec-audit/2026-08-22": {
+      "best_subsets": {
+        "1": {
+          "best": [
+            [
+              "lane-3"
+            ]
+          ],
+          "cost": 2582009,
+          "cost_unit": "tokens",
+          "cost_unknown": false,
+          "coverage": 0.653846,
+          "covered": 17
+        },
+        "2": {
+          "best": [
+            [
+              "lane-1",
+              "lane-3"
+            ],
+            [
+              "lane-3",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 0.807692,
+          "covered": 21
+        },
+        "3": {
+          "best": [
+            [
+              "lane-1",
+              "lane-3",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 0.961538,
+          "covered": 25
+        },
+        "4": {
+          "best": [
+            [
+              "lane-1",
+              "lane-3",
+              "lane-4",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        },
+        "5": {
+          "best": [
+            [
+              "lane-1",
+              "lane-2",
+              "lane-3",
+              "lane-4",
+              "lane-5"
+            ]
+          ],
+          "cost": null,
+          "cost_unit": null,
+          "cost_unknown": true,
+          "coverage": 1.0,
+          "covered": 26
+        }
+      },
+      "caught_matrix": {
+        "A1": [
+          "lane-1",
+          "lane-3"
+        ],
+        "A2": [
+          "lane-3"
+        ],
+        "A3": [
+          "lane-1"
+        ],
+        "A4": [
+          "lane-1"
+        ],
+        "A6": [
+          "lane-1"
+        ],
+        "B1": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4",
+          "lane-5"
+        ],
+        "B2": [
+          "lane-1",
+          "lane-3",
+          "lane-5"
+        ],
+        "B3": [
+          "lane-1",
+          "lane-2",
+          "lane-3",
+          "lane-4"
+        ],
+        "B4": [
+          "lane-5"
+        ],
+        "C1": [
+          "lane-1"
+        ],
+        "C2": [
+          "lane-3"
+        ],
+        "D1": [
+          "lane-1",
+          "lane-3",
+          "lane-5"
+        ],
+        "D2": [
+          "lane-2",
+          "lane-5"
+        ],
+        "D3": [
+          "lane-3",
+          "lane-4"
+        ],
+        "D4": [
+          "lane-3"
+        ],
+        "D5": [
+          "lane-3",
+          "lane-5"
+        ],
+        "D6": [
+          "lane-4"
+        ],
+        "E1": [
+          "lane-3"
+        ],
+        "E2": [
+          "lane-3"
+        ],
+        "E3": [
+          "lane-3"
+        ],
+        "F1": [
+          "lane-3"
+        ],
+        "F2": [
+          "lane-3"
+        ],
+        "F3": [
+          "lane-3"
+        ],
+        "F4": [
+          "lane-5"
+        ],
+        "F6": [
+          "lane-3"
+        ],
+        "H1": [
+          "lane-5"
+        ]
+      },
+      "epoch": "2026-08-22",
+      "false_raises": {
+        "lane-1": [
+          "A5",
+          "G1"
+        ],
+        "lane-2": [],
+        "lane-3": [
+          "F5",
+          "G1",
+          "G2"
+        ],
+        "lane-4": [
+          "G3",
+          "G4"
+        ],
+        "lane-5": []
+      },
+      "merges": {
+        "form": "A (explicit mappings)",
+        "mappings": 50,
+        "merge_decisions": 18,
+        "note": "merge/split counts derived mechanically from the input mappings: a merge is a second-or-later finding mapped onto an already-mapped canonical item; a split is one finding mapped onto two or more items.",
+        "policy": "Two differently worded items are one finding when they name the same spec defect with the same fix target (which spec sentence/section the fix lands in); split by fix-target and defect class. This is T632's documented dedup rule (findings/T632-race-f-grade.json, union_recall.reference_union), applied here to the five source audits; the canonical union is T632's canonical_items, so Race A and Race F reduce against the same graded reference union.",
+        "raw_findings": 36,
+        "split_decisions": 10
+      },
+      "n": 26,
+      "n_false_excluded": 5,
+      "n_uncertain_excluded": 1,
+      "overlap_matrix": {
+        "lane-1": {
+          "lane-2": {
+            "jaccard": 0.2,
+            "shared": 2
+          },
+          "lane-3": {
+            "jaccard": 0.238095,
+            "shared": 5
+          },
+          "lane-4": {
+            "jaccard": 0.181818,
+            "shared": 2
+          },
+          "lane-5": {
+            "jaccard": 0.214286,
+            "shared": 3
+          }
+        },
+        "lane-2": {
+          "lane-1": {
+            "jaccard": 0.2,
+            "shared": 2
+          },
+          "lane-3": {
+            "jaccard": 0.111111,
+            "shared": 2
+          },
+          "lane-4": {
+            "jaccard": 0.4,
+            "shared": 2
+          },
+          "lane-5": {
+            "jaccard": 0.222222,
+            "shared": 2
+          }
+        },
+        "lane-3": {
+          "lane-1": {
+            "jaccard": 0.238095,
+            "shared": 5
+          },
+          "lane-2": {
+            "jaccard": 0.111111,
+            "shared": 2
+          },
+          "lane-4": {
+            "jaccard": 0.166667,
+            "shared": 3
+          },
+          "lane-5": {
+            "jaccard": 0.190476,
+            "shared": 4
+          }
+        },
+        "lane-4": {
+          "lane-1": {
+            "jaccard": 0.181818,
+            "shared": 2
+          },
+          "lane-2": {
+            "jaccard": 0.4,
+            "shared": 2
+          },
+          "lane-3": {
+            "jaccard": 0.166667,
+            "shared": 3
+          },
+          "lane-5": {
+            "jaccard": 0.090909,
+            "shared": 1
+          }
+        },
+        "lane-5": {
+          "lane-1": {
+            "jaccard": 0.214286,
+            "shared": 3
+          },
+          "lane-2": {
+            "jaccard": 0.222222,
+            "shared": 2
+          },
+          "lane-3": {
+            "jaccard": 0.190476,
+            "shared": 4
+          },
+          "lane-4": {
+            "jaccard": 0.090909,
+            "shared": 1
+          }
+        }
+      },
+      "overlap_note": null,
+      "per_lane": {
+        "lane-1": {
+          "catches": 9,
+          "cost": null,
+          "cost_note": "deepseek lane: no structured usage in process output (untracked/tokens/tokens.jsonl T590); stated unknown, never estimated",
+          "cost_unit": "tokens",
+          "model": "deepseek-v4-flash",
+          "source": "findings/T590-race-a-dsflash.json",
+          "source_sha256": "38148b2aad56cabdd1276b1f7462e66d64353eb9bb0cafd89eeb873d743af6b0",
+          "task_id": "T590",
+          "unique_catch_over_union": 0.153846,
+          "unique_catch_rate": 0.444444,
+          "unique_catches": 4
+        },
+        "lane-2": {
+          "catches": 3,
+          "cost": 1859929,
+          "cost_note": "total tokens (input+output+cache_read+cache_write+reasoning) from untracked/tokens/tokens.jsonl T588",
+          "cost_unit": "tokens",
+          "model": "claude-sonnet-5",
+          "source": "findings/T588-race-a-sonnet.json",
+          "source_sha256": "488c8238413fafe5cf92ca554f7c64838ae93dffd0d24e94ee91f6148d7b3d9b",
+          "task_id": "T588",
+          "unique_catch_over_union": 0.0,
+          "unique_catch_rate": 0.0,
+          "unique_catches": 0
+        },
+        "lane-3": {
+          "catches": 17,
+          "cost": 2582009,
+          "cost_note": "total tokens (input+output+cache_read+cache_write+reasoning) from untracked/tokens/tokens.jsonl T584",
+          "cost_unit": "tokens",
+          "model": "claude-opus-5",
+          "source": "findings/T584-s04-spec-audit.json",
+          "source_sha256": "70b3e7107c8304b6049f5df3a3923b3749eecef86d55acc70d85a89a73351094",
+          "task_id": "T584",
+          "unique_catch_over_union": 0.384615,
+          "unique_catch_rate": 0.588235,
+          "unique_catches": 10
+        },
+        "lane-4": {
+          "catches": 4,
+          "cost": 1090904,
+          "cost_note": "total tokens (input+output+cache_read+cache_write+reasoning) from untracked/tokens/tokens.jsonl T589",
+          "cost_unit": "tokens",
+          "model": "claude-haiku-4-5-20251001",
+          "source": "findings/T589-race-a-haiku.json",
+          "source_sha256": "091695d29146e92e60fa2bdf655f37a98d7cd67399b9fd665706344273e94e97",
+          "task_id": "T589",
+          "unique_catch_over_union": 0.038462,
+          "unique_catch_rate": 0.25,
+          "unique_catches": 1
+        },
+        "lane-5": {
+          "catches": 8,
+          "cost": 1256111,
+          "cost_note": "total tokens (input+output+cache_read+cache_write+reasoning) from untracked/tokens/tokens.jsonl T614",
+          "cost_unit": "tokens",
+          "model": "claude-fable-5",
+          "source": "findings/T614-race-a-fable.json",
+          "source_sha256": "42d661f7a8934d95f4099a2b8fe78729735384c72a281a5e44c447c737ac320d",
+          "task_id": "T614",
+          "unique_catch_over_union": 0.115385,
+          "unique_catch_rate": 0.375,
+          "unique_catches": 3
+        }
+      },
+      "prior_warning": true,
+      "race_ids": [
+        "race-a"
+      ],
+      "sample_note": "numbers from 1 race(s) (race-a); a complementarity number from one race is a PRIOR, labelled one, not a measurement — re-run as more races are absorbed.",
+      "spec": "docs/epics/E1-markovian/L1-dashboard/S04-orchestrator-retirement/spec.md",
+      "task_type": "spec-audit",
+      "uncaught_items": []
+    }
+  },
+  "rate_definitions": {
+    "overlap": "Jaccard |A∩B| / |A∪B| over the lanes' caught sets, with the shared count alongside.",
+    "unique_catch_over_union": "|findings this lane alone caught| / n. The brief's literal 'over the union' reading, reported alongside the headline rate because both honest readings belong on the table.",
+    "unique_catch_rate": "|findings this lane alone caught| / |findings this lane caught|. Fraction of what the lane itself found that only it found; 0/0 is null, never 0. Pinned by the controls: two lanes with disjoint finding sets both score 1.0."
+  },
+  "record_version": 1
+}

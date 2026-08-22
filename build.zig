@@ -523,6 +523,22 @@ pub fn build(b: *std.Build) void {
     model_profiles_regression.cwd = b.path(".");
     test_step.dependOn(&model_profiles_regression.step);
 
+    // ── T637: complementarity-reduction controls ──────────────────
+    // tools/complementarity.py reduces race artifacts to the standing
+    // complementarity record (per-lane unique-catch rates, the pairwise
+    // overlap matrix, the best-subset-of-size-k table, per task type and
+    // epoch) that T636's panel selection reads.  Controls pinned by the
+    // brief: seeded disjoint (overlap 0, both unique-catch rates 1.0,
+    // subset-of-2 reaches the union), seeded subset (B's rate 0, {A,B}
+    // not picked), null single-lane (overlap matrix undefined, says so),
+    // and byte-identical output for the same input.  The script also
+    // pins out-of-process determinism on the committed race inputs and
+    // the honesty fields (disclaimer, n, prior label, no clock).  The
+    // tool is read-only; scratch dirs under /tmp/weizigo only.
+    const complementarity_regression = b.addSystemCommand(&.{ "sh", "tools/regression-complementarity.sh" });
+    complementarity_regression.cwd = b.path(".");
+    test_step.dependOn(&complementarity_regression.step);
+
     // ── T352: inbox-loop regression controls ──────────────────────
     // Five controls: empty inbox is a no-op, a `tell` → read → ack →
     // record timeline runs with no human action between, an unread
