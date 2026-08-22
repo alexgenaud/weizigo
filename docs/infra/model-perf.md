@@ -38,3 +38,10 @@ dispatch-verify 2026-08-22 T581 deepseek-v4-pro report=success verified=pass
 dispatch-verify 2026-08-22 T580 claude-sonnet-5 report=success verified=pass
 dispatch-verify 2026-08-22 T544 deepseek-v4-flash report=incomplete verified=fail fail=row
 dispatch-verify 2026-08-22 T585 claude-sonnet-5 report=success verified=pass
+dispatch-verify 2026-08-22 T584 claude-opus-5 report=success verified=pass
+dispatch-verify 2026-08-22 T522 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T589 claude-haiku-4-5-20251001 report=success verified=pass
+dispatch-verify 2026-08-22 T588 claude-sonnet-5 report=success verified=pass
+dispatch-verify 2026-08-22 T530 deepseek-v4-flash report=incomplete verified=fail fail=row
+dispatch-verify 2026-08-22 T586 deepseek-v4-pro report=success verified=pass
+dispatch-verify 2026-08-22 T590 deepseek-v4-flash report=success verified=pass
