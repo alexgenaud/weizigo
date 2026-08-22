@@ -595,6 +595,12 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         # path was named but the file never appeared.
         run_record["session_path"] = tokens.get("session_path")
         run_record["session_path_reason"] = tokens.get("session_path_reason")
+        # D044: the deepseek peak/off-peak band at write time (others: null
+        # + a reason naming the family's pricing unit) — every token record
+        # carries when it happened, so a later reader never re-derives the
+        # calendar rule from a bare count.
+        run_record["rate_band"] = tokens.get("rate_band")
+        run_record["rate_band_reason"] = tokens.get("rate_band_reason")
     if reap_claimed is not None:
         run_record["reap_claimed"] = reap_claimed
     if reap_survivors is not None:
@@ -2099,7 +2105,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
            "tokens_cache_read": None, "source": None,
            "missing_reason": None, "text": None,
            "session_id": None, "session_reason": None,
-           "session_path": None, "session_path_reason": None}
+           "session_path": None, "session_path_reason": None,
+           "rate_band": None, "rate_band_reason": None}
     usage = None
     is_api_error = False
     if tc is not None:
@@ -2219,6 +2226,33 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
             out["session_reason"] = (
                 "tools/token-capture.py absent — no tee, no handle")
     if tc is not None and repo_root:
+        # D044 (2026-08-22, operator; measurement-methodology.md §1b): every
+        # token record carries its timestamp (start_ts is the ledger's ts and
+        # the run record's start/start_epoch) and, for the deepseek family,
+        # the resolved peak/off-peak band computed at write time — a later
+        # reader never re-derives a calendar rule from a bare count.  The
+        # other families have no time-priced rate; the reason names which.
+        band = None
+        band_reason = None
+        if provider == "deepseek":
+            if getattr(tc, "deepseek_rate_band", None) is not None:
+                band = tc.deepseek_rate_band(start_ts)
+            else:
+                band_reason = ("tools/token-capture.py lacks deepseek_rate_band "
+                               "(older copy)")
+        else:
+            base = os.path.basename(argv[0]) if argv else None
+            fam = (provider or base or "").lower()
+            if fam == "claude":
+                band_reason = ("claude: anthropic team subscription — occupancy "
+                               "of the five-hour rolling window, no per-token "
+                               "time price")
+            elif fam == "ollama":
+                band_reason = "ollama: credits, no peak concept"
+            else:
+                band_reason = "family has no time-priced rate"
+        out["rate_band"] = band
+        out["rate_band_reason"] = band_reason
         try:
             label = tc.canon_tag(model) if model else None
             entry = {
@@ -2236,6 +2270,8 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                 "session_reason": out["session_reason"],
                 "session_path": out["session_path"],
                 "session_path_reason": out["session_path_reason"],
+                "rate_band": out["rate_band"],
+                "rate_band_reason": out["rate_band_reason"],
                 "rc": rc,
             }
             if usage is not None:

@@ -180,7 +180,8 @@ fi
 echo "  B. claude lane: run record + trailer line + unwrapped stdout + ledger + tee"
 export MANAGENT_TASK_ID=T521CLAUDE
 OUT_B=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
-        -- ./fake-claude -p 'hi' --model claude-sonnet-5 --output-format json 2>"$WORK/claude.err")
+        -- ./fake-claude -p 'hi' --model claude-sonnet-5 --output-format json \
+           --provider claude 2>"$WORK/claude.err")
 RC=$?
 unset MANAGENT_TASK_ID
 
@@ -214,6 +215,9 @@ d=json.load(open('$REC'))
 assert d.get('tokens_in')==44 and d.get('tokens_out')==22, d
 assert d.get('tokens_source')=='claude-json-envelope', d
 assert d.get('tokens_fresh')==11 and d.get('tokens_cache_read')==33, d
+# D044: claude has no time-priced rate — band null with the family reason
+assert d.get('rate_band') is None, d
+assert 'subscription' in (d.get('rate_band_reason') or ''), d
 print('OK')" 2>/dev/null | grep -q OK; then
         pass "run record carries tokens_in/out/source"
     else
@@ -526,6 +530,14 @@ assert d.get('session_id')=='t662-sess-1', d
 assert d.get('session_reason') is None, d
 assert d.get('session_path','').endswith('T662F.jsonl'), d
 assert d.get('session_path_reason') is None, d
+# D044: the deepseek band is computed at write time from the run's own
+# start — same input, same output as the instrument's own function.
+import importlib.util, os
+spec = importlib.util.spec_from_file_location('tc', '$TOOL')
+tcm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(tcm)
+assert d.get('rate_band') == tcm.deepseek_rate_band(d.get('start')), d
+assert d.get('rate_band_reason') is None, d
 print('OK')" 2>/dev/null | grep -q OK; then
         pass "run record: pi session meter split (347=107+240) + session id + path"
     else
@@ -552,8 +564,10 @@ for line in open('$LED'):
         assert e.get('source')=='pi-session-jsonl', e
         assert e.get('session_id')=='t662-sess-1', e
         assert e.get('session_path','').endswith('T662F.jsonl'), e
+        assert e.get('rate_band') in ('peak','off-peak'), e
+        assert e.get('rate_band_reason') is None, e
         print('OK')" 2>/dev/null | grep -q OK; then
-        pass "ledger carries the pi session meter reading (split + id + path)"
+        pass "ledger carries the pi session meter reading (split + id + path + band)"
     else
         fail "pi-session ledger"; cat "$LED" 2>/dev/null | head -5
     fi
@@ -699,6 +713,42 @@ print('OK')" 2>/dev/null | grep -q OK; then
     pass "hand recompute over the seeded set == records; UNKNOWN record excluded"
 else
     fail "economy recompute"; ls "$WORK/untracked/runs/" | sed 's/^/    | /'
+fi
+
+# ── K. D044: the deepseek peak/off-peak band (unit + e2e) ─────────────────
+# measurement-methodology.md §1b: peak = 01:00-04:00 and 06:00-10:00 UTC
+# on weekdays; off-peak otherwise, with the weekend override (UTC Fri
+# 16:00 -> Sun 16:00) half all day.  The band is computed at write time
+# from the run's own timestamp, so a later reader never re-derives the
+# calendar rule from a bare count.  Unit arm: fixed timestamps, known
+# bands.  (The e2e arm lives in F: the record's band equals the
+# instrument's own function of the record's start; the claude null is in
+# arm B: null + a reason naming the subscription.)
+echo "  K. rate band: fixed timestamps -> known peak/off-peak; unparseable -> None"
+K_OUT=$(python3 - "$TOOL" <<'PYEOF'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("tc", sys.argv[1])
+tc = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(tc)
+# weekdays verified 2026-08-18 Tue, 08-21 Fri, 08-22 Sat, 08-23 Sun, 08-24 Mon
+assert tc.deepseek_rate_band("2026-08-18T02:00:00Z") == "peak"     # Tue 02:00
+assert tc.deepseek_rate_band("2026-08-18T05:00:00Z") == "off-peak"  # Tue 05:00
+assert tc.deepseek_rate_band("2026-08-18T07:00:00Z") == "peak"     # Tue 07:00
+assert tc.deepseek_rate_band("2026-08-18T10:00:00Z") == "off-peak"  # Tue 10:00
+assert tc.deepseek_rate_band("2026-08-21T07:00:00Z") == "peak"     # Fri 07:00, before override
+assert tc.deepseek_rate_band("2026-08-21T17:00:00Z") == "off-peak"  # Fri 17:00, override
+assert tc.deepseek_rate_band("2026-08-22T12:00:00Z") == "off-peak"  # Sat
+assert tc.deepseek_rate_band("2026-08-23T07:00:00Z") == "off-peak"  # Sun 07:00 — peak HOUR, override wins
+assert tc.deepseek_rate_band("2026-08-24T02:00:00Z") == "peak"     # Mon 02:00, override over
+assert tc.deepseek_rate_band("not a time") is None
+assert tc.deepseek_rate_band("") is None
+print("OK")
+PYEOF
+)
+if [ "$K_OUT" = "OK" ]; then
+    pass "band math: peak/off-peak/override boundaries + unparseable None"
+else
+    fail "rate band unit: $K_OUT"
 fi
 
 if [ "$FAIL" -eq 0 ]; then

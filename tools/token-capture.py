@@ -67,6 +67,7 @@ same transform managent applies at registration): strip `:cloud`,
 Task: T521 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-20
 """
 import argparse
+import datetime
 import json
 import os
 import re
@@ -382,6 +383,42 @@ def read_pi_session(path):
             "cache_read": acc["cache_read"], "cache_write": acc["cache_write"],
             "reasoning": acc["reasoning"], "turns": turns,
             "session_id": session_id}
+
+
+# ── D044 (2026-08-22): the deepseek time-pricing band ─────────────────────
+# Operator ruling in measurement-methodology.md §1b: deepseek is per-token
+# at a clock-varying rate — peak 01:00-04:00 and 06:00-10:00 UTC at full
+# rate, every other hour half, and UTC Fri 16:00 -> Sun 16:00 (Saturday +
+# Sunday Beijing time) half regardless of hour.  The band is a fact about
+# WHEN the run happened and is computed at write time, so a later reader
+# never re-derives a calendar rule from a bare count.  DeepSeek only — the
+# other families have no time-priced rate (claude: subscription occupancy;
+# ollama: credits; local: the machine).
+
+
+def deepseek_rate_band(ts_iso):
+    """Return 'peak' | 'off-peak' for a run's UTC timestamp, or None when
+    the timestamp cannot be parsed (the caller records None + a reason, or
+    leaves the reading unbanded — never a guessed band)."""
+    if not ts_iso:
+        return None
+    try:
+        s = ts_iso.strip()
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.datetime.fromisoformat(s)
+    except ValueError:
+        return None
+    utc = dt.astimezone(datetime.timezone.utc)
+    wd = utc.weekday()   # Mon=0 .. Sun=6
+    hour = utc.hour
+    # weekend override: UTC Fri 16:00 -> Sun 16:00 is off-peak all day
+    in_override = (wd == 4 and hour >= 16) or wd == 5 or (wd == 6 and hour < 16)
+    if in_override:
+        return "off-peak"
+    if (1 <= hour < 4) or (6 <= hour < 10):
+        return "peak"
+    return "off-peak"
 
 
 def _first_user_text(lines):
