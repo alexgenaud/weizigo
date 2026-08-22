@@ -1,0 +1,19 @@
+{
+ "task_id": "DCLAIM",
+ "date": "2026-08-22",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/DCLAIM",
+ "claims": [],
+ "new_rows": [],
+ "verified_claims": [
+  {
+   "id": "GLOBAL.FP3",
+   "verdict": "reproduced",
+   "command": "tools/runner -- zig run docs/evidence/GLOBAL-FP3/probe_fp3_finite_lattice_2026_08_22.zig",
+   "reading": "0 violations / 2118 random monotone maps (all six counters zero)",
+   "run_log": "docs/evidence/GLOBAL-FP3/run-fp3-2026-08-22.log",
+   "probe": "docs/evidence/GLOBAL-FP3/probe_fp3_finite_lattice_2026_08_22.zig"
+  }
+ ],
+ "notes": "DCLAIM chunk: verified GLOBAL.FP3 (PROVEN, Tier B, in-deg 5 — tied highest in the C3 list; the parent claim GLOBAL.FP1's least/greatest-fixpoint rests on d:GLOBAL.FP3). Claim: 'Bellman iteration terminates in finitely many sweeps (monotone map on a finite lattice)', PROVEN at CONCEPTS.md:43-46 / 4x3/EPISTEMIC.md:31, which states the claim is the THEOREM (monotone map on a finite lattice => finite-sweep termination; the sweep COUNT is the separate measurement M2). Probe (new, committed under docs/evidence/GLOBAL-FP3/): standalone Zig re-derivation over random monotone maps on finite product-of-chains lattices (|L| = 625, 2401, 6561, 8000). For every map, exhaustively: (1) generator self-check that f is genuinely monotone (a vacuous pass is impossible); (2) Kleene iteration from the lattice bottom (the engine's -N seed for L) and from the top (+N seed for H) each converges within |L| sweeps to a fixpoint; (3) the bottom-reached fixpoint equals Tarski's independent least-fixpoint characterization meet{y: f(y) <= y} over all post-fixpoints, and the top-reached fixpoint equals join{y: y <= f(y)} over all pre-fixpoints (the greatest fixpoint) — computed by separate full-lattice passes, not by iteration. Reading: 2118 maps, 0 violations on every counter; max sweeps observed 5 (bottom) / 4 (top), far under the |L| bound. Negative control (throwaway copy in /tmp/weizigo, not committed): the same probe with the monotone construction bypassed flagged 2118/2118 maps as non-monotone and exited 1 — the instrument fails when the premise fails (QA-023 positive-control rule; the control exercises the checked call site, not a parallel path). Fixed seed 0x667033: reruns reproduce byte-identical output; run log stamped from the tools/runner run (exit 0, 11.9 s). VERDICT: REPRODUCED. No claim status changed (DCLAIM duty rule): the register row and its evidence column are untouched, so claimlint still classifies GLOBAL.FP3 as Tier B (its evidence column cites only committed prose, CONCEPTS.md / 4x3/EPISTEMIC.md); the committed probe + run log make the claim re-runnable, and a separate promotion task would re-point the evidence column to docs/evidence/GLOBAL-FP3/."
+}

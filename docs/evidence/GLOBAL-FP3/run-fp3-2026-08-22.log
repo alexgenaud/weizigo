@@ -1,0 +1,16 @@
+GLOBAL.FP3 re-derivation probe — monotone map on a finite lattice => finite-sweep termination
+date 2026-08-22, seed 667033, toolchain zig 0.16.0
+  C=5 D=4 |L|=625: 2000 maps, max sweeps bottom->5 / top->4
+  C=7 D=4 |L|=2401: 100 maps, max sweeps bottom->4 / top->4
+  C=9 D=4 |L|=6561: 10 maps, max sweeps bottom->3 / top->4
+  C=20 D=3 |L|=8000: 8 maps, max sweeps bottom->3 / top->3
+
+TOTALS — 2118 random monotone maps over finite lattices (C^D = 625..8000 elements)
+  (1) generator monotone:            0 violations / 2118 maps
+  (2) bottom seed converged <= |L|:  0 violations / 2118 maps  (max 5 sweeps)
+  (2) top seed converged <= |L|:     0 violations / 2118 maps  (max 4 sweeps)
+  (2) reached value is a fixpoint:   0 violations / 2118 maps
+  (3) bottom == least fixpoint:      0 violations / 2118 maps
+  (3) top == greatest fixpoint:      0 violations / 2118 maps
+
+VERDICT: 0 violations / 2118 maps — theorem REPRODUCED on every monotone map tested
