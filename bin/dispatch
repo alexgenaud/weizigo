@@ -65,6 +65,10 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# T625: the directive discharge/staleness policy lives in tools/ (shared
+# with tools/runner so the refusal here and the enforcement there agree).
+sys.path.insert(0, os.path.join(ROOT, "tools"))
+import directive_policy  # noqa: E402
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
 DEFAULT_WALL = 2700
@@ -252,6 +256,32 @@ def main(argv):
                  f"  The title is a display surface, not a summary: a title that needs"
                  f"  more than 40 chars is a sign the task is two tasks. Shorten it;\n"
                  f"  the long form goes in the brief's body.")
+
+    # ── directive gate (T625): never launch a row a pending directive ────
+    # will kill.  The runner would stop the worker at launch (exit 124),
+    # spending a full worker's tokens before anyone learns — the D047
+    # incident (2026-08-20 pause, T545 done, still killing T544 dispatches
+    # on 2026-08-22).  The discharge/staleness evaluation is SHARED with
+    # the runner (tools/directive_policy.py), so the refusal here and the
+    # enforcement there agree: a directive that is discharged (until_done
+    # row done) or stale is reported as diagnostics and does NOT block;
+    # an enforced pause/kill refuses the dispatch outright.
+    enforced, not_enforced = directive_policy.evaluate_directives(task_id, root)
+    for d, reason in not_enforced:
+        print(f"dispatch: directive {d.get('id', '?')} "
+              f"{str(d.get('directive', '?')).upper()} from "
+              f"{d.get('from', '?')} — NOT enforced ({reason})", file=sys.stderr)
+    if enforced:
+        lines = "\n".join(
+            f"  {d.get('id', '?')} {str(d.get('directive', '?')).upper()} "
+            f"from {d.get('from', '?')} ({reason})"
+            for d, reason in enforced)
+        sys.exit(f"dispatch: REFUSED — a pending directive would kill this worker:\n"
+                 f"{lines}\n"
+                 f"  Resolve it first: `bin/managent inbox {task_id} --ack` (read + act),\n"
+                 f"  or wait for an --until-done <row> condition to discharge.\n"
+                 f"  Launching now would spend a worker's tokens on a run the runner\n"
+                 f"  would stop at launch (T625).")
 
     # ── construct the subagent command ───────────────────────────────────
     subagent = os.path.join(ROOT, "bin", "subagent")

@@ -112,6 +112,12 @@ import glob
 import time
 from pathlib import Path
 
+# T625: the directive discharge + staleness policy — shared with
+# bin/dispatch so the enforcement points evaluate identically.  tools/ is
+# on sys.path[0] when the runner runs (its own directory), so the bare
+# import resolves; the module is stdlib-only.
+import directive_policy
+
 
 # ── brief / prompt telemetry (T520, 2026-08-20) ────────────────────────
 #
@@ -292,53 +298,49 @@ def _find_repo_root():
 # ── directive checking (WORKER-CHANNEL) ────────────────────────────────────
 
 def _check_directives(task_id, repo_root, verbose=True):
-    """Check for pending directives addressed to `task_id`.
+    """Check for pending directives addressed to `task_id`, EVALUATED at
+    apply time.
 
-    Reads docs/infra/managent/directives.jsonl (one JSON object per line)
-    and looks for unread entries targeting this task.  With verbose=True
-    (launch-time use) prints any pending directives on stderr.  Returns
-    the list of pending STOP directives (pause/kill) — empty when none;
-    the caller exits 124 when it is non-empty.
+    Reads docs/infra/managent/directives.jsonl and the kanban store, and
+    applies the T625 discharge/staleness policy (directive_policy): a
+    `pause` with `until_done=<row>` is enforced only while <row> is not
+    `done`; an unacked `pause` without a condition older than the staleness
+    horizon is reported stale, not enforced.  `kill` is always enforced.
+
+    With verbose=True (launch-time use) prints every pending directive on
+    stderr with its verdict (ENFORCED / DISCHARGED / STALE / ACKED / other).
+    Returns the list of ENFORCED STOP directives (pause/kill) — empty when
+    none; the caller exits 124 when it is non-empty.
 
     T370 (2026-08-06): the mid-run poll calls this with verbose=False so
     an unread `amend`/`question` does not spam stderr every poll — stop
     directives are the only ones the runner acts on mid-run.
+
+    T625: unacked means UNKNOWN, not "still in force" — an unread pause is
+    evaluated, and a discharged or stale one must NOT stop the run.
     """
     if not repo_root or not task_id:
         return []
 
-    dir_path = os.path.join(repo_root, "docs", "infra", "managent", "directives.jsonl")
-    if not os.path.isfile(dir_path):
-        return []
+    enforced, not_enforced = directive_policy.evaluate_directives(task_id, repo_root)
+    stops = [d for d, _ in enforced]
 
-    try:
-        pending = []
-        with open(dir_path) as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    d = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if d.get("target") == task_id and d.get("read") is False:
-                    pending.append(d)
-    except OSError:
-        return []
-
-    stops = [d for d in pending if d.get("directive") in ("pause", "kill")]
-    if not pending or not verbose:
-        return stops
-
-    print("[runner] === pending directives ===", file=sys.stderr)
-    for d in pending:
-        directive = d.get("directive", "?")
-        note = d.get("note", "")
-        from_who = d.get("from", "?")
-        print(f"[runner]   {directive.upper()}  from {from_who}", file=sys.stderr)
-        if note:
-            print(f"[runner]     {note}", file=sys.stderr)
+    if verbose and (enforced or not_enforced):
+        print("[runner] === pending directives ===", file=sys.stderr)
+        for d, reason in not_enforced:
+            directive = d.get("directive", "?")
+            from_who = d.get("from", "?")
+            print(f"[runner]   {directive.upper()}  from {from_who}  — NOT ENFORCED ({reason})", file=sys.stderr)
+            note = d.get("note", "")
+            if note:
+                print(f"[runner]     {note}", file=sys.stderr)
+        for d, reason in enforced:
+            directive = d.get("directive", "?")
+            from_who = d.get("from", "?")
+            print(f"[runner]   {directive.upper()}  from {from_who}  — ENFORCED ({reason})", file=sys.stderr)
+            note = d.get("note", "")
+            if note:
+                print(f"[runner]     {note}", file=sys.stderr)
 
     return stops
 
@@ -1803,7 +1805,37 @@ def main():
     pending_stops = _check_directives(task_identity, repo_root)
     if pending_stops:
         _emit_heartbeat(task_identity, shlex.join(argv), -1, -1, -1, repo_root)
-        print(f"[runner] exit 124 (directive: pause/kill pending)", file=sys.stderr)
+        # T625: a directive-caused launch refusal is SELF-IDENTIFYING in
+        # the run record (records are task-id-named, T515).  The child
+        # never spawned; stamp exit=124 (the runner's directive/wall
+        # convention) with the directive kill reason + kill_class so
+        # dispatch_verify can classify it and never score it as a model
+        # failure.  Previously this path exited 124 with only a log line
+        # — indistinguishable from a wall-kill.
+        if record_root:
+            d = pending_stops[0]
+            refused_rec = {
+                "task": task_identity,
+                "pid": os.getpid(),
+                "launcher_pid": os.getppid(),
+                "start": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "start_epoch": int(time.time()),
+                "command": shlex.join(argv),
+                "brief_bytes": _bundle_bytes(task_identity, repo_root),
+                "prompt_bytes": _prompt_bytes(argv),
+                "wall_budget": args.max_wall if args.max_wall else None,
+                "exit": 124,
+                "wall": 0.0,
+                "kill_class": "directive",
+                "killed": ("directive %s %s from %s (pending at launch)"
+                            % (d.get("id", "?"),
+                               str(d.get("directive", "?")).upper(),
+                               d.get("from", "?"))),
+            }
+            _write_run_record(refused_rec, record_root)
+        print(f"[runner] exit 124 (directive: {pending_stops[0].get('id', '?')} "
+              f"{str(pending_stops[0].get('directive', '?')).upper()} pending at launch)",
+              file=sys.stderr)
         sys.exit(124)
 
     # ── WORKER-CHANNEL: auto-claim via managent ──────────────────────────
@@ -2095,6 +2127,14 @@ def main():
                             f"{str(d.get('directive', '?')).upper()} "
                             f"from {d.get('from', '?')} (mid-run poll)"
                         )
+                        # T625: self-identifying in the run record — the
+                        # killed string already starts with "directive",
+                        # and kill_class makes it machine-distinguishable
+                        # from wall/RSS/host kills (dispatch_verify reads
+                        # it and records verified=directive-kill, never a
+                        # model-failure row).
+                        if run_record is not None:
+                            run_record["kill_class"] = "directive"
 
             # ── kill decisions ────────────────────────────────────────
             if kill_reason:

@@ -96,12 +96,18 @@ fi
 # exit 124.  The worktree's directives.jsonl is committed content in the
 # scratch tree — appending touches nothing in the main checkout.
 DIRECTIVES="$WT/docs/infra/managent/directives.jsonl"
+# T625: the seed timestamp is FRESH (not a fixed date) — a `pause` without
+# a discharge condition older than the staleness horizon (default 24 h) is
+# now reported stale and NOT enforced, so a fixed 2026-08-20 date would
+# silently stop stopping.  The arm's intent is "the worktree's directive is
+# read and enforced", so the fixture must be in force at apply time.
+SEED_TS=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 if [ -f "$DIRECTIVES" ]; then
-    printf '%s\n' '{"id":"D900-T449-REG","target":"T449-REG-CTRL","directive":"pause","note":"T449 regression: directive must reach a runner inside a worktree","from":"T449","ts":"2026-08-20T00:00:00Z","read":false}' >> "$DIRECTIVES"
+    printf '%s\n' "{\"id\":\"D900-T449-REG\",\"target\":\"T449-REG-CTRL\",\"directive\":\"pause\",\"note\":\"T449 regression: directive must reach a runner inside a worktree\",\"from\":\"T449\",\"ts\":\"$SEED_TS\",\"read\":false}" >> "$DIRECTIVES"
 else
     # worktree predates the directives file — create the parent and a fresh one
     mkdir -p "$(dirname "$DIRECTIVES")"
-    printf '%s\n' '{"id":"D900-T449-REG","target":"T449-REG-CTRL","directive":"pause","note":"T449 regression: directive must reach a runner inside a worktree","from":"T449","ts":"2026-08-20T00:00:00Z","read":false}' > "$DIRECTIVES"
+    printf '%s\n' "{\"id\":\"D900-T449-REG\",\"target\":\"T449-REG-CTRL\",\"directive\":\"pause\",\"note\":\"T449 regression: directive must reach a runner inside a worktree\",\"from\":\"T449\",\"ts\":\"$SEED_TS\",\"read\":false}" > "$DIRECTIVES"
 fi
 
 set +e

@@ -73,10 +73,40 @@ HEAL_OWNER = "dispatcher"
 # (untracked/log/t<id>.log, written by bin/dispatch's nohup redirect) carries
 # the refusal block.
 #
-# Only STRONG provider-refusal signatures match, and the classifier is
-# conservative by construction — a bare HTTP status code is not enough, and
-# incidental digits must never match: `[runner] pid 42994` is ruled out by the
-# \b word boundary, 401/403 require an auth keyword nearby, and the status-code
+# T625/D021 (2026-08-22): the classifier was a grep over a multi-megabyte
+# stream containing everything the worker read — including its own quoted
+# sources — and both failure directions were observed on real rows:
+#   * FALSE NEGATIVE: T615/T616/T617/T621/T622 died of the Claude 5-hour
+#     session limit ("hit your session limit", emitted 12:47Z) and were
+#     recorded verified=fail — the signature list had "session usage limit"
+#     and "reached your (session )?usage limit" but Claude says "hit your
+#     session limit".  Misses by one word; five false model failures.
+#   * FALSE POSITIVE: T526 died of the runner's OWN progress-timeout
+#     watchdog (run record: killed='progress timeout 600s', signal 9) but
+#     was recorded verified=unreached reason=provider-429 because the model
+#     was QUOTING an old Ollama 429 out of a document.  T601 likewise: the
+#     bare word 'quota' inside the prose "provider quota/appetite 7" of a
+#     run that actually succeeded.
+#
+# The fix, per D021: the unit of classification is the RUNNER'S OWN terminal
+# record, not a grep over worker output.
+#   1. run record first (untracked/runs/<task>.json): a runner-initiated
+#      kill (killed=wall/RSS/host/progress/directive/startup) is a harness
+#      decision — NEVER a provider refusal, whatever the log quotes.
+#   2. worker stdout is UNTRUSTED for this purpose: the log scan is
+#      restricted to a bounded refusal WINDOW — the first 8 KiB of worker
+#      output (a connect-time refusal lands there) and the last 8 KiB (a
+#      mid-turn session limit kills the run at the end).  Quoted content
+#      from mid-run documents lands in neither window (T526's quote sat at
+#      665 KiB into an 18 MiB log; T601's at 6.7 MiB of 9.5 MiB).
+#   3. the runner's OWN claude-envelope refusal line (T521 capture:
+#      "tokens: no reading — claude api error", is_error=true with zero
+#      usage) is a first-class unreached signal.
+#
+# Only STRONG refusal signatures match, and the classifier is conservative by
+# construction — a bare HTTP status code is not enough, and incidental digits
+# must never match: `[runner] pid 42994` is ruled out by the \b word
+# boundary, 401/403 require an auth keyword nearby, and the status-code
 # signatures anchor to the START of a line (the refusal is emitted as
 # `429: {"message":...}`), which a mention inside a prompt never is.  The
 # distinction must not become an excuse that launders genuine failures.
@@ -89,6 +119,11 @@ PROVIDER_REFUSAL_SIGNATURES = (
     # Billing / rate-limit prose (the api_error message body).
     (re.compile(r"session usage limit", re.I), "provider-429"),
     (re.compile(r"reached your (?:session )?usage limit", re.I), "provider-429"),
+    # D021: the Claude 5-hour session limit says "hit your session limit"
+    # — one word off from the Ollama phrasing that killed the 2026-08-20
+    # fleet.  T615/T616/T617/T621/T622 died of this and were recorded
+    # verified=fail because the phrase was missing.
+    (re.compile(r"hit your session limit", re.I), "provider-429"),
     (re.compile(r"\brate limit\b", re.I), "provider-429"),
     (re.compile(r"\bquota\b", re.I), "provider-429"),
     (re.compile(r"too many requests", re.I), "provider-429"),
@@ -104,35 +139,110 @@ PROVIDER_REFUSAL_SIGNATURES = (
     (re.compile(r"temporary failure in name resolution", re.I), "provider-connection"),
 )
 
+# D021: the refusal window — the first and last bytes of WORKER output the
+# classifier will scan.  A connect-time refusal lands in the head; a mid-turn
+# session limit kills the run and lands in the tail.  Quoted content from
+# mid-run documents lands in neither (measured: T526's quote at 665 KiB of an
+# 18 MiB log, T601's at 6.7 MiB of 9.5 MiB).
+REFUSAL_WINDOW_BYTES = 8192
+
+# D021: the runner's OWN claude-envelope refusal signal (T521 capture).  This
+# is a runner diagnostic line, not worker content: is_error=true with zero
+# usage means the model never produced a token.
+RUNNER_CLAUDE_API_REFUSAL_RX = re.compile(r"tokens: no reading[^\n]*claude api error", re.I)
+
 
 def provider_refusal_reason(root, task_id):
     """Return the provider-refusal reason ('provider-429' / 'provider-auth' /
     'provider-connection') when the model was never reached, else None.
 
-    The worker log (untracked/log/t<id>.log) is the evidence source: it is
-    written by bin/dispatch's nohup redirect and carries the refusal block
-    regardless of which provider emitted it.  A missing/unreadable log is a
-    non-match, never an error — the absence of a refusal signature means the
-    failure is attributed normally.
+    Evidence, in order (D021):
+      1. the run record (untracked/runs/<task>.json): a runner-initiated
+         kill (`killed` set — wall / RSS / host pressure / progress watchdog
+         / directive / startup) is a harness decision, NEVER a provider
+         refusal.  This is the T526 fix: the worker quoted an old 429 while
+         the watchdog killed it, and the old classifier blamed the provider.
+      2. the worker log, scanned ONLY inside the refusal window (first and
+         last REFUSAL_WINDOW_BYTES of worker output, [runner]-prefixed lines
+         excluded — they are the runner's own diagnostics, and the argv echo
+         carries the whole prompt, which must never be scored).
+      3. the runner's own claude-envelope refusal line (is_error=true, zero
+         usage — the model was never reached).
+
+    A missing/unreadable log or record is a non-match, never an error — the
+    absence of a refusal signature means the failure is attributed normally.
     """
     if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
         return None
+    # 1. Run record first: a runner-initiated kill is a harness decision,
+    #    not a provider refusal — UNLESS a refusal signature sits in the
+    #    TAIL window of the worker output.  A genuine provider limit can
+    #    CAUSE a harness kill (T616: the Claude session limit blocked the
+    #    lane, the runner's startup-liveness watchdog then killed the
+    #    silent lane at 600 s — the record says startup timeout, the log's
+    #    tail says "You've hit your session limit"); a quoted 429 that
+    #    merely passed through the worker's text (T526) lands mid-log and
+    #    never reaches the tail, so the harness kill stands.  The head
+    #    window is NOT consulted for the killed case: an accumulated log
+    #    may carry an older run's connect-time refusal, and the harness
+    #    kill is about THIS run's terminal output.
+    rr = read_run_record(root, task_id)
+    if rr and rr.get("killed"):
+        return _refusal_in_tail_window(root, task_id)
     p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
     try:
         with open(p, errors="replace") as f:
             text = f.read()
     except OSError:
         return None
+    # 3. The runner's own unreached signal (checked on the raw text — it is
+    #    a [runner] line, which the window scan below excludes).
+    if RUNNER_CLAUDE_API_REFUSAL_RX.search(text):
+        return "provider-429"
+    # 2. The refusal window over WORKER output only: strip the runner's own
+    #    diagnostics (the argv echo is the prompt — never scoreable).
+    worker = "\n".join(l for l in text.splitlines() if not l.startswith("[runner]"))
+    head = worker[:REFUSAL_WINDOW_BYTES]
+    tail = worker[-REFUSAL_WINDOW_BYTES:] if len(worker) > REFUSAL_WINDOW_BYTES else ""
+    window = head + "\n" + tail
     for rx, reason in PROVIDER_REFUSAL_SIGNATURES:
-        if rx.search(text):
+        if rx.search(window):
             return reason
     return None
 
 
-def _fail_perf(task_id, model, report, fail_check, unreached):
+def _refusal_in_tail_window(root, task_id):
+    """Refusal signature in the LAST REFUSAL_WINDOW_BYTES of the worker's
+    own output (the terminal window of THIS run), or None.
+
+    Consulted when the run record names a harness kill (D021): the refusal
+    could be the CAUSE of the kill (T616 — session limit blocked the lane,
+    the watchdog then killed the silence) or an incidental quotation
+    (T526 — mid-log document quote, excluded by the window).  Only the
+    tail is scanned: a killed run's refusal is terminal."""
+    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
+    try:
+        with open(p, errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    worker = "\n".join(l for l in text.splitlines() if not l.startswith("[runner]"))
+    tail = worker[-REFUSAL_WINDOW_BYTES:] if len(worker) > REFUSAL_WINDOW_BYTES else worker
+    for rx, reason in PROVIDER_REFUSAL_SIGNATURES:
+        if rx.search(tail):
+            return reason
+    return None
+
+
+def _fail_perf(task_id, model, report, fail_check, unreached, directive_kill=None):
     """The perf tuple for a failed dispatch.  `unreached` (a provider-refusal
     reason) turns a model failure into a lane-availability event: the ledger
-    line records verified=unreached reason=<reason>, not verified=fail."""
+    line records verified=unreached reason=<reason>, not verified=fail.  A
+    directive_kill (T625) turns it into a harness-initiated stop: the ledger
+    records verified=directive-kill reason=<id>/<type>, never verified=fail
+    — the model did nothing wrong and did not choose to stop."""
+    if directive_kill:
+        return (task_id, model, report, "directive-kill", directive_kill)
     if unreached:
         return (task_id, model, report, "unreached", unreached)
     return (task_id, model, report, "fail", fail_check)
@@ -365,6 +475,62 @@ def _run_record_path(root, task_id):
     return os.path.join(root, "untracked", "runs", task_id + ".json")
 
 
+# ── T625: directive-kill classification ────────────────────────────────────
+#
+# A worker stopped because a `pause`/`kill` directive was in force was NOT a
+# model failure: the harness killed it at the directive's behest.  Before
+# T625 the termination surfaced as rc=124 + verified=fail — the exact
+# signature of a wall-kill and of the Claude-window failures D048 had to
+# annotate DO NOT SCORE by hand — so every directive kill wrote a false
+# negative into the ladder (T544, 2026-08-22: two rows, pro and flash).
+#
+# Classification is mechanical and conservative:
+#   1. the run record (untracked/runs/<task>.json): kill_class ==
+#      "directive" (T625), or a `killed` string starting with "directive"
+#      (the mid-run poll already wrote that shape pre-T625);
+#   2. the worker log fallback (untracked/log/t<id>.log): the launch-time
+#      signature `[runner] exit 124 (directive: ...)` — pre-T625 launch
+#      refusals wrote NO run record at all.
+# A genuine wall/RSS/host kill matches neither (D048's standing warning:
+# the fix must not become a laundry for real failures).
+_DIRECTIVE_KILL_RX = re.compile(r"^directive (D\d+) ([A-Z]+)", re.I)
+_DIRECTIVE_LOG_RX = re.compile(r"exit 124 \(directive(?::\s*([a-z]+))?", re.I)
+
+
+def directive_kill_reason(root, task_id):
+    """→ "D<id>/<type>" (e.g. "D6257/pause") when the worker's death was a
+    directive kill, else None.
+
+    Evidence order: the run record first (kill_class or the killed string
+    naming the directive), then the worker log (pre-T625 launch refusals,
+    which wrote no run record — the log line is all that exists).  The
+    log fallback is conservative: the exact launch-refusal signature must
+    match, and a run that started at all has a run record, so a stray old
+    line in an accumulated log cannot reclassify a wall-kill (which always
+    writes a record)."""
+    if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
+        return None
+    rr = read_run_record(root, task_id)
+    if rr:
+        killed = rr.get("killed") or ""
+        if rr.get("kill_class") == "directive" or killed.lower().startswith("directive"):
+            m = _DIRECTIVE_KILL_RX.match(killed)
+            if m:
+                return "%s/%s" % (m.group(1), m.group(2).lower())
+            return "unknown/directive"
+    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
+    try:
+        with open(p, errors="replace") as f:
+            text = f.read()
+    except OSError:
+        return None
+    m = _DIRECTIVE_LOG_RX.search(text)
+    if m:
+        typ = m.group(1) or "pause/kill"
+        return "unknown/%s" % typ
+    return None
+
+
 def read_run_record(root, task_id):
     """Load the runner's run record for `task_id`, or None when absent/unreadable.
 
@@ -433,6 +599,17 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
             "NOTE provider refusal (reason=%s): the model was never reached — "
             "recorded as unreached, not a task failure" % unreached)
 
+    # T625: a directive-caused termination is a harness-initiated stop, not a
+    # model failure.  Classified from the run record (kill_class=directive /
+    # killed="directive ...") or the worker log (pre-fix launch refusals),
+    # and it must NEVER produce a verified=fail row.
+    directive_kill = directive_kill_reason(root, task_id) if rc != 0 else None
+    if directive_kill:
+        details.append(
+            "NOTE directive kill (%s): the harness stopped the worker at a "
+            "directive's behest — recorded as directive-kill, not a model "
+            "failure" % directive_kill)
+
     dl_missing = []
     findings_bad = []  # [(deliverable, error), ...] — malformed findings records
     for d in (deliverables or []):
@@ -455,7 +632,7 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
             return (2,
                     "worker exited rc=%d — verification FAILED" % rc,
                     details + ["FAIL exit: worker did not exit cleanly (rc=%d)" % rc],
-                    _fail_perf(task_id, model, "crash", "exit", unreached))
+                    _fail_perf(task_id, model, "crash", "exit", unreached, directive_kill))
         if not nonce_ok:
             return (2,
                     "worker reported success; verification FAILED: nonce echo missing",
@@ -484,7 +661,7 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                 "worker reported success; verification FAILED: task %s not found in store %s"
                 % (task_id, store_path(root, store_env)),
                 details + ["FAIL kanban: task %s not found" % task_id],
-                (task_id, model, "unknown", "fail", "row"))
+                _fail_perf(task_id, model, "unknown", "row", unreached, directive_kill))
 
     if status != "done":
         # The row never closed.  rc==0 with an open row is the kimi incident.
@@ -495,12 +672,17 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                     details + ["FAIL kanban: task %s is still %s (no claim/done recorded)"
                                % (task_id, status)],
                     (task_id, model, "incomplete", "fail", "row"))
+        if directive_kill:
+            summary = ("worker stopped by directive %s — verification FAILED "
+                       "(directive kill, not a model failure)" % directive_kill)
+        else:
+            summary = "worker exited rc=%d and the task never left %s — verification FAILED" \
+                % (rc, status)
         return (2,
-                "worker exited rc=%d and the task never left %s — verification FAILED"
-                % (rc, status),
+                summary,
                 details + ["FAIL exit: rc=%d; FAIL kanban: task %s is still %s"
                            % (rc, task_id, status)],
-                _fail_perf(task_id, model, "incomplete", "row", unreached))
+                _fail_perf(task_id, model, "incomplete", "row", unreached, directive_kill))
 
     # Row is closed.  What did the worker report — and did the work happen?
     verdict = verdict or "pass"
@@ -574,7 +756,8 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
 
 
 def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
-                    store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS"):
+                    store_env=None, mg_path=None, assert_path_env="WEIZIGO_DISPATCH_HEALS",
+                    directive_kill=None):
     """Heal the one wound the dispatcher can heal: the worker it just watched
     die (rc != 0) left the kanban row in_progress.
 
@@ -611,6 +794,19 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
     """
     if task_id is None:
         return (False, "")
+    # T625: re-derive the directive kill (the caller may not have one) so a
+    # kill-directive death is never auto-reopened: `kill` is a STAND DOWN —
+    # the operator ordered this run stopped, and making the row dispatchable
+    # again would immediately re-launch the very run (the D048
+    # duplicate-dispatch risk, and the D047 pause-forever defect class).  A
+    # pause-directive kill heals normally — the next dispatch re-runs the
+    # directive gate (bin/dispatch refuses until the pause discharges).
+    if directive_kill is None:
+        directive_kill = directive_kill_reason(root, task_id)
+    if directive_kill and directive_kill.endswith("/kill"):
+        return (False,
+                "not healed: worker killed by directive %s (kill) — row left "
+                "in_progress for the Orchestrator" % directive_kill)
     # Re-read the store at heal time: the row could have closed between the
     # verify read and now (rare, but a reopen of a done row would refuse and
     # we want to report that cleanly, not crash).
@@ -647,6 +843,11 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
     unreached = provider_refusal_reason(root, task_id)
     if unreached:
         rec["unreached"] = unreached
+    # T625: same for a directive kill — the heal is an annotation of a
+    # harness-initiated stop, never a model failure, and the directive id
+    # names why the dispatcher re-opened the row.
+    if directive_kill:
+        rec["directive_kill"] = directive_kill
     path = (os.environ.get(assert_path_env)
             or os.path.join(real_root, "docs", "infra", "dispatch-heals.jsonl"))
     wrote = True
@@ -677,6 +878,8 @@ def heal_dispatch(*, root, real_root, task_id, model, rc, wall_seconds,
         line = ("healed: dispatcher reopened %s (model=%s rc=%d wall=%.1fs) — "
                 "ASSERTION WRITE FAILED: %s"
                 % (task_id, model, rc, wall_seconds, err))
+    elif directive_kill:
+        line = line + " | directive-kill %s" % directive_kill
     return (True, line)
 
 
@@ -695,6 +898,11 @@ def record_perf(root, perf):
     path = os.environ.get("WEIZIGO_MODEL_PERF") or os.path.join(
         root, "docs", "infra", "model-perf.md")
     if verified == "unreached":
+        suffix = " reason=%s" % reason
+    elif verified == "directive-kill":
+        # T625: a directive-caused stop is a harness decision, never a model
+        # failure — recorded with the directive id so the ladder can tell it
+        # from every other termination (and so the count is verifiable).
         suffix = " reason=%s" % reason
     elif verified == "fail":
         suffix = " fail=%s" % reason
