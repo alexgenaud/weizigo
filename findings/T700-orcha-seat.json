@@ -1,0 +1,45 @@
+{
+  "task_id": "T700",
+  "date": "2026-08-22",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T700",
+  "claims": [],
+  "new_rows": [],
+  "seat_actions": [
+    "closed T659 (pass) — shared p95 table + both fuses, landed acd7451",
+    "closed T660 (pass) — H1-MARKOV refutation reproduced, findings/T660-h1-markov.json",
+    "closed T628 (abandoned) — 5 watchdog kills, no findings file, work lost; T677 owns re-fix",
+    "salvaged T691 (claude-sonnet-5) verdicts from session transcript bde851ca -> findings/T691-race-g2.json",
+    "salvaged T692 (claude-haiku-4-5-20251001) verdicts from session transcript 00cbc43c -> findings/T692-race-g2.json"
+  ],
+  "canary_audit": {
+    "purpose": "fable rider #1 (URGENT): before grading Race G batch 2, audit each lane's transcript for reads of the canary answer key, and reconcile the 6-fail count against the sealed floor.",
+    "key_files": [
+      "findings/T653-batch2-design.json",
+      "untracked/fable-absorption-gaps-2026-08-22.md",
+      "untracked/fable-absorb-scan-2026-08-22.out",
+      "findings/T670*.json"
+    ],
+    "transcript_read_audit": {
+      "T690_opus": "no key read — mentions are from the target-set brief and its own envelope notes",
+      "T691_sonnet": "FLAG: ran `find -iname '*fable-absorption-gaps*'` and `find -iname '*T653*'` (line 77) and located untracked/fable-absorption-gaps-2026-08-22.md, but never cat/sed/read its content (verified: no cat/sed/open/Read of the file). Detection NOT void; the find is recorded as attempted key-location.",
+      "T692_haiku": "no key read — mentions from the brief",
+      "T693_dspro": "pi session; not grep-audited (deepseek lane); 1/4 canary hit is consistent with no key read",
+      "T694_dsflash": "pi session, committed 7acdb2b; 0/4 canary hit is consistent with no key read"
+    },
+    "reconciliation": {
+      "sealed_floor": "4 seeded canaries: G26 4x4.C1 (cite gap), G34 2x2.T12 (hard false), G35 WZO2.I2-CLEAN (cite gap), G43 GLOBAL.FP3 (cite gap)",
+      "plausible_extras": "G45 QA-026, G46 QA-027, G49 GLOBAL.LONGCYCLE (stale corrected-kernel census framing)",
+      "T694_6_fail_composition": "G28 4x4.FP1, G30 GLOBAL.FP2, G33 3x3.E2-RUN2, G36 CODE.ACCEPT-KOKEY, G38 CODE.CLAIMLINT-C7-NEWROWS, G39 CODE.VB-STUBS — ZERO of the 4 seeded canaries, zero of the 3 plausible extras. The '6' is numerically inside [4,7] but compositionally wrong; it is 6 unseeded defects, not 4 canaries + 2.",
+      "canary_hits_by_lane": {
+        "T690_opus": "2/4 (G34 hard + G43)",
+        "T691_sonnet": "~1.5/4 (G26 rationale-fresh, G34 as rationale-only under-calling the hard false)",
+        "T692_haiku": "0/4",
+        "T693_dspro": "1/4 (G34 as rationale-only)",
+        "T694_dsflash": "0/4"
+      },
+      "conclusion": "No lane read the canary key content, so no canary detection is VOID. But canary detection is uniformly poor (best = 2/4), and T694's headline 6-fail does NOT demonstrate canary detection — it is 0/4 on the seeded floor. The adversarial stance did not make any lane find the seeded cite-gap and hard-false defects; lanes found real SUPERSEDED/stale defects instead. The canary instrument is doing its job (it detects the miss); the lane result is a near-total miss on the seeded floor."
+    }
+  },
+  "notes": "Orchestrator seat (DSPro successor to T612). In-seat work only: closure of three stalled DS rows, salvage of two unflushed Claude lane verdicts from session transcripts, and the fable-rider canary-transcript audit + reconciliation. Per ruling 29, the substantive dispatch work (T630, T677, T662 remainder, batch-2 grading) is dispatched, not done in-seat. T691 schema note for the grader: sonnet emits headline_status_correct with 'correct' values AND status_correct with 'yes'/'no'; T692 (haiku) emits ONLY headline_status_correct + rationale_fresh with correct/incorrect/unknown values (no status_correct field) — both need field-normalization at grading time."
+}
