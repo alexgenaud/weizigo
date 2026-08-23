@@ -52,6 +52,12 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   DFS (ADR-0006). The retrograde engine uses the full move set by design; the forward cross-checks use eye-prune.
 
 ## Behaviour — every agent, every task
+- **Decide now what can be decided now (operator, 2026-08-23).** Parking a decidable point in a
+  "ratification round", an open-questions section, or a rulings queue is ceremony. If the answer
+  follows from recorded doctrine, existing evidence, or the document's own logic, decide it, record
+  the decision inline where the work lives, and move on. Escalate only what is genuinely the
+  operator's: spend, scope, and overturning a recorded ruling. A draft presented for ratification
+  must be finished — every question its author could answer, answered.
 - **Per-goban epistemic independence.** Each goban size is its own epistemic universe: PROVEN / CLAIMED /
   FALSE-AS-SCOPED at one size is **not** evidence at any other size, absent a monotonicity theorem.
 - **Evidence in git, or the claim is not proven** — under `docs/evidence/<claim-id>/`, never `untracked/`:
