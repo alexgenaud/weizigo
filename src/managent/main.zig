@@ -996,6 +996,7 @@ const mutating_verbs = [_][]const u8{
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
     "standing", "assert", "retire", "duty", "reap", "assign", "shape",
+    "lanes",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -1276,6 +1277,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdLandmark(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "orient")) {
         try cmdOrient(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "lanes")) {
+        try cmdLanes(w, io, repo_root, state_path, args);
     } else {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -6220,6 +6223,13 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     defer freeState(&state);
     var ledger = readLedgerStatuses(io, state_path);
     defer freeLedgerStatuses(&ledger);
+    // T716: the lanes census needs the archive too (an archived row is not an
+    // orphan); a corrupt archive degrades to empty here so orient never dies
+    // on a store the census cannot read.
+    const archive_path_o = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+    defer alloc.free(archive_path_o);
+    var archive_o = readState(io, archive_path_o) catch StateMap{};
+    defer freeState(&archive_o);
 
     const now = try nowTimestamp();
     defer alloc.free(now);
@@ -6328,6 +6338,14 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         o.p("floor: C1a={d} C1b={d} C2={d} C6={d}\n", .{ f.c1a, f.c1b, f.c2, f.c6 });
     } else {
         o.p("floor: tools/hooks/claimlint-floor.json unreadable\n", .{});
+    }
+    // T716: an unregistered finding is an ID that exists without a row (the
+    // class that killed T674–T695); surface the count here so a worker sees
+    // the drift in the preamble it reads at dispatch.
+    var lanes_opt = scanLanes(w, io, repo_root, &state, &archive_o) catch null;
+    if (lanes_opt) |*lc| {
+        defer lc.deinit();
+        o.p("lanes: {d} unregistered finding(s), {d} missing-finding row(s)\n", .{ lc.unregistered.items.len, lc.missing.items.len });
     }
 
     // ── kanban (dispatchable / in-progress with liveness / blocked) ──
@@ -7303,6 +7321,7 @@ fn printHelp(w: Writers) void {
         \\  managent standing         register triggered standing-tier tasks
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
         \\  managent orient           generate the ≤150-line worker preamble (principles + gates + kanban + activity)
+        \\  managent lanes            census T-ID ↔ findings drift (unregistered findings / missing-findings rows); --backfill mints+closes the orphans
         \\  managent help             show this help
         \\
         \\Options:
@@ -10333,6 +10352,211 @@ fn cmdPing(w: Writers, io: std.Io, repo_root: []const u8, args: [][]const u8) !v
 
     w.diag("\n  ping: heartbeat recorded\n", .{});
     if (note_text) |nt| w.diag("  note: {s}\n", .{nt});
+}
+
+// ── lanes — bidirectional T-ID ↔ findings census (T716) ──────────────────
+// The T716 defect: findings/T674, T679, T683, T685, T687, T690–T693 exist on
+// disk and were graded (commits 8877a1d Race G batch 2, 9e9cd28 Race H), yet
+// no row for any of them exists in any committed or working-tree tasks.json —
+// the IDs were allocated (bundles written, next_id advanced) but the rows
+// were clobbered by concurrent re-serialization before any commit captured
+// them.  `lanes` is the instrument that makes that class visible and, with
+// --backfill, reparable.
+//
+//   FORWARD  — every findings/<T<id>>-*.json whose <id> has no row in the
+//              live store or the archive is an UNREGISTERED lane.  This is a
+//              gate: exit 1 when any exist (the suite fails on it).
+//   REVERSE  — every live done/failed row whose bundle declares a
+//              `deliverables=findings/...` path that never landed on disk is
+//              a MISSING-FINDINGS row.  Flag-only, never deleted (deleting a
+//              row is how evidence dies).
+//   --backfill — mint+close the forward orphans in ONE locked write: each
+//              orphan gets a `done` row (verdict pass-with-findings) so the
+//              finding can never again outlive its row.
+const LaneFinding = struct {
+    id: []const u8,
+    path: []const u8,
+};
+
+const LanesCensus = struct {
+    unregistered: std.ArrayList(LaneFinding),
+    missing: std.ArrayList(LaneFinding),
+
+    fn deinit(self: *LanesCensus) void {
+        for (self.unregistered.items) |e| {
+            alloc.free(e.id);
+            alloc.free(e.path);
+        }
+        self.unregistered.deinit(alloc);
+        for (self.missing.items) |e| {
+            alloc.free(e.id);
+            alloc.free(e.path);
+        }
+        self.missing.deinit(alloc);
+    }
+};
+
+fn scanLanes(w: Writers, io: std.Io, repo_root: []const u8, live: *const StateMap, archive: *const StateMap) !LanesCensus {
+    var c = LanesCensus{
+        .unregistered = std.ArrayList(LaneFinding).empty,
+        .missing = std.ArrayList(LaneFinding).empty,
+    };
+    errdefer c.deinit();
+
+    const asc = struct {
+        fn lt(_: void, a: LaneFinding, b: LaneFinding) bool {
+            if (std.mem.lessThan(u8, a.id, b.id)) return true;
+            if (std.mem.lessThan(u8, b.id, a.id)) return false;
+            return std.mem.lessThan(u8, a.path, b.path);
+        }
+    }.lt;
+
+    // ── FORWARD: findings files whose T-id has no row (live or archived) ──
+    const findings_path = try std.fs.path.join(alloc, &.{ repo_root, "findings" });
+    defer alloc.free(findings_path);
+
+    var findings_dir: ?std.Io.Dir = null;
+    if (std.Io.Dir.cwd().openDir(io, findings_path, .{})) |d| {
+        findings_dir = d;
+    } else |err| {
+        if (err != error.FileNotFound) return err;
+    }
+    if (findings_dir) |*d| {
+        defer d.close(io);
+        var iter = d.iterate();
+        while (try iter.next(io)) |entry| {
+            if (entry.kind != .file) continue;
+            if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+            const tid = taskIdFromFindingsPath(entry.name) orelse continue;
+            if (live.get(tid) != null or archive.get(tid) != null) continue;
+            try c.unregistered.append(alloc, LaneFinding{
+                .id = try alloc.dupe(u8, tid),
+                .path = try std.fmt.allocPrint(alloc, "findings/{s}", .{entry.name}),
+            });
+        }
+    }
+    std.mem.sort(LaneFinding, c.unregistered.items, {}, asc);
+
+    // ── REVERSE: done/failed rows whose findings deliverable never landed ──
+    {
+        var it = live.iterator();
+        while (it.next()) |entry| {
+            const tid = entry.key_ptr.*;
+            const ts = entry.value_ptr.*;
+            if (ts.status != .done and ts.status != .failed) continue;
+            if (ts.bundle.len == 0) continue;
+            const bundle_abs = if (std.fs.path.isAbsolute(ts.bundle))
+                try alloc.dupe(u8, ts.bundle)
+            else
+                try std.fs.path.join(alloc, &.{ repo_root, ts.bundle });
+            defer alloc.free(bundle_abs);
+            const dlvs = parseDeliverablesFromBundle(w, io, bundle_abs, ts.holds) catch continue;
+            defer {
+                for (dlvs) |d| alloc.free(d);
+                alloc.free(dlvs);
+            }
+            for (dlvs) |d| {
+                if (!std.mem.startsWith(u8, d, "findings/")) continue;
+                const d_abs = try std.fs.path.join(alloc, &.{ repo_root, d });
+                defer alloc.free(d_abs);
+                if (std.Io.Dir.cwd().statFile(io, d_abs, .{}) catch null) |_| continue;
+                try c.missing.append(alloc, LaneFinding{
+                    .id = try alloc.dupe(u8, tid),
+                    .path = try alloc.dupe(u8, d),
+                });
+                break;
+            }
+        }
+    }
+    std.mem.sort(LaneFinding, c.missing.items, {}, asc);
+
+    return c;
+}
+
+fn cmdLanes(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const backfill = hasFlag(args, "--backfill");
+
+    // Optional positional T-ids restrict --backfill to a subset (the T716
+    // use: mint exactly the nine scoped orphans, not the whole historical
+    // debt the census also surfaces).
+    var only = std.ArrayList([]const u8).empty;
+    defer only.deinit(alloc);
+    for (args[2..]) |a| {
+        if (std.mem.startsWith(u8, a, "-")) continue;
+        try only.append(alloc, a);
+    }
+
+    var live = try readState(io, state_path);
+    defer freeState(&live);
+
+    const archive_path = try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+    defer alloc.free(archive_path);
+    var archive = try readState(io, archive_path);
+    defer freeState(&archive);
+
+    var c = try scanLanes(w, io, repo_root, &live, &archive);
+    defer c.deinit();
+
+    // stdout = data, stderr = diagnostics (AGENTS.md).
+    w.data("lanes: {d} unregistered finding(s), {d} missing-finding row(s)\n", .{ c.unregistered.items.len, c.missing.items.len });
+    for (c.unregistered.items) |e| {
+        w.data("  UNREGISTERED  {s}  ({s})\n", .{ e.id, e.path });
+    }
+    for (c.missing.items) |e| {
+        w.data("  MISSING-FINDINGS  {s}  ({s})\n", .{ e.id, e.path });
+    }
+
+    if (c.unregistered.items.len == 0) std.process.exit(0);
+    if (!backfill) {
+        w.diag("lanes: {d} unregistered finding(s) — `managent lanes --backfill` mints+closes them\n", .{c.unregistered.items.len});
+        std.process.exit(1);
+    }
+
+    // ── --backfill: mint+close the orphans in ONE locked write ──────────
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+    // The freshly-minted rows carry default empty slices; this process exits
+    // immediately after the write (the cmdAdd/cmdSuggest shape), so the state
+    // map is intentionally not freed here.
+
+    const now = try nowTimestamp();
+    defer alloc.free(now);
+
+    var minted: u32 = 0;
+    for (c.unregistered.items) |e| {
+        if (state.get(e.id) != null or archive.get(e.id) != null) continue;
+        if (only.items.len > 0) {
+            var in_list = false;
+            for (only.items) |o| {
+                if (std.mem.eql(u8, o, e.id)) {
+                    in_list = true;
+                    break;
+                }
+            }
+            if (!in_list) continue;
+        }
+        const note = try std.fmt.allocPrint(alloc, "T716 backfill: minted+closed an orphaned lane — findings existed, the row was clobbered before any committed store captured it (findings/T716-unregistered-lanes.json)", .{});
+        const ts = TaskState{
+            .status = .done,
+            .model = null,
+            .bundle = try alloc.dupe(u8, ""),
+            .set = 'A',
+            .shape = try alloc.dupe(u8, "solo"),
+            .added = try alloc.dupe(u8, now),
+            .done = try alloc.dupe(u8, now),
+            .note = note,
+            .verdict = try alloc.dupe(u8, "pass-with-findings"),
+            .verdict_note = try alloc.dupe(u8, "work delivered and graded before the row was minted (T716 backfill)"),
+            .impression_waiver = try alloc.dupe(u8, "T716 backfill: pre-mint work, graded before the row existed — no impression owed"),
+        };
+        try state.put(alloc, try alloc.dupe(u8, e.id), ts);
+        minted += 1;
+    }
+    try writeStateLocked(io, state_path, &state);
+
+    w.data("lanes: minted+closed {d} row(s)\n", .{minted});
+    std.process.exit(0);
 }
 
 // ── liveness — show last heartbeat per in_progress task ──────────────────────

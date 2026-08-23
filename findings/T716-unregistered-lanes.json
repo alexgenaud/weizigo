@@ -1,0 +1,45 @@
+{
+  "task_id": "T716",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "root_cause": {
+    "q1_which_path_allocates_without_row": "None of the managent mint paths (suggest / add --auto) allocate an ID without writing a row — both mint the T-ID and write the row in ONE locked write (lockStore -> readState -> state.put -> sys_next_id += 1 -> writeStateLocked). The defect is not an allocation-without-row path; it is a ROW-LOSS path: the rows are written only to the uncommitted working-tree tasks.json, and a concurrent console re-serializes tasks.json from a stale in-memory snapshot before any commit captures the freshly-minted rows.",
+    "q2_why_t674_t695_block_failed_while_t696_registered": "The block T663-T695 (not just the nine named: 33 IDs, next_id advanced 661 -> 696) was registered, dispatched, claimed and graded entirely inside the uncommitted working-tree store during 2026-08-22 20:19-23:29Z. The last committed store state on main was cca08cb (next_id=661); the rows that followed lived only in the working tree. T694's own findings record the symptom ('the live kanban store was cleared of the T690-T694 batch-2 rows mid-run by fleet housekeeping ... the rows were never in any committed store state'). T696+ registered normally because by then the sprint manager's commits and the working tree had re-converged on one store snapshot. The flock serializes concurrent managent writes, but it does NOT protect against (a) a git checkout/stash/reset reverting the working tree, (b) a managent process running against a different worktree, or (c) a long-lived process writing back a store it read much earlier — any of which clobbers uncommitted rows with no tombstone and no error.",
+    "q3_lockfile_or_seat_habit": "tasks.json.lockfile is NOT the defect — it correctly serializes managent writes; the loss happens at the git boundary (uncommitted working tree), which the flock cannot span. The implicated seat-side habit is the sprint-manager seat (T612/T278) doing housekeeping commits that re-serialize tasks.json from a stale snapshot, while lane rows were mid-flight. The verifiable evidence: git log -S '\"T690\"' -- docs/infra/managent/tasks.json is empty across ALL commits (same for all nine) — the rows never reached a committed store, so no archive tombstone exists. D038/D039 (2026-08-23) independently confirm the debris ('race-grading lanes purged by T612 housekeeping'; 'tasks T691/T692 are NOT registered; likely T706 batch2 debris')."
+  },
+  "mechanism": {
+    "what": "A bidirectional T-ID <-> findings census: the new `managent lanes` verb.",
+    "forward": "every findings/<T<id>>-*.json whose <id> has no row in tasks.json or archive.json is an UNREGISTERED lane (the T716 class). This is a GATE: `managent lanes` exits 1 when any exist, so the drift fails a run instead of surviving silently.",
+    "reverse": "every live done/failed row whose bundle declares a deliverables=findings/... path that never landed on disk is a MISSING-FINDINGS row. Flag-only, never deleted.",
+    "backfill": "`managent lanes --backfill [T<id> ...]` mints+closes the orphans (or the named subset) in ONE locked write: status done, verdict pass-with-findings, a note naming this findings file. An ID can never again outlive its row once the census is run.",
+    "surfaced_in_orient": "the worker preamble (`managent orient`) now prints one `lanes:` line with the two counts, so the drift is visible at dispatch-read time.",
+    "tested": "tools/regression-managent-lanes.sh (five arms, scratch repo only) is wired into `zig build test` in build.zig. The test is an invariant assertion (the defect was already reproduced on the live store before the fix; the pre-fix state IS the known-bad): arm A shows the gate RED on an orphaned finding, arm B shows --backfill mints+clears it, arm C shows a missing-findings row is flag-only and never deleted, arm D is the null control, arm E asserts the REAL live store is byte-identical throughout."
+  },
+  "backfill": {
+    "nine_minted_and_closed": ["T674", "T679", "T683", "T685", "T687", "T690", "T691", "T692", "T693"],
+    "verdict": "pass-with-findings",
+    "note": "each minted row carries the note 'T716 backfill: minted+closed an orphaned lane' and an impression_waiver naming this findings file.",
+    "grading_reference": "T690-T693 graded in 8877a1d (T706 Race G batch 2); T685/T687 graded in 9e9cd28 (T696 Race H); T674/T679/T683 are the triage/census/landmark-backfill lanes of the same block."
+  },
+  "reverse_sweep": {
+    "flagged_missing_findings": [
+      {"row": "T322", "verdict": "pass-with-findings", "missing": "findings/T323-orphaned-controls.json", "note": "cross-ID mismatch: the T322 row's bundle declares T323's findings deliverable"},
+      {"row": "ORCHA-FLASH", "verdict": "abandoned", "missing": "findings/ORCHA-flash-day1.json", "note": "abandoned row whose declared findings never landed"},
+      {"row": "T349", "verdict": "blocked", "missing": "findings/T349-context.json", "note": "blocked row, declared findings never landed"},
+      {"row": "T358", "verdict": "blocked", "missing": "findings/T358-scaling-census.json", "note": "blocked row, declared findings never landed (also T358-context.json missing)"},
+      {"row": "T628", "verdict": "abandoned", "missing": "findings/T628-window-resilience.json", "note": "abandoned row, declared findings never landed"}
+    ],
+    "disposition": "flagged only, no row deleted — deleting a row is how evidence dies."
+  },
+  "remaining_debt": {
+    "unregistered_after_backfill": 41,
+    "breakdown": {
+      "historical_t129_t219": ["T129", "T172", "T205", "T207", "T210", "T211", "T212", "T213", "T214", "T215", "T216", "T217", "T219"],
+      "t663_t695_block_remainder": ["T663", "T665", "T666", "T668", "T669", "T670", "T671", "T672", "T673", "T675", "T676", "T678", "T680", "T681", "T684", "T688", "T689", "T694", "T695"]
+    },
+    "note": "The census surfaces the full class, not just the nine the bundle scoped. The other 41 unregistered findings are committed (safe in git) but row-less; backfilling them is a follow-up, out of T716's scoped nine. The nine backfilled findings FILES are still uncommitted in the working tree (T674/T679/T683/T685/T687/T690/T693 untracked, T691/T692 staged) — Orchestrator reconciliation owed to commit them (D039 already blocks T525 on the staged T691/T692)."
+  },
+  "notes": "Root cause: rows minted by suggest/add live only in the uncommitted working-tree tasks.json; concurrent console re-serialization (the sprint-manager seat's housekeeping commits, git stash/checkout, or a long-lived process writing a stale snapshot) clobbers them before any commit captures them. The ID stays allocated (next_id advanced, bundle written, findings graded) but the row vanishes with no tombstone and no error — and nothing detected it until this row. Fix: `managent lanes` (bidirectional census + --backfill), surfaced in `managent orient`, wired into `zig build test` via tools/regression-managent-lanes.sh. Backfilled the nine scoped rows (status done, verdict pass-with-findings). Reverse sweep flagged 5 done/failed rows whose declared findings never landed (flag-only, nothing deleted). Inbox polled empty at claim and before done; no T716-targeted directives to record. Pre-existing build flake observed once: `zig build` failed transiently on src/gtp.zig (version.banner) while tools/gen-version.sh regenerated version.zig; a re-run succeeded — unrelated to this change."
+}

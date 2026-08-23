@@ -480,6 +480,15 @@ pub fn build(b: *std.Build) void {
     store_pollution_regression.cwd = b.path(".");
     test_step.dependOn(&store_pollution_regression.step);
 
+    // ── T716: T-ID ↔ findings census (`managent lanes`) controls ──────
+    // An orphaned findings file (no row) must fire the gate (exit 1) and
+    // --backfill must mint+close it in one write; a done row whose findings
+    // deliverable never landed is flag-only (never deleted).  Scratch repo
+    // only; the REAL live store is byte-identical throughout.
+    const lanes_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-lanes.sh" });
+    lanes_regression.cwd = b.path(".");
+    test_step.dependOn(&lanes_regression.step);
+
     // ── T520: runner brief-bytes + dispatch wall-guidance controls ──────
     // tools/runner records brief_bytes/prompt_bytes/wall_budget in the run
     // record (so every exit-124 wall-kill is joinable to the brief that
