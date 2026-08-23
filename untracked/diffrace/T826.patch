@@ -1,0 +1,106 @@
+diff --git a/tools/dispatch_verify.py b/tools/dispatch_verify.py
+index f29b29b..d6ccf92 100755
+--- a/tools/dispatch_verify.py
++++ b/tools/dispatch_verify.py
+@@ -931,6 +931,17 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+       summary    one line, printed with a [verify] prefix by the caller
+       details    detail lines, printed indented under the summary
+       perf       (task_id, model, report, verified, fail_check) for the model ledger
++
++    T826: the nonce and the deliverables answer different questions.  The
++    nonce proves READING (proof-of-reading); the declared deliverables prove
++    WORK (proof-of-work).  When every declared deliverable exists but the
++    nonce was not echoed, the work happened and only the close protocol broke
++    — a PROTOCOL failure, reported as such (summary + fail_check=nonce), never
++    as the WORK-ABSENT failure a worker that produced nothing earns.  When no
++    deliverable was declared at all, the work is UNVERIFIABLE — the nonce
++    alone is not proof of work, so a success verdict does not pass.  Exit
++    status stays 0 (pass) / 2 (fail): the distinction lives in the
++    classification and fail_check, which is what the ledger grades.
+     """
+     details = []
+     nonce_ok = nonce in stdout
+@@ -1051,9 +1062,45 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+     # failed" — the deliverables ARE the executed work, so they are hard for
+     # it too.  blocked/abandoned may legitimately produce nothing.
+     deliverables_required = verdict in SUCCESS_VERDICTS or verdict == "fail-found"
++
++    # T520: wall-kill telemetry — flag a wall too low for the brief's class.
++    # The run record (untracked/runs/<task_id>.json) carries brief_bytes +
++    # wall_budget + the kill reason.  When the dispatch's wall budget was
++    # below the class recommendation for that brief, surface it as a detail —
++    # never a hard fail (a wall-low is a risk, not a lie).  This is the
++    # epidemic made actionable at dispatch time.  Computed for EVERY closed
++    # row outcome (pass, protocol failure, work failure, unverifiable) so the
++    # advisory survives whichever verdict path returns.
++    rr = read_run_record(root, task_id)
++    if rr:
++        wb = rr.get("wall_budget")
++        bb = rr.get("brief_bytes")
++        if bb is None:
++            bb = rr.get("prompt_bytes")
++        _typ, _rec, _ok, adv = wall_advisory(root, task_id, wb, bb, store_env=store_env)
++        if adv:
++            details.append(adv)
++
++    # T826: the deliverables are the proof-of-work.  When the worker reports
++    # success (or fail-found) but NO deliverable was declared, the work cannot
++    # be verified at all — the nonce alone (proof-of-reading) is not proof
++    # that the work happened, so the outcome is UNVERIFIABLE, never PASS.
++    # fail_check stays 'deliverables' so the recoverable mapping is untouched.
++    if not deliverables and deliverables_required:
++        return (2,
++                "worker reported %s; verification FAILED: UNVERIFIABLE — no "
++                "deliverables declared (the nonce proves reading, not work)"
++                % worker_report,
++                details + ["FAIL deliverables: none declared — cannot verify the "
++                           "work happened; the nonce alone is not proof of work"],
++                (task_id, model, worker_report, "fail", "deliverables"))
++
++    # Declared deliverables that are missing: the work did not happen — a
++    # WORK failure, distinct from the protocol failure a missing nonce earns.
+     if dl_missing and deliverables_required:
+         return (2,
+-                "worker reported %s; verification FAILED: deliverable(s) missing: %s"
++                "worker reported %s; verification FAILED: WORK ABSENT — "
++                "deliverable(s) missing: %s"
+                 % (worker_report, ", ".join(dl_missing)),
+                 details + ["FAIL deliverables: missing: %s" % ", ".join(dl_missing)],
+                 (task_id, model, worker_report, "fail", "deliverables"))
+@@ -1069,30 +1116,19 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+                 % (worker_report, ", ".join(d for d, _ in findings_bad)),
+                 details, (task_id, model, worker_report, "fail", "findings"))
+ 
++    # T826: the work is present (deliverables exist and parse) but the nonce
++    # was not echoed — a PROTOCOL failure (proof-of-reading), not a work
++    # failure.  fail_check=nonce keeps the recoverable mapping intact.
+     if not nonce_ok:
+         return (2,
+-                "worker reported %s; verification FAILED: nonce echo missing" % worker_report,
++                "worker reported %s; verification FAILED: PROTOCOL FAILURE — "
++                "nonce echo missing (work present, proof-of-reading failed)"
++                % worker_report,
+                 details, (task_id, model, worker_report, "fail", "nonce"))
+ 
+     if dl_missing:
+         details.append("NOTE deliverables absent (expected for %s)" % verdict)
+ 
+-    # T520: wall-kill telemetry — flag a wall too low for the brief's class.
+-    # The run record (untracked/runs/<task_id>.json) carries brief_bytes +
+-    # wall_budget + the kill reason.  When the dispatch's wall budget was
+-    # below the class recommendation for that brief, surface it as a detail —
+-    # never a hard fail (a wall-low is a risk, not a lie).  This is the
+-    # epidemic made actionable at dispatch time.
+-    rr = read_run_record(root, task_id)
+-    if rr:
+-        wb = rr.get("wall_budget")
+-        bb = rr.get("brief_bytes")
+-        if bb is None:
+-            bb = rr.get("prompt_bytes")
+-        _typ, _rec, _ok, adv = wall_advisory(root, task_id, wb, bb, store_env=store_env)
+-        if adv:
+-            details.append(adv)
+-
+     if worker_report == "success":
+         return (0,
+                 "worker reported success; side effects verified — verification PASSED",

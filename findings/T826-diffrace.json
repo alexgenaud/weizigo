@@ -1,0 +1,39 @@
+{
+  "task_id": "T826",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "task_type": "implement",
+  "task_scope": {
+    "files_touched": ["tools/dispatch_verify.py"],
+    "lines_added": 54,
+    "lines_removed": 18,
+    "read_only": false,
+    "patch": "untracked/diffrace/T826.patch",
+    "base": "a015496",
+    "patch_applies": true,
+    "unit_suite": "387 tests: 0 green arms broken; 2 recorded-defect arms turn green (TestVerifyDispatchEmptyDeliverables.test_empty_declaration_reports_unverifiable_never_pass, test_none_deliverables_same_as_empty); recorded defects 12 -> 10",
+    "shell_regression": "tools/regression-runner-brief-telemetry.sh: ALL CONTROLS PASSED (arm E kept green by surfacing the wall-low advisory on the unverifiable path too)"
+  },
+  "capabilities": [
+    "separate two questions the original code conflated: the nonce answers 'did the worker read the brief' (proof-of-reading) and the deliverables answer 'did the work happen' (proof-of-work)",
+    "route each of the four nonce-x-deliverables outcomes into a distinct classification: pass (both hold), work absent (deliverables missing), protocol failure (work present, nonce missing), and unverifiable (no deliverables declared — the nonce alone is not proof of work)",
+    "read the graded-vocabulary contract (tests/unit TestVerifyDispatchGradedVocabulary + tools/model-profiles.py RECOVERABLE_FAIL) and design within it: every fail_check stays in {nonce, deliverables, findings, row, exit} and the recoverable/unrecoverable mapping is untouched",
+    "turn the two recorded-defect empty-deliverables arms green WITHOUT the collisions their own docstring predicted: moved the wall-low advisory so tools/regression-runner-brief-telemetry.sh arm E stays green, and left the bare-file path (nonce-is-the-whole-guard) untouched",
+    "verify mechanically: git apply --check at the pinned base, apply to a scratch worktree at a015496, run the full unit suite and the shell regression, then revert the shared working tree"
+  ],
+  "design_decision": "The nonce and the deliverables are now checked as two different questions, and each failure lands in its own classification.  (1) When a success/fail-found verdict declares NO deliverable at all, the outcome is UNVERIFIABLE (exit 2, verified=fail, fail_check=deliverables) — the nonce alone cannot prove the work happened, so this never passes.  (2) When declared deliverables are missing, the outcome is WORK ABSENT (exit 2, fail_check=deliverables).  (3) When every declared deliverable exists and parses but the nonce was not echoed, the outcome is a PROTOCOL failure (exit 2, fail_check=nonce, summary names 'work present, proof-of-reading failed') — distinct from a worker that produced nothing.  (4) The wall-low advisory is computed for every closed-row outcome so it survives the unverifiable/fail paths (keeps arm E green).  fail_check stays in the recoverable vocabulary so tools/model-profiles.py grades nonce/deliverables/findings exactly as before.  Exit status stays 0/2: test_nonce_absent_fails pins the protocol-failure exit to 2, and a third code would ripple into bin/subagent's `!= 0` heal gate; the distinction lives in the classification and fail_check, which is what the ledger and operator read.",
+  "arms_expected_to_change_colour": [
+    "unit: 0 green arms -> red (all 170 green dispatch_verify arms pass before and after; full 387-test suite still shows 0 real failures)",
+    "unit: 2 recorded-defect arms -> green — TestVerifyDispatchEmptyDeliverables.test_empty_declaration_reports_unverifiable_never_pass and test_none_deliverables_same_as_empty (reported by unittest as 'unexpected successes' because they are decorated @unittest.expectedFailure; the bundle explicitly rewards this turn)",
+    "shell: tools/regression-runner-brief-telemetry.sh arm E stays green (the collision the defect docstring predicted is avoided by moving the wall-low advisory)"
+  ],
+  "concerns": [
+    "The 2 turned arms surface as 'unexpected successes', which makes unittest's wasSuccessful() False and python3 tests/unit/run.py exit 1.  This is the unavoidable mechanism of turning an @unittest.expectedFailure arm green, and the bundle's own scoring ('turning a recorded-defect arm green is worth more than any prose argument') presupposes it; still, a scorer that reads only the run's exit code rather than per-arm status would misread it as a failure.",
+    "The unverifiable case reuses fail_check='deliverables' for a semantically different condition (nothing DECLARED vs declared-but-missing).  It is the only graded recoverable value that fits 'the deliverables arm could not confirm work', and adding a new value (e.g. 'unverifiable') would grade as unrecoverable in tools/model-profiles.py (not in RECOVERABLE_FAIL) — corrupting the mapping the brief says to preserve, so I chose reuse.",
+    "Moving the wall-low advisory earlier is a scope expansion: the advisory now surfaces on failure paths (unverifiable/work-absent/protocol) where it previously appeared only on the pass path.  No unit arm asserts its absence on those paths, and it is advisory-only (never a hard fail), but it is wider than a strictly minimal fix.",
+    "The bare-file path is deliberately left on its documented contract (the nonce is the whole guard): an empty deliverables list there still passes.  The defect docstring flagged this as an open decision; I resolved it in favour of preserving the contract rather than making bare-file dispatches unverifiable."
+  ],
+  "notes": "T826 — diff race: nonce vs no-work.  Entrant: deepseek-v4-pro/T826.  Design: the nonce proves READING, the deliverables prove WORK; the verification now classifies pass / work-absent / protocol-failure / unverifiable distinctly, keeps every fail_check in the graded vocabulary (recoverable mapping untouched), and turns both empty-deliverables recorded-defect arms green without breaking the shell regression arm E or the bare-file contract.  Patch is a unified diff against a015496 touching only tools/dispatch_verify.py (54 insertions, 18 deletions); verified with git apply --check and by applying to a scratch worktree at a015496 and running tests/unit/test_dispatch_verify.py (170 pass, 2 recorded-defect arms turn green) plus tools/regression-runner-brief-telemetry.sh (ALL CONTROLS PASSED); the shared working tree was reverted to pristine afterward.  What would prove the design wrong: any green unit arm turning red under the patch (none did), shell arm E failing (it passes), or a live success-verdict dispatch with no declared deliverable still recording verified=pass (the patch records verified=fail fail=deliverables with an UNVERIFIABLE summary)."
+}
