@@ -1,0 +1,40 @@
+{
+  "task_id": "T710",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T710",
+  "claims": [],
+  "new_rows": [],
+  "claim": "The pre-commit C7-nonconforming floor is scoped to the committing path: it gates only the findings files the current commit stages, not the whole findings/ tree. A sibling lane's malformed findings file in the working tree can no longer block another lane's commit.",
+  "design": {
+    "problem": "KD-12 (T696 new_rows[3]): during Race H, T687's findings file (the only one of five missing claims/new_rows) tripped the shared C7-nonconforming floor and blocked T686 and T688 from committing; T688 committed --no-verify after review and T686 stopped and asked. The floor was a fleet-wide single point of failure: any lane's schema slip in the working tree blocked every other lane's commit. The failure reproduced during this task itself — T718's in-progress findings file (missing the required `claims` key) sat untracked in findings/ and made the repo-wide C7 scan report non-conforming=1 against a floor of 0, blocking commits until T718's lane added the key.",
+    "mechanism": "src/claimlint.zig — the `c7` verb gains a `--findings-scope-file <path>` flag: a file of one repo-relative findings path per line (the pre-commit hook writes the staged findings paths here). `checkFindings` takes an optional scope (null = scan everything, the census behaviour; a slice = scan only the named files, an empty slice = scan nothing). A pure `findingsScopeEntry` normalizes repo-relative paths to findings-dir-relative, and a pure `findingsScopeContains` does membership. tools/hooks/pre-commit — the C7-nonconforming floor count is no longer read from the repo-wide verify summary; instead the hook extracts staged findings/*.json paths (excluding findings/rejections.json), writes them to a scope file, and asks `c7 --findings-scope-file` for the scoped non-conforming count. No staged findings files → count 0 (nothing in scope).",
+    "what_stays_repo_wide": "The `c7` and `c7 --json` census verbs stay repo-wide by default — they are the census surfaces (`managent done` scopes by task id itself, per writeC7Json's contract). Only the pre-commit FLOOR is scoped. The unabsorbed census (C7-unabsorbed) is not floor-gated and is untouched.",
+    "explicit_decision": "An empty scope file means 'scan nothing', distinct from no flag ('scan everything'). The hook short-circuits to 0 when no findings file is staged, but the two cases are represented separately in claimlint so a missing scope file can never silently widen to a full scan."
+  },
+  "bars": {
+    "unit_scope_entry": "PASS — findingsScopeEntry strips the findings/ prefix, keeps nested paths. `zig test src/claimlint.zig` (27 tests).",
+    "unit_scope_contains": "PASS — findingsScopeContains matches findings-dir-relative candidates; an empty scope matches nothing. `zig test src/claimlint.zig`.",
+    "scope_empty": "PASS — `c7 --findings-scope-file` with an empty scope file scans nothing (non-conforming 0, exit 0) even when the live tree carries a non-conforming file. tools/regression-claimlint-c7-scope.sh.",
+    "scope_good": "PASS — a scope naming a conforming findings file reports non-conforming 0, exit 0.",
+    "scope_bad": "PASS — a scope naming a malformed findings file reports non-conforming 1, exit 1 (the floor can see the slip).",
+    "scope_json": "PASS — `--json` and `--findings-scope-file` combine: exactly one per-file entry, the scoped file, conforming.",
+    "hook_staged_malformed": "PASS — a commit staging a malformed findings file is refused (scoped C7-nonconforming 1 > floor 0). regression-precommit.sh T483 control.",
+    "hook_sibling_slip": "PASS — a malformed findings file present but NOT staged does not block a commit staging a good findings file (scoped count 0). regression-precommit.sh T710 sibling-slip control — the KD-12 regression.",
+    "existing_suites": "PASS — tools/regression-precommit.sh (all controls), tools/regression-git-commit-mine-hook.sh (all 7 arms, stub updated for the `c7` verb), tools/regression-claimlint-c7-json.sh (all arms), tools/regression-claimlint-c7-scope.sh (new)."
+  },
+  "files_modified": [
+    "src/claimlint.zig",
+    "tools/hooks/pre-commit",
+    "tools/regression-precommit.sh",
+    "tools/regression-git-commit-mine-hook.sh",
+    "tools/regression-claimlint-c7-scope.sh",
+    "build.zig"
+  ],
+  "run": {
+    "command": "zig test src/claimlint.zig; sh tools/regression-precommit.sh; sh tools/regression-git-commit-mine-hook.sh; sh tools/regression-claimlint-c7-json.sh; sh tools/regression-claimlint-c7-scope.sh; zig build",
+    "exit_code": 0,
+    "summary": "All 27 Zig unit tests pass (3 new T710). regression-precommit: installed-ness PASS, null control PASS, seeded-defect PASS, T455 7a-7e PASS, T483 scoped-floor PASS, T710 sibling-slip PASS. regression-git-commit-mine-hook: 7/7 PASS. regression-claimlint-c7-json: 3/3 PASS. regression-claimlint-c7-scope: 4/4 PASS. zig build PASS (wiring of the new regression script into the test step is valid)."
+  },
+  "notes": "Test-first: the two Zig unit tests for findingsScopeEntry/findingsScopeContains were written and shown green as part of the change; the hook-level scoping is covered by two positive/negative regression controls (T483 staged-malformed-refused, T710 sibling-slip-allowed) plus the four real-binary arms in regression-claimlint-c7-scope.sh. The bundle's holds= field names tools/claimlint.py, which does not exist on disk — the claimlint source is src/claimlint.zig and the floor lives in tools/hooks/pre-commit; I held and edited those actual files (plus the two regression stubs that emulate claimlint's summary surface). Claimlint's built-in calibration runs on every verify and passed in all live-tree runs. Inbox loop: `bin/managent inbox T710 --ack` returned empty at each checkpoint — no directives received."
+}

@@ -152,19 +152,42 @@ new_scratch() {
 }
 
 stub_claimlint() {
-    # $1 = scratch dir; $2 = C7 non-conforming count (default 0). T483 added
-    # the non-conforming line so the hook's new floor has a number to read;
-    # the T455 controls emit 0, the T483 seeded control emits 1.
+    # $1 = scratch dir; $2 = C7 non-conforming count (default 0).
+    # The stub emulates BOTH claimlint surfaces the hook reads: the verify
+    # summary lines (calibration + C1a/C1b/C2/C3/C6/C9) and, when invoked as
+    # the `c7` verb (T710), the scoped `non-conforming:` line. The `c7`
+    # branch reports non-conforming=1 only when a *malformed* findings file
+    # is named in the --findings-scope-file arg — a stand-in for claimlint's
+    # real JSON parsing (that contract is claimlint's, proven by its own
+    # calibration + the Zig unit tests); the hook's job here is to scope the
+    # file list to the committing path, which is exactly what the branch
+    # asserts. The T455 controls emit 0 (no findings staged); the T483 and
+    # T710 controls drive it through the staged findings filenames.
     STUB_NONCONF="${2:-0}"
     mkdir -p "$1/bin"
-    cat > "$1/bin/weizigo-claimlint" <<EOF
+    cat > "$1/bin/weizigo-claimlint" <<'EOF'
 #!/bin/sh
+if [ "$1" = "c7" ]; then
+    SCOPE=""
+    prev=""
+    for a in "$@"; do
+        if [ "$prev" = "--findings-scope-file" ]; then SCOPE="$a"; fi
+        prev="$a"
+    done
+    NONCONF=0
+    if [ -n "$SCOPE" ] && grep -q 'malformed' "$SCOPE" 2>/dev/null; then
+        NONCONF=1
+    fi
+    echo "  non-conforming: $NONCONF (fails the run when > 0; spec §6.1)"
+    echo "  unabsorbed: 0"
+    echo "  dispositioned: 0"
+    exit 0
+fi
 echo "  calibration: PASS"
 echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"
 echo "  C3 PROVEN w/o committed evid.      0   (debt...)"
 echo "  C6 cite-tag mismatches        0   (FAILS)"
-echo "  C7 non-conforming files        $STUB_NONCONF   (reported)"
 echo "  C9 tree-mapping violations      0   (FAILS)"
 exit 0
 EOF
@@ -356,19 +379,20 @@ fi
 # later additions.
 set -e
 
-# ── T483 control: C7-nonconforming floor ──────────────────────────────
+# ── T483 control: C7-nonconforming floor (scoped, T710) ─────────────
 # A commit staging invalid findings/*.json must be refused by the hook's
-# new C7-nonconforming floor (absorption-spec §6.2). The instrument under
-# test is the HOOK's floor comparison — extract the `C7 non-conforming
-# files` count from the claimlint summary and refuse when it exceeds the
-# recorded floor. The detection half (a malformed findings file reports
-# nonconforming=1) is claimlint's contract, already proven by its built-in
-# calibration (known-bad 9 + known-bad 11), which the hook itself gates on
-# (`calibration: PASS`). So this arm's stub emits the count a real
-# claimlint would for the malformed file staged below, and asserts the
-# hook refuses — isolating the new floor logic, exactly as the T455 arms
-# isolate the holder-collision guard. The malformed file is staged so the
-# arm is a seeded commit carrying invalid findings JSON, not a bare
+# C7-nonconforming floor (absorption-spec §6.2). Since T710 the floor is
+# SCOPED to the committing path: the hook writes the staged findings paths
+# to a scope file and asks claimlint's `c7 --findings-scope-file` for the
+# count, so a sibling lane's working-tree file cannot trip the gate. The
+# detection half (a malformed findings file reports nonconforming=1) is
+# claimlint's contract, already proven by its built-in calibration
+# (known-bad 9 + known-bad 11), which the hook itself gates on
+# (`calibration: PASS`). The stub's `c7` branch stands in for that half by
+# reporting non-conforming=1 when a *malformed*-named file is in the scope
+# file — the hook's job here is to build that scope from the staged paths,
+# which is exactly what this arm asserts. The malformed file is staged so
+# the arm is a seeded commit carrying invalid findings JSON, not a bare
 # env-var injection.
 echo ""
 echo "=== regression-precommit: C7-nonconforming floor control ==="
@@ -385,7 +409,7 @@ cp "$REPO/tools/git-commit-mine-lib.sh" tools/
 # Empty kanban: unlabelled commit touches no held path → gate 2 allows, so
 # the control reaches the claimlint floor comparison it is meant to test.
 printf '{}\n' > docs/infra/managent/tasks.json
-stub_claimlint "$WORK" 1
+stub_claimlint "$WORK"
 # The seeded defect: invalid findings JSON (unclosed object, truncated).
 printf '{"task_id": "T483-CTRL", "date": "2026-08-20", "model": "test", "claims": [\n' > findings/T483-ctrl-malformed.json
 git add findings/T483-ctrl-malformed.json
@@ -395,7 +419,48 @@ RC=$?
 set -e
 if [ "$RC" -ne 0 ] \
    && echo "$OUT" | grep -q "C7-nonconforming regressed"; then
-    echo "    PASS: refused (RC=$RC) — C7-nonconforming floor compared 1 > 0"
+    echo "    PASS: refused (RC=$RC) — scoped C7-nonconforming floor compared 1 > 0"
+else
+    echo "    FAIL: RC=$RC"
+    echo "    output (first 8 lines):"
+    echo "$OUT" | head -8 | sed 's/^/      /'
+    exit 1
+fi
+rm -rf "$WORK"
+
+# ── T710 control: sibling slip must NOT block the fleet ───────────────
+# The KD-12 regression the scoping exists to fix: a malformed findings file
+# present in the working tree but NOT staged (a sibling lane's slip) must
+# not trip THIS commit's C7 floor. A good findings file is staged; the
+# malformed one is only present on disk. The hook must scope to the staged
+# file alone and allow. The stub's `c7` branch reports non-conforming=1
+# only when a malformed-named file is in the scope file, so an allowance
+# here proves the hook excluded the unstaged sibling from the scope.
+echo ""
+echo "=== regression-precommit: C7 sibling-slip scope control (T710) ==="
+WORK=$(new_scratch)
+cd "$WORK"
+git init -q
+git config user.email t710@test
+git config user.name T710
+echo base > README.md
+git add README.md
+git commit -qm base
+mkdir -p tools docs/infra/managent findings
+cp "$REPO/tools/git-commit-mine-lib.sh" tools/
+printf '{}\n' > docs/infra/managent/tasks.json
+stub_claimlint "$WORK"
+# The staged (good) file and the unstaged (malformed) sibling.
+printf '{"task_id": "T710-CTRL", "date": "2026-08-23", "model": "test", "claims": []}\n' > findings/T710-ctrl-good.json
+printf '{"task_id": "T710-CTRL"}\n' > findings/T710-ctrl-malformed.json
+git add findings/T710-ctrl-good.json
+set +e
+OUT=$(MANAGENT_TASK_ID="" MANAGENT_STORE="$WORK/docs/infra/managent/tasks.json" run_hook "$WORK")
+RC=$?
+set -e
+if [ "$RC" -eq 0 ] \
+   && echo "$OUT" | grep -q "≤ floor, allowed"; then
+    echo "    PASS: allowed (RC=0) — the unstaged malformed sibling did not block the commit"
 else
     echo "    FAIL: RC=$RC"
     echo "    output (first 8 lines):"

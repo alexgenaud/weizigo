@@ -37,6 +37,16 @@ stub_claimlint() {  # $1 = scratch repo root
     mkdir -p "$1/bin"
     cat > "$1/bin/weizigo-claimlint" <<'EOF'
 #!/bin/sh
+# T710: the hook asks the `c7` verb for a scoped non-conforming count when
+# a findings file is staged (arm 6). Emit the line the hook parses. The
+# claimlint-gate instrument is NOT under test here; a clean 0 is correct
+# for every file this suite stages.
+if [ "$1" = "c7" ]; then
+    echo "  non-conforming: 0 (fails the run when > 0; spec §6.1)"
+    echo "  unabsorbed: 0"
+    echo "  dispositioned: 0"
+    exit 0
+fi
 echo "  calibration: PASS"
 echo "  C1a orphans / C1b alarms      0 / 0   (FAILS)"
 echo "  C2 dangling evidence paths    0   (FAILS)"

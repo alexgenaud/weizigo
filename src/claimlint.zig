@@ -1513,17 +1513,28 @@ pub fn main(init: std.process.Init) !void {
         // unabsorbed/dispositioned) and nothing else; without `--json` the
         // existing human-readable C7 block is unchanged. Same exit conditions
         // as `verify` (spec §6.1).
+        // T710: `--findings-scope-file <path>` restricts the C7 scan to the
+        // findings files named in the file (one repo-relative path per line),
+        // so the pre-commit C7 floor can gate only the committing path.
         if (std.mem.eql(u8, v, "c7")) {
             var as_json = false;
             var claims_path: []const u8 = DEFAULT_CLAIMS;
-            for (rest.items) |a| {
+            var findings_scope_file: ?[]const u8 = null;
+            var i: usize = 0;
+            while (i < rest.items.len) : (i += 1) {
+                const a = rest.items[i];
                 if (std.mem.eql(u8, a, "--json")) {
                     as_json = true;
+                } else if (std.mem.eql(u8, a, "--findings-scope-file")) {
+                    if (i + 1 < rest.items.len) {
+                        findings_scope_file = rest.items[i + 1];
+                        i += 1;
+                    }
                 } else if (!std.mem.startsWith(u8, a, "--")) {
                     claims_path = a;
                 }
             }
-            return runC7(io, gpa, claims_path, as_json);
+            return runC7(io, gpa, claims_path, as_json, findings_scope_file);
         }
         // C1.1 / NF3: a non-verb, non-existing-path is an unknown verb, not a
         // path to verify. Only treat as a verify path if the file actually exists.
@@ -2001,7 +2012,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("AND it is not dispositioned in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
     // Load the rejection registry once, so C7 can filter.
     const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
-    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx);
+    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx, null);
     const c7: usize = c7_results.unabsorbed;
     util.out("  files scanned: {d}\n", .{c7_results.files});
     if (c7_results.nonconforming > 0) {
@@ -3272,14 +3283,14 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
 /// verb is essentially a `verify` filtered to C7; with `--json` it's the
 /// structural consumption surface. The banner is suppressed in `--json`
 /// mode so the output is parseable byte-for-byte.
-fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool) !void {
+fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool, findings_scope_file: ?[]const u8) !void {
     const text = Io.Dir.cwd().readFileAlloc(io, claims_path, gpa, .unlimited) catch |e| {
         util.note("claimlint: cannot read {s}: {s}\n", .{ claims_path, @errorName(e) });
         std.process.exit(3);
     };
     var reg = try cr.parseRegister(gpa, text);
     if (as_json) {
-        return runC7Json(io, gpa, &reg);
+        return runC7Json(io, gpa, &reg, findings_scope_file);
     }
     // Human-readable path: print the same C7 block `verify` prints, plus
     // the same exit conditions. The banner is preserved (the human reader
@@ -3290,7 +3301,9 @@ fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool) !void {
     util.out("A finding is unabsorbed when its proposed status differs from CLAIMS.md\n", .{});
     util.out("AND it is not dispositioned in the rejection registry ({s}).\n\n", .{REJECTIONS_FILE});
     const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
-    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx);
+    var scope: ?[]const []const u8 = null;
+    if (findings_scope_file) |f| scope = try loadFindingsScope(gpa, io, f);
+    const c7_results = try checkFindings(gpa, io, &reg, FINDINGS_DIR, &rejection_idx, scope);
     util.out("  files scanned: {d}\n", .{c7_results.files});
     util.out("  non-conforming: {d} (fails the run when > 0; spec §6.1)\n", .{c7_results.nonconforming});
     util.out("  unabsorbed: {d}\n", .{c7_results.unabsorbed});
@@ -3306,9 +3319,11 @@ fn runC7(io: Io, gpa: Allocator, claims_path: []const u8, as_json: bool) !void {
 /// exits 0 otherwise. The exit code is the same predicate as `verify`'s
 /// C7 row, so `managent done` and the pre-commit floor can read it
 /// structurally without re-implementing the rule.
-fn runC7Json(io: Io, gpa: Allocator, reg: *Register) !void {
+fn runC7Json(io: Io, gpa: Allocator, reg: *Register, findings_scope_file: ?[]const u8) !void {
     const rejection_idx = try loadRejections(gpa, io, REJECTIONS_FILE);
-    const c7_results = try checkFindings(gpa, io, reg, FINDINGS_DIR, &rejection_idx);
+    var scope: ?[]const []const u8 = null;
+    if (findings_scope_file) |f| scope = try loadFindingsScope(gpa, io, f);
+    const c7_results = try checkFindings(gpa, io, reg, FINDINGS_DIR, &rejection_idx, scope);
     var buf = std.ArrayList(u8).empty;
     defer buf.deinit(gpa);
     try buf.append(gpa, '[');
@@ -3998,7 +4013,52 @@ fn checkPresence(gpa: Allocator, io: Io, result: *C7Result, reg: *Register, rej:
 /// Findings matching a valid rejection entry are counted as dispositioned and
 /// do NOT contribute to unabsorbed. Schema-non-conforming files are REPORTED,
 /// not silently skipped (GRAND-AUDIT §2).
-fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, rej: *const RejectionIndex) !C7Result {
+/// T710: normalize a repo-relative findings path ("findings/X.json") to the
+/// findings-dir-relative form the directory walk yields ("X.json"). The
+/// pre-commit hook writes staged paths as git yields them (repo-relative);
+/// the C7 walker yields paths relative to the findings dir. One line of
+/// normalization keeps the two comparable without a per-file join.
+fn findingsScopeEntry(p: []const u8) []const u8 {
+    if (std.mem.startsWith(u8, p, "findings/")) return p["findings/".len..];
+    return p;
+}
+
+/// T710: is `candidate` (a findings-dir-relative path from the walker) in the
+/// committing-path scope? The scope is a list of findings-dir-relative names
+/// (already normalized by `findingsScopeEntry`).
+fn findingsScopeContains(scope: []const []const u8, candidate: []const u8) bool {
+    for (scope) |s| {
+        if (std.mem.eql(u8, s, candidate)) return true;
+    }
+    return false;
+}
+
+/// T710: load a findings-scope file — one findings path per line (blank lines
+/// ignored). A missing file yields an EMPTY scope (the commit stages no
+/// findings files, so nothing is in scope). An empty scope is distinct from
+/// "no scope" (null, which means scan everything): `checkFindings` takes the
+/// two apart so the pre-commit floor can gate only the committing path.
+fn loadFindingsScope(gpa: Allocator, io: Io, path: []const u8) ![]const []const u8 {
+    const text = Io.Dir.cwd().readFileAlloc(io, path, gpa, .unlimited) catch |e| {
+        if (e == error.FileNotFound) return gpa.alloc([]const u8, 0);
+        return e;
+    };
+    defer gpa.free(text);
+    var list = std.ArrayList([]const u8).empty;
+    errdefer {
+        for (list.items) |s| gpa.free(s);
+        list.deinit(gpa);
+    }
+    var it = std.mem.splitScalar(u8, text, '\n');
+    while (it.next()) |line| {
+        const t = trim(line);
+        if (t.len == 0) continue;
+        try list.append(gpa, try gpa.dupe(u8, findingsScopeEntry(t)));
+    }
+    return list.toOwnedSlice(gpa);
+}
+
+fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, rej: *const RejectionIndex, scope: ?[]const []const u8) !C7Result {
     var result: C7Result = .{
         .files = 0,
         .conforming = 0,
@@ -4024,6 +4084,12 @@ fn checkFindings(gpa: Allocator, io: Io, reg: *Register, dir_path: []const u8, r
         if (e.kind != .file) continue;
         if (!std.mem.endsWith(u8, e.basename, ".json")) continue;
         if (std.mem.eql(u8, e.basename, "rejections.json")) continue; // not a findings file
+        // T710: committing-path scope — when a scope is supplied, only the
+        // findings files it names are checked. A sibling lane's working-tree
+        // file must not trip this lane's pre-commit C7 floor.
+        if (scope) |s| {
+            if (!findingsScopeContains(s, e.path)) continue;
+        }
         // e.path is relative to the walked dir; read via dir, not cwd
         const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch |err| {
             // an unreadable file is a non-conforming file — reported, not skipped
@@ -5106,4 +5172,33 @@ test "C13 NAMESPACE: coverage census scores the two axes apart" {
     // to the namespace axis — otherwise the two axes double-count and the
     // "namespace alone" figure overstates what §6.3(1) buys.
     try std.testing.expectEqual(@as(usize, 3), cov.by_namespace + cov.by_context_dump + cov.bespoke.items.len);
+}
+
+// ── T710 C7 floor scope (committing-path) ────────────────────────────────────
+//
+// KD-12: a sibling lane's malformed findings file tripped the shared
+// C7-nonconforming floor and blocked the whole fleet's commits. The fix
+// scopes the C7 scan to the committing path. These are the pure-function
+// contracts: normalization (repo-relative → findings-dir-relative) and
+// membership.
+
+test "T710 C7 scope: findingsScopeEntry strips the findings/ prefix, keeps nested paths" {
+    try std.testing.expectEqualStrings("X.json", findingsScopeEntry("findings/X.json"));
+    try std.testing.expectEqualStrings("subdir/X.json", findingsScopeEntry("findings/subdir/X.json"));
+    try std.testing.expectEqualStrings("X.json", findingsScopeEntry("X.json"));
+    try std.testing.expectEqualStrings("", findingsScopeEntry("findings/"));
+}
+
+test "T710 C7 scope: findingsScopeContains matches findings-dir-relative candidates" {
+    const scope = [_][]const u8{ "T710-a.json", "T710-b.json" };
+    try std.testing.expect(findingsScopeContains(&scope, "T710-a.json"));
+    try std.testing.expect(findingsScopeContains(&scope, "T710-b.json"));
+    try std.testing.expect(!findingsScopeContains(&scope, "T710-c.json"));
+    try std.testing.expect(!findingsScopeContains(&scope, "findings/T710-a.json")); // caller normalizes
+}
+
+test "T710 C7 scope: an empty scope matches nothing (the commit stages no findings)" {
+    const scope = [_][]const u8{};
+    try std.testing.expect(!findingsScopeContains(&scope, "T710-a.json"));
+    try std.testing.expect(!findingsScopeContains(&scope, ""));
 }

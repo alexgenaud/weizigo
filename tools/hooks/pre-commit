@@ -229,10 +229,10 @@ fi
 #      the C3 ratchet floor (T373): report-only at the claimlint level, the
 #      floor lives here in the hook, exactly like C1a/C2/C6/C9.
 # C6:  "  C6 cite-tag mismatches         0   (FAILS)"      → $4=0
-# C7nc: "  C7 non-conforming files        0   (reported)"  → $4=0
-#       (T483 floor — absorption-spec §6.2; the line says (reported) not
-#       (FAILS) because non-conforming is report-only in claimlint's SUMMARY,
-#       but claimlint's own exit predicate fails on it; the floor lives here.)
+# C7nc: the non-conforming count is computed SEPARATELY below, scoped to
+#       the staged findings files (T710) — the repo-wide summary line no
+#       longer feeds the floor (a sibling lane's working-tree file must
+#       not trip this commit's gate; KD-12).
 SUMMARY_LINE=$(echo "$OUTPUT" | grep '^  C1a orphans / C1b alarms' | grep 'FAILS')
 CURRENT_C1a=$(echo "$SUMMARY_LINE" | awk '{print $6}')
 CURRENT_C1b=$(echo "$SUMMARY_LINE" | awk '{print $8}')
@@ -240,7 +240,6 @@ CURRENT_C2=$(echo "$OUTPUT" | grep '^  C2 dangling evidence paths' | grep 'FAILS
 CURRENT_C3=$(echo "$OUTPUT" | grep '^  C3 PROVEN w/o committed evid.' | awk '{print $6}')
 CURRENT_C6=$(echo "$OUTPUT" | grep '^  C6 cite-tag mismatches' | grep 'FAILS' | awk '{print $4}')
 CURRENT_C9=$(echo "$OUTPUT" | grep '^  C9 tree-mapping violations' | grep 'FAILS' | awk '{print $4}')
-CURRENT_C7NONCONF=$(echo "$OUTPUT" | grep '^  C7 non-conforming files' | awk '{print $4}')
 
 # ── read floor ─────────────────────────────────────────────────────────
 # Uses python3 for reliable JSON parsing (available on all dev hosts)
@@ -263,6 +262,41 @@ for val in "$FLOOR_C1a" "$FLOOR_C1b" "$FLOOR_C2" "$FLOOR_C3" "$FLOOR_C6" "$FLOOR
         exit 1
     fi
 done
+
+# ── C7 scope: committing-path findings only (T710) ─────────────────────
+# The C7-nonconforming floor gates only the findings files THIS commit
+# stages, not the whole findings/ tree. KD-12: a sibling lane's malformed
+# findings file tripped the shared floor and blocked the whole fleet during
+# a race. Build a scope file from the staged findings paths and ask
+# claimlint's `c7` verb for the scoped count.
+C7_SCOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/precommit-c7scope-XXXXXX" 2>/dev/null) || C7_SCOPE_FILE=""
+STAGED_FINDINGS=0
+if [ -n "$C7_SCOPE_FILE" ] && [ -n "$STAGED_PATHS" ]; then
+    echo "$STAGED_PATHS" | while IFS= read -r sp; do
+        case "$sp" in
+            findings/*.json)
+                [ "$sp" = "findings/rejections.json" ] && continue
+                echo "$sp"
+                ;;
+        esac
+    done > "$C7_SCOPE_FILE"
+    STAGED_FINDINGS=$(wc -l < "$C7_SCOPE_FILE" 2>/dev/null | tr -d ' ')
+    [ -n "$STAGED_FINDINGS" ] || STAGED_FINDINGS=0
+fi
+
+if [ "$STAGED_FINDINGS" -gt 0 ]; then
+    set +e
+    if [ -n "$CLAIMS_PATH" ]; then
+        SCOPED_C7_OUTPUT=$("$CLAIMLINT_BIN" c7 "$CLAIMS_PATH" --findings-scope-file "$C7_SCOPE_FILE" 2>&1)
+    else
+        SCOPED_C7_OUTPUT=$("$CLAIMLINT_BIN" c7 --findings-scope-file "$C7_SCOPE_FILE" 2>&1)
+    fi
+    set -e
+    CURRENT_C7NONCONF=$(echo "$SCOPED_C7_OUTPUT" | grep '^  non-conforming:' | sed 's/.*non-conforming: *//' | awk '{print $1}')
+else
+    CURRENT_C7NONCONF=0
+fi
+[ -n "$C7_SCOPE_FILE" ] && rm -f "$C7_SCOPE_FILE"
 
 # ── compare — block on regression ──────────────────────────────────────
 regression() {

@@ -1119,6 +1119,19 @@ pub fn build(b: *std.Build) void {
     claimlint_c7_json_regression.cwd = b.path(".");
     test_step.dependOn(&claimlint_c7_json_regression.step);
 
+    // ── T710: claimlint c7 --findings-scope-file controls ───────────
+    // The committing-path scope behind the pre-commit C7-nonconforming
+    // floor (KD-12: a sibling lane's malformed findings file blocked the
+    // whole fleet). Four arms, all self-contained (each names its own
+    // scope, so an unrelated in-progress findings file in the live tree
+    // cannot false-positive them): empty scope scans nothing, a conforming
+    // file in scope reports 0, a malformed file in scope reports 1 and
+    // exits 1, and `--json` + the scope combine to one per-file entry.
+    // SKIPs loudly when no claimlint binary in zig-out/bin/.
+    const claimlint_c7_scope_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-c7-scope.sh" });
+    claimlint_c7_scope_regression.cwd = b.path(".");
+    test_step.dependOn(&claimlint_c7_scope_regression.step);
+
     // ── claim/close lifecycle controls (T424) ────────────────────────
     // Five flakes, one symptom (the kanban disagrees with reality):
     // worked-without-claiming (git-commit-mine refuses a commit whose task
