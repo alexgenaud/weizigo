@@ -110,7 +110,7 @@ pub fn main(init: std.process.Init) !void {
 
 **No shared mutable state:** each invocation parses args, allocates from the page allocator, runs
 one verb, and exits. No global mutable state persists between invocations. The separation is
-structural (separate code paths, separate exit-code ranges), not by convention.
+structural (separate code paths, separate invocation context, no shared mutable state), not by convention.
 
 ### 2.3 Parser retirement: what the inline copy looks like and what replaces it
 
@@ -144,7 +144,7 @@ verdicts, no alarm) is structurally impossible — both verbs call the same `cr.
 | build.zig: remove absorb targets, add modules | ~25 | ~10 | −15 |
 | **net** | | | **−300** |
 
-The merged binary is ~3,600 lines (3,200 + 657 − 300 + 45 ≈ 3,602), down from the separate
+The merged binary is ~3,600 lines (3,200 + 657 − 300 ≈ 3,557), down from the separate
 3,857 (3,200 + 657). The count reduction is not the primary dividend (one parser is), but it
 confirms the merge is not a bloating exercise.
 

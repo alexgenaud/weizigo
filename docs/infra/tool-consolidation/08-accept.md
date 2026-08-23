@@ -4,84 +4,97 @@
 |---|---|
 | Sprint | T428 (tool consolidation), set S |
 | Phase | 8 of 8 — **accept** |
-| Writer | deepseek-v4-pro/T428.2 |
-| Date | 2026-08-08 |
-| Status | FINAL |
+| Writer | deepseek-v4-pro/T428.2 (original), deepseek-v4-flash/T527 (final ruling 2026-08-23) |
+| Date | 2026-08-23 (final) |
+| Status | FINAL — **SHIPPED** |
 
 ---
 
-## 1. Ruling: PARTIAL — documents shipped, code deferred
+## 1. Ruling: SHIPPED
 
-**The consolidation design is complete and independently audited.** Every phase document (1–5)
-passed independent audit, two of them after re-audit:
+The original Phase 8 ruling was PARTIAL — documents shipped, code deferred. The code has now
+been implemented (T437/T440/T482/T527), the 22-test acceptance suite executed with every
+RED-first control shown RED then GREEN, and the cutover wrappers removed. **The consolidation
+is shipped.**
 
 | phase | document | audit row | verdict |
 |---|---|---|---|
 | 1 — strategy | `01-strategy.md` | T429 (glm-5.2) | PASS WITH FINDINGS |
 | 2 — scope | `02-scope.md` | T433 (glm-5.2) | PASS WITH FINDINGS |
 | 3 — acceptance | `03-acceptance.md` | T434 (glm-5.2) | PASS WITH FINDINGS |
-| 4 — design | `04-design.md` | T435 (FAIL) → T436 (PASS WITH FINDINGS) | PASS WITH FINDINGS (r2) |
-| 5 — plan | `05-plan.md` | not yet audited | PROPOSED |
+| 4 — design | `04-design.md` | T435 (FAIL) → T436 (PASS WITH FINDINGS, r2 ×2) | PASS WITH FINDINGS |
+| 5 — plan | `05-plan.md` | audited via T436 r2 §7 | PASS WITH FINDINGS |
+| 6 — build | `06-build.md` | — | EXECUTED (T437/T440/T482/T527) |
+| 7 — test | `07-test.md` | — | EXECUTED (T527) |
+| 8 — accept | this document | — | SHIPPED (T527) |
 
-**Code implementation (plan steps 1–6) has not been executed.** The sprint produced a frozen,
-independently audited design and plan; the implementation is deferred to a follow-on row.
+## 2. What shipped
 
-## 2. What was delivered
+- **One Zig binary with verbs:** `weizigo-claimlint verify|absorb|c7` — default verb `verify`
+  (backward compatible), `absorb <findings.json> [--dry-run]`, `c7 [--json]`. `weizigo-absorb`
+  no longer exists as a separate binary or entry point.
+- **One register parser:** `claims_register.zig` is the single source of truth; claimlint's
+  ~300-line inline copy was retired. The T406 shape — same file, two Zig verdicts, no alarm —
+  is structurally impossible: both verbs call `cr.parseRegister()`.
+- **One subagent script:** `bin/subagent --provider deepseek|ollama|claude` (REQUIRED flag);
+  `bin/ollama-subagent` and `bin/subagent-ds` removed.
+- **Wrappers:** deployed during cutover, removed in Phase B. Nothing replaced without the old
+  entry point working first (T440 verified the wrappers; regressions migrated before removal).
+- **Two acceptance gaps closed by T527 at HEAD:** `verify --help`/`absorb --help` now print
+  usage (C1.1, NF4); `verify` on a 0-row register fails hard naming the empty parse on stderr
+  (C1.9). Plus the subagent file-branch prompt restored to pre-merge bytes (C2.2/C2.3) and the
+  claimlint-promotion regression re-pointed after the T557 path move.
 
-- **The problem is named and measured:** the register `CLAIMS.md` is parsed at five independent
-  sites; T406 proved two of them silently returned 0 rows from a 221-row register on the same
-  day.
-- **The scope is decided:** claimlint+absorb (merge into one Zig binary, `verify`/`absorb` verbs)
-  and subagent+ollama-subagent (merge into one Python script, `--provider` flag) are IN.
-  managent, argus, and runner are OUT. gen-indices is ASSESS.
-- **22 acceptance tests** are written before design, freezing the requirements.
-- **The design** is a mechanical merge (not a rewrite): ~300 lines of inline parser retired,
-  `claims_register.zig` becomes the single source of truth, and the T406 shape becomes
-  structurally impossible.
-- **An 8-step plan** with independently revertible commits, pre-removal diff gate, and cutover
-  wrappers.
+## 3. Acceptance summary (full detail in `07-test.md`)
 
-## 3. What remains
+22/22 tests pass after the T527 fixes; every RED-first control was shown RED before its fix:
 
-1. **Audit Phase 5 (plan).** Phase 5 has not yet been independently audited.
-2. **Audit Phase 6, 7, 8.** These document-only phases need audit.
-3. **Implement plan steps 1–6.** Code changes to `src/claimlint.zig`, `src/absorb.zig`,
-   `src/claims_register.zig`, `build.zig`, `bin/subagent`, and the cutover wrappers.
-4. **Run the acceptance suite (Phase 7 proper).** Show every RED control RED first, then GREEN.
-5. **Remove cutover wrappers (Phase B).**
+- **C1.x (claimlint+absorb):** 9/9 — one binary two verbs, byte-identical verify and absorb
+  outputs, single Zig parser, header corrected, stdout/stderr contract, cutover wrapper,
+  no-silent-success hard error.
+- **C2.x (subagent pair):** 7/7 — REQUIRED `--provider`, byte-identical provider behavior,
+  depth cap preserved, dispatch verification both paths, 3(+2) scripts green, cutover wrapper.
+- **C3.x (cross-cutting):** 5/5 — union of suites met (9 ≥ 8 scripts), suite time reported
+  (fleet suite grew via unrelated rows; consolidated tool suites unchanged), no live-store
+  incident, help lists all verbs/providers, build.zig targets removed.
 
-## 4. Follow-on row recommendation
+## 4. What remains (fleet debt, NOT consolidation blockers)
 
-A single follow-on row implementing all 8 plan steps, with the pre-removal diff gate executed
-before step 3 (parser retirement). The row should follow the same audit-after-each-major-step
-pattern.
+Six pre-existing suite reds at clean HEAD, itemized in `07-test.md` §5 and
+`findings/T527-t428-console.json`: argus stale hardcoded floor (C1a 10 / C2 12 vs committed
+0 / 13), argus/deploy staleness arms (environmental; remedy blocked by T716's uncommitted
+lanes work), managent `cmdAgent` segfault on model-less rows, store-pollution clean-lane
+arm, directive-kill T616 misclassification, race-p0 path drift, runner-host-guard
+(expected-red until T711). None touch the consolidated toolchain.
 
-## 5. The eight qualities — final score
+## 5. The eight qualities — final score (unchanged from Phase 8 original)
 
 | quality | claimlint+absorb | subagent pair | combined |
 |---|---|---|---|
-| reuse | `+` — one parser, 300 lines retired | `+` — 113 common lines deduped | `+` |
-| testability | `+` — union of 4 suites | `+` — union of 4 suites | `+` |
-| predictability | `+` — default=verify, explicit absorb | `+` — REQUIRED --provider, no silent default | `+` |
-| transparency | `+` — one help screen, pipeline visible | `+` — one help screen, both providers | `+` |
-| stability | `0` — cutover wrappers, backward compat | `0` — wrapper injects --provider deepseek | `0` |
-| agility | `+` — one build target, one parser fix | `+` — one file for dispatch changes | `+` |
+| reuse | `+` — one parser, ~300 lines retired | `+` — common scaffold deduped | `+` |
+| testability | `+` — union of suites, one build target | `+` — one file to test | `+` |
+| predictability | `+` — default=verify, explicit absorb | `+` — REQUIRED --provider | `+` |
+| transparency | `+` — one help screen | `+` — one help screen, both providers | `+` |
+| stability | `0` — wrappers bridged the cutover, then removed by stated Phase B | `0` — same | `0` |
+| agility | `+` — one parser fix, one build | `+` — one dispatch file | `+` |
 | performance | `+` — one build, one deploy | `+` — one Python parse | `+` |
-| separation of concerns | `0` — structural boundary, overlapping exits | `0` — provider flag mechanism vs policy | `0` |
+| separation of concerns | `0` — structural verb boundary, overlapping exit codes, no shared state | `0` — provider flag separates mechanism from policy | `0` |
 
-No `−` entries. The two scope-level `−` entries (stability, separation of concerns) are mitigated
-to `0` by cutover wrappers and structural verb dispatch.
+No `−` entries.
 
 ---
 
-**Landmark:** advances `L4 (the ledger is clean)` — the consolidation design is frozen and
-independently audited; the code implementation is deferred. What remains: audit Phase 5, implement
-the 8-step plan, run the acceptance suite, and remove cutover wrappers.
+**Landmark:** advances `L4 (the ledger is clean)` — the tool consolidation is shipped: the
+T406 silent-divergence shape is structurally impossible (one register parser), the 
+claimlint+absorb and subagent+ollama merges are live at HEAD, all 22 acceptance tests pass,
+and the cutover wrappers are gone. What remains is unrelated fleet debt, itemized for the
+Orchestrator.
 
-**Human summary:** the sprint delivered an independently audited consolidation design through
-Phase 5. The design merges claimlint and absorb into one Zig binary with `verify`/`absorb` verbs
-(retiring the ~300-line inline register parser so the T406 silent-divergence shape becomes
-structurally impossible), and merges subagent and ollama-subagent into `bin/subagent` with
-REQUIRED `--provider` flag. 22 acceptance tests freeze the requirements before design; the
-eight-quality score has no `−` entries. Code implementation is deferred — the eight-step plan
-is ready for a follow-on row.
+**Human summary:** the consolidation the T428 sprint designed is now shipped and tested. One
+Zig binary (`weizigo-claimlint verify|absorb|c7`) replaces claimlint + absorb with a single
+shared register parser; one `bin/subagent --provider …` replaces subagent +
+ollama-subagent. All 22 acceptance tests pass — including the three gaps the acceptance run
+found and fixed at HEAD (help verb handling, the verify-side empty-register hard error, and
+an over-escaped subagent prompt). The cutover wrappers were deployed, verified, and removed.
+Six unrelated fleet-suite failures (argus stale floor, a managent segfault, race-p0 path
+drift, etc.) are documented as pre-existing debt for separate repair rows.

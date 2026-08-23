@@ -376,8 +376,8 @@ def main(argv):
                   f"  of `kill` writes your context dump and exits.  An empty inbox is a\n"
                   f"  no-op (do not be alarmed).  The brief carries everything else.\n")
     elif os.path.isfile(target):
-        prompt = f"Follow {os.path.relpath(os.path.abspath(target), root)}\\n"
-        prompt += "\\n" + dispatch_verify.nonce_prompt_lines(nonce)
+        prompt = f"Follow {os.path.relpath(os.path.abspath(target), root)}\n"
+        prompt += "\n" + dispatch_verify.nonce_prompt_lines(nonce)
         deliverables = dispatch_verify.parse_deliverables(os.path.abspath(target))
     else:
         sys.exit(f"subagent: no such task or file: {target}")
@@ -442,7 +442,7 @@ def main(argv):
         print(f"{DEPTH_VAR}={depth + 1}")
         if task_id:
             print(f"MANAGENT_TASK_ID={task_id}")
-        print(" ".join(repr(c) if "\\n" in c else c for c in cmd))
+        print(" ".join(repr(c) if "\n" in c else c for c in cmd))
         return 0
 
     t_run0 = time.monotonic()

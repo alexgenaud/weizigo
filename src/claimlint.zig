@@ -1481,16 +1481,31 @@ pub fn main(init: std.process.Init) !void {
 
     const verb = args.next();
 
+    // Collect remaining args once so the dispatch can scan for help flags
+    // (C1.1 acceptance half: `verify --help` / `absorb --help` print usage
+    // and exit 0 — NF4 from the Phase 4 re-audit) without consuming an arg
+    // it then has to hand to the verb handler.
+    var rest = std.ArrayList([]const u8).empty;
+    defer rest.deinit(gpa);
+    while (args.next()) |a| : (try rest.append(gpa, a)) {}
+
     if (verb) |v| {
         if (std.mem.eql(u8, v, "help") or std.mem.eql(u8, v, "--help") or std.mem.eql(u8, v, "-h")) {
             printHelp(io);
             return;
         }
+        if (isKnownVerb(v)) {
+            // C1.1 acceptance half: a help flag anywhere after a known verb
+            // prints usage and exits 0, instead of being read as a path.
+            for (rest.items) |a| {
+                if (std.mem.eql(u8, a, "--help") or std.mem.eql(u8, a, "-h") or std.mem.eql(u8, a, "help")) {
+                    printHelp(io);
+                    return;
+                }
+            }
+        }
         if (std.mem.eql(u8, v, "absorb")) {
-            var absorb_args = std.ArrayList([]const u8).empty;
-            defer absorb_args.deinit(gpa);
-            while (args.next()) |a| : (try absorb_args.append(gpa, a)) {}
-            return absorb.runAbsorb(io, gpa, absorb_args.items);
+            return absorb.runAbsorb(io, gpa, rest.items);
         }
         // T482: `c7 [--json]` — machine-readable C7 report. `--json` emits
         // an array of per-file objects (one per findings JSON, with
@@ -1501,7 +1516,7 @@ pub fn main(init: std.process.Init) !void {
         if (std.mem.eql(u8, v, "c7")) {
             var as_json = false;
             var claims_path: []const u8 = DEFAULT_CLAIMS;
-            while (args.next()) |a| {
+            for (rest.items) |a| {
                 if (std.mem.eql(u8, a, "--json")) {
                     as_json = true;
                 } else if (!std.mem.startsWith(u8, a, "--")) {
@@ -1529,7 +1544,7 @@ pub fn main(init: std.process.Init) !void {
         DEFAULT_CLAIMS
     else
         verb.?;
-    while (args.next()) |a| {
+    for (rest.items) |a| {
         if (std.mem.startsWith(u8, a, "--")) continue;
         claims_path = a;
     }
@@ -1545,6 +1560,31 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
 
     var idx = try Index.build(gpa, io);
     var reg = try cr.parseRegister(gpa, text);
+
+    // T406 / C1.9 (T428 Phase 3): a register that exists and yields 0 rows
+    // (or whose header does not match the canonical 11-column format) is a
+    // file the checker does not understand. Fail hard with a message naming
+    // the empty parse — never "no findings", which is the silent-success
+    // shape T406 made structurally impossible in absorb; the verify verb
+    // inherits the same guarantee through the shared cr.parseRegister.
+    if (reg.rows.items.len == 0 or !reg.format_ok) {
+        util.note("claimlint: FATAL — parsed 0 rows from {s}; register file is {d} bytes\n", .{ claims_path, text.len });
+        if (reg.header_cols == 0) {
+            util.note("  no §2 header row found inside the register\n", .{});
+        } else if (reg.format_ok) {
+            util.note("  the §2 header is valid but carries no data rows — the register is empty\n", .{});
+        } else {
+            util.note("  register header carries {d} columns, expected {d} (the tree column format, T305)\n", .{ reg.header_cols, cr.REGISTER_COLS });
+        }
+        if (reg.unparsed.items.len > 0) {
+            util.note("  first parse complaint(s):\n", .{});
+            for (reg.unparsed.items[0..@min(reg.unparsed.items.len, 3)]) |u| {
+                util.note("    {s}\n", .{u});
+            }
+        }
+        util.note("  refusing to report a clean run from a register it could not understand\n", .{});
+        std.process.exit(3);
+    }
 
     util.out("weizigo-claimlint — {s}\n", .{claims_path});
     util.out("repo index: {d} files · register §2 lines {d}–{d}\n", .{

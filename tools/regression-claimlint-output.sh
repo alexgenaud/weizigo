@@ -133,5 +133,63 @@ fi
 echo "PASS: seeded-defect — fixture ($FIXTURE_SIZE bytes, no SUMMARY) is correctly"
 echo "      detected as the truncation defect; real output ($PIPE_SIZE bytes, with"
 echo "      SUMMARY) passes all checks. A control that has been red."
+
+echo ""
+echo "=== regression-claimlint-output: empty-register-hard-fail (C1.9) ==="
+# C1.9 (T428 Phase 3): a register with 0 recognizable rows must fail hard
+# with a message on stderr naming the empty parse — never a clean pass that
+# reports success while doing nothing (T406 lesson, applied to the verify
+# verb). The verify verb and the absorb verb share cr.parseRegister, so this
+# is the merged-binary guarantee the acceptance test gates.
+TMPDIR2=$(mktemp -d)
+EMPTY_REG="$TMPDIR2/empty-claims.md"
+cat > "$EMPTY_REG" <<'REGEOF'
+# CLAIMS
+
+## 2. The register
+
+| ID | legacy | goban | claim | status | evidence | depends-on | dependents | narrowed | wrong-answer-pass-rate | tree |
+|---|---|---|---|---|---|---|---|---|---|---|
+REGEOF
+if "$CLAIMLINT" verify "$EMPTY_REG" > "$TMPDIR2/out" 2> "$TMPDIR2/err"; then
+    RC=0
+else
+    RC=$?
+fi
+if [ "$RC" -eq 0 ]; then
+    echo "FAIL: empty-register — verify exited 0 on a 0-row register (silent success)"
+    exit 1
+fi
+if ! grep -qiE "empty|no rows|0 rows" "$TMPDIR2/err"; then
+    echo "FAIL: empty-register — stderr does not name the empty parse (exit $RC)"
+    echo "  stderr:"; sed 's/^/    /' "$TMPDIR2/err" | head -5
+    exit 1
+fi
+echo "PASS: empty-register — verify exited $RC and stderr names the empty parse"
+rm -rf "$TMPDIR2"
+
+echo ""
+echo "=== regression-claimlint-output: verb-help (C1.1 acceptance half) ==="
+# C1.1 (T428 Phase 3): `verify --help` and `absorb --help` both exit 0 and
+# print usage. NF4 in the Phase 4 re-audit: the design+plan never dispatched
+# `verify` as a verb, so `verify --help` was read as a path; the audit
+# demanded the dispatch recognize the verb and print usage.
+for VERB in verify absorb; do
+    if "$CLAIMLINT" $VERB --help > "$TMPDIR/vh-$VERB.out" 2> "$TMPDIR/vh-$VERB.err"; then
+        RC=0
+    else
+        RC=$?
+    fi
+    if [ "$RC" -ne 0 ]; then
+        echo "FAIL: verb-help — '$VERB --help' exited $RC (expected 0)"
+        exit 1
+    fi
+    if ! grep -qE "verify|absorb" "$TMPDIR/vh-$VERB.out" "$TMPDIR/vh-$VERB.err"; then
+        echo "FAIL: verb-help — '$VERB --help' output does not name the verbs"
+        exit 1
+    fi
+    echo "PASS: '$VERB --help' exits 0 and prints usage"
+done
+
 echo ""
 echo "=== regression-claimlint-output: all controls passed ==="

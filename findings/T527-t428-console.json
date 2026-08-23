@@ -1,0 +1,22 @@
+{
+  "task_id": "T527",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-flash",
+  "audited_by": "",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T527 (T428 console execution). The claimlint+absorb and subagent+ollama merges designed by T428 were already implemented at HEAD (T437/T440/T482; wrappers removed in Phase B). This row executed the 22-test acceptance suite (Phase 7), found and fixed three acceptance gaps that had survived into HEAD, and wrote the accept ruling. Fixes (all test-first, control RED shown before fix): (1) C1.1 acceptance half / NF4 — verify --help and absorb --help now print usage and exit 0 (dispatch collects remaining args, scans for help flags after a known verb); (2) C1.9 verify half — runVerify on a 0-row register now fails hard (exit 3) with 'FATAL — parsed 0 rows' + counts on stderr, mirroring absorb's T406 block (regression control added to regression-claimlint-output.sh); (3) C2.2/C2.3 — the merge (T437) had over-escaped the subagent FILE-branch prompt to literal backslash-n (bundle branch kept real newlines — internal inconsistency); restored pre-merge real newlines and the repr condition '\"\\n\" in c' (control 4c added to regression-subagent-prompt.sh); (4) claimlint-promotion regression re-pointed to the post-T557 kill-matrix path (C1.4 union bar). Also patched the design doc (04-design.md): NF1 stale 'separate exit-code ranges' phrase, and NF6 arithmetic (3,602 -> 3,557). Acceptance results: 22/22 pass at HEAD after the fixes; byte-identity of verify/absorb outputs verified against pre-merge binaries (9a96f8b) and merge commit (8ce3270); union-of-suites 9 >= 8; no live-store incident (suite-internal guards green). Fleet-wide zig build test executed (29m44s, 81 scripts): six pre-existing reds at clean HEAD (2a21c55), none touching the consolidated toolchain — (a) argus-doctor arms 6/8/9: deploy staleness (environmental: bin/ at 3bd3f40/29a5223 vs freshly rebuilt zig-out; remedy zig build deploy, blocked by T716's uncommitted lanes work in-tree) + argus hardcoded stale floor {C1a:10, C2:12} vs committed {C1a:0, C2:13} (T373/T663); (b) managent-lock: cmdAgent segfault (RC=134/SIGABRT) on a done row lacking a model field (T544/T635 attribution path); (c) managent-store-pollution C: clean lane exit 1; (d) directive-kill 8d: T616 misclassified; (e) race-p0: gate reads docs/infra/races/ but files moved to docs/epics/E1-markovian/.../S02-model-delegation/ (966da63); (f) runner-host-guard: documented expected-red until T711. Directives: none received (inbox empty at claim and before done).",
+  "directives_read": [],
+  "deliverables_written": [
+    "docs/infra/tool-consolidation/accept.md",
+    "docs/infra/tool-consolidation/06-build.md",
+    "docs/infra/tool-consolidation/07-test.md",
+    "docs/infra/tool-consolidation/08-accept.md",
+    "docs/infra/tool-consolidation/04-design.md (NF1 + NF6 patches)"
+  ],
+  "regressions_wired": [
+    "tools/regression-claimlint-output.sh (empty-register C1.9 control + verb-help C1.1 control)",
+    "tools/regression-subagent-prompt.sh (control 4c file-branch newline check)",
+    "tools/regression-claimlint-promotion.sh (kill-matrix path re-point)"
+  ]
+}

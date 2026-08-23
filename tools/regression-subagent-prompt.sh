@@ -213,6 +213,34 @@ else
     FAIL=1
 fi
 
+# ── T527 (T428 Phase 7): file-branch prompt is NOT over-escaped ──────────
+# The merge (T437) rewrote the file-branch prompt as f"...\\n" (literal
+# backslash-n) instead of f"...\n" (real newline) — a byte deviation from
+# the pre-merge prompt construction (C2.2/C2.3: same prompt construction,
+# byte-identical after normalization). Repr of a literal backslash-n shows
+# `\\n` (double backslash); repr of a real newline shows `\n` (single).
+# Control: the dry-run output for a FILE-path dispatch must not contain the
+# literal two-char sequence backslash-n inside the -p argument.
+echo "  4c. T527: file-branch prompt carries real newlines, not literal \\n"
+OUT=$("$SUBAGENT" --provider deepseek AGENTS.md --dsflash --dry-run 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ]; then
+    echo "    FAIL: subagent exit code $RC"
+    echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+else
+    # The buggy (T437) form reprs a literal backslash-n as `\\n` in the
+    # dry-run output; the correct pre-merge form reprs a real newline as
+    # `\n`. Grep for the two-char sequence backslash-backslash-n.
+    if printf '%s' "$OUT" | grep -q '\\\\n'; then
+        echo "    FAIL: file-branch prompt over-escaped — contains literal backslash-n"
+        echo "    $OUT" | sed 's/^/    | /' | head -3
+        FAIL=1
+    else
+        echo "    PASS: file-branch prompt has no literal backslash-n"
+    fi
+fi
+
 # ── depth cap: still fires ───────────────────────────────────────────────
 # T315 does not change the depth cap. Prove it still refuses at depth 2.
 echo "  5. depth-cap: WEIZIGO_AGENT_DEPTH=3 (cap) refuses dispatch"

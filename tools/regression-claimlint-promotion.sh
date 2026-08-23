@@ -36,7 +36,7 @@ fi
 echo "  $CLAIMLINT is executable"
 
 # Verify the kill matrix exists — the check is blind without it.
-KILL_MATRIX="docs/epic-01-markovian/sprints/verify-battery/pass1/kill-matrix.json"
+KILL_MATRIX="docs/epics/E1-markovian/sprints/verify-battery/pass1/kill-matrix.json"
 if ! test -f "$KILL_MATRIX"; then
     echo "SKIP: $KILL_MATRIX not found — check is blind"
     exit 1
