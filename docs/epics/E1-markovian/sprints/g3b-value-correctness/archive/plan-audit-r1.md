@@ -24,7 +24,7 @@ The plan is coherent on the feasibility decisions, scope boundaries, R8 independ
 
 ## Auditor identity and method
 
-Fresh-session document review against `pass0/spec.md` Revision 2 (RATIFIED), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `PHASES.md`, `AXIOMS.md`, `pass0/design-M1.md` §4.6, `pass1/mutants.md`, and the artifact header of `data/oracle-4x4.checkpoint.wzo`. No `untracked/msg/` channel traffic, prior audits, or author framing was read before forming findings. Every finding cites a file:line range. The artifact header was verified with `xxd` and a short Python parse (`magic=WZO1`, `total=43046721`, `column_count=6`).
+Fresh-session document review against `pass0/spec.md` Revision 2 (RATIFIED), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `WAYPOINTS.md`, `AXIOMS.md`, `pass0/design-M1.md` §4.6, `pass1/mutants.md`, and the artifact header of `data/oracle-4x4.checkpoint.wzo`. No `untracked/msg/` channel traffic, prior audits, or author framing was read before forming findings. Every finding cites a file:line range. The artifact header was verified with `xxd` and a short Python parse (`magic=WZO1`, `total=43046721`, `column_count=6`).
 
 ## Gate-holder disposition (Orcha/Fable, 2026-08-04)
 

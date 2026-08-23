@@ -17,7 +17,7 @@ gaps the landmark's status line calls "in flight" (closure, cycle containment, t
 mutation assertions) closed the same day (accept.md:137–184). `LANDMARKS.md` has described a
 state fourteen days dead ever since. But **L2 itself was never ruled, and is not dischargeable
 today**, because by the landmark's own text — *"every value verified to be the answer … with the
-full table as the denominator, never a sample"* (`docs/audits/2026-08-05-handover/LANDMARKS.md:141-142`)
+full table as the denominator, never a sample"* (`docs/epics/E1-markovian/LANDMARKS.md:148-149`)
 — four things still stand, three of them named by the discharge ruling itself (accept.md:252–256):
 
 1. **I11 (move-set consistency) is a 0.05% sample at 4×4** — 0 / 50,000 of 99,133,036
@@ -121,7 +121,7 @@ verdicts"):
 - **F4 — the L2 remainder is unregistered** (no rows for T-a/T-b/T-c). → register.
 - **F5 — LANDMARKS.md fourteen days stale on L2, L4, L1, L0.** Corrected by this audit (in-scope
   per the brief): dated status paragraphs added, summary table and story updated —
-  `docs/audits/2026-08-05-handover/LANDMARKS.md`, this commit.
+  `docs/epics/E1-markovian/LANDMARKS.md`, this commit.
 - **F6 — evidence durability (registered elsewhere, weighed here):** the artifact every reading
   depends on is gitignored, single-disk, with no off-disk archive (T443 findings, commit e00d279);
   regeneration is deterministic but costs ~83 min. The evidence base of L2 currently has no
@@ -164,7 +164,7 @@ remainder is short, enumerable, and mostly cheap.
 
 ## 5. Corrected LANDMARKS.md
 
-Applied in this commit to `docs/audits/2026-08-05-handover/LANDMARKS.md` — dated status
+Applied in this commit to `docs/epics/E1-markovian/LANDMARKS.md` — dated status
 paragraphs (2026-08-19, this audit) for L0, L1, L2 and L4; summary table and one-paragraph story
 updated; L3, L5, L6, L7 verified unchanged against today's evidence (L3: nothing since 2026-08-05
 contradicts the committed kifu record; L5 correctly waits on L2 and on the mutation-adequacy

@@ -321,7 +321,7 @@ and anything else handed over for pasting — every role, not just the Orchestra
 
 ## Landmarks — frame the work as a journey, not a task list
 
-`docs/audits/2026-08-05-handover/LANDMARKS.md` names the checkpoints a human can verify without
+`docs/epics/E1-markovian/LANDMARKS.md` names the checkpoints a human can verify without
 reading a task brief: **L0** the table and the instruments exist · **L1** the dashboard tells the
 truth · **L2** proven 4×4 values · **L3** the new engine outplays the old one · **L4** the ledger is
 clean · **L5** one rulebook · **L6** small Go solved, certifiably · **L7** the 5×5 decision, costed.

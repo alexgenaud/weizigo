@@ -17,7 +17,7 @@ Verdict: PASS-WITH-EDITS
 | F4 | must | `pass0/spec.md:57-72` | The demotion clause says violations demote `4x4.C1` and `4x4.FP1` “back to FALSE-AS-SCOPED”, but their current status is UNTESTED, not FALSE-AS-SCOPED. It also omits `GLOBAL.H4`, whose promotion target is “complete, not partial”; if I4 finds Bellman violations, H4 must be revised or retired. |
 | F5 | must | `pass0/spec.md:143-145` | §2.3 item 4 and the I11 row use “deepest-N sampled states” without defining N, “deepest”, or the sampling distribution. A pass condition that relies on an undefined sampling strategy cannot be implemented or audited. |
 | F6 | must | `pass0/spec.md:38-40` vs `:130-131` | §1 and §2.1 say I4 runs on the “full state graph”; §2.3 item 1 says “every non-terminal slot reachable from the fresh-start root”. These are not the same set (unreachable table slots may exist). The spec must pick one and reconcile it with the KO_SENSITIVE caveat. |
-| F7 | should | `pass0/spec.md:27-29` | The sentence “The artifact is structurally complete, value-unverified” is the honest summary of the G3 split section (`PHASES.md:99-100`), not the text of the G3b row (`PHASES.md:93`). The G3b row text is the value-correctness sentence used as the “To”. Misattribution makes the framing hard to verify. |
+| F7 | should | `pass0/spec.md:27-29` | The sentence “The artifact is structurally complete, value-unverified” is the honest summary of the G3 split section (`WAYPOINTS.md:99-100`), not the text of the G3b row (`WAYPOINTS.md:93`). The G3b row text is the value-correctness sentence used as the “To”. Misattribution makes the framing hard to verify. |
 | F8 | should | `pass0/spec.md:105` | §2.1 lists “R8 move-generator correctness” in the check inventory, but the same cell says “is the deliverable, not a check on it”. A deliverable cannot also be a check without reclassification; this creates confusion with §4 (R8 independence) and §3 edge 4. |
 | F9 | could | `pass0/spec.md:194-206` | Edge 2 requires an invariant that “reproduces a known defect in the move relation”. The documented historical defects are key-encoding (T178/T193) and ko-rule (T265) errors, not a standalone move-generator defect. The examples (allow suicide, allow ko recapture) are synthetic mutants, not reproduced historical defects; the prose overclaims. |
 | F10 | could | `pass0/spec.md:63` | `GLOBAL.H4` target is listed as “CLAIMED (now complete, not partial)”, but the register status vocabulary has no “more CLAIMED” level. The spec does not state whether the claim text is revised, a new ID is minted, or the status stays unchanged. |
@@ -26,7 +26,7 @@ Verdict: PASS-WITH-EDITS
 
 **PASS-WITH-EDITS.**
 
-The spec is a sound framing of the G3b value-correctness sprint. It is consistent with `DIRECTION.md` (dependency edges as `needs`, mutation-adequacy gate, k=1 scope), `AXIOMS.md` (ruleset R, E3 bracket semantics, NC non-claims), `PHASES.md` (the G3a/G3b split), and `sprint.md` (spec/plan/accept bookends). The goal sentence is precise, denominators are stated as violation counts, and the KO_SENSITIVE caveat correctly distinguishes measurement from violation.
+The spec is a sound framing of the G3b value-correctness sprint. It is consistent with `DIRECTION.md` (dependency edges as `needs`, mutation-adequacy gate, k=1 scope), `AXIOMS.md` (ruleset R, E3 bracket semantics, NC non-claims), `WAYPOINTS.md` (the G3a/G3b split), and `sprint.md` (spec/plan/accept bookends). The goal sentence is precise, denominators are stated as violation counts, and the KO_SENSITIVE caveat correctly distinguishes measurement from violation.
 
 The defects above are all correctable in prose. The most serious (F2, F3) affect the enforceability of the ladder discipline and the runnability matrix; they must be fixed before `plan.md` is written. No architectural change is required.
 
@@ -39,8 +39,8 @@ The defects above are all correctable in prose. The most serious (F2, F3) affect
  
  ## 1. The goal — the sentence it changes
  
--**From** (`PHASES.md` G3b row):
-+**From** (`PHASES.md` §The G3 gate is split, honest summary):
+-**From** (`WAYPOINTS.md` G3b row):
++**From** (`WAYPOINTS.md` §The G3 gate is split, honest summary):
  
  > The artifact is structurally complete, value-unverified.
  
@@ -148,7 +148,7 @@ Every finding ID dispositioned; the spec is revised in place to Revision 2 and r
 | F4 | **fixed** — demotion clause no longer says "back to" (current statuses are UNTESTED); GLOBAL.H4 revise-or-retire added. |
 | F5 | **fixed** — "deepest-N" removed; sample size and distribution are plan.md decisions (§2.1 I11 row, §2.3 item 4, R8 row). |
 | F6 | **fixed** — "reachable state graph" chosen over "full state graph": C-A1/C-A2 define the verified set as the reachable closure, and G3a established the missing colex entries are exactly the unreachable ones. |
-| F7 | **fixed** — quote re-attributed to `PHASES.md` §The G3 gate is split. |
+| F7 | **fixed** — quote re-attributed to `WAYPOINTS.md` §The G3 gate is split. |
 | F8 | **fixed** — R8 row reclassified: sprint deliverable, not a pre-existing check. |
 | F9 | **fixed** — edge 2 prose aligned with DIRECTION Amendment 2's kill-its-own-mutant clause; no historical move-generator defect is claimed. |
 | F10 | **fixed** — GLOBAL.H4 target clarified: claim text updated, no status change, CLAIMED is the ceiling pending Phase 3. |

@@ -6,11 +6,11 @@ the mission-level audit and the ordered roadmap DIRECTION.md said was owed ("the
 decomposes it into tasks is a follow-up deliverable and belongs to the next session's court").
 This document recommends; registering rows and writing delegation packages stays with Orcha.
 
-Human-visible checkpoints for this roadmap live in `LANDMARKS.md` beside this file — the
+Human-visible checkpoints for this roadmap live in `docs/epics/E1-markovian/LANDMARKS.md` — the
 tiers below are the dependency truth; the landmarks are the same journey as observations.
 
 Governing docs, in authority order: `docs/audits/2026-08-02-grand-audit/DIRECTION.md`
-(+ Amendments 1–2) · `docs/epics/E1-markovian/PHASES.md` · `docs/infra/sprint.md` ·
+(+ Amendments 1–2) · `docs/epics/E1-markovian/WAYPOINTS.md` · `docs/infra/sprint.md` ·
 `docs/infra/human-decisions.md` · STATE.md (working-tree version, see finding 3).
 
 ---

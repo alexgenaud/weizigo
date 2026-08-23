@@ -76,8 +76,8 @@ incomplete after the extraction shipped. T292 (baselines + gate) is still
 There is a recorded, narrower justification: T273's brief
 (`untracked/T273-kernel-ko-and-statekey.md:20-24`) argues T267's key-agreement
 invariant is "the test that must reproduce a known defect *before* the extraction
-moves anything — battery before code" in miniature; PHASES.md:41 repeats it, and
-PHASES.md:82 records the reverse dependency (G3b's closure checks need the kernel).
+moves anything — battery before code" in miniature; WAYPOINTS.md:41 repeats it, and
+WAYPOINTS.md:82 records the reverse dependency (G3b's closure checks need the kernel).
 The argument is defensible — but DIRECTION §5's phase ordering was never amended, no
 ruling authorizes the substitution, and the gate Phase 0 declared ("gates everything
 below") only gated on AXIOMS.md *existing*, not on phase order.
@@ -152,10 +152,10 @@ flush bug in `src/claimlint.zig`).
 
 ### F6. Hand-maintained surfaces re-rotted within hours — the CA-2 pattern again
 
-- `PHASES.md:18` still says Phase 0 = "**T271 open** — gates everything below" and
+- `WAYPOINTS.md:18` still says Phase 0 = "**T271 open** — gates everything below" and
   `:20` says "T273 blocked"; both closed `pass` on 2026-08-02 (tasks.json). The file
   *was* revised in place afterward (`540a275` added the Phase 1 section around the
-  stale table) — stale by its own maintenance contract (`PHASES.md:3`).
+  stale table) — stale by its own maintenance contract (`WAYPOINTS.md:3`).
 - AXIOMS.md §5 (line 386) still lists `GLOBAL.TIE-MIGOS` as CLAIMED with the refuted
   claim text, contradicting its own §4.2/§4.4 and CLAIMS.md:421 (FALSE-AS-SCOPED);
   the §5 status note (lines 389-391) is likewise stale.
@@ -210,11 +210,11 @@ Deliverables:
 5. AXIOMS.md §3 Z-STATE-KEY: "outstanding" → done, cite T267 close.
 6. `4x4.BASICKO-TIE` (CLAIMS.md:479): append the T279 correction (surviving
    explanation = different game, not tie semantics).
-7. PHASES.md five-phase table state column refreshed (Phase 0 done; T273 done;
+7. WAYPOINTS.md five-phase table state column refreshed (Phase 0 done; T273 done;
    Phase 1 = T292 open).
 
 Acceptance: `grep -c "one ply" docs/epistemic/CLAIMS.md` returns 0 on axiom rows;
-claimlint exit unchanged vs floor; `grep "T271 open" docs/epics/E1-markovian/PHASES.md`
+claimlint exit unchanged vs floor; `grep "T271 open" docs/epics/E1-markovian/WAYPOINTS.md`
 empty.
 
 ### A2 — Register the 282-row mapping task *(fixes F2)*
@@ -256,7 +256,7 @@ Acceptance: resume output shows the check; T272's note present.
 
 ### A5 — Rule on the Phase 1/2 ordering *(fixes F3)*
 
-A human ruling, recorded in PHASES.md (and DIRECTION amendment if granted): either
+A human ruling, recorded in WAYPOINTS.md (and DIRECTION amendment if granted): either
 (a) ratify the T273 brief's argument — a scoped extraction may precede full battery
 calibration when a defect-reproducing invariant (T267-class) exists for the exact
 function moved — or (b) reaffirm strict ordering and require T292 to complete before

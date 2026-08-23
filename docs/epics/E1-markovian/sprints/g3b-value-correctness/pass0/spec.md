@@ -14,7 +14,7 @@ row, written after this spec is audited and ratified.
 
 **Inputs.** `AGENTS.md` · `DELEGATEE.md` · `sprint.md` ·
 `077-orcha-to-all.md` (commissioning draft) · `DIRECTION.md` + Amendments 1
-and 2 · `PHASES.md` §The G3 gate is split ·
+and 2 · `WAYPOINTS.md` §The G3 gate is split ·
 `sprints/verify-battery/pass1/spec.md` (check inventory I4, I5, I11, C-A1,
 C-A2, R8, SMD1) · `sprints/verify-battery/pass1/mutants.md` (seven
 known-unkilled mutants) · `findings/T273-kernel-ko.json` (kernel already
@@ -24,7 +24,7 @@ has ko/stateKey) · `AXIOMS.md` (requirement tree).
 
 ## 1. The goal — the sentence it changes
 
-**From** (`PHASES.md` §The G3 gate is split, honest summary):
+**From** (`WAYPOINTS.md` §The G3 gate is split, honest summary):
 
 > The artifact is structurally complete, value-unverified.
 

@@ -44,7 +44,7 @@ in CONCERNS by definition, never silently dropped.
 
 **Landmark and task descriptions are elaborated once, below the tables** —
 one line per landmark id that appears (with its short name from
-`docs/audits/2026-08-05-handover/LANDMARKS.md`) and one line per task id that
+`docs/epics/E1-markovian/LANDMARKS.md`) and one line per task id that
 appears (its bundle's short description). No description is repeated inside a
 table row. Empty sections print `(none)`, never vanish and never lie.
 

@@ -29,7 +29,7 @@ the gate-holder afterwards) · `archive/spec-audit-r1.md` (T329, all ten finding
 dispositioned) · `archive/plan-audit-r1.md` (T332, five findings F1–F5 +
 gate-holder F6, all six dispositioned; the mandate for this revision) ·
 `sprints/oracle-v2/pass0/design-M1.md` (rev 3, RATIFIED G2 — the WZO2 schema
-authority) · `DIRECTION.md` + Amendments 1 & 2 · `PHASES.md` §The G3
+authority) · `DIRECTION.md` + Amendments 1 & 2 · `WAYPOINTS.md` §The G3
 gate is split · `sprints/verify-battery/pass1/spec.md` (check inventory) ·
 `sprints/verify-battery/pass1/mutants.md` (seven known-unkilled mutants) ·
 `sprints/verify-battery/pass0/design-M1.md` §4.6 (SMD1 format, already

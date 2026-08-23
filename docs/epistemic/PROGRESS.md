@@ -502,7 +502,7 @@ semantics, the state representation failed at 3×2
 semantics, `(board, side, ko_point, passes)` **is** Markovian, the fixpoint
 converges, and the tables are internally consistent at every tested size
 through 4×4. The 4×4 artifact is **structurally complete, value-unverified**
-— the G3 gate is split (`PHASES.md`, 2026-08-03): G3a structural completeness
+— the G3 gate is split (`WAYPOINTS.md`, 2026-08-03): G3a structural completeness
 is discharged `[CODE.WZO2-PASS1-LAW:PROVEN]`, G3b value correctness is
 untouched. The measurements that are real stand: root V=+1 under basic-ko +
 TIE=0, H=+16 verified genuine, 99.997% single-ko

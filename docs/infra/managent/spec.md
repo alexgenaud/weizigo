@@ -411,7 +411,7 @@ $ managent resume
 Generates the **worker preamble** at read time (T353) — a ≤150-line surface
 that replaces the ~1,524-line reading list a worker otherwise wades through
 before its own brief (`AGENTS.md` + `DELEGATEE.md` + `sprint.md` +
-`DIRECTION.md` + `PHASES.md` + `STATE.md`). Pure reader: never writes
+`DIRECTION.md` + `WAYPOINTS.md` + `STATE.md`). Pure reader: never writes
 `tasks.json`. Follows the `resume` pattern — nothing is stored, nothing can
 rot — so a stale preamble is structurally impossible.
 

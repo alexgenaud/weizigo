@@ -138,7 +138,7 @@ each carrying a null control and a seeded-defect control that was shown to fire.
 
 The honest sentence remains: *the 4×4 artifact is structurally complete, and its values are
 verified for Bellman residual and key agreement at full scale but not yet for closure or cycle
-containment.* Registered as the completion row; `PHASES.md` is not updated and G3b stays open.
+containment.* Registered as the completion row; `WAYPOINTS.md` is not updated and G3b stays open.
 
 ---
 

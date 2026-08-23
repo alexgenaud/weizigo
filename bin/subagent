@@ -369,7 +369,7 @@ def main(argv):
                   f"BEFORE READING THE BUNDLE: run `bin/managent orient` — it prints the\n"
                   f"≤150-line worker preamble (principles, live gates, the kanban, fresh\n"
                   f"activity) composed at read time, replacing the AGENTS.md/DELEGATEE.md/\n"
-                  f"sprint.md/DIRECTION.md/PHASES.md/STATE.md reading list. The bundle and\n"
+                  f"sprint.md/DIRECTION.md/WAYPOINTS.md/STATE.md reading list. The bundle and\n"
                   f"the sprint's ratified spec/plan are still required; orient is the\n"
                   f"preamble, not a replacement for them.\n\n"
                   f"FIRST: bin/managent claim {target} --agent {model}\n"

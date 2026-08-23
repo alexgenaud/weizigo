@@ -185,7 +185,7 @@ ground-truth walk, in this order (seed §3.4):
 4. **live sprint seeds** — the `S0*-*/seed.md` set;
 5. **recent git** — `git log`;
 6. the standing instruction: **judge docs against reality; record deviations and corrections
-   against the landmarks (`docs/audits/2026-08-05-handover/LANDMARKS.md`); ask the operator at
+   against the landmarks (`docs/epics/E1-markovian/LANDMARKS.md`); ask the operator at
    most one question.**
 
 The reading list lives in the verb, not in anyone's memory (seed §3.4).

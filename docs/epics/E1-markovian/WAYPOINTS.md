@@ -1,9 +1,9 @@
-# PHASES — E1-markovian under DIRECTION.md
+# WAYPOINTS — E1-markovian under DIRECTION.md
 
 Canonical, unsuffixed, revised in place. Maintained by the Orchestrator.
 
 **Authority.** `docs/audits/2026-08-02-grand-audit/DIRECTION.md`, ratified by the
-human 2026-08-02, governs. This file is only the phase→task mapping: where each
+human 2026-08-02, governs. This file is only the waypoint→task mapping: where each
 registered task sits and why. **When this file or the kanban disagrees with
 DIRECTION.md, DIRECTION.md wins and this file is the bug.** Task briefs live at
 `untracked/T<N>-*.md` (untracked by convention); the reasoning below is the
@@ -11,62 +11,62 @@ tracked copy.
 
 Opened 2026-08-02 by Orchestrator (Opus 5) at commit `2432d71`.
 
-## The five phases
+## The five waypoints
 
-| phase | content (DIRECTION §5) | state |
+| waypoint | content (DIRECTION §5) | state |
 |---|---|---|
 | 0 — theorem and axioms | AXIOMS.md; requirement tree top-down from Z; old rows mapped onto it; MIGOS/tie adjudicated | **done 2026-08-02** — T271 delivered at `3058f81`; T272 gate; follow-ups T274/T275/T280/T281/T284/T285 closed. The 282-row mapping deliverable is registered as T305 (needs T304) |
 | 1 — acceptance battery before code | battery built and calibrated on **synthetic** defects first (DIRECTION Amendment 1, ratified 2026-08-03); live artifacts are regression inputs | **delivered 2026-08-03** — T290 spec → T291 mutants → T292 baselines+gate all closed; golden-master baseline gate wired into `zig build test` (fast path), full-artifact sweep behind `zig build battery-sweep`. Carry-forward T266/T267/T270 closed |
-| 2 — kernel extraction | one function one owner, ko and state-key first; all harnesses in `zig build test` | **T273 done 2026-08-02** — kernel extraction (`koAfterCapture`, `stateKey`); both kernel claims held at `CLAIMED` pending Phase 3 end-to-end A–Z reverification (DIRECTION Amendment 2 promotion gate) |
+| 2 — kernel extraction | one function one owner, ko and state-key first; all harnesses in `zig build test` | **T273 done 2026-08-02** — kernel extraction (`koAfterCapture`, `stateKey`); both kernel claims held at `CLAIMED` pending Waypoint 3 end-to-end A–Z reverification (DIRECTION Amendment 2 promotion gate) |
 | 3 — A–Z reverification | ladder 2×2 → 3×2 → 3×3 → 4×4; kernel vs fixtures differentially; every register row re-derived, demoted or retired | not decomposed |
 | 4 — the swap | kernel becomes production; legacy frozen as fixtures; engine/experiment boundary in `src/` | not decomposed |
 
-**Phase order is dependency order, not calendar order (DIRECTION.md Amendment 2, ruled 2026-08-03).**
-No phase gates the dispatch of another; the one hard gate stands unchanged — Phase 0 gates
+**Waypoint order is dependency order, not calendar order (DIRECTION.md Amendment 2, ruled 2026-08-03).**
+No waypoint gates the dispatch of another; the one hard gate stands unchanged — Waypoint 0 gates
 *decomposition*. "Acceptance battery before code" and "calibrated on known-defective inputs
 first" bind **promotion, not dispatch**: code may ship while battery coverage is incomplete,
 but no claim about it may pass `CLAIMED` until the mutants covering its function are killed
 (mutation-adequacy, DeMillo–Lipton–Sayward 1978). The five real dependency edges are
-mechanized as `needs` on the tasks that carry them, never as convention; the phase number is
-not a dependency, so concurrency across phases is expected. The real serializer is **file
+mechanized as `needs` on the tasks that carry them, never as convention; the waypoint number is
+not a dependency, so concurrency across waypoints is expected. The real serializer is **file
 ownership** via managent sets. The ruling text is `docs/audits/2026-08-02-grand-audit/DIRECTION.md`
 Amendment 2.
 
-**Phase 0 is a hard gate on decomposition.** Phases 1–4 get no new tasks until
+**Waypoint 0 is a hard gate on decomposition.** Waypoints 1–4 get no new tasks until
 AXIOMS.md exists — the requirement tree is the input that says which lemmas need
-work. The Phase 1 tasks listed above are carry-forward rows that predate
-DIRECTION and were re-scoped onto the phase structure, not a decomposition of
-Phase 1.
+work. The Waypoint 1 tasks listed above are carry-forward rows that predate
+DIRECTION and were re-scoped onto the waypoint structure, not a decomposition of
+Waypoint 1.
 
 ## Where the carry-forward queue landed
 
-Reconciled 2026-08-02. Each brief carries the same reasoning under a "Phase
-placement" heading.
+Reconciled 2026-08-02. Each brief carries the same reasoning under its own
+placement heading.
 
 | task | placement | reasoning |
 |---|---|---|
-| **T271** (new) | Phase 0 | AXIOMS.md: theorem, ruleset R as axioms with claim IDs from birth, requirement tree from Z, MIGOS tie adjudication (audit prescription 5). Mapping all 282 register rows onto the tree is deferred — the tree is its input. |
-| **T266** | Phase 1 | Artifact incompleteness. **Re-scoped: diagnosis only, the "minimal fix" withdrawn.** Repairing the builder before a check exists that fails today's artifact is code before battery. Adds a deliverable: the completeness check specified, such that it fails `0c3366f0` for the found reason. |
-| **T267** | Phase 1 | Key-agreement invariant, **split from the extraction.** The test half stays (writes no production code) and absorbs two audit repairs: wire `differential.zig` into `zig build test`, and replace the tautological T265 test with one that imports `gtp.zig` (GRAND-AUDIT §1a). |
-| **T270** | Phase 1 | I2 (colour inversion) against WZO2 — a battery invariant read against a certified-defective calibration input. Reported as a calibration reading, not a verdict; independent re-implementation (R8) is the Phase 1 requirement, not colour. |
-| **T273** (new) | Phase 2 | The extraction split off T267: one production ko rule and one state-key in `rules.zig`, 17 hand-written copies demoted to frozen fixtures (audit prescription 1). `needs T271` (axiom + claim ID heads the code) and `needs T267` (the invariant must reproduce a known defect before anything moves). |
+| **T271** (new) | Waypoint 0 | AXIOMS.md: theorem, ruleset R as axioms with claim IDs from birth, requirement tree from Z, MIGOS tie adjudication (audit prescription 5). Mapping all 282 register rows onto the tree is deferred — the tree is its input. |
+| **T266** | Waypoint 1 | Artifact incompleteness. **Re-scoped: diagnosis only, the "minimal fix" withdrawn.** Repairing the builder before a check exists that fails today's artifact is code before battery. Adds a deliverable: the completeness check specified, such that it fails `0c3366f0` for the found reason. |
+| **T267** | Waypoint 1 | Key-agreement invariant, **split from the extraction.** The test half stays (writes no production code) and absorbs two audit repairs: wire `differential.zig` into `zig build test`, and replace the tautological T265 test with one that imports `gtp.zig` (GRAND-AUDIT §1a). |
+| **T270** | Waypoint 1 | I2 (colour inversion) against WZO2 — a battery invariant read against a certified-defective calibration input. Reported as a calibration reading, not a verdict; independent re-implementation (R8) is the Waypoint 1 requirement, not colour. |
+| **T273** (new) | Waypoint 2 | The extraction split off T267: one production ko rule and one state-key in `rules.zig`, 17 hand-written copies demoted to frozen fixtures (audit prescription 1). `needs T271` (axiom + claim ID heads the code) and `needs T267` (the invariant must reproduce a known defect before anything moves). |
 | **T272** (new) | infra | Audit prescription 2: pre-commit hook enforcing the recorded debt floor (not "green"), floor single-sourced machine-readably, hook tracked so it survives a clone, with null and seeded-defect controls; plus C7 absorbed-with-rejection (C7 4 → 3). |
-| **T268** | infra | Deploy correctness. Epic-independent, so no phase gate — but a **precondition for Phase 1 gate readings**: a battery run against a stale `bin/` measures a binary nobody can reconstruct. |
+| **T268** | infra | Deploy correctness. Epic-independent, so no waypoint gate — but a **precondition for Waypoint 1 gate readings**: a battery run against a stale `bin/` measures a binary nobody can reconstruct. |
 | **T269** | infra | Register vocabulary. `needs T272` — same file (`src/claimlint.zig`, one writer per file) and it extends T272's disposition mechanism rather than inventing a second. Absorbs C7's silent skip of schema-non-conforming findings files. |
 | **T203** | retired | `abandoned` 2026-08-02: DIRECTION §2 forecloses the migration that is its entire deliverable ("no migration of claims/decisions/docs"). Reopenable if the human overturns §2. |
 
 Not registered, tracked here so it is not lost: engine-unification **pass1** (the
 actual unification — delete `genericChainCaptured`, `genericIsLegal`,
-`genericPosFromMove`, extend to 4×3/4×4) is Phase 2 work and waits on the
+`genericPosFromMove`, extend to 4×3/4×4) is Waypoint 2 work and waits on the
 kernel's shape; audit **prescription 3** is done (T286: `bin/managent resume`
 composes the resume surface at read time; `docs/status/CURRENT.md` is deleted)
 and **prescription 4**'s lying-generator half is open (the `ephemeral` symlink
 half was retired by the human's 2026-08-03 ruling — `/tmp/weizigo` is the
 location, no symlink).
 
-## Phase 1, decomposed (Orchestrator, 2026-08-03)
+## Waypoint 1, decomposed (Orchestrator, 2026-08-03)
 
-Unblocked by two things: Phase 0's AXIOMS.md exists (so the requirement tree can say which
+Unblocked by two things: Waypoint 0's AXIOMS.md exists (so the requirement tree can say which
 lemmas need checks), and DIRECTION Amendment 1 is ratified (so the calibration rule is
 settled — synthetic mutants must fail, live artifacts must not *newly* fail). Three rows,
 serialized because each is the next one's input:
@@ -90,7 +90,7 @@ was standing for. Split, and each half discharges separately:
 | gate | what it asserts | state |
 |---|---|---|
 | **G3a — structural completeness** | The artifact holds the right *set* of entries: every reachable (position, side, ko, passes) present, none extra, all well-formed, group index and entry order consistent | **dischargeable now.** T266 measured it, T277 re-derived it independently, T279 absorbed it. `CODE.WZO2-PASS1-LAW:PROVEN` |
-| **G3b — value correctness** | The L/H values *inside* those entries are the fixpoint values of ruleset R — closure under the Bellman operator, no fabricated or fallback rows | **untouched.** The real closure checks (C-A1/C-A2) are specified and unrun; they need the Phase 2 kernel. Two known defects sit in the way: `CODE.ACCEPT-KOKEY` (T273) and `CODE.GTP-LHSIDE` (T283) |
+| **G3b — value correctness** | The L/H values *inside* those entries are the fixpoint values of ruleset R — closure under the Bellman operator, no fabricated or fallback rows | **untouched.** The real closure checks (C-A1/C-A2) are specified and unrun; they need the Waypoint 2 kernel. Two known defects sit in the way: `CODE.ACCEPT-KOKEY` (T273) and `CODE.GTP-LHSIDE` (T283) |
 
 Nothing about G3a implies G3b. The artifact holding exactly the right *slots* says nothing
 about the *numbers* in them, and the acceptance harness that was supposed to check the
@@ -99,11 +99,27 @@ off-manifold while reporting passes. **Do not describe the 4×4 as solved, verif
 G3-clear on the strength of G3a.** The honest sentence is: structurally complete,
 value-unverified.
 
-## Standing constraints on this phase plan
+## Standing constraints on this waypoint plan
 
 - **Every gate is mechanized the day it is declared** (DIRECTION §5). A rule that
   stays prose is a rule we have chosen to re-learn.
 - **All 282 register rows are presumed unverified**, falsifications included.
-- **No re-audit.** The next audit is the ephemeral gate that runs once Phase 0/1
+- **No re-audit.** The next audit is the ephemeral gate that runs once Waypoint 0/1
   deliverables exist.
 - Briefs never name a model; the human assigns at dispatch.
+## Stage ↔ Waypoint: not one-to-one
+
+The operator's course (`docs/status/ROADMAP-2026-08-20.md`, Stage 0–4) tracks time and people;
+the waypoints above track dependencies. The overlay is territory, not equivalence:
+
+| Stage (course) | waypoint territory |
+|---|---|
+| 0 — Flash wraps up and hands over | none — fleet arc, outside the waypoint ladder |
+| 1 — L1: the orchestration job moves into tooling | none — tooling arc, outside the waypoint ladder |
+| 2 — the races | none — measurement arc, outside the waypoint ladder |
+| 3 — the L2 foundation | ≈ Waypoints 2–3 territory |
+| 4 — the clean story | ≈ Waypoint 3 finish, plus narrative that is no waypoint's work |
+
+Stages 0–2 sit outside the ladder entirely, and **no stage covers Waypoint 0, 1 or 4** — the
+overlay holds for two rows and nothing more. Never derive one ladder's position from the
+other's, and never write "Stage N = Waypoint M".

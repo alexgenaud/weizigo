@@ -29,7 +29,7 @@ the rescue is committed and the re-point row (T421) is in flight — **status un
 
 Each row is closed, audited, and committed. IDs are kanban rows (`docs/infra/managent/tasks.json`);
 sprint reports live in `docs/status/sprint-2026-08-*.md`; landmarks (L0–L7) are defined in
-`docs/audits/2026-08-05-handover/LANDMARKS.md`.
+`docs/epics/E1-markovian/LANDMARKS.md`.
 
 | row | what it established | landmark |
 |---|---|---|
@@ -205,4 +205,4 @@ In this order (dependency order, not priority order):
 `docs/infra/managent/tasks.json` + `directives.jsonl` (live reads), `bin/weizigo-claimlint` (live
 run), `docs/status/ROADMAP-2026-08-07.md`, `docs/status/sprint-2026-08-09.md`,
 `docs/status/sprint-2026-08-08b.md`, `untracked/T421-evidence-in-tmp-repoint.md`,
-`docs/audits/2026-08-05-handover/LANDMARKS.md`.*
+`docs/epics/E1-markovian/LANDMARKS.md`.*

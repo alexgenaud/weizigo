@@ -201,7 +201,7 @@ regression input must not newly fail (or something changed underneath us). Confl
 is how an instrument comes to certify its own error.
 
 **Consequence if ratified:** Phase 1 task briefs say "seed a synthetic defect" rather than
-"fail `0c3366f0`", and `docs/epics/E1-markovian/PHASES.md` records the split G3 gate below.
+"fail `0c3366f0`", and `docs/epics/E1-markovian/WAYPOINTS.md` records the split G3 gate below.
 
 ---
 
@@ -211,7 +211,7 @@ is how an instrument comes to certify its own error.
 
 §5's five phases are a dependency plan, not a schedule. **No phase gates the dispatch of
 another.** The one hard gate already written stands unchanged: Phase 0 gates
-*decomposition* (`PHASES.md:24`).
+*decomposition* (`WAYPOINTS.md:24`).
 
 "Acceptance battery before code" and "calibrated on known-defective inputs first" bind
 **promotion, not dispatch.** Code may be written, committed and deployed while its battery
@@ -223,7 +223,7 @@ promotion gate rather than a dispatch gate.
 Two facts make this the correct reading of §5 rather than a relaxation of it:
 
 - §5's own Phase 1 contents already depend on Phase 2. The C-A1/C-A2 closure checks are
-  Phase 1 deliverables that need the Phase 2 kernel move generator (`PHASES.md:82`,
+  Phase 1 deliverables that need the Phase 2 kernel move generator (`WAYPOINTS.md:82`,
   `sprints/verify-battery/pass1/spec.md:193`). A plan containing a
   Phase-1-depends-on-Phase-2 edge cannot coherently demand calendar order.
 - The practice already conformed. T273 shipped the kernel extraction and held **both**

@@ -20,7 +20,7 @@ lives under its PRIMARY landmark (`docs/status/refactor-migration-map.md:9-10`).
   (S1 directory refactor, `docs/status/ROADMAP-2026-08-21.md`); only `docs/epics/` is live.
 - **landmark** — a checkpoint the operator can verify without reading a task brief, ID L0–L7,
   every ID written with its short name (`L4 (the ledger is clean)`, never a bare `L4`)
-  (`docs/audits/2026-08-05-handover/LANDMARKS.md`; `AGENTS.md` "Landmarks").
+  (`docs/epics/E1-markovian/LANDMARKS.md`; `AGENTS.md` "Landmarks").
   CONFLICTS: the old IDs `M<n>` (milestone) now belong to the **mutants** in
   `sprints/verify-battery/pass1/mutants.md` — that collision is exactly why M→L happened; sealed
   race packets and as-run records still say "milestone M<n>" by design (read as `L<n>`).
@@ -53,7 +53,7 @@ collisions are real and currently resolved only by context.
   axioms, 1 acceptance battery before code, 2 kernel extraction, 3 A–Z reverification, 4 the
   swap; phase order is dependency order, not calendar order (Amendment 2, ruled 2026-08-03)
   (`docs/audits/2026-08-02-grand-audit/DIRECTION.md` §5 + Amendments; task mapping in
-  `docs/epics/E1-markovian/PHASES.md`).
+  `docs/epics/E1-markovian/WAYPOINTS.md`).
   CONFLICTS: collides with pass-phase "phase" above. **T737 rename proposal (NOT executed —
   follow-up row for the operator to ratify): "Program step 0–4".** The brief's other example,
   "Rung 0–4", is NOT recommended: "rung" is already taken by the goban-size verification ladder
@@ -88,7 +88,7 @@ collisions are real and currently resolved only by context.
 - **landmark IDs L0–L4** — L0 (the table and the instruments exist) · L1 (the dashboard tells
   the truth) · L2 (proven 4×4 values) · L3 (the new engine outplays the old one) · L4 (the
   ledger is clean); the map continues L5 (one rulebook) · L6 (small Go solved, certifiably) ·
-  L7 (the 5×5 decision, costed) (`docs/audits/2026-08-05-handover/LANDMARKS.md`).
+  L7 (the 5×5 decision, costed) (`docs/epics/E1-markovian/LANDMARKS.md`).
   CONFLICTS: see "landmark" (the M<n>→L<n> collision with the mutant IDs).
 - **duty** — work that is always beneficial, never critical, and cannot exhaustively finish;
   identified by a stable UID (DCLAIM, DRPLAY, DARGUS, DFLEET), runs one chunk per invocation,

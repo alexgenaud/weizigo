@@ -1,7 +1,7 @@
 # T468 (why are we doing each of these tasks?) — landmark assignment for the kanban
 
 **Author:** minimax-m3/T468 · **Date:** 2026-08-19
-**Read first:** `docs/audits/2026-08-05-handover/LANDMARKS.md` · the task's own brief
+**Read first:** `docs/epics/E1-markovian/LANDMARKS.md` · the task's own brief
 (`untracked/T468-landmark-assignment.md`) · then this file.
 
 The brief asks for one line per task — landmark, with the chain stated — and four honest outcomes

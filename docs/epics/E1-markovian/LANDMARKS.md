@@ -1,8 +1,9 @@
 # LANDMARKS — what the human can see, test, and care about
 
-Companion to `ROADMAP.md` (same directory, same commit stream). The roadmap orders the work by
-dependency and speaks the project's internal language; this file names the checkpoints a human can
-verify without reading a single task brief. Each landmark says what changes in plain terms, how to
+This file is the single home of the landmark definitions L0–L7. Companion to
+`docs/audits/2026-08-05-handover/ROADMAP.md`, which orders the work by dependency and speaks the
+project's internal language; this file names the checkpoints a human can verify without reading a
+single task brief. Each landmark says what changes in plain terms, how to
 see it with your own eyes, and where it stands today. Landmarks are observations, not tasks —
 nothing here adds work; it only makes the work visible.
 
@@ -18,6 +19,12 @@ a record of what was run should stay verbatim. Read `milestone M<n>` in those as
 
 **Every landmark has a short name. Use `L3 (the new engine outplays the old one)`, never a bare
 `L3`.** The names are the point of this file: an ID nobody can expand is not communication.
+
+**`L<n>` is reserved, project-globally, for the checkpoints defined in this file** (operator ruling
+R4, 2026-08-23). No other axis may mint an L token: the retired fleet-versus-science binary area
+tags of the D041 era are not landmarks, and their residue survives only verbatim in as-run
+findings. An `L<n>` is a landmark when this file carries it and not before — `L8` and `L9` are
+*proposals* in `docs/status/landmark-assignment-2026-08-19.md`.
 
 ---
 

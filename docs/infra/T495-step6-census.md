@@ -33,7 +33,7 @@ INTENT.md, README.md, status/decision docs). Findings:
 
 Per the brief, "do not chase every number in every doc":
 
-- `docs/audits/2026-08-05-handover/LANDMARKS.md` — historical handover doc; counts are dated.
+- `docs/epics/E1-markovian/LANDMARKS.md` — historical handover doc; counts are dated.
 - `docs/status/archive/handovers/*` — historical handovers; counts are dated.
 - `docs/evidence/*/PROVENANCE.md` — measurement provenance; counts are the proof, must be held.
 - `findings/<id>-*.json` — per-task findings; counts are the proof, must be held.

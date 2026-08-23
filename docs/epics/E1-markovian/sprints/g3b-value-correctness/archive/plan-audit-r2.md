@@ -81,7 +81,7 @@ Revision 2 fixed the load-bearing F1 defect by re-rooting the closure design to 
 
 ## Auditor identity and method
 
-Fresh-session document review against `pass0/plan.md` Revision 3 (commit `85839f4`), `pass0/spec.md` Revision 4 (RATIFIED), `archive/plan-audit-r1.md` (T332), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `PHASES.md`, `sprints/verify-battery/pass1/mutants.md`, `sprints/oracle-v2/pass0/design-M1.md` (rev 3), and `sprints/verify-battery/pass0/design-M1.md` §4.6. No `untracked/msg/` channel traffic, author framing, or prior audit reasoning was consulted before forming findings. The WZO2 header and invariants were parsed independently with `xxd` and a short Python reader (`data/oracle-4x4-v2.wzo2`, byte-identical to `untracked/oracle-v2/oracle-4x4-v2.wzo2`, both pinned in `artifacts/SHA256SUMS`).
+Fresh-session document review against `pass0/plan.md` Revision 3 (commit `85839f4`), `pass0/spec.md` Revision 4 (RATIFIED), `archive/plan-audit-r1.md` (T332), `sprint.md`, `DIRECTION.md` + Amendments 1 & 2, `WAYPOINTS.md`, `sprints/verify-battery/pass1/mutants.md`, `sprints/oracle-v2/pass0/design-M1.md` (rev 3), and `sprints/verify-battery/pass0/design-M1.md` §4.6. No `untracked/msg/` channel traffic, author framing, or prior audit reasoning was consulted before forming findings. The WZO2 header and invariants were parsed independently with `xxd` and a short Python reader (`data/oracle-4x4-v2.wzo2`, byte-identical to `untracked/oracle-v2/oracle-4x4-v2.wzo2`, both pinned in `artifacts/SHA256SUMS`).
 
 ## Gate-holder disposition (Orcha/Opus 5, 2026-08-04)
 

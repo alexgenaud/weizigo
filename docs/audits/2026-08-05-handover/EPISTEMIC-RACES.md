@@ -1,6 +1,6 @@
 # EPISTEMIC RACES — head-to-head model evaluation on the capabilities this project runs on
 
-Author: Fable · 2026-08-05 · companion to `ROADMAP.md` and `LANDMARKS.md` (this directory)
+Author: Fable · 2026-08-05 · companion to `ROADMAP.md` (this directory) and `docs/epics/E1-markovian/LANDMARKS.md`
 Protocol substrate: T328 bake-off harness (answer-key-first, blind grading, sealed lane map,
 both clocks + operator-collected tokens, tokens-now-prices-later). Baseline beliefs to race
 against: `docs/infra/model-perf.md` §Belief audit 2026-08-05.
