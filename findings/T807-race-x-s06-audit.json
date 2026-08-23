@@ -1,0 +1,122 @@
+{
+ "task_id": "T807",
+ "date": "2026-08-23",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T807",
+ "audited_by": "deepseek-v4-pro/T807",
+ "audit_target": {
+  "artifact": "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md",
+  "revision": "rev 2",
+  "author": "deepseek-v4-pro/T748 (rev 1) · claude-opus-5/T802 (rev 2 amendments)",
+  "audited_at": "HEAD 52ce511 (spec.md unmodified vs its own 8c00704 re-pin)",
+  "question": "is the spec buildable and checkable as written?"
+ },
+ "verdict": "FAIL-FOUND (not buildable as written)",
+ "verdict_counts": {
+  "major": 2,
+  "medium": 4,
+  "minor": 2,
+  "total": 8
+ },
+ "task_type": "audit",
+ "task_scope": {
+  "files_read": 15,
+  "lines_read": 3400,
+  "writes": 0,
+  "read_only": true,
+  "scope_class": "repo-wide"
+ },
+ "capabilities": "long-document coherence (804-line spec with cross-referenced amendments); citation verification (path:line against live HEAD); counting arms across files (test file vs spec §9 table vs C1-C14); cross-document consistency (spec vs roadmap §6-7 vs STATUS vs two findings files); buildability analysis (could a worker build pass 1 from §ORC-POL alone)",
+ "claims_load_bearing": 5,
+ "verified": 8,
+ "unverified": 0,
+ "fabricated_citations": 0,
+ "flags_total": 8,
+ "sample_size": "exhaustive — no check was sampled; the armed-count check enumerated all 31 ids and the 6-target census was checked per target",
+ "findings": [
+  {
+   "n": 1,
+   "severity": "major",
+   "id": "ORC-CTRL-1",
+   "citation": "spec.md:609-613; tests/unit/test_s06_conformance.py",
+   "what_it_says": "\"Armed count at 8c00704: 22 of 31\" — 15 ids from §9's C1-C14 flips column (ARB-1/2/3, DASH-2/3/5, PAUSE-1/2, POL-2/7, PROV-1, REG-1/2/3/4) plus 7 armed by T802 in tests/unit/test_s06_conformance.py.",
+   "what_it_should_say": "7 of 31 ids have an arm on disk (all RED, @unittest.expectedFailure, in test_s06_conformance.py). The other 15 of the claimed 22 have no arm on disk: their only 'arm' is a row in the spec's own §9 C1-C14 table (spec.md:630-645), which is the artifact under audit and is itself owed to P3 per the spec's own §0 (\"the test phase writes one seeded arm (flip) and one null arm (green) for every normative id before the first live reading\"). A specified control is not an arm.",
+   "how_verified": "Counted the arms actually on disk: tests/unit/test_s06_conformance.py has exactly 5 @unittest.expectedFailure arms covering 7 ids (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4, ARB-4) and 19 GREEN characterization arms that pin wrong behaviour, not requirements. Grepped tests/ for the C1-C14 control subjects (policy parse, owner/reason/expiry refusal, hidden default, expiring pause, discharge-by-condition, shed order, direct store edit, dropped edge): zero implementations on disk — only the spec's own table and a docstring in tools/directive_policy.py. The 15 flip-column ids' controls exist nowhere as test code.",
+   "refutation": "An on-disk test function outside test_s06_conformance.py that implements any C1-C14 control with a null arm and a seeded-defect arm. None exists (grep across tests/ for the control names returned nothing).",
+   "note": "This is T778 finding 1 incompletely fixed. Rev 2 withdrew the 'every id armed' claim and enumerated the 9 truly-unarmed ids, but continued to count the 15 §9 table-rows as 'armed'. By the spec's own §0 rule (\"an instrument earns its first reading only after a null control and a seeded-defect control\"), the honest on-disk count is 7 of 31, all red. The 15-vs-7 gap is exactly the class the brief flags: an id claimed armed whose arm does not exist."
+  },
+  {
+   "n": 2,
+   "severity": "medium",
+   "id": "spec §0",
+   "citation": "spec.md:60 vs spec.md:89, spec.md:519",
+   "what_it_says": "§0 (\"How to read this document\"): \"5 named tools + 75 tools/regression-*.sh scripts at HEAD\" and \"the count below sums to 75\".",
+   "what_it_should_say": "Six named files (ORC-GOAL-2's own table at spec.md:72-80 lists six: fleet-keeper.sh, window_policy.py, directive_policy.py, bin/dispatch, bin/subagent, untracked/watch-fleet.sh) and 81 scripts (ORC-PLAN-4 at spec.md:519 declares \"81 tools/regression-*.sh at HEAD\", which matches `ls tools/regression-*.sh | wc -l` = 81).",
+   "how_verified": "Read §0 verbatim; counted ORC-GOAL-2's table (6 rows); ran `ls tools/regression-*.sh | wc -l` → 81, matching ORC-PLAN-4 and TestDispositionCount. §0 was not updated in rev 2 and still carries the rev-1 a1415fe numbers while claiming \"at HEAD\".",
+   "refutation": "\"5 named tools\" being defensible under some counting convention — it is not, because ORC-GOAL-2 explicitly says \"Six files\"; and §0 would need an explicit a1415fe pin rather than \"at HEAD\"."
+  },
+  {
+   "n": 3,
+   "severity": "major",
+   "id": "ORC-POL-5",
+   "citation": "spec.md:233-240 vs spec.md:167-193 (ORC-POL-4 amendment), spec.md:450-460 (ORC-GATE-2)",
+   "what_it_says": "ORC-POL-5's worked example — titled \"schema — worked example, the full file\" — lists a cooldowns block of seven entries (heal, dispatch, window_fallback, probe_window, bench_retry, failure_trip, stale_directive_hours) and omits the fourth cooldown mechanism (untracked/fleet-keeper.cooldown) that ORC-POL-4's amendment and ORC-GATE-2 require be merged as \"a scoped, owned, expiring entry\".",
+   "what_it_should_say": "The worked example's cooldowns block must carry the fourth mechanism's parameters (scope, owner, expiry), or the schema must state explicitly that the flag's entry is deferred and the RED arm must then cover the schema rather than only the ORC-POL-4 prose.",
+   "how_verified": "Read ORC-POL-5's JSON (spec.md:205-248); the cooldowns block is spec.md:233-240 and contains no fleet-keeper.cooldown key. The RED arm test_merge_list_names_every_cooldown_mechanism_that_exists (test file) asserts only that ORC-POL-4 *prose* names 'fleet-keeper.cooldown' — it does not check the worked example, so a builder following the worked example literally re-creates the omission behind the 73-hour idle, and the arm stays green.",
+   "refutation": "A builder following the worked example omits the flag → the exact defect ORC-POL-4 exists to end is re-introduced in pass 1's own schema, and no existing arm catches it. This is the same self-contradiction class as T778 finding 3 (an amendment applied in one section, not every section it governs)."
+  },
+  {
+   "n": 4,
+   "severity": "medium",
+   "id": "ORC-POL-5 / ORC-POL-3",
+   "citation": "spec.md:205-240, spec.md:134, spec.md:732-736",
+   "what_it_says": "The worked example uses three different key spaces with no stated mapping: appetite keyed by model short names (dspro, sonnet, haiku, opus, qwen, fable, glm, minimax, kimi, oxalpha); caps keyed by family names (claude, fable, deepseek, ollama-cloud, local); deny keyed by canonical labels (glm-5.2, minimax-m3, kimi-k2.7). No model→family table is stated, and the spec's own amendment (spec.md:140-146) records that the two live tables disagree on family names (fable vs claude-fable; ollama vs ollama-cloud).",
+   "what_it_should_say": "State the model→family mapping and which key space each section uses, or mark both [design-open] explicitly. Also declare the cooldowns value-type schema (the block mixes {seconds}, {count}, {hours} with no type field at spec.md:234-240) and how 'window' in ORC-GATE-2's merge list maps to two schema entries (window_fallback + probe_window, spec.md:236-237).",
+   "how_verified": "Read ORC-POL-5's JSON and the two source tables (fleet-keeper.sh:325, main.zig:347-356); confirmed the §12 design-open (dial vs categorical, spec.md:732-736) is unresolved while the worked example commits to one shape.",
+   "refutation": "A builder who resolves the key spaces correctly without asking a question. The evidence (two disagreeing live tables, no mapping stated) shows the answer cannot be derived from §ORC-POL alone."
+  },
+  {
+   "n": 5,
+   "severity": "medium",
+   "id": "ORC-PLAN-3 step 5 / one-door rule",
+   "citation": "spec.md:513-514",
+   "what_it_says": "Pass 5 is \"Dispatch/subagent rewire (read the policy file + registry; gate logic moves to managent) — fifth, the consumers.\" It never enumerates the five dispatch routes (bin/dispatch, subagent direct, runner→provider, suggest, paste-prompt — roadmap §6's census), never states their disposition, and never states what tools/runner does when an execution arrives by a non-bin/dispatch route.",
+   "what_it_should_say": "Name the five routes and their disposition (one primary door; every convenience path CALLS the gated function, never reimplements it — the roadmap §6 rule), and state tools/runner's behaviour on a direct-provider or paste-prompt arrival (refuse / route through the door).",
+   "how_verified": "Grep of the spec for 'five doors', '5 → 1', 'one door', 'suggest', 'paste', 'front door' returns nothing for the dispatch-route census (the only hits are bin/subagent's 'launch chokepoint' at spec.md:86 and the registration parser at spec.md:416). The job is named in roadmap §6 (\"dispatch an execution: 5 ways\") and STATUS.md, but the spec does not carry it.",
+   "refutation": "Find the five routes named and dispositioned anywhere in spec.md §5/§8. Grep found none."
+  },
+  {
+   "n": 6,
+   "severity": "medium",
+   "id": "ORC-PLAN-3 / ORC-ACC-1",
+   "citation": "spec.md:504, spec.md:4",
+   "what_it_says": "The pass protocol is \"commit → deploy → smoke\" (spec.md:504) with no requirement that the smoke be ordinary unrelated work through the changed door. The header still reads \"awaiting operator ratification\" (spec.md:4) though the operator ratified the shape and ruled the interleave (roadmap §7).",
+   "what_it_should_say": "Carry the operator's interleave ruling (roadmap §7): a pass is complete only when unrelated tasks have gone through the changed mechanism and closed cleanly, with per-pass record of which real tasks served as smoke. Update the header status to ratified.",
+   "how_verified": "Grep of the spec and STATUS.md for 'interleave', 'unrelated work', 'ordinary work' returns nothing; the only 'smoke' references are the generic commit→deploy→smoke line and tools/smoke.sh. The interleave ruling is in roadmap §7 (2026-08-23 evening) and commit 52ce511, both later than rev 2's authoring.",
+   "refutation": "A pass that lands its arms green but never routes unrelated work through the door would satisfy the spec as written — directly contradicting the operator's binding ruling."
+  },
+  {
+   "n": 7,
+   "severity": "minor",
+   "id": "ORC-POL-3 amendment / §14 row 11",
+   "citation": "spec.md:146, spec.md:795",
+   "what_it_says": "Both the amendment table and §14 row 11 cite \"src/managent/main.zig:313\" as the location of the managent family→appetite table (ollama-cloud = OFF).",
+   "what_it_should_say": "src/managent/main.zig:347-356 (the family_appetite table; .family='ollama-cloud', .appetite=.off is line 348). Line 313 is the closing brace of the Appetite enum.",
+   "how_verified": "sed -n '313p' src/managent/main.zig → '};'; the table is at 347-356 (grep -n family_appetite). The content claim (ollama-cloud = OFF) is correct; the line citation is not.",
+   "refutation": "line 313 containing the table. It contains the enum's closing brace."
+  },
+  {
+   "n": 8,
+   "severity": "minor",
+   "id": "ORC-CTRL-1 (the 9 unarmed)",
+   "citation": "spec.md:619-626 vs spec.md:252-270",
+   "what_it_says": "The 9-unarmed list flags ORC-GOAL-1..4 as \"arguably unarmable as stated, which is itself a finding: a goal that cannot be armed should be a measurable acceptance bar in §10 or should not carry an id.\" It applies no such reasoning to ORC-POL-6, which the spec itself says is deferred-as-moot with \"no live subject\" and for which \"design should not spend a cycle.\"",
+   "what_it_should_say": "Apply the same rule to POL-6: a deferred-moot encoding with no live subject should not carry a normative id (or should be moved out of the id space), else it is a wish wearing an id by the spec's own §0 rule.",
+   "how_verified": "Read ORC-POL-6 (spec.md:252-270) and the unarmed enumeration (spec.md:619-626). The inconsistency is in the spec's own rationale, not in the counts.",
+   "refutation": "POL-6 being armable as written. The spec itself declares it has no live subject."
+  }
+ ],
+ "claims": [],
+ "new_rows": [],
+ "notes": "T807 — independent three-way-race audit of the S06 orchestration-refactor spec (rev 2, docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md). Read-only: no writes to the spec, STATUS, or any source; only this findings file written. NONCE-5ee332b802a2e149. Inbox polled at claim and before close (bin/managent inbox T807 --ack) — see console transcript; no pause/amend/question/kill directive received, no directive ID to record.\n\nHEADLINE. The spec's shape is ratified and sound, and T802's rev-2 amendments are largely faithful to their evidence — the 6-target census holds (window_policy.py imported at bin/dispatch:88 + bin/subagent:70; directive_policy.py at bin/dispatch:87 + tools/runner:128; watch-fleet.sh renders PROGRESS/CONCERNS/RECENT/DONE/OPEN with an empty intersection against the specified pane's five sections; the keeper is alive, pid 99956, ~3d5h, flag file present at untracked/fleet-keeper.cooldown, 0 bytes, dated 2026-08-20). But two majors and four mediums mean it is NOT buildable-and-checkable as written.\n\nWHAT PASSES (checked, not asserted): the 22-of-31 arithmetic is internally consistent (15 flips-column ids + 7 test-file ids = 22; 31 - 22 = 9, and the 9 are enumerated); the disposition-table count (81) matches `ls tools/regression-*.sh | wc -l` = 81; the two appetite tables genuinely disagree (fleet-keeper.sh:325 ollama=SPEND vs main.zig:347-356 ollama-cloud=OFF, fable vs claude-fable); all six census targets are live on import/exec evidence.\n\nWHY FAIL-FOUND. Finding 1 is the load-bearing one and is the same overclaim class T778 finding 1 identified, only half-fixed: the headline '22 of 31 armed' counts 15 ids whose only 'arm' is a row in the spec's own §9 control table, which is owed to P3 — not test code on disk. The honest on-disk count is 7 of 31, all red. Finding 3 is a self-contradiction: the worked example (the 'full file' pass 1 builds) omits the fourth cooldown mechanism that the amendment (ORC-POL-4/ORC-GATE-2) says must be merged, and no RED arm checks the worked example — a builder following it literally re-creates the 73-hour idle the amendment exists to end. Finding 4 (pass-1 buildability: no model→family map, three key spaces, mixed cooldown value types), Finding 5 (the one-door rule is never carried into the spec — the five dispatch routes are never named or dispositioned), and Finding 6 (the operator's interleave-smoke ruling is absent) all mean a worker would have to guess, and the spec's own doctrine says a guess is a defect. Two minors (stale main.zig:313 line citation; POL-6 carrying an id while deferred-as-moot) round it out.\n\nVERDICT: FAIL-FOUND — the shape is ratified but the document needs one more amendment pass (fix F1's count honesty, F3's worked example, F2's stale §0, and fold in F5/F6's one-door + interleave rulings) before passes 1-6 build on it. None of these is an architecture problem; all are cheap document fixes, exactly the class the rev-2 pass already fixed once and missed the second time.\n\nMILESTONE: advances L1 (hands-off orchestration) — the ratified blueprint is verified independently before six passes of work rest on it, and the verification cuts AGAINST building as-is until two majors and four mediums are amended into the spec."
+}
