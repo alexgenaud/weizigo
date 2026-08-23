@@ -57,7 +57,7 @@ moving them now risks the paused engine work).
 
 ## Purge list
 
-1. `./managent` — 1.1 MB stale binary at the repo root. Delete (binaries live only in `zig-out/` + `bin/`).
+1. ~~`./managent`~~ — 1.1 MB stale binary at the repo root. Deleted 2026-08-23 (T701); binaries live only in `zig-out/` + `bin/`.
 2. `.gitignore` `ephemeral/` entry — the symlink was retired 2026-08-03; the entry is dead. Delete the line.
 3. `untracked/bakeoff/` (≈224 files) — raw race I/O; per the seed, raw I/O goes to `/tmp/`, never cited.
    Archive or delete after confirming nothing committed cites it (claimlint C10 report, not a gate).
