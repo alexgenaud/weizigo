@@ -287,6 +287,21 @@ it lands, no mechanized pick can draw ox-alpha.
    it is indeed more secure — an open question the operator raised, not a decided item.
 6. Two live taxonomies (matrix §1's `T-A…T-H` vs D027's eight types). The JSONL is re-keyed;
    the prose is not, in either document.
+7. **`managent done` silently ignores an unrecognized flag and defaults the verdict** — found by
+   walking into it while closing this row. `done` takes `--status`; `amend` takes `--verdict`;
+   the two subcommands disagree on the flag name for the same field. Passing
+   `--verdict pass-with-findings` to `done` recorded `verdict=pass` with no warning. That field
+   is cited as evidence by `model-task-matrix.md` §2 and `model-task-metrics.jsonl`, so a
+   mistyped flag corrupts model-quality data silently — the exact defect class this document
+   reports. The store cannot say how many past closes were affected (it records the resulting
+   verdict, not the flag used), which is itself the argument for the fix: **refuse an
+   unrecognized flag**, and make the two subcommands agree. T746's own verdict is corrected by
+   amendment, with the original preserved.
+8. **The findings schema has no field for "kanban rows this task registered."** `new_rows` means
+   *CLAIMS.md* rows; this seat put kanban ids there and the C7 gate correctly refused the close
+   six times. T767 already queues the `queued_kanban_rows` field — this is a second independent
+   instance of the confusion it exists to remove, which is the argument for landing the field
+   rather than writing more prose about the distinction.
 
 ---
 
