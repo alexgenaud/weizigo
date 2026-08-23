@@ -15,8 +15,10 @@
 #      reopened (WATCH_FLEET_HEAL=1) with an assertion recording why.
 #   D. heal does NOT fire wrongly: live process, fresh claim, and a
 #      non-in_progress row are all left alone, with no assertion written.
-#   L. T799: footer is the terminal's last line — no leading blank, no
-#      trailing blank; cursor hidden while watching, restored on q.
+#   K. T804: data-rich frame fills the screen — 33 rows shown, frame 38.
+#   N. T804: exact fill at 24/40/60 x two section mixes; (more) accounting.
+#   L. T799/T804: footer is the terminal's last line — one blank above it,
+#      nothing below (cleanup's exit newline only); cursor hidden, restored on q.
 #   M. T799: cursor restored on the ^C trap path (exit 130).
 #
 # Usage:  tools/regression-watch-fleet.sh [--build]
@@ -545,19 +547,21 @@ EOF
 if [ "$j_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKJ"
 
-# ── Arm K: T739/T799 ruling 2 — recovered vertical space becomes visible rows ─
+# ── Arm K: T739/T799/T804 ruling 2 — recovered vertical space becomes visible rows ─
 # Operator ruling 2026-08-23: T738 removed the banner and the empty sections
 # but the layout reserve kept the pre-T738 budget (2k+6), so a data-rich frame
 # left blank lines while DONE/OPEN still had rows to show. T739 recovered 2
 # rows (16+16=32 shown, 37-line one-shot frame). T799 removed the footer's
-# leading blank and trailing newline and dropped the spare (it existed to park
-# the trailing-newline cursor row), so the honest reserve is 2k-1 headings+seps
-# + 1 footer + (more)s: 17+17=34 rows (39-line one-shot frame; interactive =
-# 40 exactly, footer on the last line). Red against the pre-T799 live file:
-# 32 rows, 37 lines. One-shot piped output must also stay escape-free — the
-# T799 hide/restore are tty-guarded so a pipe stays clean for the
-# line-anchored arms above.
-echo "  K. data-rich frame fills the screen — 34 rows shown, frame 39 (live file)"
+# trailing newline and dropped the spare: 17+17=34 rows (39-line one-shot
+# frame; interactive = 40 exactly, footer on the last line). T804 restored the
+# footer's leading blank (the operator's "missing blank between OPEN rows and
+# footer") and fixed the (more)-reserve/print mismatch, so one line moved from
+# a data row to the separator: 16+17=33 rows (38-line one-shot frame;
+# interactive = 40 exactly, footer on the last line, blank above it). Red
+# against the pre-T804 live file: 17+17=34 rows, 39 lines. One-shot piped
+# output must also stay escape-free — the T799 hide/restore are tty-guarded so
+# a pipe stays clean for the line-anchored arms above.
+echo "  K. data-rich frame fills the screen — 33 rows shown, frame 38 (live file)"
 WORKK=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
 mkdir -p "$WORKK/bin" "$WORKK/untracked" "$WORKK/docs/infra/managent"
 ln -s "$MG" "$WORKK/bin/managent"
@@ -585,10 +589,10 @@ k_fail=0
 K_DONE=$(printf '%s\n' "$FRAME_K" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
 K_OPEN=$(printf '%s\n' "$FRAME_K" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
 K_LINES=$(printf '%s\n' "$FRAME_K" | wc -l | tr -d ' ')
-[ "$K_DONE" = "17" ] && [ "$K_OPEN" = "17" ] || {
-    echo "    FAIL: want 17 DONE + 17 OPEN rows shown (recovered space = rows), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
-[ "$K_LINES" = "39" ] || {
-    echo "    FAIL: data-rich one-shot frame should be 39 lines (interactive +footer = 40 exactly), got $K_LINES"; k_fail=1; }
+[ "$K_DONE" = "16" ] && [ "$K_OPEN" = "17" ] || {
+    echo "    FAIL: want 16 DONE + 17 OPEN rows shown (T804 pin, 33 total), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
+[ "$K_LINES" = "38" ] || {
+    echo "    FAIL: data-rich one-shot frame should be 38 lines (interactive +blank+footer = 40 exactly), got $K_LINES"; k_fail=1; }
 [ "$K_LINES" -le "40" ] || { echo "    FAIL: frame $K_LINES lines overflows the 40-row terminal"; k_fail=1; }
 case "$FRAME_K" in
     *'[?25l'*|*'[?25h'*) echo "    FAIL: one-shot piped frame leaks cursor escapes"; k_fail=1;;
@@ -596,32 +600,172 @@ esac
 if [ "$k_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKK"
 
-# ── Arm L: T799 — footer is the last line; no blanks; cursor hide/restore ──
-# Operator ruling 2026-08-23: "There are two blank lines at the bottom and
-# one is just a flashing prompt cursor." The pre-T799 footer printed a
-# leading blank above the footer and a trailing newline that parked the
-# (visible) cursor on a line below it. The fixed footer prints exactly one
-# line with no trailing newline; the cursor is hidden (^[[?25l) while the
-# watcher runs and restored (^[[?25h) by cleanup on exit. Red against the
-# pre-T799 live file: last line not the footer (blank below), blank above it,
-# no hide, no restore. Runs under a pty (script) so the watcher sees a real
-# terminal and renders the footer — one-shot frames exit before it.
-echo "  L. footer is last line, no blanks; cursor hidden, restored on q (live file)"
+# ── Arm N: T804 — exact fill + (more) accounting (LIVE file) ─────────────
+# The invariant that IS the deliverable: printed lines == ROWS exactly. The
+# two footer bugs (T739's +1 spare, T799's dropped blank) and the pre-T738
+# banner budget were the same defect three times — a reserve constant that no
+# longer matched what the frame prints. T804 restores the blank above the
+# footer and reserves "(more)" rows only for sections the slot split actually
+# truncates: the old reserve charged a row on nd/no > MIN_ROWS, but show()
+# prints "(more)" on tot > slots — a section given enough slots to show every
+# row was charged a line it never printed, and the frame came up a line short
+# (the blank the operator saw at the bottom). One-shot frames omit the
+# interactive-only blank-above-footer + footer, so exact fill is FLEET_LINES
+# - 2 lines there (interactive = FLEET_LINES exactly). Asserted at three
+# heights x two section mixes, plus the "(more)" accounting: a truncated
+# section prints exactly one "(more)", a section given enough slots prints
+# none, and neither case changes the total line count. Red against the
+# pre-T804 live file: one-shot frames a line short at 24/40 (39 of 40 at 40),
+# 14 short at 60 where the MAX_ROWS=20 cap bit.
+echo "  N. exact fill at 24/40/60 x two mixes; (more) accounting (live file)"
+WORKN=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
+mkdir -p "$WORKN/bin" "$WORKN/untracked" "$WORKN/docs/infra/managent" \
+         "$WORKN/untracked/bakeoff/fake/fresh-lane"
+ln -s "$MG" "$WORKN/bin/managent"
+git -C "$WORKN" init -q
+git -C "$WORKN" config user.email t804@test
+git -C "$WORKN" config user.name T804
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKN/docs/infra/model-registry.md" 2>/dev/null
+STORE_N="$WORKN/docs/infra/managent/tasks.json"
+CONCSTATE_N="$WORKN/concerns.tsv"
+LIVE_COPY_N="$WORKN/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY_N" 2>/dev/null
+# all-five mix: PROGRESS (1 live worker T901) + CONCERNS (T902, no process)
+# + RECENT (fresh killed lane) + DONE (40) + OPEN (40)
+python3 - "$STORE_N" "$WORKN" <<'PYN'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+rec(1,"in_progress",None)                                   # T901 PROGRESS (worker below)
+rec(2,"in_progress",None)                                   # T902 CONCERNS (no process)
+for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T903..T942 DONE
+for i in range(43,83): rec(i,"dispatchable",None)                     # T943..T982 OPEN
+json.dump(d,open(store,"w"))
+PYN
+printf '' > "$WORKN/untracked/bakeoff/fake/fresh-lane/out.md"
+printf 'exit 120\n' > "$WORKN/untracked/bakeoff/fake/fresh-lane/trailer.log"
+printf 'T902\t%s\n' "$(date +%s)" > "$CONCSTATE_N"
+bash -c "cd '$WORKN' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T901-row01.md' sleep 120" &
+PN1=$!
+sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+n_fail=0
+frame_n() {  # $1 = FLEET_LINES
+    env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_N" FLEET_CONC_STATE="$CONCSTATE_N" \
+        FLEET_LINES="$1" FLEET_COLS=200 sh "$LIVE_COPY_N" </dev/null 2>/dev/null
+}
+for H in 24 40 60; do
+    FR=$(frame_n "$H")
+    NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
+    NM=$(printf '%s\n' "$FR" | grep -c 'more:')
+    [ "$NL" = "$((H - 2))" ] || { echo "    FAIL: all-five mix at height $H: want $((H-2)) lines (exact fill minus the interactive-only blank+footer), got $NL"; n_fail=1; }
+    [ "$NM" = "2" ] || { echo "    FAIL: all-five mix at height $H: want exactly 2 (more) lines (DONE+OPEN truncated), got $NM"; n_fail=1; }
+done
+kill "$PN1" 2>/dev/null; wait "$PN1" 2>/dev/null
+rm -rf "$WORKN/untracked/bakeoff"
+# DONE+OPEN-only mix: worker killed, bakeoff gone, store rewritten with no
+# in_progress rows -> no PROGRESS/CONCERNS/RECENT sections
+python3 - "$STORE_N" "$WORKN" <<'PYN'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T903..T942 DONE
+for i in range(43,83): rec(i,"dispatchable",None)                     # T943..T982 OPEN
+json.dump(d,open(store,"w"))
+PYN
+for H in 24 40 60; do
+    FR=$(frame_n "$H")
+    NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
+    NM=$(printf '%s\n' "$FR" | grep -c 'more:')
+    [ "$NL" = "$((H - 2))" ] || { echo "    FAIL: DONE+OPEN mix at height $H: want $((H-2)) lines (exact fill minus blank+footer), got $NL"; n_fail=1; }
+    [ "$NM" = "2" ] || { echo "    FAIL: DONE+OPEN mix at height $H: want 2 (more) lines, got $NM"; n_fail=1; }
+done
+# (more) accounting at height 40: a section given fewer slots than its rows
+# prints exactly one "(more)"; a section given enough slots prints none —
+# and the total line count is the same either way: each "(more)" replaces
+# one data row, never adds one (18 DONE rows shown vs 17 rows + "(more: 23)"
+# is the same 18 lines; both frames = FLEET_LINES - 2).
+python3 - "$STORE_N" "$WORKN" <<'PYN'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # 40 DONE (truncated)
+for i in range(43,60): rec(i,"dispatchable",None)                     # 17 OPEN (all shown)
+json.dump(d,open(store,"w"))
+PYN
+FR=$(frame_n 40)
+NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
+NM=$(printf '%s\n' "$FR" | grep -c 'more:')
+[ "$NL" = "38" ] || { echo "    FAIL: 40 DONE + 17 OPEN at height 40: want 38 lines, got $NL"; n_fail=1; }
+[ "$NM" = "1" ] || { echo "    FAIL: 40 DONE + 17 OPEN: want exactly 1 (more) (only DONE truncated), got $NM"; n_fail=1; }
+python3 - "$STORE_N" "$WORKN" <<'PYN'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+for i in range(3,21):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # 18 DONE (all shown)
+for i in range(43,60): rec(i,"dispatchable",None)                     # 17 OPEN (all shown)
+json.dump(d,open(store,"w"))
+PYN
+FR=$(frame_n 40)
+NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
+NM=$(printf '%s\n' "$FR" | grep -c 'more:')
+[ "$NL" = "38" ] || { echo "    FAIL: 18 DONE + 17 OPEN at height 40: want 38 lines (18 rows + 17 rows fill the same as 17 + (more) + 17), got $NL"; n_fail=1; }
+[ "$NM" = "0" ] || { echo "    FAIL: 18 DONE + 17 OPEN: want 0 (more) lines (both sections given enough slots), got $NM"; n_fail=1; }
+if [ "$n_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKN"
+
+# ── Arm L: T799/T804 — footer is last line; one blank above; cursor hide/restore ──
+# Operator ruling 2026-08-23: "Missing blank between OPEN rows and footer. But
+# unnecessary blank after, at the bottom." T799 removed BOTH blanks; T804 puts
+# the leading one back — the footer is a separator from the data, so the line
+# directly above it is blank and the line above that is data. Nothing below:
+# the only newline after the footer text is cleanup's exit newline (the fresh
+# prompt line), and the cursor is hidden (^[[?25l) while the watcher runs and
+# restored (^[[?25h) by cleanup on exit. Data-rich store: the interactive
+# frame must fill FLEET_LINES=24 exactly (footer on line 24 — arm N pins the
+# same invariant one-shot). Red against the pre-T804 live file: the line above
+# the footer was data (no blank) and the frame came up a line short.
+echo "  L. footer is last line; one blank above; cursor hidden, restored on q (live file)"
 WORKL=$(mktemp -d /private/tmp/weizigo/wf-footer-XXXXXX)
 mkdir -p "$WORKL/bin" "$WORKL/untracked" "$WORKL/docs/infra/managent"
 ln -s "$MG" "$WORKL/bin/managent"
 cp "$PROJECT/docs/infra/model-registry.md" "$WORKL/docs/infra/model-registry.md" 2>/dev/null
 git -C "$WORKL" init -q
-git -C "$WORKL" config user.email t799@test
-git -C "$WORKL" config user.name T799
+git -C "$WORKL" config user.email t804@test
+git -C "$WORKL" config user.name T804
 STORE="$WORKL/docs/infra/managent/tasks.json"
 LIVE_COPYL="$WORKL/untracked/watch-fleet-live.sh"
 cp "$LIVE" "$LIVE_COPYL" 2>/dev/null
-printf '<!--managent -->\n# T995 — footer probe row\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORKL/untracked/T995-bundle.md"
-printf '{\n  "T995":{"status":"done","agent":"x","model":"x","bundle":"untracked/T995-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":"2026-08-19T09:00:00Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STORE"
-# draw one frame, then q quits. sleep 0.5 lets stty -echo land so the key
-# never echoes into the capture; the /dev/null file arg keeps the session on
-# stdout only (macOS script tees to both file and stdout otherwise).
+# 30 done + 9 open rows: enough data that the 24-row interactive frame is
+# data-rich (exact fill) AND the last section (OPEN) shows every row, so the
+# line above the blank-above-footer is a data row, not a "(more)" line.
+python3 - "$STORE" "$WORKL" <<'PYL'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+for i in range(1,31):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T901..T930 DONE
+for i in range(31,40): rec(i,"dispatchable",None)                     # T931..T939 OPEN
+json.dump(d,open(store,"w"))
+PYL
 OUT_L=$( (sleep 0.5; printf 'q') | script -q /dev/null env -u WATCH_FLEET_SOURCE \
     MANAGENT_STORE="$STORE" FLEET_LINES=24 FLEET_COLS=80 sh "$LIVE_COPYL" 2>/dev/null )
 l_fail=0
@@ -633,21 +777,28 @@ case "$OUT_L" in
     *'[?25h') ;;
     *) echo "    FAIL: output must END with the cursor-restore sequence (^[[?25h)"; l_fail=1;;
 esac
+# no trailing blank below the footer: the only bytes between the footer text
+# and the restore are cleanup's exit newline (CR-LF through the pty) — a
+# second newline is the parked-cursor blank T799 removed and T804 must not
+# bring back. (strip CR first; the double command-substitution upstream
+# strips trailing newlines, so the raw OUT is the only place this is visible)
+case "$(printf '%s' "$OUT_L" | tr -d '\r')" in
+    *'10s'$'\n'$'\x1b[?25h') ;;
+    *) echo "    FAIL: footer tail must be '10s' + exactly one exit newline + restore (blank below footer)"; l_fail=1;;
+esac
 # strip clear + private-mode-25 escapes and CR (pty ONLCR) to recover the frame
 S_L=$(printf '%s' "$OUT_L" | sed $'s/\x1b\[[?0-9;]*[A-Za-z]//g' | tr -d '\r')
-# the footer is the last line that matches the footer shape; cleanup's exit
-# newline leaves one empty trailing field, so "no trailing blank" is: the
-# last NON-EMPTY line IS the footer (nothing visible below it), and the
-# line above it is data, not blank.
+# the footer is the last line that matches the footer shape; the frame must
+# fill FLEET_LINES exactly, so the footer sits on the terminal's last row.
 F_N=$(printf '%s\n' "$S_L" | grep -n -E '^  [0-9][0-9]:[0-9][0-9]:[0-9][0-9] . q or .C quits . another key to refresh 10s$' | tail -1 | cut -d: -f1)
-V=$(printf '%s\n' "$S_L" | grep -c .)
 [ -n "$F_N" ] || { echo "    FAIL: footer line not found; frame: '$(printf '%s' "$S_L" | tr '\n' '|')'"; l_fail=1; }
-[ "$V" = "$F_N" ] || { echo "    FAIL: footer must be the last non-empty line (no trailing blank), $V non-empty lines but footer at line $F_N"; l_fail=1; }
+[ "$F_N" = "24" ] || { echo "    FAIL: data-rich interactive frame must fill FLEET_LINES=24 exactly (footer on the last row), footer at line $F_N"; l_fail=1; }
 PREV=""
 [ -n "$F_N" ] && PREV=$(printf '%s\n' "$S_L" | sed -n "$((F_N - 1))p")
-[ -n "$PREV" ] || { echo "    FAIL: line above the footer is blank (leading blank)"; l_fail=1; }
-printf '%s\n' "$PREV" | grep -q '^  T995 ' || { echo "    FAIL: line above footer should be a data row (T995), got: '$PREV'"; l_fail=1; }
-[ "$V" -le 24 ] || { echo "    FAIL: frame is $V visible lines on a 24-row terminal"; l_fail=1; }
+[ -z "$PREV" ] || { echo "    FAIL: line directly above the footer must be BLANK (the restored separator), got: '$PREV'"; l_fail=1; }
+PREV2=""
+[ -n "$F_N" ] && PREV2=$(printf '%s\n' "$S_L" | sed -n "$((F_N - 2))p")
+printf '%s\n' "$PREV2" | grep -q '^  T9' || { echo "    FAIL: line above the blank must be a data row, got: '$PREV2'"; l_fail=1; }
 if [ "$l_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKL"
 

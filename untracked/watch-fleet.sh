@@ -9,7 +9,12 @@
 # DONE and OPEN show at least MIN_ROWS each (when they have that much data), expand into
 # whatever height is left, and never exceed MAX_ROWS. T738: no banner header, and a
 # section with zero rows prints NOTHING — no heading, no "(none)".
-MAX_ROWS=20
+# MAX_ROWS raised 20 -> 200 (T804): with exact fill the 50/50 split already bounds
+# each flexible section at ~ROWS/2, so the cap only guards a pathological store
+# (thousands of DONE rows on a giant terminal) — and a 20 cap left terminals
+# taller than ~45 rows unfilled, the same blank-at-the-bottom family this file
+# keeps fixing (T739 spare, T799 blank, T804 reserve/print mismatch).
+MAX_ROWS=200
 MIN_ROWS=4
 # Refresh escalates: every 10 s for the first minute, every minute for the first hour, hourly after.
 # Any keypress refreshes immediately AND resets the escalation (T492); q or ^D quits; ^C quits.
@@ -253,26 +258,57 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
     for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
-    # T739/T799: reserve exactly what the frame prints — k headings + (k-1)
-    # separators, one "(more)" per flexible section that can exceed its
-    # MIN_ROWS floor, and the 1-line footer. T799 dropped the footer's leading
-    # blank and trailing newline, so T739's "+1 spare" is gone: it existed to
-    # park the trailing-newline cursor row, which no longer exists. The footer
-    # is now the terminal's last line and needs no spare to stay on screen —
-    # every line recovered becomes a visible row (arm K pins 34 vs T739's 32).
+    # T739/T799/T804: reserve exactly what the frame prints — k headings +
+    # (k-1) separators, 1 blank above the footer (T804, restored: the footer
+    # is a separator from the data), the 1-line footer, and one "(more)" per
+    # flexible section the slot split ACTUALLY truncates. T799 dropped the
+    # footer's leading blank and trailing newline, so T739's "+1 spare" is
+    # gone: it existed to park the trailing-newline cursor row, which no
+    # longer exists. The footer is now the terminal's last line and needs no
+    # spare to stay on screen (arm K pins 33 rows / 38 one-shot lines vs
+    # T799's 34/39 and T739's 32/37).
+    # T804 fixes the reserve/print mismatch: the old reserve charged a
+    # "(more)" row when nd/no > MIN_ROWS, but show() prints "(more)" on
+    # tot > slots — a section given enough slots to show every row was
+    # charged a line it never printed, and the frame came up a line short
+    # (the blank the operator saw at the bottom). The split depends on the
+    # reserve and the reserve on the split, so resolve it explicitly: split
+    # with no "(more)" reserved, then add one "(more)" row per section the
+    # split actually truncates, and re-settle until stable. The loop cannot
+    # diverge: each added "(more)" costs one slot, so truncation can only
+    # spread, never shrink — at most 2 passes (DONE, OPEN). Every slot is
+    # also handed to a section that can use it (a loop, not one pass per
+    # section: a single pass can leave the first section over-allocated
+    # again), and each section is floored at MIN_ROWS but never above what
+    # it holds. Invariant, pinned by arm N at three heights and two section
+    # mixes: printed lines == ROWS exactly for data-rich frames.
     k=$(( (np>0) + (nc>0) + (nr>0) + (nd>0) + (no>0) ))
-    reserve=$(( 2*k - 1 + 1 ))                 # headings+seps, footer
-    [ "$nd" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # DONE "(more)"
-    [ "$no" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # OPEN "(more)"
-    avail=$(( ROWS - reserve - np - nc - nr ))
-    [ "$avail" -lt 0 ] && avail=0
-    ds=$(( avail / 2 )); os=$(( avail - ds ))
-    [ "$ds" -gt "$nd" ] && { os=$(( os + ds - nd )); ds=$nd; }
-    [ "$os" -gt "$no" ] && { ds=$(( ds + os - no )); os=$no; }
-    [ "$ds" -lt "$MIN_ROWS" ] && ds=$MIN_ROWS
-    [ "$os" -lt "$MIN_ROWS" ] && os=$MIN_ROWS
-    [ "$ds" -gt "$MAX_ROWS" ] && ds=$MAX_ROWS
-    [ "$os" -gt "$MAX_ROWS" ] && os=$MAX_ROWS
+    base=$(( 2*k - 1 + 2 ))                 # headings+seps, blank above footer, footer
+    capd=$nd; capo=$no
+    [ "$capd" -gt "$MAX_ROWS" ] && capd=$MAX_ROWS
+    [ "$capo" -gt "$MAX_ROWS" ] && capo=$MAX_ROWS
+    more=0
+    pass=0
+    while :; do
+        avail=$(( ROWS - base - more - np - nc - nr ))
+        [ "$avail" -lt 0 ] && avail=0
+        ds=0; os=0
+        [ "$capd" -ge "$MIN_ROWS" ] && ds=$MIN_ROWS   # floors: MIN_ROWS each,
+        [ "$capo" -ge "$MIN_ROWS" ] && os=$MIN_ROWS   # never more than the section holds
+        rem=$(( avail - ds - os )); [ "$rem" -lt 0 ] && rem=0
+        ds=$(( ds + rem / 2 )); os=$(( os + rem - rem / 2 ))
+        [ "$ds" -gt "$capd" ] && { os=$(( os + ds - capd )); ds=$capd; }
+        [ "$os" -gt "$capo" ] && { ds=$(( ds + os - capo )); os=$capo; }
+        [ "$ds" -gt "$capd" ] && ds=$capd   # both over: excess is unprintable data, let it go
+        [ "$os" -gt "$capo" ] && os=$capo
+        newmore=0
+        [ "$nd" -gt "$ds" ] && newmore=$(( newmore + 1 ))
+        [ "$no" -gt "$os" ] && newmore=$(( newmore + 1 ))
+        [ "$newmore" = "$more" ] && break
+        more=$newmore
+        pass=$(( pass + 1 ))
+        [ "$pass" -gt 4 ] && break
+    done
 
     # T738: clear only on a real terminal — in one-shot/pipe mode the ESC
     # sequence would land on the same line as the first heading and break
@@ -292,9 +328,11 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     # how long have we been watching? refresh rate follows that, not the clock
     age=$(( $(date +%s) - START ))
     nap=$(nap_for_age "$age")
-    # T799: the footer is the terminal's last line — no leading blank, no
-    # trailing newline (which parked the visible cursor on the line below).
-    printf '  %s · q or ^C quits · another key to refresh %ss' "$(date '+%H:%M:%S')" "$nap"
+    # T799/T804: the footer is the terminal's last line — no trailing newline
+    # (which parked the visible cursor on the line below); the leading blank
+    # (restored by T804) separates the footer from the data. The reserve above
+    # counts the blank line, so the frame still fills the terminal exactly.
+    printf '\n  %s · q or ^C quits · another key to refresh %ss' "$(date '+%H:%M:%S')" "$nap"
 
     # macOS ships bash 3.2, whose `read -t` returns 1 on TIMEOUT — the same status as EOF.
     # A timeout and a ^D are therefore indistinguishable here, so ^D cannot be a quit key
