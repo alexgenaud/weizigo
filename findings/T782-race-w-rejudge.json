@@ -1,0 +1,108 @@
+{
+  "task_id": "T782",
+  "date": "2026-08-23",
+  "model": "ox-alpha",
+  "identifier": "ox-alpha/T782",
+  "claims": [],
+  "new_rows": [],
+  "race_w_rejudge": {
+    "role": "independent blind judge 3 of 4 (operator order 2026-08-23)",
+    "rubric": "untracked/race-w-rejudge/RUBRIC.md (pre-registered, binding)",
+    "blind_rules_observed": "read only RUBRIC.md, the three lane files, and repo files needed for criteria 3-5; did not open mapping-sealed-for-synthesis.json, untracked/race-w-terminology/, findings/T75*, or git log for these files",
+    "sections": {
+      "A_glossary_three_ladders": {
+        "scores": {
+          "lane-1": { "one_meaning_per_term": 5, "affirmative_voice_and_examples": 5, "citation_integrity_at_HEAD": 2, "residue_discipline": 4, "fidelity": 4 },
+          "lane-2": { "one_meaning_per_term": 4, "affirmative_voice_and_examples": 5, "citation_integrity_at_HEAD": 2, "residue_discipline": 5, "fidelity": 5 },
+          "lane-3": { "one_meaning_per_term": 4, "affirmative_voice_and_examples": 5, "citation_integrity_at_HEAD": 4, "residue_discipline": 4, "fidelity": 5 }
+        },
+        "total": { "lane-1": 20, "lane-2": 21, "lane-3": 22 },
+        "evidence": {
+          "one_meaning_per_term": {
+            "lane-1": "\"| program ladder | **waypoint** (Waypoint 0–4) | ... | operator course | **stage** (Stage 0–4) | ... | pass-internal document | **phase** |\" — clean table, and its waypoint bullet says \"one rung\" (avoids the reserved word \"step\"); the only lane that does.",
+            "lane-2": "\"**waypoint** — one step of the program ladder W0–W4\" uses \"step\" informally while \"**step** — the finest grain inside a phase document\" is defined two bullets later; one internal reading tension, otherwise CONFLICTS-none per term.",
+            "lane-3": "\"Three ladders run here, one word each\" plus a six-row usage table policing collisions down to \"a bare `L4`, or `L2` meaning 'a science row'\"; loses the same half-point as lane-2: \"one of the five dependency-ordered steps of the grand-audit program\" reuses \"step\"."
+          },
+          "affirmative_voice_and_examples": {
+            "lane-1": "States what IS (three definition bullets + correspondence table), then \"correct: \\\"Waypoint 1 gates promotion on mutation adequacy.\\\" · incorrect: \\\"Phase 1 gates promotion…\\\"\" — three worked pairs, no bare bans.",
+            "lane-2": "\"✅ \\\"Waypoint 3 gates promotion on mutation adequacy.\\\" ❌ \\\"Phase 3 gates promotion on mutation adequacy.\\\"\" — affirmative definitions, three ✅/❌ worked examples, correspondence stated positively (\"the table is territory, not equivalence\").",
+            "lane-3": "Affirmative throughout; the richest example set — a write-this/not-this table with six pairs including \"step 4 of the accept phase | task 4 of the accept phase\", covering every reserved word at least once."
+          },
+          "citation_integrity_at_HEAD": {
+            "lane-1": "FAILS: cites `docs/epics/E1-markovian/PHASES.md` (\"task mapping in `docs/epics/E1-markovian/PHASES.md`\") and `docs/audits/2026-08-05-handover/LANDMARKS.md` — neither exists in the working tree (moved to WAYPOINTS.md / docs/epics/E1-markovian/LANDMARKS.md); no acknowledgment, no remediation. DIRECTION §5, ROADMAP-2026-08-20.md, sprint.md all resolve.",
+            "lane-2": "FAILS identically: \"task mapping `docs/epics/E1-markovian/PHASES.md`\" and \"its home is `docs/audits/2026-08-05-handover/LANDMARKS.md`\" are dead paths at HEAD. All other cites (T745-terminology.json, DIRECTION §5, ROADMAP §§Stage 0–4, sprint.md passN/) verified to exist, and \"Amendment 2, edge 5\" matches the actual edge-5 promotion-gate text.",
+            "lane-3": "Also cites both moved paths (\"its home file (`docs/audits/2026-08-05-handover/LANDMARKS.md`)\"; \"task mapping in `docs/epics/E1-markovian/PHASES.md`)\"), but is the only lane that knows: \"Two of them are the ones your own sweep moves... Repoint both in the same commit as the `git mv`, so claimlint sees a valid path either way.\" Deducted one step for shipping known-stale cites even flagged; credited for the extra cites it gets right (`docs/status/ROADMAP-2026-08-21.md` exists and is the one-page map; `landmark-assignment-2026-08-19.md` really does hold L8/L9 as proposals only)."
+          },
+          "residue_discipline": {
+            "lane-1": "Section A carries zero old-term residue but also zero sanctioned-note mechanism for pre-ruling GLOSSARY prose; Section B's note (\"This note is the only place in this file the old word survives\") is correct and singular.",
+            "lane-2": "Best in panel: paired single-sanctioned-residue notes — GLOSSARY: \"Residue note (the single one permitted in this file): ... read such occurrences as Waypoint\"; DIRECTION: \"which is this document's sole sanctioned residue.\" Both explicitly exclusive.",
+            "lane-3": "DIRECTION note is proper (\"the only one this file may carry\"); in GLOSSARY it instead deletes residue at the source (the now-false \"CONFLICTS: **the Phase collision**\" sentence \"should go\") and correctly confines D041-era L-tag residue \"only verbatim in as-run findings\" — faithful, but no read-as-waypoint note for legacy GLOSSARY occurrences."
+          },
+          "fidelity": {
+            "lane-1": "Hierarchy, points-vs-paths, sprints-early-or-close, L<n> reservation incl. fleet/science-axis ban, and the R3 correspondence table all match T745 R1–R5. Two weakenings: W1's defect list drops the passes-bit collision while claiming \"every historical defect (...)\", and W0 omits the Amendment-2 hard decomposition gate (\"W0 gates decomposition\") that stands unchanged by ruling.",
+            "lane-2": "Every load-bearing constraint present and correctly sourced: dependency order (\"no waypoint gates the dispatch of another\"), \"the real serializer is file ownership ... enforced through managent sets\" (Amendment 2 verbatim in substance), W0 gates decomposition, synthetic-defect calibration with the known-bad/blind-instrument distinction, 0c3366f0 as regression input with adjudicate-on-new-failure, and promotion-past-CLAIMED gated on killed mutants citing Amendment 2 edge 5.",
+            "lane-3": "Strongest fidelity: W1 reproduces the full Amendment-1 catalogue (\"T178/T193/T265 key mismatches, the passes-bit collision, inversion violations, the stubbed battery, incompleteness as T261 described it\"), keeps the W0 hard gate (\"W0 is the one hard gate: W1–W4 get no new tasks until it lands\"), binds promotion-not-dispatch exactly, and adds only verified true detail (stage names match ROADMAP-2026-08-20 headings verbatim; L8/L9 proposal status confirmed on disk). Its \"no stage covers W0, W1 or W4\" is an inference beyond R3's letter but consistent with it and strengthens honesty rather than weakening a constraint."
+          }
+        }
+      },
+      "B_direction_section5_plus_residue_note": {
+        "scores": {
+          "lane-1": { "one_meaning_per_term": 5, "affirmative_voice_and_examples": 5, "citation_integrity_at_HEAD": 3, "residue_discipline": 5, "fidelity": 4 },
+          "lane-2": { "one_meaning_per_term": 5, "affirmative_voice_and_examples": 4, "citation_integrity_at_HEAD": 3, "residue_discipline": 5, "fidelity": 5 },
+          "lane-3": { "one_meaning_per_term": 5, "affirmative_voice_and_examples": 4, "citation_integrity_at_HEAD": 4, "residue_discipline": 5, "fidelity": 5 }
+        },
+        "total": { "lane-1": 22, "lane-2": 22, "lane-3": 23 },
+        "evidence": {
+          "one_meaning_per_term": {
+            "lane-1": "\"## 5. The plan — five waypoints, gates mechanized from day one\" — waypoint used in exactly one sense across all five bullets; no second reading available.",
+            "lane-2": "W0–W4 tokens introduced once (\"five waypoints, W0–W4\") and used consistently; \"waypoint\" never drifts toward phase or stage senses anywhere in the section or the b2 note.",
+            "lane-3": "\"Five waypoints carry epic-01 from its axioms to the swap\" — single sense; the residue note itself disambiguates the old word rather than leaving two live readings (\"number the same five steps `Phase 0–4`; read them as waypoints\")."
+          },
+          "affirmative_voice_and_examples": {
+            "lane-1": "Each waypoint stated as what holds (\"AXIOMS.md written; requirement tree derived top-down from Z; ... Deliverable: the theorem statement and the tree of lemmas it needs\") — affirmative deliverable language, though Section B has no worked correct/incorrect pair (the section type needs none beyond statement).",
+            "lane-2": "Mostly affirmative but leans on negation for the key edges: \"no waypoint gates the dispatch of another\", \"nothing green that doesn't run\", \"any new failure against it is a finding to adjudicate\" — the prohibitions are load-bearing there, so the deduction is mild.",
+            "lane-3": "Same pattern: \"not a month in which it happens\", \"A check that cannot kill a seeded mutant is blind\", \"bind **promotion, not dispatch**\" — negative phrasing where Amendment 1–2 themselves are negative; affirmative elsewhere."
+          },
+          "citation_integrity_at_HEAD": {
+            "lane-1": "Section B cites only DIRECTION-internal instruments (Amendment 1, `0c3366f0`) which resolve; scored 3 because the lane as a whole still carries the silent dead PHASES/LANDMARKS cites from Section A and B adds nothing that repairs them.",
+            "lane-2": "Cites \"Amendment 1\" and \"Amendment 2, edge 5\" — both verified against DIRECTION.md lines 170–227 and 268–272; `zig build test` reference accurate. Scored 3 on the same whole-lane dead-path carryover.",
+            "lane-3": "Section B's cites (Amendment 1, Amendment 2) verify verbatim; combined with the disclosed-and-repointed move instruction the lane nets the top citation score."
+          },
+          "residue_discipline": {
+            "lane-1": "\"> **Waypoint terminology (ratified 2026-08-23):** ... This note is the only place in this file the old word survives.\" — exactly one sanctioned note, correctly placed at top of DIRECTION.md, exclusivity stated.",
+            "lane-2": "b2: \"The old ladder word \\\"Phase\\\" survives in this file only in pre-ruling prose (Amendments 1–2, §7) — read every such occurrence as Waypoint under this note, which is this document's sole sanctioned residue.\" — singular, scoped, self-declared exclusive.",
+            "lane-3": "\"> Terminology: ... read them as waypoints (rename ratified 2026-08-23 ...)\" placed after the Status line as instructed, declared \"the only one this file may carry\"."
+          },
+          "fidelity": {
+            "lane-1": "Keeps the five waypoints, synthetic-defect calibration, 0c3366f0 regression input, dependency-order and the mutation-adequacy promotion gate — but compresses W1's catalogue (drops the passes-bit collision) and omits W0's decomposition gate and the file-ownership serializer sentence from Amendment 2's close.",
+            "lane-2": "Nothing load-bearing dropped: W0 decomposition gate present (\"W0 gates decomposition\"), serializer/managent-sets present, promotion-not-dispatch present with edge-5 cite, golden-master/regression-input distinction present with the adjudication route.",
+            "lane-3": "Fullest reconstruction of the ratified text including both Amendment-1 lists and the W0 hard gate; adds \"W0 is the one hard gate\" framing that matches current DIRECTION §5 wording. No weakened or dropped constraint found."
+          }
+        }
+      },
+      "ranking": {
+        "section_A": ["lane-3", "lane-2", "lane-1"],
+        "section_B": ["lane-3", "lane-2", "lane-1"],
+        "note": "Section B totals: lane-2 and lane-1 tie at 22 only between themselves; strict order preserved via lane-3 first. Overall ranking below uses the sum of both sections.",
+        "overall": ["lane-3 (45)", "lane-2 (43)", "lane-1 (42)"]
+      },
+      "style_note": "No author attribution claimed or relied upon; scoring is criteria-as-written per the rubric. The three lanes have distinct editorial signatures — lane-1 favors compact tables and 'rung'; lane-2 favors explicit CONFLICTS-none declarations and dual residue notes; lane-3 shows working-tree freshness (it alone knew PHASES.md/LANDMARKS.md had moved) and polices usage at table granularity. If forced to guess I would not guess confidently, and the guess did not touch any score."
+    },
+    "verification_log": {
+      "paths_checked_at_HEAD": [
+        "docs/audits/2026-08-02-grand-audit/DIRECTION.md (§5 lines 106-140, Amendments 1-2 lines 170-277) EXISTS",
+        "docs/status/ROADMAP-2026-08-20.md (Stage 0-4 headings lines 36/79/116/137/178) EXISTS",
+        "docs/status/ROADMAP-2026-08-21.md EXISTS (cited by lane-3 only)",
+        "docs/status/landmark-assignment-2026-08-19.md EXISTS; L8/L9 are proposals (lines 44/65) as lane-3 states",
+        "docs/infra/sprint.md EXISTS (passN/ phase-doc list)",
+        "docs/infra/GLOSSARY.md EXISTS (already post-sweep at HEAD: 'The three ladders — waypoint, stage, phase')",
+        "findings/T745-terminology.json EXISTS (R1-R5 read for criterion 5)",
+        "findings/T737-glossary.json EXISTS",
+        "docs/epics/E1-markovian/PHASES.md DOES NOT EXIST (dead cite in lanes 1, 2, and flagged in 3)",
+        "docs/audits/2026-08-05-handover/LANDMARKS.md DOES NOT EXIST (dead cite in lanes 1, 2, and flagged in 3)",
+        "docs/epics/E1-markovian/WAYPOINTS.md and docs/epics/E1-markovian/LANDMARKS.md EXIST (the post-move homes)"
+      ]
+    }
+  },
+  "notes": "T782 (race-w blind rejudge: judge 3) — advances L1 (the dashboard tells the truth): Race W terminology lanes rescored under the sealed rubric by an independent blind panel instead of self-grade. Blind rules observed (no mapping file, no other judge's row, no race-w-terminology outputs, no git log on the lanes). Verdict: lane-3 > lane-2 > lane-1 overall (45/43/42 of 50). The decisive criterion was citation integrity at HEAD: all three lanes cite docs/audits/2026-08-05-handover/LANDMARKS.md and docs/epics/E1-markovian/PHASES.md, which do not exist in the working tree (post-R2/R4 homes are docs/epics/E1-markovian/LANDMARKS.md and WAYPOINTS.md); lane-3 alone discloses the moves with a same-commit repoint instruction. Second finding: lanes 2 and 3 reuse the reserved word 'step' informally inside their waypoint definitions ('five dependency-ordered steps'), a one-meaning-per-term nick lane-1 avoids with 'rung'. Inbox T352 polled at start and before close: no directives. Landmark: advances L1 (the dashboard tells the truth) — Race W becomes multi-family evidence once the sealed mapping is absorbed; nothing remains on this row."
+}
