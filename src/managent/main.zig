@@ -7523,6 +7523,44 @@ fn readDirectives(w: Writers, io: std.Io, repo_root: []const u8, state_path: []c
     return result;
 }
 
+/// T758: numeric suffix of a directive id ("D041" → 41).  null when the id
+/// does not have the D<digits> shape (such a record contributes nothing to
+/// the mint base).
+fn directiveIdNumber(id: []const u8) ?u32 {
+    if (id.len < 2 or id[0] != 'D') return null;
+    return std.fmt.parseInt(u32, id[1..], 10) catch null;
+}
+
+/// T758: largest directive-id suffix already in the ledger (0 when empty or
+/// unreadable).  The mint base is this + 1 — NOT _sys.directive_next alone.
+/// The counter lives in tasks.json, a different file from the ledger, and a
+/// direct store write / restore has rolled it back repeatedly (55→21, 34→21)
+/// while the ledger kept its max id (D079): minting from the stale counter is
+/// what re-minted D041 a third time on 2026-08-23.
+fn maxDirectiveId(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8) u32 {
+    var bad: u32 = 0;
+    var list = readDirectives(w, io, repo_root, state_path, &bad) catch return 0;
+    defer {
+        for (list.items) |d| {
+            alloc.free(d.id);
+            alloc.free(d.target);
+            alloc.free(d.directive);
+            if (d.note) |n| alloc.free(n);
+            alloc.free(d.from);
+            alloc.free(d.ts);
+            if (d.until_done) |ud| alloc.free(ud);
+        }
+        list.deinit(alloc);
+    }
+    var max: u32 = 0;
+    for (list.items) |d| {
+        if (directiveIdNumber(d.id)) |n| {
+            if (n > max) max = n;
+        }
+    }
+    return max;
+}
+
 fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) !void {
     const dir_path = try std.fs.path.join(alloc, &.{ repo_root, DIRECTIVES_FILE });
     defer alloc.free(dir_path);
@@ -7578,6 +7616,29 @@ fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) 
     // Read existing content + append new line
     const existing_str = std.Io.Dir.cwd().readFileAlloc(io, dir_path, alloc, .unlimited) catch "";
     defer if (@intFromPtr(existing_str.ptr) != @intFromPtr("".ptr)) alloc.free(existing_str);
+
+    // T758: uniqueness backstop — before appending, confirm the id is not
+    // already present in the ledger.  Parses each existing line (the same
+    // shape readDirectives uses) rather than a substring search, so a note
+    // containing the id text cannot false-trip it.  This is the single
+    // append chokepoint: whatever the minting logic did, a colliding id must
+    // be a loud error, never a silent duplicate that breaks the audit trail.
+    {
+        var lines = std.mem.splitScalar(u8, existing_str, '\n');
+        while (lines.next()) |line| {
+            const trimmed = std.mem.trim(u8, line, " \r\n");
+            if (trimmed.len == 0) continue;
+            var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+            defer parsed.deinit();
+            if (parsed.value != .object) continue;
+            if (parsed.value.object.get("id")) |v| {
+                if (v == .string and std.mem.eql(u8, v.string, d.id)) {
+                    w.diag("FATAL: directive id {s} already exists in the ledger — refusing to write a duplicate (would break the audit trail)\n", .{d.id});
+                    return error.DirectiveIdCollision;
+                }
+            }
+        }
+    }
 
     var out = std.ArrayList(u8).empty;
     defer out.deinit(alloc);
@@ -9980,8 +10041,15 @@ fn cmdTell(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     var state_for_counter = try readState(io, state_path);
     defer freeState(&state_for_counter);
 
-    const d_id = try std.fmt.allocPrint(alloc, "D{d:0>3}", .{sys_directive_next});
-    sys_directive_next += 1;
+    // T758: mint from max(counter, ledger_max + 1).  The counter alone is not
+    // authoritative — _sys.directive_next lives in tasks.json, a different
+    // file from the ledger, and a direct store write / restore rolls it back
+    // below ids the ledger already holds (observed 55→21, 34→21; ledger max
+    // D079 vs counter 21).  Minting from the stale counter is what re-minted
+    // D041 a third time on 2026-08-23T01:57:43Z.
+    const base = @max(sys_directive_next, maxDirectiveId(w, io, repo_root, state_path) + 1);
+    const d_id = try std.fmt.allocPrint(alloc, "D{d:0>3}", .{base});
+    sys_directive_next = base + 1;
 
     const now = try nowTimestamp();
 

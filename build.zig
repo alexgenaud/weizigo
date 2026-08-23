@@ -755,6 +755,20 @@ pub fn build(b: *std.Build) void {
     concurrency_regression.cwd = b.path(".");
     test_step.dependOn(&concurrency_regression.step);
 
+    // ── T758: directive-ID uniqueness controls ─────────────────────────
+    // T545 made the directive counter race-safe but never made it
+    // AUTHORITATIVE: `tell` mints `D{sys_directive_next}` where the counter
+    // lives in tasks.json — a different file from directives.jsonl — and a
+    // direct store write/restore rolls it back below ids the ledger already
+    // holds (a third D041 landed 2026-08-23).  Fix: mint from
+    // max(counter, ledger_max + 1) + a uniqueness backstop at the append
+    // chokepoint.  Controls assert the invariant — no two lines in
+    // directives.jsonl share an id — across BOTH write paths (append via
+    // tell, rewrite via inbox --ack).  Scratch store/ledger only.
+    const directive_id_uniqueness_regression = b.addSystemCommand(&.{ "sh", "tools/regression-directive-id-uniqueness.sh" });
+    directive_id_uniqueness_regression.cwd = b.path(".");
+    test_step.dependOn(&directive_id_uniqueness_regression.step);
+
     // T496: fleet-keeper loop + cooldown flag controls (scratch store + scratch
     // repo). Fires oldest-eligible until the cap, cools down on a flag, and
     // the dead-man's switch treats an unreadable cooldown dir as cooldown.

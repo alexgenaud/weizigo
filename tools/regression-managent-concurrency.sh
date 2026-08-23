@@ -180,6 +180,13 @@ fi
 # ── arm 2: tell racing a claim → the claim SURVIVES (flock-hold) ──────────
 echo "  2. seeded: tell racing a claim — the claim survives (flock-hold)"
 seed_task T701 dispatchable
+# T758: the directive mint is now max(counter, ledger_max + 1), not the
+# counter alone.  arm 1 left 10 directives in the ledger; without clearing
+# it, a mint here would be D011 (counter 12), and the counter assertion
+# below (directive_next == 2, i.e. +1 from the reset value) would read as a
+# false failure.  Clear the ledger so the flock-hold arm tests exactly the
+# lost-update property it was written for, on an empty ledger.
+rm -f "$ledger"
 python3 - "$STORE" T701 <<'PYEOF' > "$OUTDIR/arm2-reset.out" 2>&1
 import json, sys
 p, tid = sys.argv[1], sys.argv[2]
