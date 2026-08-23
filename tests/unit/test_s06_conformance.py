@@ -21,6 +21,11 @@ Python (`tools/fleet-keeper.sh`), Zig (`src/managent/main.zig`) and POSIX sh
 (`untracked/watch-fleet.sh`); none can be imported, and the facts under test
 are *declarations*, which is precisely what source text carries.
 
+**Counts.** 24 arms: **19 GREEN** characterization + null/seeded controls, **5 RED**
+spec-conformance covering **7 normative ids** (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4,
+ARB-4 — one arm can assert more than one id, so arms and ids are not in bijection and are counted
+separately).
+
 **Labels** (`tests/roundtrip/README.md`'s vocabulary, which this tier honours):
 CHARACTERIZATION arms pin today and are expected GREEN; they are deleted or
 rewritten by the migration step that intentionally changes the subject, named

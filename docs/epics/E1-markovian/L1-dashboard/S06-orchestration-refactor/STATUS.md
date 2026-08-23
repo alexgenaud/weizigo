@@ -4,6 +4,12 @@
 absorbed, what was deleted, what is owed. **Owner:** T802 · **Last updated:** 2026-08-23 at
 `8c00704` by `claude-opus-5`/T802.
 
+**Count note.** This file's tier row moved under T802 between measuring and committing: 324/9 at
+`8c00704`, **325/8 at `ebefbdd`**, because a concurrent console's `test_runner.py` fix landed and
+turned one pre-existing recorded defect green. T802's own 24 arms and 5 recorded defects are
+unchanged. Stated rather than corrected silently — a row whose argument is that counts need
+instruments cannot leave a drifted count in its own status file.
+
 **Landmark:** advances **L1 (hands-off orchestration)** — the fleet stops having two ways to do
 everything. The bar is `tools/orcha-acceptance.sh` green three consecutive days **on the new
 mechanism**, plus one-edit model onboarding, plus one pane (ORC-ACC-1).
@@ -42,7 +48,7 @@ the "owed" table below is the mint list.
 
 ### The arms Pass 0 added
 
-`tests/unit/test_s06_conformance.py` — **24 arms, 0.04 s**, hermetic (stdlib only, no subprocess,
+`tests/unit/test_s06_conformance.py` — **24 arms (19 GREEN, 5 RED), 0.04 s**, hermetic (stdlib only, no subprocess,
 no writes; the `tests/unit/README.md` contract holds). It reads tracked source text, because the
 facts under test are *declarations* in shell-with-embedded-Python, Zig and POSIX sh — none
 importable, all declarative.
@@ -57,7 +63,7 @@ importable, all declarative.
 | `TestDispositionCount` | 3 | GREEN | PLAN-4/PLAN-5 — null control, seeded control, live check |
 | `TestAbsorptionTargetsAreLive` | 4 | GREEN | the census, on import/exec evidence |
 
-**7 RED arms, every one correct to be red** (ORC-CTRL-2: red first). Each is
+**5 RED arms covering 7 ids, every one correct to be red** (ORC-CTRL-2: red first). Each is
 `@unittest.expectedFailure` naming the ORC-PLAN-3 step that owes the mechanism, so the suite stays
 green while the debt stays visible and countable. **A pass is not done until its red arms are
 green** — that is what makes them the pass gate rather than a wish list.
@@ -66,7 +72,7 @@ green** — that is what makes them the pass gate rather than a wish list.
 
 | tier | result | wall |
 |---|---|---|
-| `tests/unit/` | **324 tests, 0 failures, 9 recorded defects** (4 pre-existing + 5 new S06 RED) | 0.21 s |
+| `tests/unit/` | **325 tests, 0 failures, 8 recorded defects** (3 pre-existing + 5 new S06 RED) | 0.21 s |
 | `tests/roundtrip/` | **exit 0** — 10 arms, 6 OUTCOME / 3 SCAFFOLD / 1 PINNED-DEFECT, its 2 recorded defects still open (T785/T773, T793). T802 added no arm here; its subjects were untouched | 68 s |
 | `tools/smoke.sh` | **PASS** | 1 s |
 | `tools/suite-truth.sh` | **not run by T802** — 906 s and it gates a *pass landing*, and no pass landed | — |

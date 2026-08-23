@@ -764,13 +764,14 @@ acceptance is three consecutive clean days on the new mechanism.
 
 Every row names the id it changed and the arm that holds it. A row with no arm is a wish; that is
 §0's rule and it applies to amendments as much as to requirements. Arms live in
-`tests/unit/test_s06_conformance.py` (hermetic, stdlib-only, 24 arms, 0.04 s) unless stated.
+`tests/unit/test_s06_conformance.py` (hermetic, stdlib-only, **24 arms — 19 GREEN
+characterization, 5 RED spec-conformance covering 7 ids**, 0.04 s) unless stated.
 
 ### Discharging T778 (`findings/T778-s06-spec-audit.json`)
 
 | # | sev | id(s) | what changed | arm |
 |---|---|---|---|---|
-| 1 | major | ORC-CTRL-1 | universal-coverage claim withdrawn; armed count **stated as 22 of 31**, the 9 unarmed **enumerated by id**; the 4 load-bearing ones T778 named are armed here | the 7 new arms below, each `expectedFailure` with its owning step |
+| 1 | major | ORC-CTRL-1 | universal-coverage claim withdrawn; armed count **stated as 22 of 31**, the 9 unarmed **enumerated by id**; the 4 load-bearing ones T778 named are armed here | the 5 new RED arms below, each `expectedFailure` with its owning step |
 | 2 | major | ORC-PLAN-4/5 | re-pinned 75 → **80** at `8c00704`, 5 uncounted scripts placed (19/16/45/0); reframed as pin drift, not an authoring error (75 was correct at `a1415fe`) | `TestDispositionCount` — null + seeded control + live check |
 | 3 | major | ORC-DASH-4, ORC-DASH-5, ORC-ACC-1 | the T766-retired `window_budgets` meter removed from the pane, its data source, and **the acceptance bar** | (documentary; no mechanism left to arm) |
 | 4 | major | ORC-POL-5, ORC-POL-6, §12.2 | ox-alpha RESERVED → free/SPEND per `2ec4f93`; RESERVED restated as a category with **no per-model member**; the sentinel-vs-string design-open **deferred as moot** | `test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend` |
