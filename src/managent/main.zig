@@ -1536,20 +1536,77 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
     }
 
     if (needs_extra) |n| {
+        // T760: --needs a,b,c was stored as the SINGLE element "a,b,c" — a
+        // task ID that can never exist, silently blocking the row forever.
+        // Split on commas exactly like holds (parseHoldsList) and dedupe
+        // against the bundle's own needs= so a repeated ID is not listed twice.
+        const flag_needs = try parseHoldsList(n);
         var needs_list = std.ArrayList([]const u8).empty;
         for (result.needs) |existing| {
             try needs_list.append(alloc, existing);
         }
-        try needs_list.append(alloc, try alloc.dupe(u8, n));
+        for (flag_needs) |fn_id| {
+            var dup = false;
+            for (needs_list.items) |existing| {
+                if (std.mem.eql(u8, existing, fn_id)) {
+                    dup = true;
+                    break;
+                }
+            }
+            if (!dup) try needs_list.append(alloc, fn_id);
+        }
         result.needs = try needs_list.toOwnedSlice(alloc);
     }
 
     return result;
 }
 
-/// T539: parse a comma-separated holds list (the `--holds a,b` flag and the
-/// `holds=` bundle key share this).  Empty items are dropped; the result is a
-/// list of dupe'd strings owned by the page allocator.
+/// T760: refuse a need that names no task already in the store — a need on an
+/// unregistered ID can never be met, so the row is blocked forever and the
+/// defect is silent (the row just sits).  `--allow-unregistered-needs <reason>`
+/// is the explicit escape for a need on a task registered later in the same
+/// batch; the escape is recorded as an amendment (same pattern as --force on
+/// done, T424) so `managent show` says which rows carry an unregistered edge.
+/// Returns the amendment record to store (null when nothing was missing and no
+/// record is owed).
+fn validateNeedsExist(w: Writers, state: *const StateMap, needs: []const []const u8, allow_reason: ?[]const u8) !?[]const u8 {
+    var missing = std.ArrayList([]const u8).empty;
+    defer missing.deinit(alloc);
+    for (needs) |n| {
+        if (!state.contains(n)) try missing.append(alloc, n);
+    }
+    if (missing.items.len == 0) return null;
+
+    if (allow_reason) |reason| {
+        if (reason.len == 0) {
+            w.diag("error: --allow-unregistered-needs requires a non-empty reason (why the need is not registered yet)\n", .{});
+            std.process.exit(1);
+        }
+        const now = try nowTimestamp();
+        var rec = std.ArrayList(u8).empty;
+        try rec.appendSlice(alloc, now);
+        try rec.appendSlice(alloc, ": ALLOWED unregistered need(s)");
+        for (missing.items) |m| {
+            try rec.appendSlice(alloc, " ");
+            try rec.appendSlice(alloc, m);
+        }
+        try rec.appendSlice(alloc, " at add — ");
+        try rec.appendSlice(alloc, reason);
+        return try rec.toOwnedSlice(alloc);
+    }
+
+    w.diag("\n  REJECTED: need(s) not registered:", .{});
+    for (missing.items) |m| w.diag(" {s}", .{m});
+    w.diag("\n  A need on an unregistered task can never be met — the row would be blocked forever.\n", .{});
+    w.diag("  Register the missing task(s) first, or (only for a task registered later in the same batch)\n", .{});
+    w.diag("  re-run with --allow-unregistered-needs '<reason>'.\n", .{});
+    std.process.exit(1);
+}
+
+/// T539: parse a comma-separated list (the `--holds a,b` flag, the `--needs
+/// a,b,c` flag, and the `holds=`/`needs=` bundle keys share this).  Empty
+/// items are dropped; the result is a list of dupe'd strings owned by the
+/// page allocator.
 fn parseHoldsList(list: []const u8) ![][]const u8 {
     var out = std.ArrayList([]const u8).empty;
     var split = std.mem.splitScalar(u8, list, ',');
@@ -2951,7 +3008,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const use_auto = hasFlag(args, "--auto");
 
     if (!use_auto and args.len < 3) {
-        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id>] [--holds a,b] [--model <name>] [--note <text>]\n", .{});
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id,...>] [--holds a,b] [--model <name>] [--note <text>] [--allow-unregistered-needs <reason>]\n", .{});
         w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
         std.process.exit(1);
     }
@@ -2971,6 +3028,10 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     // T478: --duty marks the row a duty at registration (meta `duty` key is
     // the bundle-carried alternative; either one sets the stored flag).
     const duty_flag = hasFlag(args, "--duty");
+    // T760: explicit escape for a need on a task registered later in the same
+    // batch — recorded as an amendment.  Without it, a need on an unregistered
+    // ID is refused loudly (a silent forever-block is the T760 defect).
+    const allow_unreg_reason = getFlagValue(args, "--allow-unregistered-needs");
 
     // T424: add --note was documented in help but ignored by the implementation
     // (note stored null) — a documented flag that silently does nothing is the
@@ -3031,6 +3092,14 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         // landmark — the T592 defect multiplied five ways by brief-cloning.
         enforceBundleLandmark(w, io, bundle_path);
 
+        // T760: refuse a need on an unregistered ID (silent forever-block);
+        // the escape records an amendment on the row.
+        var amendments: [][]const u8 = &.{};
+        if (try validateNeedsExist(w, &state, meta.needs, allow_unreg_reason)) |am| {
+            amendments = try alloc.alloc([]const u8, 1);
+            amendments[0] = am;
+        }
+
         const tmp_for_needs = TaskState{ .needs = meta.needs };
         const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
 
@@ -3056,6 +3125,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .claimed = null,
             .done = null,
             .note = note_for_task,
+            .amendments = amendments,
         };
 
         try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -3124,6 +3194,14 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     // landmark — the T592 defect multiplied five ways by brief-cloning.
     enforceBundleLandmark(w, io, bundle_path);
 
+    // T760: refuse a need on an unregistered ID (silent forever-block);
+    // the escape records an amendment on the row.
+    var amendments: [][]const u8 = &.{};
+    if (try validateNeedsExist(w, &state, meta.needs, allow_unreg_reason)) |am| {
+        amendments = try alloc.alloc([]const u8, 1);
+        amendments[0] = am;
+    }
+
     const tmp_for_needs = TaskState{ .needs = meta.needs };
     const initial_status: TaskStatus = if (needsMet(&state, tmp_for_needs)) .dispatchable else .blocked;
 
@@ -3149,6 +3227,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .claimed = null,
         .done = null,
         .note = note_for_task,
+        .amendments = amendments,
     };
 
     try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -6214,7 +6293,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 // `managent orient` (T353) composes the worker preamble at read time — a
 // generated, ≤150-line surface that replaces the ~1,524-line reading list a
 // worker otherwise wades through before its own brief (AGENTS.md + DELEGATEE.md
-// + sprint.md + DIRECTION.md + PHASES.md + STATE.md). It follows the `resume`
+// + sprint.md + DIRECTION.md + WAYPOINTS.md + STATE.md). It follows the `resume`
 // pattern: nothing is stored, nothing can rot — the surface IS the sources,
 // read at the instant of invocation.
 //
@@ -7344,7 +7423,8 @@ fn printHelp(w: Writers) void {
         \\  --auto                   auto-generate opaque T<N> task ID (with add)
         \\  --bundle <path>          override bundle path (with add)
         \\  --set <A–Z>              override parallel set (with add / suggest)
-        \\  --needs <id>             add extra dependency (with add)
+        \\  --needs <id,...>         add extra dependency, comma-separated (with add)
+        \\  --allow-unregistered-needs <reason>  allow a need on a not-yet-registered task (with add; recorded)
         \\  --duty                   register the row as a duty (with add)
         \\  --model <name>           set model for prompt line (with suggest)
         \\  --exec <prefix>          claim and exec into harness (with claim / next)
@@ -12456,4 +12536,68 @@ test "landmark: D4-adopted ids L8/L9 declare; proposed L10 does not" {
     try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark("**Landmark:** L9 (the fleet can race its own workers on demand). Ruling 7: aspect races GO now."));
     try std.testing.expectEqual(LandmarkVerdict.declared, checkBundleLandmark("**Landmark:** advances `L4 (the ledger is clean)` and `L8 (the language the project speaks is unambiguous)`."));
     try std.testing.expectEqual(LandmarkVerdict.invalid, checkBundleLandmark("**Landmark:** candidate `L10 (the repository tells its story cleanly)` — proposed."));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T760 tests — --needs comma split + add-time existence validation
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "add: --needs a,b,c splits into three needs (T760)" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    // Disposable scratch under /tmp/weizigo — never the repo tree.
+    std.Io.Dir.cwd().createDirPath(io, "/tmp/weizigo") catch {};
+    const path = "/tmp/weizigo/T760-needs-split-test-bundle.md";
+    {
+        const file = std.Io.Dir.createFileAbsolute(io, path, .{}) catch |err| {
+            std.debug.print("T760 test: cannot create {s}: {}\n", .{ path, err });
+            return error.TestFailed;
+        };
+        defer file.close(io);
+        try file.writeStreamingAll(io, "<!--managent set=A -->\n# T760 test bundle\n");
+    }
+    defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
+
+    const meta = try parseBundleMeta(w, io, path, null, "T754,T755,T756");
+    try std.testing.expectEqual(@as(usize, 3), meta.needs.len);
+    try std.testing.expectEqualStrings("T754", meta.needs[0]);
+    try std.testing.expectEqualStrings("T755", meta.needs[1]);
+    try std.testing.expectEqualStrings("T756", meta.needs[2]);
+}
+
+test "add: validateNeedsExist returns null when every need is registered (T760)" {
+    var state = StateMap{};
+    defer freeState(&state);
+    var ts = TaskState{ .status = .dispatchable, .set = 'A' };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX.md");
+    ts.added = try alloc.dupe(u8, "2026-08-23T00:00:00Z");
+    try state.put(alloc, try alloc.dupe(u8, "T700"), ts);
+
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    const needs = [_][]const u8{"T700"};
+    const rec = try validateNeedsExist(w, &state, &needs, null);
+    try std.testing.expectEqual(@as(?[]const u8, null), rec);
+}
+
+test "add: validateNeedsExist records the escape for a missing need (T760)" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    const needs = [_][]const u8{ "T754", "T755" };
+    const rec = (try validateNeedsExist(w, &state, &needs, "same-batch forward edge")).?;
+    try std.testing.expect(std.mem.indexOf(u8, rec, "T754") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rec, "T755") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rec, "same-batch forward edge") != null);
 }
