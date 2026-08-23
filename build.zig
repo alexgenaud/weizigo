@@ -45,9 +45,19 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
-    const optimize = b.standardOptimizeOption(.{});
+    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. The default is
+    // pinned to ReleaseSafe (T702): a bare `zig build` must never produce a Debug
+    // binary — the 2026-08-22 bin/managent was 4.9 MB of Debug (unoptimized __text
+    // 3.35 MB vs 1.11 MB ReleaseSafe) because the default was Debug. ReleaseSafe
+    // is the correctness convention (asserts stay live — ReleaseFast drops them;
+    // AGENTS.md), so a deployed tool cannot silently corrupt state. A caller can
+    // still override with -Doptimize=Debug/Fast/Small.
+    //
+    // NB: b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSafe })
+    // is NOT sufficient — in Zig 0.16 that field only selects the mode for the
+    // legacy -Drelease flag; a bare build still returns .Debug. The explicit
+    // `orelse .ReleaseSafe` below is what actually pins the bare-build default.
+    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Prioritize performance, safety, or binary size (default ReleaseSafe)") orelse .ReleaseSafe;
 
     // ── engine module (kernel re-export shim, T341) — shared by vb_i11,
     // vb_mutants, and tools/smd1. Wired here once so the named import
@@ -1125,6 +1135,17 @@ pub fn build(b: *std.Build) void {
     const smoke_regression = b.addSystemCommand(&.{ "sh", "tools/smoke.sh" });
     smoke_regression.cwd = b.path(".");
     test_step.dependOn(&smoke_regression.step);
+
+    // ── managent build-mode guard (T702) ──────────────────────────────
+    // tools/regression-managent-build-mode.sh asserts (a) build.zig pins
+    // .preferred_optimize_mode = .ReleaseSafe so a bare `zig build` can
+    // never emit a Debug binary, and (b) the deployed bin/managent is not
+    // a Debug build (Debug ~4.9 MB vs ReleaseSafe ~1.5 MB). Catches the
+    // 2026-08-22 defect: a bare build defaulted to Debug and shipped a
+    // 4.9 MB managent.
+    const managent_build_mode_regression = b.addSystemCommand(&.{ "sh", "tools/regression-managent-build-mode.sh" });
+    managent_build_mode_regression.cwd = b.path(".");
+    test_step.dependOn(&managent_build_mode_regression.step);
 
     // ── differential (T257/T267: agreement matrix + key invariant) ─
     const differential_tests = b.addTest(.{
