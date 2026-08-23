@@ -1,0 +1,98 @@
+{
+  "task_id": "T780",
+  "date": "2026-08-23",
+  "model": "claude-sonnet-5",
+  "claims": [],
+  "sections": {
+    "A": {
+      "description": "GLOSSARY.md 'The three ladders — the collision triangle' replacement",
+      "criteria": {
+        "1": "one meaning per term",
+        "2": "affirmative voice + worked examples",
+        "3": "citation integrity at HEAD",
+        "4": "residue discipline",
+        "5": "fidelity to T745 R1-R5 / Amendment 2"
+      },
+      "scores": {
+        "lane-1": {"1": 3, "2": 3, "3": 2, "4": 3, "5": 4},
+        "lane-2": {"1": 3, "2": 4, "3": 1, "4": 3, "5": 4},
+        "lane-3": {"1": 5, "2": 5, "3": 3, "4": 5, "5": 5}
+      },
+      "total": {"lane-1": 15, "lane-2": 15, "lane-3": 23},
+      "ranking": [
+        {"rank": 1, "lanes": ["lane-3"], "total": 23},
+        {"rank": 2, "lanes": ["lane-1", "lane-2"], "total": 15}
+      ],
+      "evidence": {
+        "lane-1": {
+          "1": "'The program ladder is renamed **waypoint**; the course ladder keeps **stage**; the pass-internal document keeps **phase**.' — clean within its own text, but the lane never touches the pre-existing GLOSSARY.md line 'CONFLICTS: **the Phase collision**' left in the untouched 'work hierarchy' block, so the shipped document would still assert a collision Section A just resolved.",
+          "2": "'correct: \"Waypoint 1 gates promotion on mutation adequacy.\" · incorrect: \"Phase 1 gates promotion…\"' — only 3 usage pairs, and no per-term CONFLICTS annotations at all, unlike the surrounding GLOSSARY.md's own stated entry format.",
+          "3": "'task mapping in `docs/epics/E1-markovian/PHASES.md`' — this path does not exist at HEAD (renamed to WAYPOINTS.md); same for the landmark citation `docs/audits/2026-08-05-handover/LANDMARKS.md` (moved to docs/epics/E1-markovian/LANDMARKS.md). Two broken citations, no acknowledgment.",
+          "4": "Header framing: 'the framing lines ... are NOT part of the replacement' — the lane scopes itself strictly to the two sections and never flags the stale 'Phase collision' CONFLICTS note or the un-updated 'work hierarchy' heading that its own rename obliges.",
+          "5": "'L<n> tokens are reserved exclusively for the LANDMARKS.md checkpoints (L0–L7)... the fleet/science binary axis may not reuse L tokens.' — faithful to R4 on the L-token rule, but omits the L8/L9-are-proposals detail R4/LANDMARKS.md also carries."
+        },
+        "lane-2": {
+          "1": "Per-term 'CONFLICTS: none remaining' lines are internally consistent, but 'Nothing else in either file changes' (framing) means the stale 'CONFLICTS: **the Phase collision**' line elsewhere in GLOSSARY.md is left standing, contradicting Section A's own claim that no conflict remains.",
+          "2": "'✅ \"the acceptance battery lands in W1, before W2 kernel code.\" ❌ \"Stage 1 lands before Phase 2 code.\"' plus CONFLICTS:-none lines per term — more textured than lane-1 but still only 3 usage pairs.",
+          "3": "'Nothing else in either file changes; every path cited exists at HEAD.' is a false blanket claim: the same lane cites `docs/epics/E1-markovian/PHASES.md` and `docs/audits/2026-08-05-handover/LANDMARKS.md`, neither of which resolves at HEAD.",
+          "4": "Same gap as lane-1 — no mention of the 'work hierarchy' heading or the now-false 'Phase collision' CONFLICTS note that Section A's own rename obliges fixing.",
+          "5": "'No other ladder or axis may mint L tokens — including the fleet/science binary axis.' matches R4's L-token rule; also omits the L8/L9-proposal nuance."
+        },
+        "lane-3": {
+          "1": "Explicitly identifies and repairs the residual two-reading risk: 'the **phase** entry under it ends with `CONFLICTS: **the Phase collision**` — that sentence is now false and should go.'",
+          "2": "6-row 'write this / not this' usage table plus affirmative framing ('Landmarks observe, waypoints build, phases document, steps enumerate'; 'Stages track time and people; waypoints track dependencies') — broadest worked-example coverage of the three.",
+          "3": "Same two broken paths appear in its own bullet text ('task mapping in `docs/epics/E1-markovian/PHASES.md`', landmark home cited as `docs/audits/2026-08-05-handover/LANDMARKS.md`) despite the preamble naming the exact fix: 'Two of them are the ones your own sweep moves ... Repoint both in the same commit as the git mv.' Flagged but not actually fixed in the delivered text.",
+          "4": "'Two edits outside my sections that the rename obliges: the earlier heading ... gains `waypoint` and `step` ... and the **phase** entry ... CONFLICTS: **the Phase collision** — that sentence is now false and should go.' — the only lane that scopes the full obligation of the rename rather than just the two named sections.",
+          "5": "'`L8` and `L9` are *proposals* in `docs/status/landmark-assignment-2026-08-19.md`, not landmarks until LANDMARKS.md carries them.' — reproduces the R4/LANDMARKS.md distinction most completely of the three."
+        }
+      },
+      "style_note": "The live docs/infra/GLOSSARY.md at HEAD already contains a 'The three ladders — waypoint, stage, phase' section whose wording is closest to lane-3's Section A (including the fixed 'CONFLICTS: none in the process vocabulary' phase entry lane-3 alone flagged as an obligation). Noted as a textual-similarity observation, not an authorship guess; scored on the text as written per the rubric's no-bias-penalty rule."
+    },
+    "B": {
+      "description": "DIRECTION.md §5 + header residue note replacement",
+      "criteria": {
+        "1": "one meaning per term",
+        "2": "affirmative voice + worked examples",
+        "3": "citation integrity at HEAD",
+        "4": "residue discipline",
+        "5": "fidelity to T745 R1-R5 / Amendment 2"
+      },
+      "scores": {
+        "lane-1": {"1": 3, "2": 4, "3": 3, "4": 2, "5": 2},
+        "lane-2": {"1": 3, "2": 4, "3": 5, "4": 5, "5": 4},
+        "lane-3": {"1": 5, "2": 5, "3": 5, "4": 4, "5": 5}
+      },
+      "total": {"lane-1": 14, "lane-2": 21, "lane-3": 24},
+      "ranking": [
+        {"rank": 1, "lanes": ["lane-3"], "total": 24},
+        {"rank": 2, "lanes": ["lane-2"], "total": 21},
+        {"rank": 3, "lanes": ["lane-1"], "total": 14}
+      ],
+      "evidence": {
+        "lane-1": {
+          "1": "The W0 bullet never states the hard-gate exception, then the plan paragraph asserts an unqualified 'No waypoint gates the dispatch of another' — a reader gets no way to reconcile this with Amendment 2's 'the one hard gate already written stands unchanged: Phase 0 gates decomposition.'",
+          "2": "Retains the affirmative 'each gate is mechanized from the day it is declared' framing and full per-waypoint bullets — competent but unremarkable voice, no usage table for §5 content.",
+          "3": "Does not cite `findings/T745-terminology.json` anywhere in Section B, only a bare '(R1)' in the residue note — the ruling reference is unlinked to a checkable source, weaker than lane-2/lane-3.",
+          "4": "'This note is the only place in this file the old word survives.' is false at HEAD: Amendments 1 and 2 (untouched, out of this task's scope) still use 'phase'/'Phase' repeatedly, e.g. Amendment 2's own heading 'phase order is dependency order, not calendar order.' The residue note over-claims completeness.",
+          "5": "Drops the W0 hard-gate constraint entirely (present in the live W0 bullet: 'W0 is the one hard gate, and it gates *decomposition*') and its W1 bullet omits the passes-bit-collision defect and the 'finding to adjudicate rather than an expected result' clause from Amendment 1 — two separate weakenings of ratified, load-bearing text."
+        },
+        "lane-2": {
+          "1": "Internal tension: 'Deliverable: the theorem statement and the tree of lemmas it needs. W0 gates decomposition.' in the W0 bullet, then two lines later 'no waypoint gates the dispatch of another' stated unqualified in the same section — the reader must resolve which reading governs.",
+          "2": "'✅ \"the acceptance battery lands in W1, before W2 kernel code.\"' style bullets carried into Section A; Section B itself restates the plan affirmatively but adds no additional worked example beyond the bullet list.",
+          "3": "Cites `findings/T745-terminology.json` by ruling number correctly in the header note: 'operator ruling R1 — `findings/T745-terminology.json`' — the path exists at HEAD and the citation is accurate.",
+          "4": "'The old ladder word \"Phase\" survives in this file only in pre-ruling prose (Amendments 1–2, §7) — read every such occurrence as Waypoint under this note, which is this document's sole sanctioned residue.' — correctly names exactly where the residue lives, matching reality (Amendments 1-2 do still say 'Phase') rather than falsely claiming completeness.",
+          "5": "W1 bullet: 'every seeded known-bad must fail, or the instrument is blind ... any new failure against it is a finding to adjudicate' — captures Amendment 1's mutation-testing/regression-input distinction faithfully, though the plan paragraph's unqualified dispatch-gate line (see criterion 1) still weakens Amendment 2's stated exception."
+        },
+        "lane-3": {
+          "1": "States the hard gate plainly ('W0 is the one hard gate: W1–W4 get no new tasks until it lands.') and never asserts an unqualified 'no waypoint gates dispatch' claim that would contradict it — avoids the two-reading trap lane-1 and lane-2 both fall into.",
+          "2": "'Each names what must hold before the next is provable, not a month in which it happens.' — an affirmative framing sentence not present in the other two lanes, reinforcing the dependency-not-calendar point right at the top of §5.",
+          "3": "Header note cites `findings/T745-terminology.json` R1 correctly and the path resolves at HEAD; Amendment-1 attribution '(Amendment 1)' at the end of the W1 bullet is also accurate.",
+          "4": "'Sealed artifacts and audits written before 2026-08-23 number the same five steps `Phase 0–4`; read them as waypoints' — correct and non-false, though less precise than lane-2's explicit naming of 'Amendments 1–2, §7' as the exact in-file residue locations.",
+          "5": "W1 bullet reproduces Amendment 1 nearly verbatim, including the passes-bit collision, T261's incompleteness nuance, and 'a finding to adjudicate rather than an expected result' — the closest match to the ratified source text of the three lanes."
+        }
+      },
+      "style_note": "Section B's live DIRECTION.md header note at HEAD closely mirrors lane-2's phrasing ('Amendments 1–2' and 'sole sanctioned residue' named explicitly), while the live §5 body's 'Each names what must hold before the next is provable, not a month in which it happens' and the 'Beyond W0's decomposition gate, no waypoint gates the dispatch of another' qualifier match lane-3's framing and fix the exact gap identified above for lane-1/lane-2. Read as a textual-similarity observation only, per the rubric's no-bias-penalty rule."
+      }
+  },
+  "notes": "Blind rejudge per untracked/race-w-rejudge/RUBRIC.md. Read only RUBRIC.md, lane-1/2/3.md, and repo files needed to verify citations (docs/audits/2026-08-02-grand-audit/DIRECTION.md, findings/T745-terminology.json, docs/infra/GLOSSARY.md, docs/epics/E1-markovian/WAYPOINTS.md, docs/epics/E1-markovian/LANDMARKS.md, docs/status/ROADMAP-2026-08-20.md/-21.md, docs/status/landmark-assignment-2026-08-19.md). Did not read mapping-sealed-for-synthesis.json, untracked/race-w-terminology/, findings/T75*, or git log for these files. Inbox empty at claim and at close (no directives to record). All three lanes share the identical broken citation defect (docs/epics/E1-markovian/PHASES.md and docs/audits/2026-08-05-handover/LANDMARKS.md, both moved) because the sealed brief's own static input list pointed at the pre-move paths; lane-3 is alone in flagging this as an obligation the sweep operator must fix, and alone in catching two required companion edits to GLOSSARY.md outside its own replacement sections."
+}
