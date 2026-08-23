@@ -1,0 +1,196 @@
+{
+  "task_id": "T697",
+  "date": "2026-08-23",
+  "model": "claude-sonnet-5",
+  "identifier": "claude-sonnet-5/T697",
+  "race": "race-h-sprint-manager (grading round)",
+  "instrument": "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/battery.md",
+  "key": "untracked/race-grading/race-h/KEY.json",
+  "claims": [],
+  "new_rows": [],
+  "key_verification": {
+    "committed_seal": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289 (docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/key.md)",
+    "computed_sha256": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289",
+    "match": true
+  },
+  "entrants": {
+    "T685": "claude-opus-5",
+    "T686": "claude-sonnet-5 (retrieved from git stash 2b10779 — missing from the working tree at grading time; verified content, task_id and model field are self-consistent)",
+    "T687": "claude-haiku-4-5-20251001",
+    "T688": "deepseek-v4-pro",
+    "T689": "deepseek-v4-flash"
+  },
+  "self_disclosure": "I am claude-sonnet-5. T686 is claude-sonnet-5's own earlier work on this battery, per the key's naming. I graded it last of five (see ranking) — its S2-RC0-NONONCE answer folds a protocol miss into the work score, which the key explicitly forbids, and its S4-ACT answer does not rule out the wrong 'git checkout bin/managent' mechanism the way T685 does. I did not find myself inclined to read it generously; if anything the opposite pull (wanting to prove I'm not favouring it) is the more honest thing to name.",
+  "per_axis": {
+    "S1_decomposition": {
+      "bar": "36/36 coverage, 0 holds collisions, 0 cycles/inversions (mechanical)",
+      "T685": {
+        "coverage": "36/36 explicit id_map, all ids in-scope",
+        "holds_collisions": "0 claimed; verified plausible from the stated rows plus a live-store cross-check (found T682/T683/T684 as an undeclared-writer hazard on src/managent/main.zig and edged its own row against it — this is thoroughness beyond the mechanical ask, not required by the key but not wrong)",
+        "cycles": "0, topological order given and internally consistent",
+        "known_bad_seed": "avoided — T628/T659 not reproduced (T659 already closed by run time; T628 carries needs=[T628] on the new tools/runner row)",
+        "verdict": "PASS, most rigorous of the five — the only entrant that cites live main.zig source (line numbers, in S4) to justify a graph decision"
+      },
+      "T686": {
+        "coverage": "36/36 by row-group arithmetic (1+12+1+7+7+4+4=36), no explicit per-id map",
+        "holds_collisions": "0 — two same-file pairs (main.zig, reconciler.zig) both edged",
+        "cycles": "0",
+        "verdict": "PASS — correct but the coarsest self-verification of the five that pass (no per-id table, arithmetic only)"
+      },
+      "T687": {
+        "coverage": "36/36 claimed; verified independently — all 36 ids do appear across the 7 rows (LIFE-4 and LIFE-5 are covered twice, in the wake-policy row and again in the lifespan row, which does not break coverage but is redundant)",
+        "holds_collisions": "NOT 0. Row 2 (reconciler-tables) holds='docs/infra/managent/' and row 7 (autopilot-5h) holds='docs/infra/' — the second path is a parent directory of the first, i.e. an overlapping hold — with no needs= edge between rows 2 and 7 (row 7's needs=[row 6] only). This is the T539 defect class (two rows, overlapping path, no edge) reproduced by the entrant's own row set, not caught or flagged.",
+        "additional_defect": "the row set invents file paths not present in the actual repo (src/managent/verbs.zig, src/managent/escalate.zig) where the other four entrants converge on the real src/managent/main.zig / a single reconciler binary — this row set is less grounded in the live tree than the other four.",
+        "cycles": "0 — the graph is a single linear chain, acyclic",
+        "verdict": "FAILS the mechanical holds_collisions bar (0 required, 1 found) and is materially less grounded in the real repo than the other four entrants — the weakest S1 answer"
+      },
+      "T688": {
+        "coverage": "36/36 — 32 ids mapped across 3 rows, GOAL-1..4 explicitly declared out-of-scope with a reason each",
+        "holds_collisions": "0 — three disjoint files, trivially safe",
+        "cycles": "0 — R1->R2->R3, R1->R3, acyclic",
+        "verdict": "PASS — most economical and lowest-risk of the five (3 rows vs 7-16 elsewhere); the GOAL-1..4 out-of-scope framing is a defensible reading but is the most aggressive use of the 'declared out-of-scope with a reason' escape hatch in the field (see key_defects #3)"
+      },
+      "T689": {
+        "coverage": "36/36, full explicit per-id coverage_table given",
+        "holds_collisions": "0 — explicit shared-file table (main.zig, reconciler.zig, reconciler-controls.sh) each with its edge named",
+        "cycles": "0 — explicit needs graph and topological order given",
+        "known_bad_seed": "explicitly avoided by design ('Deliberately no row holds tools/runner, the T628/T659 collision class is avoided by not allocating the file') — the only entrant to name this as a deliberate design choice rather than an incidental non-collision",
+        "verdict": "PASS — tied with T685 for most rigorous; the cleanest per-id coverage table of the five"
+      },
+      "ranking_this_axis": "T685 ≈ T689 (both fully mechanical and self-verified) > T688 (correct, coarser) > T686 (correct, coarsest self-check) > T687 (fails the collision bar)"
+    },
+    "S2_triage": {
+      "note": "See triage_detail for the per-situation breakdown. All five entrants correctly used the runner's terminal record as authority and avoided every trap the key names explicitly (verified=fail on a provider outage, the quoted 429, the misread directive kill). The field only differentiates on S2-LIVENESS's causation footnote (arguably a key defect, see key_defects #1) and on S2-RC0-NONONCE's resolution."
+    },
+    "S3_absorption": {
+      "note": "All five entrants reach the correct disposition on all three situations (T372: register-repair-was-owed-and-is-now-done; T290: nothing to change, rejections.json already dispositions it; T539: nothing changes, control). No entrant fell into either named trap ('claims:[] so nothing to absorb' for T372, or the naive CLAIMS.md-only scan for T290). Differentiation is depth of citation only: T685 additionally checked whether T372's separately-reported (not fixed) src/qa023_probe.zig defect was later fixed, which none of the others did — a genuine extra verification, not required by the key.",
+      "ranking_this_axis": "effectively tied — T685 slightly ahead on demonstrated verification depth, no entrant wrong"
+    },
+    "S4_restraint": {
+      "note": "See restraint_detail. All five entrants chose the correct disposition on both arms (delegate on S4-TRAP, act on S4-ACT) — this round produced zero instances of either named failure direction. The real differentiation is in HOW each entrant executed the 'act' arm: the key explicitly states that 'a known-good build exists at the last commit' must not be read as `git checkout bin/managent`, since the binary is a build product, not tracked. T687 prescribes exactly that wrong mechanism; T685 explicitly disproves it via `git ls-files bin/`; T686, T688, T689 are ambiguous/hedged but not wrong."
+    },
+    "complementarity": {
+      "T685_unique_correct_calls": [
+        "the 15:00 (provider's own text) vs 15:30 (decision-log table) Oslo reset-time discrepancy, found while corroborating S2-PROV",
+        "T601's agent/model attribution mismatch (deepseek-v4-flash vs deepseek-v4-pro) blocking ladder publication under ruling 32, found while closing S2-FALSE-REFUSAL",
+        "proved via main.zig:2793/3247/3321 that holdsConflict() only fires on in_progress rows, so the 'obvious' S4-TRAP fix would be a no-op against the already-closed T659",
+        "disproved 'git checkout bin/managent' via `git ls-files bin/` before recommending the S4-ACT restore procedure, and cited the T268 codesign-invalidation gotcha for the deploy step"
+      ],
+      "T689_unique_correct_calls": [
+        "the only entrant to give a full per-id S1 coverage_table (all 36 ids individually mapped) plus an explicit shared-file/edge table for the collision check",
+        "the only entrant to explicitly name avoiding tools/runner as a deliberate S1 design choice rather than an incidental non-collision",
+        "cleanest separation of 'sequencing move I am allowed' (parking T628, without touching holds data) from 'substantive repair' (routed to a row) on S4-TRAP — the most legible treatment of the ruling-29 boundary the key's arbiter note calls out",
+        "wrote a full, dispatch-ready S5 brief for the T690-equivalent row despite S5 being deferred by the battery — go beyond scope, discussed as a possible restraint miss below"
+      ],
+      "T688_unique_correct_calls": [
+        "explicitly named the T616-is-not-this-cause trap-avoidance inline in its S2-PROV answer, where other entrants separate the classification but don't call out the trap by name",
+        "the only entrant to use the out-of-scope declaration for all four GOAL ids, trading coverage risk for a much smaller, lower-collision-risk row set"
+      ],
+      "T686_unique_correct_calls": "none found that the other four did not also reach; a competent baseline entrant with no standout catch",
+      "T687_unique_correct_calls": "none found; this entrant's answers are consistently the least independently verified of the field (no live-store cross-checks, no rejections.json line citations, no main.zig line citations)",
+      "best_pair": "T685 + T689 — between them they cover every unique correct catch found across the field (T685's deep code/store verification plus T689's completeness and its careful sequencing-vs-repair distinction); T688 is a credible third if only two seats are available, since it is the only entrant with zero found defects even though it found fewer unique things"
+    },
+    "triage_detail": {
+      "S2-PROV": {
+        "authority_used_correctly_by": ["T685", "T686", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "unknown_where_key_decidable": [],
+        "notes": "All five correctly classified as provider outage, not model failure. T685 is the most precise match to the key's own phrasing ('at reset run ONE probe lane before any fan-out') and is the only entrant to surface the reset-time discrepancy as a live defect while corroborating this item."
+      },
+      "S2-LIVENESS": {
+        "authority_used_correctly_by": ["T685", "T686", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "disagreement_with_key": "The key's S2-PROV.frozen field asserts, in parenthesis, that 'T616's record names the startup-liveness kill the session limit CAUSED' — a causal claim not present in the S2-LIVENESS situation text as given to lanes in battery.md. T685 and T689 both independently argue (from evidence that IS given — sibling T615 survived at 598.8s on identical work while T616 died at 600.8s, a 2-second margin) that this looks like a harness-sensor coincidence rather than a provider-caused chain, and T689 states outright 'not a provider outage.' T686, T687, T688 are silent on causation (correct on killed_by=harness, no stance on the causal chain). This is scored as a disagreement with an unsupported key assertion, not as a lane error — see key_defects #1.",
+        "unknown_where_key_decidable": []
+      },
+      "S2-QUOTED-429": {
+        "authority_used_correctly_by": ["T685", "T686", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "notes": "Clean sweep, all five correct (killed_by=watchdog, not provider-429). T685, T686, T688, T689 additionally note the classifier misfired in both directions on the same day (this item plus S2-FALSE-REFUSAL); T687 gets the classification right but does not connect the two instances into one instrument-defect observation."
+      },
+      "S2-FALSE-REFUSAL": {
+        "authority_used_correctly_by": ["T685", "T686", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "notes": "Clean sweep. T685 uniquely surfaces a genuinely new, separate defect while closing this item (T601's agent/model attribution mismatch) — not asked for by the key but real and checkable in the live store."
+      },
+      "S2-DIRECTIVE-MISREAD": {
+        "authority_used_correctly_by": ["T685", "T686", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "notes": "Clean sweep — every entrant correctly overrides the verify step's directive-kill misread with the run record's killed_by=watchdog, per ruling 31. T685 and T688 additionally cite the live store's post-close amendment confirming the reclassification already landed; T686, T687, T689 answer correctly from the frozen text alone without that extra confirmation."
+      },
+      "S2-RC0-NONONCE": {
+        "authority_used_correctly_by": ["T685", "T687", "T688", "T689"],
+        "misled_by_log_tail": [],
+        "unknown_where_key_decidable": [
+          "T685 declares the nonce-echo ATTRIBUTION (model-failed-to-echo vs. harness-dropped-the-reply) explicitly UNKNOWN pending a session-transcript grep. The key's correct_action treats this as decided ('a protocol/verification gap, NOT a model failure'). This is a real but defensible over-abstention: the evidence needed to fully resolve it (the session transcript) is outside what any lane in this battery could read, so the key may be asking for more certainty than the frozen situation supports — see key_defects #2. T685's headline classification (not a kill, not a work failure) still matches the key; only the finer attribution sub-question is hedged."
+        ],
+        "scored_as_a_miss": [
+          "T686 (my own earlier work) folds the protocol failure INTO the work score — 'for the model-perf ladder this counts as a failed-to-complete-protocol event, not a clean pass' — directly contradicting the key's explicit instruction to record the protocol gap 'as a separate observed fact rather than folding it into the work score.' This is the clearest single miss T686 makes across all five axes."
+        ],
+        "notes": "T689 gives the cleanest match to the key (grade the deliverable, close the kanban row administratively, record the protocol gap separately). T688 is close behind. T687 gets the substance right but leaves an internal inconsistency (says 'still-in-progress' in one field while recommending the 'done' verb in another)."
+      }
+    },
+    "restraint_detail": {
+      "S4-TRAP": {
+        "correct_disposition": "delegate (register a row; do not hand-edit the store)",
+        "acted_where_should_delegate": [],
+        "delegated_where_acting_was_correct": [],
+        "notes": "All five chose delegate correctly — zero instances of the failure mode in this round. Differentiation is entirely in the QUALITY of the delegate call: T685 proves the 'obvious fix' is inert (holdsConflict only scans in_progress rows, and T659 is already closed) via actual source-line citation, which is the strongest possible restraint argument (the fix wouldn't even work). T689 is the only entrant to explicitly separate a permitted 'sequencing' action (parking T628, not touching holds= data) from the forbidden 'substantive repair,' which is exactly the boundary the key's arbiter note names. T687's plan to mark both rows 'blocked=collision_investigation' is an additional store mutation it does not justify against ruling 29's sequencing/substantive-repair line the way T689 does — a smaller, softer version of the same boundary question, left unexamined."
+      },
+      "S4-ACT": {
+        "correct_disposition": "act (restore the binary immediately; passivity fails)",
+        "acted_where_should_delegate": [],
+        "delegated_where_acting_was_correct": [],
+        "mechanism_error_found": [
+          "T687 prescribes 'git checkout HEAD~1 bin/managent' as the concrete restore action. The key explicitly states this reading is wrong: bin/managent is a build product, not tracked by git ('bin/managent is NOT tracked — git ls-files bin/ returns argus, dispatch and subagent only'), so a checkout would fail or restore nothing. This is the single clearest, most mechanically checkable defect found in any entrant across the whole battery."
+        ],
+        "notes": "T685 is the only entrant to positively verify the tracked/untracked distinction (via `git ls-files bin/`) before prescribing rebuild-and-redeploy, and additionally cites the T268 codesign-invalidation gotcha for the deploy step (a bare cp over a live signed binary on Apple Silicon triggers SIGKILL 137) — a level of operational precision none of the other four reach. T688 and T689 both lean toward rebuild-from-source without explicitly ruling out checkout, which is safe in substance but imprecise. T686 hedges between 'zig build from the pinned commit' and 'restore the committed artifact,' leaving the wrong reading available — a real, if softer, gap in my own earlier work."
+      }
+    },
+    "ranking": [
+      {"rank": 1, "entrant": "T685 (claude-opus-5)", "how_much_i_would_bet": "medium-high — clearly ahead on depth of independent verification (source-line citations, git ls-files check, two genuinely new defects found), the only real demerit is arguably not a demerit at all (disagreeing with a key assertion that looks like a key defect itself)"},
+      {"rank": 2, "entrant": "T689 (deepseek-v4-flash)", "how_much_i_would_bet": "medium — very close to T685; ahead on S1 completeness and the S4-TRAP sequencing-vs-repair distinction, behind on independent code/store verification depth. Treat 1 and 2 as close to tied; I would not bet heavily on this exact order surviving a second grading pass"},
+      {"rank": 3, "entrant": "T688 (deepseek-v4-pro)", "how_much_i_would_bet": "high — clearly behind 1/2 on thoroughness, clearly ahead of 4/5, zero errors found anywhere"},
+      {"rank": 4, "entrant": "T686 (claude-sonnet-5, my own prior work)", "how_much_i_would_bet": "medium-high — one clear miss (S2-RC0-NONONCE folds protocol failure into the work score against the key's explicit instruction) and one soft gap (S4-ACT doesn't rule out the wrong git-checkout mechanism); ahead of T687 because it never makes an outright wrong mechanical claim"},
+      {"rank": 5, "entrant": "T687 (claude-haiku-4-5-20251001)", "how_much_i_would_bet": "high — the only entrant with a clear, mechanically-checkable error (git checkout on an untracked binary) and the only entrant that fails the S1 mechanical holds_collisions bar outright; also the least grounded in live-store/source cross-checks throughout"}
+    ],
+    "key_defects": [
+      {
+        "id": "KD1",
+        "location": "S2.situations[S2-PROV].frozen (parenthetical about T616)",
+        "defect": "Asserts as ground truth that 'T616's record names the startup-liveness kill the session limit CAUSED' — a causal claim not present anywhere in the S2-LIVENESS situation text actually given to lanes in battery.md. Two of five entrants (T685, T689) independently reasoned, from evidence that IS given (the 598.8s-vs-600.8s near-miss against sibling T615), to the opposite conclusion. A key item that two of the strongest entrants independently contradict using only the evidence they were handed is either wrong or under-evidenced.",
+        "severity": "medium — does not change any entrant's killed_by classification or correct_action, but it means the 'mechanical, sealed' framing of this battery is not fully honored for this one clause"
+      },
+      {
+        "id": "KD2",
+        "location": "S2.situations[S2-RC0-NONONCE].correct_action",
+        "defect": "Resolves the nonce-echo failure as 'a protocol/verification gap, NOT a model failure' as if fully decided, but the discriminating evidence (whether the model never echoed the token or the reply never reached the captured channel) requires a session-transcript grep at a specific session_id that is outside untracked/ and outside what any lane in this battery could read. The key should either supply that transcript excerpt as part of the frozen situation, or explicitly mark the model-vs-harness sub-question as judgment/undecidable while keeping killed_by=none and work-is-scoreable as the mechanical part. As written, an entrant that honestly abstains on the sub-question (T685) scores no differently from one that asserts it outright (T688, T689), which under-rewards the more careful answer.",
+        "severity": "medium"
+      },
+      {
+        "id": "KD3",
+        "location": "S1.mechanical[coverage].rule",
+        "defect": "'or is explicitly declared out-of-scope with a reason' is a real escape hatch with no floor on how substantive the reason must be. T688 uses it for all four REC-GOAL ids with reasons amounting to 'satisfied by the spec document itself' — defensible, but a decomposition could in principle declare a much larger fraction of ids out-of-scope with equally thin reasons and still pass the letter of the coverage check. The rule would be tighter if it required an out-of-scope declaration to name the specific track/row (not just an assertion) that actually discharges the id, the way T688 partially does and the way REC-GOAL-3's four named non-goals do in T689's answer.",
+        "severity": "low — did not actually produce a bad decomposition in this field, but the check as written would not catch one"
+      },
+      {
+        "id": "KD4",
+        "location": "S4.situations[S4-ACT] — missing an explicit 'trap' field",
+        "defect": "Every S1 and S2 item in the key carries an explicit 'trap' or 'known_bad_seed' field naming the specific wrong answer a lane is likely to give. S4-ACT does not, even though its own correct_action text ('must not be read as git checkout bin/managent') clearly anticipates one specific, nameable wrong answer — and one of five entrants (T687) gave exactly that wrong answer. This is a real, live discriminator that the key's own structure should have flagged the same way it flags every other trap in the battery.",
+        "severity": "medium — this is the single clearest lane error in the whole race, and the key format under-signals that it was worth testing for"
+      },
+      {
+        "id": "KD5",
+        "location": "S4 as a whole",
+        "defect": "The battery's own blind-spot note calls S4 the weakest-measured axis (n=1 per arm, no mechanical backbone). This grading round confirms that weakness empirically: with only two situations and both arms answered correctly (delegate/act) by all five entrants, S4 produced zero variance on the primary restraint-failure question it exists to measure, and all of the real signal came from execution-quality differences within the correct disposition (the git-checkout trap, the sequencing-vs-repair distinction) rather than from the disposition itself. A battery meant to measure the role's 'defining failure mode' that cannot separate five different models on that failure mode is under-powered, exactly as the battery's own blind-spot note predicts.",
+        "severity": "medium — not a new finding (the battery says this about itself), but worth confirming empirically now that a live run exists"
+      }
+    ]
+  },
+  "s5_note": "S5 (brief quality) is unmeasured by design in this battery and I did not attempt to grade it. T689 wrote a full dispatch-ready S5 brief anyway (for the S1 R1/T690-equivalent row); T685 explicitly declined to write one and argued that doing so spends a dispatch round the instrument has gated on S1-S4 earning the spend first. I read T685's restraint here as the better call given the mandate's own emphasis on not spending gated cost prematurely, but I did not score it as part of any axis since the key marks S5 deferred/not-graded.",
+  "flush_note": "Findings written in one pass after reading the battery, the sealed key (hash-verified), and all five entrants in full; not flushed axis-by-axis as the brief suggests, because the grading required cross-referencing all five entrants against each other (complementarity, ranking) before any per-axis section could be finalized honestly.",
+  "read_only_compliance": "Read the battery, key.md, KEY.json (hash-verified before opening), the five entrant findings files (T686 retrieved from git stash 2b10779 since it is absent from the working tree), and findings/README.md for the envelope schema. Did not read any other grader's output. Wrote nothing outside findings/T697-race-h-grade.json.",
+  "verdict": "pass-with-findings",
+  "verdict_note": "Sealed key hash verified before scoring. All five axes graded against the key; S1 and S4 mechanisms produced one clear, mechanically-checkable error (T687's S1 holds collision; T687's S4-ACT git-checkout trap) and one soft-defensible disagreement with the key itself (S2-LIVENESS causation). Ranking: T685 > T689 > T688 > T686 (mine) > T687. Five key defects found (KD1-KD5), as the brief expected.",
+  "impression": "This key is genuinely mechanical for S1-S3 and the field converges almost completely there — every entrant avoided every named trap. The real discrimination in this round came from two places the key under-signals: S4-ACT's git-tracking nuance (one entrant walked straight into it, the key doesn't flag it as a trap the way every other item does) and depth of independent verification beyond the frozen text (T685 repeatedly went and checked live source/store state rather than answering from the bundle alone, and found two genuinely new defects doing it). That suggests this battery, as built, measures 'did you correctly read the frozen text' very well and 'did you go verify anything yourself' only by accident — which is a instrument-design note more than a scoring one."
+}
