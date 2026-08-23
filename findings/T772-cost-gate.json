@@ -1,0 +1,36 @@
+{
+  "task_id": "T772",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T772 removes cost from solo model choice and installs the §5 qualification gate (measurement-methodology.md §5) plus the D027 exploration-first least-data tie-break, per the operator's 2026-08-23 ratified direction. soloPick now: (1) drops underqualified candidates regardless of cost; (2) prefers qualified over unmeasured (D027: unmeasured is eligible to try, never preferred over a qualified model); (3) breaks ties on the fewest kanban rows, drawing uniformly among the least-data set. Method is now `solo-least-data` (was `solo-cost`). Cost is REPORTING-only: shape_reasons states it and never decides, and a `trusted:false` retro reading is labelled `(trusted:false retro — reporting only)` so a retro number is never mistaken for a dispatch-time one (T746 ruling 3). The panel path's equal-marginal cost tie-break is likewise replaced by the least-data rule, so cost is removed from model choice everywhere, not just solo.\n\nFixture control (red before / green after): `test \"solo: §5-failing lane is not picked even when cheapest (T772)\"` marks a lane underqualified and asserts it is excluded even when its measured cost is the lowest. 6 new solo tests + 1 new panel tie-break test; `zig test src/managent/main.zig` is 43 passed / 3 failed, where the 3 failures are PRE-EXISTING at HEAD (commit 2ec4f93 made ox-alpha appetite SPEND and the T635 roster tests still expect 5 candidates) — outside this row's scope and not touched.\n\nBefore/after for the 12 currently-dispatchable solo rows: the method changes solo-cost → solo-least-data on all 12, but the picked model is unchanged (claude-haiku-4-5-20251001) because haiku is simultaneously the cheapest AND the least-measured candidate (7 kanban rows vs ox-alpha 8, sonnet 17, opus 20, flash 56, pro 102). The model only changes once a task-type-scoped §5 qualification record is readable by the picker: the fabrication-gate data already exists (`docs/infra/model-task-metrics.jsonl` carries `qualified:false` for haiku/audit `race1-t447-replication` and the T554 spec fabrication is recorded in `docs/infra/model-ladders.md` §spec/design), but the kanban rows carry no task_type and θ/φ are unrecorded (S07 spec LAT-FLAG-5), so the live picker honestly renders every candidate `unmeasured` and reduces to least-data. Follow-up (not this row): wire the §5 record once rows declare a task_type (T750 metric record + S06/S07), at which point haiku drops out of audit/spec rows. No claims proposed and no register rows: this row fixes a picker defect; it asserts nothing about the solver's epistemic register (T806 precedent). Inbox polled empty at claim and before done.",
+  "evidence": {
+    "before_after_solo_rows": {
+      "method_change": "solo-cost → solo-least-data on all 12 dispatchable solo rows (T709, T712, T715, T735, T750, T751, T753, T764, T787, T810, T811, T812)",
+      "picked_model": "claude-haiku-4-5-20251001 before and after — cheapest AND least-data (7 rows), so the model is unchanged until the §5 record is wired",
+      "t750_after_shape_reasons": [
+        "claude-opus-5: passed over — unmeasured, 20 ledger task(s) vs 7 (least-data) | measured cost 2582009 tokens",
+        "claude-sonnet-5: passed over — unmeasured, 17 ledger task(s) vs 7 (least-data) | measured cost 1859929 tokens",
+        "deepseek-v4-pro: passed over — unmeasured, 102 ledger task(s) vs 7 (least-data) | measured cost unknown",
+        "deepseek-v4-flash: passed over — unmeasured, 56 ledger task(s) vs 7 (least-data) | measured cost unknown",
+        "ox-alpha: passed over — unmeasured, 8 ledger task(s) vs 7 (least-data) | measured cost unknown",
+        "claude-haiku-4-5-20251001: chosen — least measured data (7 ledger task(s)) among unmeasured | measured cost 1403846 tokens"
+      ]
+    },
+    "tests": {
+      "headline_control": "solo: §5-failing lane is not picked even when cheapest (T772) — red before / green after",
+      "new_tests": [
+        "solo: §5-failing lane is not picked even when cheapest (T772)",
+        "solo: least-data qualified chosen, the two passed over recorded",
+        "solo: unmeasured is eligible but never preferred over qualified",
+        "solo: all unmeasured → least-data (D027 try), not a cost draw",
+        "solo: trusted:false retro cost is labelled in shape_reasons, never silent",
+        "solo: all underqualified → NoQualifiedCandidate",
+        "panel: equal marginals break on D027 least-data, not cost"
+      ],
+      "result": "zig test src/managent/main.zig: 43 passed, 0 skipped, 3 failed (3 pre-existing T635 roster failures from 2ec4f93 ox-alpha SPEND)"
+    },
+    "trust_grade": "readMeasuredCosts now reads the per-lane `trusted` field (absent → true, the record's clean-ledger selection) and costReport carries `has_retro` through to shape_reasons, which labels `trusted:false retro — reporting only`."
+  }
+}

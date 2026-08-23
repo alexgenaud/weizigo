@@ -1,0 +1,38 @@
+{
+  "task_id": "T772",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T772",
+  "type": "context-dump",
+  "claims": [],
+  "new_rows": [],
+  "what_was_read": [
+    "bin/managent orient (worker preamble)",
+    "untracked/T772-cost-ladder-quality-gate.md (the bundle)",
+    "findings/README.md (schema)",
+    "src/managent/main.zig — soloPick (~651), greedyPanelStep (~761), readMeasuredCosts (~822), panelPick (~952), selectForShape (~1038), cmdAssign (~7174), the T635/T636 test block (~12543)",
+    "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/measurement-methodology.md §5 (the §5 gate) and §1 (appetite)",
+    "docs/infra/complementarity.md (the cost ladder's data + the unknown-cost asymmetry)",
+    "tools/complementarity-record.json (per_lane cost/trust fields — no `trusted` field today)",
+    "tools/complementarity-inputs/race-g.json (per_lane cost/source shape)",
+    "docs/status/T746-measurement-handover.md §3.2 (trust grades), §4.1 (the defect), §5 (metric rulings), §7 (queue)",
+    "findings/T706-race-g-batch2-grade.json (haiku fabrication + canary evidence)",
+    "docs/infra/managent/directives.jsonl D027/D027b (the least-data / eight-type taxonomy)",
+    "docs/epics/E1-markovian/L1-dashboard/S07-delegation-lattice/spec.md (LAT-FLAG-5: θ/φ unrecorded; the not-a-picker boundary)",
+    "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md ORC-POL-9 (qualification step + cost-reported-only)",
+    "docs/infra/model-ladders.md §spec/design (haiku 'disqualified: fabrication gate')",
+    "docs/infra/model-task-metrics.jsonl (the existing `qualified` field — haiku/audit race1-t447-replication is qualified:false)",
+    "docs/infra/managent/tasks.json (kanban — shape census, per-model row counts)"
+  ],
+  "what_was_computed": [
+    "12 dispatchable solo rows (T709/T712/T715/T735/T750/T751/T753/T764/T787/T810/T811/T812); all others dispatchable are shape=null (legacy T635 draw, unaffected)",
+    "per-model kanban row counts: haiku 7, ox-alpha 8, sonnet 17, opus 20, flash 56, pro 102 — haiku is both cheapest (1.4M tokens median) and least-data",
+    "before/after: old binary (HEAD) picks haiku via solo-cost; new binary picks haiku via solo-least-data — method and reason change, model unchanged",
+    "the 3 failing unit tests are pre-existing at HEAD: 2ec4f93 set ox-alpha appetite SPEND, so filterQualified yields 6 candidates while the T635 roster tests expect 5"
+  ],
+  "what_was_changed": [
+    "src/managent/main.zig — soloPick rewired to qualification-first + least-data, cost reporting-only; greedyPanelStep/panelPick cost tie-break → least-data; readMeasuredCosts returns []CostReading with trust grade; selectForShape + taskCountsByModel/DataCounts census; cmdAssign computes and passes the census; 7 new/rewritten tests",
+    "findings/T772-cost-gate.json (the schema file)"
+  ],
+  "notes": "Inbox polled empty at claim, mid-row, and before done. No directives received. Deliverables declared by the bundle are src/managent/main.zig and findings/T772-cost-gate.json; this context file is the standing findings-context convention (findings/README.md principle 5)."
+}

@@ -392,7 +392,7 @@ fn isFamilyName(s: []const u8) bool {
 const AssignResult = struct {
     candidates: [][]const u8 = &.{},
     reasons: [][]const u8 = &.{},
-    method: []const u8 = "", // "random" | "forced" | "preferred" | "solo-cost" | "panel-greedy" | "panel-prior"
+    method: []const u8 = "", // "random" | "forced" | "preferred" | "solo-least-data" | "panel-greedy" | "panel-prior"
     model: []const u8 = "", // the outcome (canonical label)
     // T636: shape-selection notes — one "<model>: <why>" line per selection
     // decision (cost comparison for solo, marginal-complementarity step for
@@ -572,64 +572,175 @@ fn shapeName(s: RowShape) []const u8 {
 /// filter result is merged into an AssignResult.  Slices owned by the caller.
 const ShapePick = struct {
     model: []const u8 = "",
-    method: []const u8 = "", // "solo-cost" | "panel-greedy" | "panel-prior" | "random"
+    method: []const u8 = "", // "solo-least-data" | "panel-greedy" | "panel-prior" | "random"
 };
 
-/// Median of a measured-cost list; null when empty.  Robust to the wide
-/// cross-task-type spread of token costs (26M claim-doubt vs 1.6M
-/// discernment); it is a central reading, not a guarantee — and a candidate
-/// with no reading stays unknown rather than being assumed cheap or expensive.
-fn medianCost(costs: []const u64) ?u64 {
-    if (costs.len == 0) return null;
-    const sorted = alloc.dupe(u64, costs) catch return null;
+// ── T772: §5 qualification gate + D027 least-data tie-break ───────────────
+// Operator ruling 2026-08-23: cost is REMOVED from model choice entirely.
+// The pick is qualification first (measurement-methodology.md §5), then ties
+// among qualified models break on D027's exploration-first least-data rule.
+// Cost becomes a REPORTING surface only — shape_reasons may state it, never
+// decide on it.
+
+/// §5 qualification state of one candidate (measurement-methodology.md §5).
+const Qualification = enum {
+    /// passes the §5 gate: score ≥ θ(task_type) AND fabricated_citations == 0
+    /// AND verification_rate ≥ φ(task_type).
+    qualified,
+    /// fails the §5 gate — dropped regardless of cost or panel praise.
+    underqualified,
+    /// no §5 data for the task type.  D027: eligible to try, never excluded,
+    /// never preferred over a qualified model.
+    unmeasured,
+};
+
+/// One measured token cost plus its trust grade (T746 ruling 3: token/cpu/rss
+/// figures are collected but not trusted; a retro reading must be labelled).
+const CostReading = struct {
+    cost: u64,
+    trusted: bool, // false = source pi-session-jsonl-retro; true = dispatch-time
+};
+
+/// The reported cost for one candidate, with the trust grade carried through:
+/// `median` is null when there is no reading; `has_retro` is true when at
+/// least one reading folded into the median was `trusted: false`, so a
+/// consumer labels the number instead of mistaking a retro reading for a
+/// dispatch-time one.
+const CostReport = struct {
+    median: ?u64,
+    has_retro: bool,
+};
+
+/// Median reported cost over measured readings, trust grade carried through.
+/// It is a central reading, not a guarantee — and a candidate with no reading
+/// stays unknown rather than being assumed cheap or expensive.
+fn costReport(readings: []const CostReading) CostReport {
+    if (readings.len == 0) return .{ .median = null, .has_retro = false };
+    const sorted = alloc.alloc(u64, readings.len) catch return .{ .median = null, .has_retro = false };
     defer alloc.free(sorted);
+    var has_retro = false;
+    for (readings, 0..) |r, i| {
+        sorted[i] = r.cost;
+        if (!r.trusted) has_retro = true;
+    }
     std.mem.sort(u64, sorted, {}, struct {
         fn lt(_: void, a: u64, b: u64) bool {
             return a < b;
         }
     }.lt);
-    return sorted[sorted.len / 2];
+    return .{ .median = sorted[sorted.len / 2], .has_retro = has_retro };
 }
 
-/// Solo pick: cheapest qualified by measured cost (median over the standing
-/// complementarity record's per-lane readings).  `costs[i]` is the measured
-/// cost of `candidates[i]`; null = unknown.  Unknown is never assumed cheap
-/// or expensive: an unknown-cost candidate is never preferred over a known
-/// cheaper one, and when NO candidate has a known cost the pick falls back
-/// to a uniform draw (method=random) and says so.  Passed-over candidates are
-/// recorded with their reason (cost comparison or unknown).
-fn soloPick(candidates: []const []const u8, costs: []const ?u64, rng: std.Random, sreasons: *std.ArrayList([]const u8)) !ShapePick {
-    var cheapest: ?usize = null;
-    for (candidates, 0..) |_, i| {
-        const c = if (i < costs.len) costs[i] else null;
-        if (c == null) continue;
-        if (cheapest == null or c.? < costs[cheapest.?].?) {
-            cheapest = i;
-        }
-    }
-
-    if (cheapest == null) {
-        const picked = try drawCandidate(rng, candidates);
-        for (candidates) |c| {
-            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: measured cost unknown — random draw (no cost data)", .{c}));
-        }
-        return .{ .model = picked, .method = try alloc.dupe(u8, "random") };
-    }
-
-    const best = cheapest.?;
-    const best_cost = costs[best].?;
+/// Solo pick: qualification first (methodology §5), then least-data (D027).
+///
+/// "Qualified" here means the §5 gate — `score ≥ θ(task_type)` AND
+/// `fabricated_citations == 0` AND `verification_rate ≥ φ(task_type)` — NOT
+/// the appetite/exclusion filter, which is filterQualified's job and has
+/// already run before this function sees the list.  Cost is removed from
+/// choice entirely (operator, 2026-08-23): `costs[i]` is written into
+/// `sreasons` as a report and never decides the pick.
+///
+/// `quals[i]` is the §5 state of `candidates[i]`; `data_counts[i]` is the
+/// candidate's ledger task count (D027 least-data: fewest rows wins);
+/// `costs[i]` is the reported cost (median + trust grade).  The pick:
+///  1. drop underqualified (fails §5, excluded regardless of cost);
+///  2. among survivors prefer qualified over unmeasured (D027: unmeasured is
+///     eligible to try, never preferred over a qualified model);
+///  3. break ties on the fewest data rows, drawing uniformly among the
+///     least-data set.
+fn soloPick(
+    candidates: []const []const u8,
+    quals: []const Qualification,
+    data_counts: []const u32,
+    costs: []const CostReport,
+    rng: std.Random,
+    sreasons: *std.ArrayList([]const u8),
+) !ShapePick {
+    // 1. Drop underqualified; record the reason; collect eligible indices.
+    var eligible = std.ArrayList(usize).empty;
+    defer eligible.deinit(alloc);
     for (candidates, 0..) |c, i| {
-        if (i == best) continue;
-        const ccost = if (i < costs.len) costs[i] else null;
-        if (ccost) |v| {
-            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — measured cost {d} tokens > {d} (cheapest)", .{ c, v, best_cost }));
+        const q = if (i < quals.len) quals[i] else .unmeasured;
+        if (q == .underqualified) {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: underqualified — fails the §5 gate (score/fabricated_citations/verification_rate), excluded regardless of cost", .{c}));
+            continue;
+        }
+        try eligible.append(alloc, i);
+    }
+    if (eligible.items.len == 0) return error.NoQualifiedCandidate;
+
+    // 2. Prefer qualified over unmeasured.
+    var saw_qualified = false;
+    for (eligible.items) |i| {
+        const q = if (i < quals.len) quals[i] else .unmeasured;
+        if (q == .qualified) saw_qualified = true;
+    }
+    var preferred = std.ArrayList(usize).empty;
+    defer preferred.deinit(alloc);
+    for (eligible.items) |i| {
+        const q = if (i < quals.len) quals[i] else .unmeasured;
+        if (!saw_qualified or q == .qualified) try preferred.append(alloc, i);
+    }
+
+    // 3. Least-data among the preferred set; ties draw uniformly.
+    var min_count: u32 = std.math.maxInt(u32);
+    for (preferred.items) |i| {
+        const dc = if (i < data_counts.len) data_counts[i] else 0;
+        if (dc < min_count) min_count = dc;
+    }
+    var tied = std.ArrayList(usize).empty;
+    defer tied.deinit(alloc);
+    for (preferred.items) |i| {
+        const dc = if (i < data_counts.len) data_counts[i] else 0;
+        if (dc == min_count) try tied.append(alloc, i);
+    }
+
+    const chosen_idx = if (tied.items.len == 1)
+        tied.items[0]
+    else
+        tied.items[rng.uintLessThan(usize, tied.items.len)];
+
+    const chosen_dc = if (chosen_idx < data_counts.len) data_counts[chosen_idx] else 0;
+    const chosen_q = if (chosen_idx < quals.len) quals[chosen_idx] else .unmeasured;
+    const chosen_rep = if (chosen_idx < costs.len) costs[chosen_idx] else CostReport{ .median = null, .has_retro = false };
+
+    for (candidates, 0..) |c, i| {
+        const q = if (i < quals.len) quals[i] else .unmeasured;
+        if (q == .underqualified or i == chosen_idx) continue;
+        const dc = if (i < data_counts.len) data_counts[i] else 0;
+        const rep = if (i < costs.len) costs[i] else CostReport{ .median = null, .has_retro = false };
+
+        var costbuf: [96]u8 = undefined;
+        const cost_text: []const u8 = blk: {
+            if (rep.median) |m| {
+                if (rep.has_retro) break :blk std.fmt.bufPrint(&costbuf, "{d} tokens (trusted:false retro — reporting only)", .{m}) catch "unknown";
+                break :blk std.fmt.bufPrint(&costbuf, "{d} tokens", .{m}) catch "unknown";
+            }
+            break :blk "unknown";
+        };
+        if (q == .qualified) {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — qualified, {d} ledger task(s) vs {d} (least-data) | measured cost {s}", .{ c, dc, chosen_dc, cost_text }));
+        } else if (saw_qualified) {
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — unmeasured (§5 no data), a qualified model exists | measured cost {s}", .{ c, cost_text }));
         } else {
-            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — measured cost unknown (not compared)", .{c}));
+            try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: passed over — unmeasured, {d} ledger task(s) vs {d} (least-data) | measured cost {s}", .{ c, dc, chosen_dc, cost_text }));
         }
     }
+
+    var ccostbuf: [96]u8 = undefined;
+    const chosen_cost_text: []const u8 = blk: {
+        if (chosen_rep.median) |m| {
+            if (chosen_rep.has_retro) break :blk std.fmt.bufPrint(&ccostbuf, "{d} tokens (trusted:false retro — reporting only)", .{m}) catch "unknown";
+            break :blk std.fmt.bufPrint(&ccostbuf, "{d} tokens", .{m}) catch "unknown";
+        }
+        break :blk "unknown";
+    };
+    const chosen_kind: []const u8 = if (chosen_q == .qualified) "qualified" else "unmeasured";
+    try sreasons.append(alloc, try std.fmt.allocPrint(alloc, "{s}: chosen — least measured data ({d} ledger task(s)) among {s} | measured cost {s}", .{ candidates[chosen_idx], chosen_dc, chosen_kind, chosen_cost_text }));
+
     return .{
-        .model = try alloc.dupe(u8, candidates[best]),
-        .method = try alloc.dupe(u8, "solo-cost"),
+        .model = try alloc.dupe(u8, candidates[chosen_idx]),
+        .method = try alloc.dupe(u8, "solo-least-data"),
     };
 }
 
@@ -642,15 +753,15 @@ fn indexOfModel(names: []const []const u8, model: []const u8) ?usize {
 
 /// One greedy-marginal-complementarity step: given the already-seated models,
 /// pick the model whose caught set adds the most items no seated model
-/// caught.  This is the "expected unique catches per token" ranking — cost is
-/// the tie-break among equal marginals (a known cheaper cost beats an unknown
-/// one; an unmeasured expectation is a prior and never preferred over a
-/// measured one).  Returns the index into `model_names`, or null when no
-/// candidate adds a unique catch (diminishing returns).
+/// caught.  This is the "expected unique catches" ranking.  Cost is removed
+/// from choice (operator, 2026-08-23): ties among equal marginals break on
+/// D027's least-data rule (fewer ledger task rows wins), never on cost.
+/// Returns the index into `model_names`, or null when no candidate adds a
+/// unique catch (diminishing returns).
 fn greedyPanelStep(
     model_names: []const []const u8,
     caught_sets: []const []const []const u8,
-    costs: []const ?u64,
+    data_counts: []const u32,
     seats: []const []const u8,
     sreasons: *std.ArrayList([]const u8),
 ) !?usize {
@@ -684,13 +795,9 @@ fn greedyPanelStep(
             best = i;
             best_marginal = marginal;
         } else if (marginal == best_marginal) {
-            const c_new = if (i < costs.len) costs[i] else null;
-            const c_best = if (best.? < costs.len) costs[best.?] else null;
-            if (c_new != null and c_best != null and c_new.? < c_best.?) {
-                best = i;
-            } else if (c_new != null and c_best == null) {
-                best = i;
-            }
+            const dc_new = if (i < data_counts.len) data_counts[i] else 0;
+            const dc_best = if (best.? < data_counts.len) data_counts[best.?] else 0;
+            if (dc_new < dc_best) best = i;
         }
     }
 
@@ -704,10 +811,15 @@ fn greedyPanelStep(
 }
 
 /// Read every measured per-lane token cost for `model` from the standing
-/// complementarity record (T637's `tools/complementarity-record.json`).
-/// Empty when the record is absent or has no reading — a missing cost is
-/// "unknown", never guessed cheap or expensive.
-fn readMeasuredCosts(io: std.Io, repo_root: []const u8, model: []const u8) ![]u64 {
+/// complementarity record (T637's `tools/complementarity-record.json`),
+/// carrying the trust grade (T746 ruling 3: token/cpu/rss figures are
+/// collected but not trusted; a retro reading must be labelled, never
+/// flattened into a dispatch-time one).  A per-lane `trusted: false` reading
+/// (source pi-session-jsonl-retro) is carried through; an absent `trusted`
+/// field defaults to true, because the record's costs are the reducer's
+/// "clean ledger reading" selection.  Empty when the record is absent or has
+/// no reading — a missing cost is "unknown", never guessed cheap or expensive.
+fn readMeasuredCosts(io: std.Io, repo_root: []const u8, model: []const u8) ![]CostReading {
     const path = std.fs.path.join(alloc, &.{ repo_root, "tools", "complementarity-record.json" }) catch return &.{};
     defer alloc.free(path);
     const content = std.Io.Dir.cwd().readFileAlloc(io, path, alloc, .unlimited) catch |err| {
@@ -719,7 +831,7 @@ fn readMeasuredCosts(io: std.Io, repo_root: []const u8, model: []const u8) ![]u6
     var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return &.{};
     defer parsed.deinit();
 
-    var costs = std.ArrayList(u64).empty;
+    var readings = std.ArrayList(CostReading).empty;
     if (parsed.value != .object) return &.{};
     const groups = parsed.value.object.get("groups") orelse return &.{};
     if (groups != .object) return &.{};
@@ -737,12 +849,16 @@ fn readMeasuredCosts(io: std.Io, repo_root: []const u8, model: []const u8) ![]u6
             if (m != .string or !std.mem.eql(u8, m.string, model)) continue;
             if (lane.object.get("cost")) |cv| {
                 if (cv == .integer) {
-                    try costs.append(alloc, @intCast(cv.integer));
+                    var trusted = true;
+                    if (lane.object.get("trusted")) |tv| {
+                        if (tv == .bool) trusted = tv.bool;
+                    }
+                    try readings.append(alloc, .{ .cost = @intCast(cv.integer), .trusted = trusted });
                 }
             }
         }
     }
-    return costs.toOwnedSlice(alloc);
+    return readings.toOwnedSlice(alloc);
 }
 
 /// model → caught-item set, aggregated across every group of the standing
@@ -829,13 +945,14 @@ fn buildCaughtSets(io: std.Io, repo_root: []const u8) !CaughtSets {
 
 /// Panel pick: anchor + greedy marginal complementarity over the standing
 /// complementarity record (a `CaughtSets` map, possibly empty).  Empty map =
-/// prior-driven (uniform draw, labelled loudly).  `costs` is the parallel
-/// per-candidate measured cost (median) used only as the tie-break among
-/// equal marginals.  Pure over its inputs — testable with seeded fixtures.
+/// prior-driven (uniform draw, labelled loudly).  `data_counts` is the
+/// parallel per-candidate ledger task count, used only as the D027 least-data
+/// tie-break among equal marginals (cost is removed from choice).  Pure over
+/// its inputs — testable with seeded fixtures.
 fn panelPick(
     candidates: []const []const u8,
     caught: *const CaughtSets,
-    costs: []const ?u64,
+    data_counts: []const u32,
     seats: []const []const u8,
     rng: std.Random,
     sreasons: *std.ArrayList([]const u8),
@@ -847,8 +964,8 @@ fn panelPick(
         for (measured_caught.items) |s| alloc.free(s);
         measured_caught.deinit(alloc);
     }
-    var measured_costs = std.ArrayList(?u64).empty;
-    defer measured_costs.deinit(alloc);
+    var measured_counts = std.ArrayList(u32).empty;
+    defer measured_counts.deinit(alloc);
 
     for (candidates, 0..) |c, i| {
         const entry = caught.get(c);
@@ -861,7 +978,7 @@ fn panelPick(
         while (it2.next()) |e| try items.append(alloc, e.key_ptr.*);
         try measured.append(alloc, c);
         try measured_caught.append(alloc, try items.toOwnedSlice(alloc));
-        try measured_costs.append(alloc, if (i < costs.len) costs[i] else null);
+        try measured_counts.append(alloc, if (i < data_counts.len) data_counts[i] else 0);
     }
 
     if (measured.items.len == 0) {
@@ -870,7 +987,7 @@ fn panelPick(
         return .{ .model = picked, .method = try alloc.dupe(u8, "panel-prior") };
     }
 
-    const next = try greedyPanelStep(measured.items, measured_caught.items, measured_costs.items, seats, sreasons);
+    const next = try greedyPanelStep(measured.items, measured_caught.items, measured_counts.items, seats, sreasons);
     const idx = next orelse return error.PanelFull;
     return .{
         .model = try alloc.dupe(u8, measured.items[idx]),
@@ -878,19 +995,54 @@ fn panelPick(
     };
 }
 
+/// D027 least-data census: count kanban rows per canonical model.  A row whose
+/// `model` is not a canonical label (null / "unattributed") is not counted
+/// against any model.  Note this is the whole-store count — the kanban carries
+/// no killed_by field, so it cannot apply the guard-kill censoring the
+/// fleet-keeper's least-data picker reads from the perf ledger (T629/Ruling
+/// 32).  Both pickers agree on the rule (fewest rows wins), not on the
+/// censored denominator.
+const DataCounts = std.StringHashMapUnmanaged(u32);
+
+fn taskCountsByModel(state: *const StateMap) !DataCounts {
+    var map = DataCounts{};
+    errdefer freeDataCounts(&map);
+    var it = state.iterator();
+    while (it.next()) |e| {
+        const m = e.value_ptr.model orelse continue;
+        if (!isCanonicalModel(m)) continue;
+        const entry = try map.getOrPut(alloc, m);
+        if (!entry.found_existing) {
+            entry.key_ptr.* = try alloc.dupe(u8, m);
+            entry.value_ptr.* = 0;
+        }
+        entry.value_ptr.* += 1;
+    }
+    return map;
+}
+
+fn freeDataCounts(map: *DataCounts) void {
+    var it = map.iterator();
+    while (it.next()) |e| alloc.free(e.key_ptr.*);
+    map.deinit(alloc);
+}
+
 /// Shape-aware assignment (ruling 34).  `shape == null` is the legacy T635
 /// draw (an existing row with no shape behaves exactly as before).  For a
-/// solo row the multi-candidate pick is cheapest-measured-cost; for a panel
-/// row it is anchor + greedy marginal complementarity over the standing
-/// record.  `requested` (--model) and a one-element qualified list behave as
-/// in T635 regardless of shape.  `seats` names already-seated models (panel
-/// only).  The T635 filter (candidates/reasons) is shared, so the
-/// candidates/method record is written identically whichever shape applied.
+/// solo row the multi-candidate pick is qualification-first + least-data
+/// (T772: cost is removed from choice and reported only); for a panel row it
+/// is anchor + greedy marginal complementarity over the standing record.
+/// `requested` (--model) and a one-element qualified list behave as in T635
+/// regardless of shape.  `seats` names already-seated models (panel only).
+/// `counts` is the D027 least-data census.  The T635 filter
+/// (candidates/reasons) is shared, so the candidates/method record is written
+/// identically whichever shape applied.
 fn selectForShape(
     shape: ?RowShape,
     requested: ?[]const u8,
     exclusions: []const []const u8,
     seats: []const []const u8,
+    counts: *const DataCounts,
     rng: std.Random,
     io: std.Io,
     repo_root: []const u8,
@@ -926,28 +1078,37 @@ fn selectForShape(
         const cands = lists.candidates.items;
         switch (shape.?) {
             .solo => {
-                var costs = std.ArrayList(?u64).empty;
+                var costs = std.ArrayList(CostReport).empty;
                 defer costs.deinit(alloc);
+                var quals = std.ArrayList(Qualification).empty;
+                defer quals.deinit(alloc);
+                var data_counts = std.ArrayList(u32).empty;
+                defer data_counts.deinit(alloc);
                 for (cands) |c| {
                     const readings = try readMeasuredCosts(io, repo_root, c);
                     defer alloc.free(readings);
-                    try costs.append(alloc, medianCost(readings));
+                    try costs.append(alloc, costReport(readings));
+                    // No machine-readable §5 record exists yet: θ/φ are
+                    // unrecorded and fabricated_citations/verification_rate
+                    // live only in findings files.  Every candidate is
+                    // `unmeasured` — D027 admits unmeasured as eligible to
+                    // try, so the live pick reduces to least-data.
+                    try quals.append(alloc, Qualification.unmeasured);
+                    try data_counts.append(alloc, counts.get(c) orelse 0);
                 }
-                const pick = try soloPick(cands, costs.items, rng, &sreasons);
+                const pick = try soloPick(cands, quals.items, data_counts.items, costs.items, rng, &sreasons);
                 model = pick.model;
                 method = pick.method;
             },
             .panel => {
                 var caught = try buildCaughtSets(io, repo_root);
                 defer freeCaughtSets(&caught);
-                var costs = std.ArrayList(?u64).empty;
-                defer costs.deinit(alloc);
+                var data_counts = std.ArrayList(u32).empty;
+                defer data_counts.deinit(alloc);
                 for (cands) |c| {
-                    const readings = try readMeasuredCosts(io, repo_root, c);
-                    defer alloc.free(readings);
-                    try costs.append(alloc, medianCost(readings));
+                    try data_counts.append(alloc, counts.get(c) orelse 0);
                 }
-                const pick = try panelPick(cands, &caught, costs.items, seats, rng, &sreasons);
+                const pick = try panelPick(cands, &caught, data_counts.items, seats, rng, &sreasons);
                 model = pick.model;
                 method = pick.method;
             },
@@ -7015,6 +7176,11 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     defer unlockStore();
     var state = try readState(io, state_path);
 
+    // T772: D027 least-data census over the live kanban (task count per
+    // canonical model) — the tie-break among §5-qualified models.
+    var counts = try taskCountsByModel(&state);
+    defer freeDataCounts(&counts);
+
     const ts_ptr = state.getPtr(id) orelse {
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
@@ -7074,7 +7240,7 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     // Draw with OS entropy (ruling 33: never a seeded PRNG, never clock/task).
     var os = OsEntropy{ .io = io };
     const rng = std.Random.init(&os, OsEntropy.fill);
-    var result = selectForShape(shape, requested, exclusions.items, seats.items, rng, io, repo_root) catch |err| {
+    var result = selectForShape(shape, requested, exclusions.items, seats.items, &counts, rng, io, repo_root) catch |err| {
         if (err == error.NoQualifiedCandidate) {
             if (use_json) {
                 w.data("{{\"id\":\"{s}\",\"error\":\"no-qualified-candidate\",\"candidates\":[],\"reasons\":[]}}\n", .{id});
@@ -12379,22 +12545,60 @@ test "shape: shape + shape_reasons round-trip serialize → parse" {
     try std.testing.expectEqualStrings("claude-opus-5: adds 3 unique catch(es) given seats so far", p.shape_reasons[0]);
 }
 
-test "solo: cheapest qualified chosen, the two passed over recorded" {
+test "solo: §5-failing lane is not picked even when cheapest (T772)" {
     var prng = std.Random.DefaultPrng.init(0);
-    const cands = [_][]const u8{ "claude-opus-5", "claude-sonnet-5", "deepseek-v4-flash" };
-    const costs = [_]?u64{ 5000, 2000, 3000 };
+    // haiku is the cheapest by far but fails the §5 gate; opus and flash are
+    // qualified.  The pick must never reach haiku — the defect this row fixes.
+    const cands = [_][]const u8{ "claude-haiku-4-5-20251001", "claude-opus-5", "deepseek-v4-flash" };
+    const quals = [_]Qualification{ .underqualified, .qualified, .qualified };
+    const data_counts = [_]u32{ 5, 20, 30 };
+    const costs = [_]CostReport{
+        .{ .median = 1000, .has_retro = false },
+        .{ .median = 2000, .has_retro = false },
+        .{ .median = 3000, .has_retro = false },
+    };
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
 
-    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    const pick = try soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons);
     defer alloc.free(pick.model);
     defer alloc.free(pick.method);
+    // opus: qualified, and fewer ledger rows (20) than flash (30).
+    try std.testing.expectEqualStrings("claude-opus-5", pick.model);
+    try std.testing.expectEqualStrings("solo-least-data", pick.method);
+    var saw_underqualified = false;
+    for (sreasons.items) |r| {
+        if (std.mem.indexOf(u8, r, "claude-haiku-4-5-20251001: underqualified") != null) saw_underqualified = true;
+    }
+    try std.testing.expect(saw_underqualified);
+}
+
+test "solo: least-data qualified chosen, the two passed over recorded" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const cands = [_][]const u8{ "claude-opus-5", "claude-sonnet-5", "deepseek-v4-flash" };
+    const quals = [_]Qualification{ .qualified, .qualified, .qualified };
+    const data_counts = [_]u32{ 50, 20, 30 };
+    const costs = [_]CostReport{
+        .{ .median = 5000, .has_retro = false },
+        .{ .median = 2000, .has_retro = false },
+        .{ .median = 3000, .has_retro = false },
+    };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+
+    const pick = try soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    // sonnet is cheapest but that no longer decides: it has the FEWEST rows.
     try std.testing.expectEqualStrings("claude-sonnet-5", pick.model);
-    try std.testing.expectEqualStrings("solo-cost", pick.method);
-    try std.testing.expectEqual(@as(usize, 2), sreasons.items.len);
+    try std.testing.expectEqualStrings("solo-least-data", pick.method);
+    try std.testing.expectEqual(@as(usize, 3), sreasons.items.len);
     var saw_opus = false;
     var saw_flash = false;
     for (sreasons.items) |r| {
@@ -12405,51 +12609,93 @@ test "solo: cheapest qualified chosen, the two passed over recorded" {
     try std.testing.expect(saw_flash);
 }
 
-test "solo: cheapest excluded by a constraint → next cheapest chosen" {
+test "solo: unmeasured is eligible but never preferred over qualified" {
     var prng = std.Random.DefaultPrng.init(0);
-    // The cheapest model was excluded upstream, so the qualified list handed
-    // to soloPick is {B, C}; the pick must be the next cheapest (B) and C is
-    // recorded as passed over.  (The exclusion itself is filterQualified's
-    // job and its reason is covered by the T635 exclusion tests.)
-    const cands = [_][]const u8{ "B", "C" };
-    const costs = [_]?u64{ 200, 300 };
+    // pro is unmeasured with 0 ledger rows (least-data) but a qualified model
+    // exists, so the qualified one wins — D027: unmeasured is eligible, never
+    // preferred over qualified.
+    const cands = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro" };
+    const quals = [_]Qualification{ .qualified, .unmeasured };
+    const data_counts = [_]u32{ 100, 0 };
+    const costs = [_]CostReport{
+        .{ .median = null, .has_retro = false },
+        .{ .median = null, .has_retro = false },
+    };
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
-    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    const pick = try soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons);
     defer alloc.free(pick.model);
     defer alloc.free(pick.method);
-    try std.testing.expectEqualStrings("B", pick.model);
-    try std.testing.expectEqualStrings("solo-cost", pick.method);
-    try std.testing.expectEqual(@as(usize, 1), sreasons.items.len);
-    try std.testing.expect(std.mem.indexOf(u8, sreasons.items[0], "C: passed over") != null);
+    try std.testing.expectEqualStrings("claude-opus-5", pick.model);
+    try std.testing.expectEqualStrings("solo-least-data", pick.method);
 }
 
-test "solo: all costs unknown → random draw, labelled unknown (never assumed)" {
+test "solo: all unmeasured → least-data (D027 try), not a cost draw" {
     var prng = std.Random.DefaultPrng.init(0);
     const cands = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro", "deepseek-v4-flash" };
-    const costs = [_]?u64{ null, null, null };
+    const quals = [_]Qualification{ .unmeasured, .unmeasured, .unmeasured };
+    const data_counts = [_]u32{ 30, 5, 10 };
+    const costs = [_]CostReport{
+        .{ .median = null, .has_retro = false },
+        .{ .median = null, .has_retro = false },
+        .{ .median = null, .has_retro = false },
+    };
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
-    const pick = try soloPick(&cands, &costs, prng.random(), &sreasons);
+    const pick = try soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons);
     defer alloc.free(pick.model);
     defer alloc.free(pick.method);
-    try std.testing.expectEqualStrings("random", pick.method);
-    // The draw is over the qualified list — one of the three.
-    var is_candidate = false;
-    for (cands) |c| {
-        if (std.mem.eql(u8, c, pick.model)) is_candidate = true;
+    // pro has the fewest ledger rows (5) → the exploration pick.
+    try std.testing.expectEqualStrings("deepseek-v4-pro", pick.model);
+    try std.testing.expectEqualStrings("solo-least-data", pick.method);
+}
+
+test "solo: trusted:false retro cost is labelled in shape_reasons, never silent" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const cands = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro" };
+    const quals = [_]Qualification{ .qualified, .qualified };
+    const data_counts = [_]u32{ 10, 20 };
+    const costs = [_]CostReport{
+        .{ .median = 5000, .has_retro = true },
+        .{ .median = null, .has_retro = false },
+    };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
     }
-    try std.testing.expect(is_candidate);
-    try std.testing.expectEqual(@as(usize, 3), sreasons.items.len);
+    const pick = try soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons);
+    defer alloc.free(pick.model);
+    defer alloc.free(pick.method);
+    try std.testing.expectEqualStrings("claude-opus-5", pick.model);
+    var saw_retro = false;
     for (sreasons.items) |r| {
-        try std.testing.expect(std.mem.indexOf(u8, r, "measured cost unknown") != null);
+        if (std.mem.indexOf(u8, r, "trusted:false retro") != null) saw_retro = true;
     }
+    try std.testing.expect(saw_retro);
+}
+
+test "solo: all underqualified → NoQualifiedCandidate" {
+    var prng = std.Random.DefaultPrng.init(0);
+    const cands = [_][]const u8{ "A", "B" };
+    const quals = [_]Qualification{ .underqualified, .underqualified };
+    const data_counts = [_]u32{ 0, 0 };
+    const costs = [_]CostReport{
+        .{ .median = null, .has_retro = false },
+        .{ .median = null, .has_retro = false },
+    };
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    try std.testing.expectError(error.NoQualifiedCandidate, soloPick(&cands, &quals, &data_counts, &costs, prng.random(), &sreasons));
 }
 
 test "panel: B strict subset of A → disjoint C is the second seat, not B" {
@@ -12459,14 +12705,14 @@ test "panel: B strict subset of A → disjoint C is the second seat, not B" {
         &.{ "x", "y" },
         &.{ "w" },
     };
-    const costs = [_]?u64{ null, null, null };
+    const data_counts = [_]u32{ 0, 0, 0 };
     const seats = [_][]const u8{"A"};
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
-    const next = try greedyPanelStep(&names, &caught, &costs, &seats, &sreasons);
+    const next = try greedyPanelStep(&names, &caught, &data_counts, &seats, &sreasons);
     const idx = next orelse return error.TestFailed;
     try std.testing.expectEqualStrings("C", names[idx]);
     try std.testing.expectEqual(@as(usize, 1), sreasons.items.len);
@@ -12480,16 +12726,32 @@ test "panel: empty seats → anchor is the highest-coverage model" {
         &.{ "x", "y" },
         &.{ "w" },
     };
-    const costs = [_]?u64{ null, null, null };
+    const data_counts = [_]u32{ 0, 0, 0 };
     const seats = [_][]const u8{};
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
-    const next = try greedyPanelStep(&names, &caught, &costs, &seats, &sreasons);
+    const next = try greedyPanelStep(&names, &caught, &data_counts, &seats, &sreasons);
     const idx = next orelse return error.TestFailed;
     try std.testing.expectEqualStrings("A", names[idx]);
+}
+
+test "panel: equal marginals break on D027 least-data, not cost" {
+    const names = [_][]const u8{ "A", "B" };
+    const caught = [_][]const []const u8{ &.{"x"}, &.{"y"} };
+    const data_counts = [_]u32{ 50, 5 };
+    const seats = [_][]const u8{};
+    var sreasons = std.ArrayList([]const u8).empty;
+    defer {
+        for (sreasons.items) |x| alloc.free(x);
+        sreasons.deinit(alloc);
+    }
+    const next = try greedyPanelStep(&names, &caught, &data_counts, &seats, &sreasons);
+    const idx = next orelse return error.TestFailed;
+    // Both add one unique catch given empty seats; B has the fewest rows.
+    try std.testing.expectEqualStrings("B", names[idx]);
 }
 
 test "panel: empty complementarity record → prior-driven, labelled loudly" {
@@ -12497,7 +12759,7 @@ test "panel: empty complementarity record → prior-driven, labelled loudly" {
     const candidates = [_][]const u8{ "claude-opus-5", "deepseek-v4-pro" };
     var caught = CaughtSets{};
     defer freeCaughtSets(&caught);
-    const costs = [_]?u64{ null, null };
+    const data_counts = [_]u32{ 0, 0 };
     const seats = [_][]const u8{};
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
@@ -12505,7 +12767,7 @@ test "panel: empty complementarity record → prior-driven, labelled loudly" {
         sreasons.deinit(alloc);
     }
 
-    const pick = try panelPick(&candidates, &caught, &costs, &seats, prng.random(), &sreasons);
+    const pick = try panelPick(&candidates, &caught, &data_counts, &seats, prng.random(), &sreasons);
     defer alloc.free(pick.model);
     defer alloc.free(pick.method);
     try std.testing.expectEqualStrings("panel-prior", pick.method);
@@ -12544,14 +12806,14 @@ test "panel: greedy marginal over a seeded caught map picks the disjoint seat" {
         eC.value_ptr.* = .{};
         try eC.value_ptr.put(alloc, try alloc.dupe(u8, "w"), {});
     }
-    const costs = [_]?u64{ null, null, null };
+    const data_counts = [_]u32{ 0, 0, 0 };
     const seats = [_][]const u8{"A"};
     var sreasons = std.ArrayList([]const u8).empty;
     defer {
         for (sreasons.items) |x| alloc.free(x);
         sreasons.deinit(alloc);
     }
-    const pick = try panelPick(&candidates, &caught, &costs, &seats, prng.random(), &sreasons);
+    const pick = try panelPick(&candidates, &caught, &data_counts, &seats, prng.random(), &sreasons);
     defer alloc.free(pick.model);
     defer alloc.free(pick.method);
     try std.testing.expectEqualStrings("panel-greedy", pick.method);
