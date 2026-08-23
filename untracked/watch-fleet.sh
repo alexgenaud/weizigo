@@ -7,7 +7,8 @@
 #   header and RECENT mtimes).
 # Layout: PROGRESS, CONCERNS (current) and RECENT (resolved/killed) always show every row.
 # DONE and OPEN show at least MIN_ROWS each (when they have that much data), expand into
-# whatever height is left, and never exceed MAX_ROWS.
+# whatever height is left, and never exceed MAX_ROWS. T738: no banner header, and a
+# section with zero rows prints NOTHING — no heading, no "(none)".
 MAX_ROWS=20
 MIN_ROWS=4
 # Refresh escalates: every 10 s for the first minute, every minute for the first hour, hourly after.
@@ -236,9 +237,12 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
     for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
-    # 9 fixed lines (title + blank&heading x4), up to 2 "(more)" lines, 1 spare so the
-    # header never scrolls off — undercounting here is what pushed the title into scrollback.
-    avail=$(( ROWS - 16 - np - nc - nr ))    # +2 for RECENT heading, +2 for the footer
+    # T738: the banner is gone, so the fixed reserve is only the headings/blanks of the
+    # sections that will actually print (2k-1), up to 2 "(more)" lines, 1 footer, 1 spare
+    # so the footer never scrolls off — undercounting here is what pushed the title into
+    # scrollback. k=5 (all sections show) gives 2k+6 = 16, the pre-T738 constant.
+    k=$(( (np>0) + (nc>0) + (nr>0) + (nd>0) + (no>0) ))
+    avail=$(( ROWS - 2*k - 6 - np - nc - nr ))
     ds=$(( avail / 2 )); os=$(( avail - ds ))
     [ "$ds" -gt "$nd" ] && { os=$(( os + ds - nd )); ds=$nd; }
     [ "$os" -gt "$no" ] && { ds=$(( ds + os - no )); os=$no; }
@@ -247,13 +251,19 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     [ "$ds" -gt "$MAX_ROWS" ] && ds=$MAX_ROWS
     [ "$os" -gt "$MAX_ROWS" ] && os=$MAX_ROWS
 
-    clear
-    printf '=== weizigo fleet — %s local ===\n' "$(date '+%H:%M:%S')"
-    printf '\nPROGRESS'; [ "$np" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.prog"; }
-    printf '\nCONCERNS'; [ "$nc" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.conc"; }
-    printf '\nRECENT';   [ "$nr" = 0 ] && printf ' (none)\n' || { printf '\n'; cat "$T.recent"; }
-    printf '\nDONE';     show "$T.done" "$ds"
-    printf '\nOPEN';     show "$T.open" "$os"
+    # T738: clear only on a real terminal — in one-shot/pipe mode the ESC
+    # sequence would land on the same line as the first heading and break
+    # line-anchored parsing of the frame (banner used to absorb it).
+    [ -t 1 ] && clear
+    # T738: a section with zero rows prints nothing — no heading, no "(none)";
+    # a blank line separates sections only when a section actually follows.
+    # `%b` (not `%s`) so sep='\n' renders as a newline, not two literal chars.
+    sep=""
+    [ "$np" -gt 0 ] && { printf '%bPROGRESS\n' "$sep"; cat "$T.prog"; sep='\n'; }
+    [ "$nc" -gt 0 ] && { printf '%bCONCERNS\n' "$sep"; cat "$T.conc"; sep='\n'; }
+    [ "$nr" -gt 0 ] && { printf '%bRECENT\n' "$sep"; cat "$T.recent"; sep='\n'; }
+    [ "$nd" -gt 0 ] && { printf '%bDONE' "$sep"; show "$T.done" "$ds"; sep='\n'; }
+    [ "$no" -gt 0 ] && { printf '%bOPEN' "$sep"; show "$T.open" "$os"; sep='\n'; }
     [ "$ONESHOT" = 1 ] && { cleanup; exit 0; }
 
     # how long have we been watching? refresh rate follows that, not the clock

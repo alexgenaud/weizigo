@@ -407,6 +407,67 @@ fi
 if [ "$h_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORK4"
 
+# ── Arm I: T738 — banner dropped, zero-row sections print nothing (LIVE file) ─
+# Operator ruling 2026-08-23 (interim until watch-fleet becomes a managent
+# subcommand): remove the "=== weizigo ..." banner and print NOTHING for a
+# section with zero rows — no heading, no "(none)". Red against the pre-T738
+# live file (banner + "(none)" markers + all five headings always rendered);
+# green after. Two frames: one with a single PROGRESS row (the other four
+# sections empty -> their headings must not appear), one with an empty store
+# (-> the whole frame is empty once the `clear` escape is stripped).
+echo "  I. banner dropped; zero-row sections print nothing (live file)"
+WORKI=$(mktemp -d /private/tmp/weizigo/wf-trim-XXXXXX)
+mkdir -p "$WORKI/bin" "$WORKI/untracked" "$WORKI/docs/infra/managent"
+ln -s "$MG" "$WORKI/bin/managent"
+git -C "$WORKI" init -q
+git -C "$WORKI" config user.email t738@test
+git -C "$WORKI" config user.name T738
+STOREI="$WORKI/docs/infra/managent/tasks.json"
+LIVE_COPYI="$WORKI/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPYI" 2>/dev/null
+printf '<!--managent -->\n# T970 — single surface row\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORKI/untracked/T970-bundle.md"
+printf '{\n  "T970":{"status":"in_progress","agent":"x","model":"x","bundle":"untracked/T970-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STOREI"
+bash -c "cd '$WORKI' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T970-bundle.md' sleep 90" &
+PI970=$!
+sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+# env -u WATCH_FLEET_SOURCE: arms A/E source the fleet file under
+# WATCH_FLEET_SOURCE=1 and macOS sh exports the assignment, so the live copy
+# would exit at its source-guard with an empty frame. Scrub it (as arm H does).
+FRAME_I=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREI" FLEET_COLS=200 sh "$LIVE_COPYI" </dev/null 2>/dev/null)
+kill "$PI970" 2>/dev/null; wait "$PI970" 2>/dev/null
+i_fail=0
+# `clear` is skipped when stdout is not a tty (T738), so the frame should be
+# escape-free already; strip defensively in case a future change reintroduces
+# them (bash $'...' so BSD sed never sees the \x1b escape).
+STRIP_I=$(printf '%s' "$FRAME_I" | sed $'s/\x1b\[[0-9;]*[A-Za-z]//g')
+if printf '%s' "$STRIP_I" | grep -q '=== weizigo'; then
+    echo "    FAIL: banner '=== weizigo' still rendered"; i_fail=1
+fi
+if printf '%s' "$STRIP_I" | grep -q '(none)'; then
+    echo "    FAIL: '(none)' marker still rendered"; i_fail=1
+fi
+# a heading must sit at column 0: a literal '\\n' anywhere means a separator
+# was printed as two chars instead of a newline (the %s-vs-%b sep bug, T738)
+if printf '%s' "$STRIP_I" | grep -q '\\n'; then
+    echo "    FAIL: literal '\\n' sequence rendered (sep bug):"; printf '%s' "$STRIP_I" | grep -n '\\n' | head -3; i_fail=1
+fi
+for sec in CONCERNS RECENT DONE OPEN; do
+    if printf '%s' "$STRIP_I" | grep -Eq "^$sec$"; then
+        echo "    FAIL: empty section '$sec' still prints a heading"; i_fail=1
+    fi
+done
+printf '%s' "$STRIP_I" | grep -q '^PROGRESS$' || { echo "    FAIL: PROGRESS heading missing from a non-empty frame"; i_fail=1; }
+printf '%s' "$STRIP_I" | grep -q '^  T970 ' || { echo "    FAIL: T970 row missing from PROGRESS:"; printf '%s\n' "$STRIP_I"; i_fail=1; }
+# empty store -> the entire frame must be empty (no heading, no '(none)' stub)
+printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STOREI"
+FRAME_I2=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREI" FLEET_COLS=200 sh "$LIVE_COPYI" </dev/null 2>/dev/null)
+STRIP_I2=$(printf '%s' "$FRAME_I2" | sed $'s/\x1b\[[0-9;]*[A-Za-z]//g' | tr -d ' \t\n')
+if [ -n "$STRIP_I2" ]; then
+    echo "    FAIL: all-empty dashboard should print nothing, got: '$(printf '%s' "$STRIP_I2" | head -c 120)'"; i_fail=1
+fi
+if [ "$i_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKI"
+
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
     exit 1
