@@ -77,176 +77,386 @@ FAILURE_VERDICTS = ("blocked", "fail-found", "abandoned")
 # owner, and a second owner is a defect (the 2026-08-20 fleet audit, F4).
 HEAL_OWNER = "dispatcher"
 
-# ── T538: provider-level refusal detection ─────────────────────────────────
+# ── T630: per-family refusal detectors ────────────────────────────────────
 #
-# A worker killed by an account-level 429/401/403 never reached the model, so
-# it must not be recorded as that model failing its task (the 2026-08-20
-# Ollama session-usage-limit incident: ~80 keeper dispatches died in ~22 s
-# each before the worker read its brief, and all 80 were misattributed as
-# glm-5.2 failures in docs/infra/model-perf.md).  The worker log
-# (untracked/log/t<id>.log, written by bin/dispatch's nohup redirect) carries
-# the refusal block.
+# Replaces the T538/D021 list of unanchored prose patterns (the "8 KiB
+# window" classifier) with ONE DETECTOR PER HARNESS FAMILY.  A list of
+# substrings matched against every family's output failed both ways on one
+# afternoon (T625/D021): it missed the Claude session-limit message by one
+# word (T615/T616/T617/T621/T622 — five false model failures), and it fired
+# on a worker QUOTING an old 429 out of a two-day-old document (T526) and
+# on the bare word "quota" inside prose (T601).  The window was a guess
+# about where quotations do not appear, and a lane that fails early while
+# quoting a limit message defeats it.
 #
-# T625/D021 (2026-08-22): the classifier was a grep over a multi-megabyte
-# stream containing everything the worker read — including its own quoted
-# sources — and both failure directions were observed on real rows:
-#   * FALSE NEGATIVE: T615/T616/T617/T621/T622 died of the Claude 5-hour
-#     session limit ("hit your session limit", emitted 12:47Z) and were
-#     recorded verified=fail — the signature list had "session usage limit"
-#     and "reached your (session )?usage limit" but Claude says "hit your
-#     session limit".  Misses by one word; five false model failures.
-#   * FALSE POSITIVE: T526 died of the runner's OWN progress-timeout
-#     watchdog (run record: killed='progress timeout 600s', signal 9) but
-#     was recorded verified=unreached reason=provider-429 because the model
-#     was QUOTING an old Ollama 429 out of a document.  T601 likewise: the
-#     bare word 'quota' inside the prose "provider quota/appetite 7" of a
-#     run that actually succeeded.
+# The unit of classification is now the HARNESS's OWN evidence, per family:
 #
-# The fix, per D021: the unit of classification is the RUNNER'S OWN terminal
-# record, not a grep over worker output.
-#   1. run record first (untracked/runs/<task>.json): a runner-initiated
-#      kill (killed=wall/RSS/host/progress/directive/startup) is a harness
-#      decision — NEVER a provider refusal, whatever the log quotes.
-#   2. worker stdout is UNTRUSTED for this purpose: the log scan is
-#      restricted to a bounded refusal WINDOW — the first 8 KiB of worker
-#      output (a connect-time refusal lands there) and the last 8 KiB (a
-#      mid-turn session limit kills the run at the end).  Quoted content
-#      from mid-run documents lands in neither window (T526's quote sat at
-#      665 KiB into an 18 MiB log; T601's at 6.7 MiB of 9.5 MiB).
-#   3. the runner's OWN claude-envelope refusal line (T521 capture:
-#      "tokens: no reading — claude api error", is_error=true with zero
-#      usage) is a first-class unreached signal.
+#   claude   (child: `claude -p ... --output-format json`)
+#     The runner parses the claude JSON envelope at end of run (T521) and
+#     prints its OWN diagnostic when the envelope says is_error=true with
+#     zero usage — the model never produced a token.  That [runner] line
+#     is the refusal evidence: runner-produced (printed from the runner's
+#     own parse, never from worker content), so no window is needed and
+#     no quotation can forge it.
 #
-# Only STRONG refusal signatures match, and the classifier is conservative by
-# construction — a bare HTTP status code is not enough, and incidental digits
-# must never match: `[runner] pid 42994` is ruled out by the \b word
-# boundary, 401/403 require an auth keyword nearby, and the status-code
-# signatures anchor to the START of a line (the refusal is emitted as
-# `429: {"message":...}`), which a mention inside a prompt never is.  The
-# distinction must not become an excuse that launders genuine failures.
-PROVIDER_REFUSAL_SIGNATURES = (
-    # An HTTP status code at the start of a line is the refusal block the
-    # provider client emits, e.g. 429: {"message":"...","type":"api_error",...}.
-    (re.compile(r"^\s*429\b", re.M), "provider-429"),
-    (re.compile(r"^\s*401\b", re.M), "provider-auth"),
-    (re.compile(r"^\s*403\b", re.M), "provider-auth"),
-    # Billing / rate-limit prose (the api_error message body).
-    (re.compile(r"session usage limit", re.I), "provider-429"),
-    (re.compile(r"reached your (?:session )?usage limit", re.I), "provider-429"),
-    # D021: the Claude 5-hour session limit says "hit your session limit"
-    # — one word off from the Ollama phrasing that killed the 2026-08-20
-    # fleet.  T615/T616/T617/T621/T622 died of this and were recorded
-    # verified=fail because the phrase was missing.
-    (re.compile(r"hit your session limit", re.I), "provider-429"),
-    (re.compile(r"\brate limit\b", re.I), "provider-429"),
-    (re.compile(r"\bquota\b", re.I), "provider-429"),
-    (re.compile(r"too many requests", re.I), "provider-429"),
-    # Auth refusals.
-    (re.compile(r"invalid api key", re.I), "provider-auth"),
-    (re.compile(r"\bunauthorized\b", re.I), "provider-auth"),
-    (re.compile(r"\bforbidden\b", re.I), "provider-auth"),
-    # Connection failures.
-    (re.compile(r"connection refused", re.I), "provider-connection"),
-    (re.compile(r"connection reset", re.I), "provider-connection"),
-    (re.compile(r"could not connect", re.I), "provider-connection"),
-    (re.compile(r"name or service not known", re.I), "provider-connection"),
-    (re.compile(r"temporary failure in name resolution", re.I), "provider-connection"),
+#   ollama   (child: `ollama launch pi --model <tag> -y -- ...`)
+#     The ollama CLI emits its own structured api_error block at connect
+#     time: a line STARTING with the HTTP status, a colon, a brace, and a
+#     JSON body whose "type" is "api_error", immediately followed by the
+#     CLI's own exit line.  In a refused lane this block is the ONLY
+#     emission after pi's startup messages — the model never connected, so
+#     there is no worker content at all.  The detector recognizes the
+#     block BY SHAPE and by that emptiness: any substantive emission that
+#     is not one of pi's own startup messages rules the log out (it is
+#     worker content — a quote, a document, a tool result — untrusted by
+#     construction, whatever its size and wherever it sits).
+#
+#   deepseek (child: `pi --provider deepseek ...`)
+#     The pi harness has no runner-emitted refusal diagnostic and no
+#     captured structured client emission (no first-hand fixture exists);
+#     worker content is NEVER consulted.  DeepSeek refusals classify only
+#     from the run record (the runner's killed_by stamp) — the generic
+#     response path below, inherited without bespoke handling (brief item 2).
+#
+# Every family feeds ONE generic response path: classify -> map onto the
+# T629 killed_by vocabulary (no new enum values) -> the dispatcher's heal
+# reopens the row -> the model is never scored.  Adding a fifth provider
+# is one detector registered in FAMILY_DETECTORS, not an edit to a shared
+# regex list (brief item 3).
+
+# The harness families and how to recognize each from the dispatch argv
+# (the run record's command field, or the runner's argv echo in the log).
+FAMILY_ORDER = ("ollama", "claude", "deepseek")
+_FAMILY_ARGV_RX = {
+    "ollama": re.compile(r"(^|\s)ollama\s+launch\s+pi(\s|$)"),
+    "claude": re.compile(r"(^|\s)claude\s+-p(\s|$)"),
+    "deepseek": re.compile(r"(^|\s)pi\s+--provider\s+deepseek(\s|$)"),
+}
+
+
+def family_of_command(command):
+    """The harness family of a dispatch command (the argv the runner
+    wrapped), or None when unrecognized.  Mirrors tools/runner's own
+    `_agent_family` (child binary basename) from the command text."""
+    if not command:
+        return None
+    for fam in FAMILY_ORDER:
+        if _FAMILY_ARGV_RX[fam].search(command):
+            return fam
+    return None
+
+
+# The runner's own claude-envelope refusal diagnostic (T521/T615 capture):
+# the runner parsed the claude JSON envelope and saw is_error=true with
+# zero usage — the model never produced a token.  Runner-produced; the
+# [runner] prefix marks it, and worker content can never make the runner
+# print it.  (The argv echo is also [runner]-prefixed but prompt-derived;
+# it is never scanned — see _is_harness_line.)
+CLAUDE_RUNNER_REFUSAL_RX = re.compile(
+    r"^\[runner\] tokens: no reading[^\n]*claude api error", re.M)
+
+# The ollama CLI's structured api_error block (verbatim in the 2026-08-20
+# fleet refusals; shape pinned by tools/fixtures/refusal-ollama-session-
+# limit.fixture): a line starting with the HTTP status, a colon, a brace,
+# and a JSON body whose "type" is "api_error", immediately followed by
+# the CLI's own exit line.
+_OLLAMA_STATUS_JSON_RX = re.compile(
+    r"^\d{3}: \{.*\"type\"\s*:\s*\"api_error\".*\}\s*$")
+_OLLAMA_CLIENT_EXIT_RX = re.compile(r"^Error: exit status \d+\s*$")
+
+# pi's own startup messages — the ONLY substantive emission a refused
+# ollama lane has besides the client's refusal block (the model never
+# connected).  ANSI colour codes are stripped before comparison.
+_OLLAMA_STARTUP_MESSAGES = (
+    "Preparing Pi...",
+    "Checking Pi installation...",
+    "Checking Pi web search package...",
+    "Launching Pi...",
 )
+_ANSI_RX = re.compile(r"\x1b\[[0-9;]*m")
 
-# D021: the refusal window — the first and last bytes of WORKER output the
-# classifier will scan.  A connect-time refusal lands in the head; a mid-turn
-# session limit kills the run and lands in the tail.  Quoted content from
-# mid-run documents lands in neither (measured: T526's quote at 665 KiB of an
-# 18 MiB log, T601's at 6.7 MiB of 9.5 MiB).
-REFUSAL_WINDOW_BYTES = 8192
 
-# D021: the runner's OWN claude-envelope refusal signal (T521 capture).  This
-# is a runner diagnostic line, not worker content: is_error=true with zero
-# usage means the model never produced a token.
-RUNNER_CLAUDE_API_REFUSAL_RX = re.compile(r"tokens: no reading[^\n]*claude api error", re.I)
+def _is_harness_line(ln):
+    """True when a captured line is a harness diagnostic — the runner's
+    own [runner] lines or the dispatcher's [verify] lines — never worker
+    content.  The [runner] argv echo carries the whole prompt and is
+    excluded like every other runner line: the prompt must never be
+    scoreable."""
+    return ln.startswith("[runner]") or ln.startswith("[verify]")
+
+
+def _substantive_lines(lines):
+    """The lane's substantive emissions: every captured line that is not a
+    harness diagnostic and not blank.  Worker content lives here —
+    untrusted — and the harness client's own refusal emission lives here
+    too, recognized BY SHAPE, never by prose."""
+    return [ln for ln in lines
+            if not _is_harness_line(ln) and ln.strip()]
+
+
+def _strip_ansi(s):
+    s = _ANSI_RX.sub("", s)
+    # Tolerate the bracket form rendered without the ESC byte (fixture
+    # heredocs and some capture paths): a leading or trailing [NNNm.
+    m = re.match(r"^\[[0-9;]*m", s)
+    if m:
+        s = s[m.end():]
+    m = re.search(r"\[[0-9;]*m$", s)
+    if m:
+        s = s[:m.start()]
+    return s
+
+
+def _claude_refusal_reason(lines, text, require_terminal):
+    """The runner's own envelope diagnostic, or None.
+
+    require_terminal (the record names a harness kill — T616): the runner
+    prints the diagnostic in its end-of-run trailer, so it must appear
+    AFTER the last substantive emission (the refusal is the run's terminal
+    event; a mid-log mention is not).  Position-free otherwise: the
+    runner's own parse is authoritative."""
+    if require_terminal:
+        last_subst = -1
+        for i, ln in enumerate(lines):
+            if not _is_harness_line(ln) and ln.strip():
+                last_subst = i
+        for i in range(len(lines) - 1, -1, -1):
+            if CLAUDE_RUNNER_REFUSAL_RX.match(lines[i]):
+                return "provider-429" if i > last_subst else None
+        return None
+    if text is not None and CLAUDE_RUNNER_REFUSAL_RX.search(text):
+        return "provider-429"
+    return None
+
+
+def _ollama_refusal_reason(lines, text, require_terminal):
+    """The ollama CLI's structured api_error block, or None.
+
+    The block must be the LAST two substantive emissions (a refused lane
+    dies there — nothing follows the client's exit line), and EVERY
+    substantive emission before it must be one of pi's own startup
+    messages: the model never connected, so there is no worker content at
+    all.  A quotation — however verbatim, wherever it sits — leaves worker
+    content in the log and fails the emptiness test by construction; this
+    is the T526/T601 fix, and it does not depend on where in the log the
+    quote sits (no window).
+
+    require_terminal (the record names a harness kill): an ollama connect
+    refusal can never be the CAUSE of a harness kill — the refused CLI
+    exits at connect (the 2026-08-20 fleet died in ~22 s each), before
+    any watchdog or liveness fuse can fire.  The harness kill stands."""
+    if require_terminal:
+        return None
+    sub = _substantive_lines(lines)
+    if len(sub) < 3:
+        return None
+    if not _OLLAMA_STATUS_JSON_RX.match(sub[-2]):
+        return None
+    if not _OLLAMA_CLIENT_EXIT_RX.match(sub[-1]):
+        return None
+    # the line immediately before the block must be a pi startup message
+    # (the launch phase): the block directly follows the client's own
+    # startup sequence, so no worker content sits between them — and any
+    # worker content EARLIER (the multi-line argv/prompt echo, a quote, a
+    # tool result) does not disqualify the block as long as the block is
+    # the lane's TERMINAL emission (nothing substantive follows it).  A
+    # quotation of the block leaves worker content between it and the
+    # launch phase (or after it) and fails this test by construction.
+    if _strip_ansi(sub[-3]).strip() not in _OLLAMA_STARTUP_MESSAGES:
+        return None
+    return "provider-429"
+
+
+def _deepseek_refusal_reason(lines, text, require_terminal):
+    """No log-based refusal evidence: the pi harness emits no runner
+    diagnostic and no captured structured client block.  DeepSeek
+    refusals classify from the run record only (the runner's killed_by
+    stamp) — the generic path, no bespoke handling (brief item 2)."""
+    return None
+
+
+# One detector per family, keyed by harness.  Adding a fifth provider is
+# adding one entry here (plus its emission shape), not an edit to a
+# shared regex list.
+FAMILY_DETECTORS = {
+    "claude": _claude_refusal_reason,
+    "ollama": _ollama_refusal_reason,
+    "deepseek": _deepseek_refusal_reason,
+}
+
+
+def _family_evidence(root, task_id):
+    """(family, run_record, text, lines) for a task — the ONLY evidence a
+    detector may consult.  Family comes from the run record's command
+    first, then the runner's argv echo in the log (pre-record launch
+    refusals); the argv echo only selects WHICH detector runs — the
+    detector still requires the emission shape, so a prompt that quotes
+    the harness command cannot manufacture a refusal."""
+    rr = read_run_record(root, task_id)
+    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
+    try:
+        with open(p, errors="replace") as f:
+            text = f.read()
+    except OSError:
+        text = None
+    lines = text.splitlines() if text is not None else []
+    family = family_of_command(rr.get("command")) if rr else None
+    if family is None:
+        for ln in lines:
+            if ln.startswith("[runner] argv"):
+                family = family_of_command(ln)
+                break
+    return family, rr, text, lines
 
 
 def provider_refusal_reason(root, task_id):
-    """Return the provider-refusal reason ('provider-429' / 'provider-auth' /
-    'provider-connection') when the model was never reached, else None.
+    """Return the provider-refusal reason ('provider-429' / 'provider-auth'
+    / 'provider-connection') when the model was never reached, else None.
 
-    Evidence, in order (D021):
+    Evidence (T630) — the HARNESS's own, per family:
       1. the run record (untracked/runs/<task>.json): a runner-initiated
-         kill (`killed` set — wall / RSS / host pressure / progress watchdog
+         kill (killed set — wall / RSS / host pressure / progress watchdog
          / directive / startup) is a harness decision, NEVER a provider
-         refusal.  This is the T526 fix: the worker quoted an old 429 while
-         the watchdog killed it, and the old classifier blamed the provider.
-      2. the worker log, scanned ONLY inside the refusal window (first and
-         last REFUSAL_WINDOW_BYTES of worker output, [runner]-prefixed lines
-         excluded — they are the runner's own diagnostics, and the argv echo
-         carries the whole prompt, which must never be scored).
-      3. the runner's own claude-envelope refusal line (is_error=true, zero
-         usage — the model was never reached).
+         refusal — with ONE exception: a refusal whose evidence is
+         TERMINAL (the runner's own claude-envelope diagnostic, T616:
+         session limit blocked the lane, the watchdog killed the silence).
+         A quoted refusal can never be terminal evidence (worker content
+         follows it — T526), and an ollama connect refusal cannot coexist
+         with a harness kill (the CLI exits at connect, ~22 s; no fuse
+         ever fires).
+      2. the family detector over the log — SHAPES only, never prose:
+         claude: the runner's envelope diagnostic; ollama: the client's
+         structured api_error block, empty-of-worker-content by
+         construction; deepseek: nothing (record only).
 
     A missing/unreadable log or record is a non-match, never an error — the
     absence of a refusal signature means the failure is attributed normally.
     """
     if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
         return None
-    # 1. Run record first: a runner-initiated kill is a harness decision,
-    #    not a provider refusal — UNLESS a refusal signature sits in the
-    #    TAIL window of the worker output.  A genuine provider limit can
-    #    CAUSE a harness kill (T616: the Claude session limit blocked the
-    #    lane, the runner's startup-liveness watchdog then killed the
-    #    silent lane at 600 s — the record says startup timeout, the log's
-    #    tail says "You've hit your session limit"); a quoted 429 that
-    #    merely passed through the worker's text (T526) lands mid-log and
-    #    never reaches the tail, so the harness kill stands.  The head
-    #    window is NOT consulted for the killed case: an accumulated log
-    #    may carry an older run's connect-time refusal, and the harness
-    #    kill is about THIS run's terminal output.
-    rr = read_run_record(root, task_id)
-    if rr and rr.get("killed"):
-        return _refusal_in_tail_window(root, task_id)
-    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
-    try:
-        with open(p, errors="replace") as f:
-            text = f.read()
-    except OSError:
+    family, rr, text, lines = _family_evidence(root, task_id)
+    if family is None:
         return None
-    # 3. The runner's own unreached signal (checked on the raw text — it is
-    #    a [runner] line, which the window scan below excludes).
-    if RUNNER_CLAUDE_API_REFUSAL_RX.search(text):
-        return "provider-429"
-    # 2. The refusal window over WORKER output only: strip the runner's own
-    #    diagnostics (the argv echo is the prompt — never scoreable).
-    worker = "\n".join(l for l in text.splitlines() if not l.startswith("[runner]"))
-    head = worker[:REFUSAL_WINDOW_BYTES]
-    tail = worker[-REFUSAL_WINDOW_BYTES:] if len(worker) > REFUSAL_WINDOW_BYTES else ""
-    window = head + "\n" + tail
-    for rx, reason in PROVIDER_REFUSAL_SIGNATURES:
-        if rx.search(window):
-            return reason
-    return None
-
-
-def _refusal_in_tail_window(root, task_id):
-    """Refusal signature in the LAST REFUSAL_WINDOW_BYTES of the worker's
-    own output (the terminal window of THIS run), or None.
-
-    Consulted when the run record names a harness kill (D021): the refusal
-    could be the CAUSE of the kill (T616 — session limit blocked the lane,
-    the watchdog then killed the silence) or an incidental quotation
-    (T526 — mid-log document quote, excluded by the window).  Only the
-    tail is scanned: a killed run's refusal is terminal."""
-    p = os.path.join(root, "untracked", "log", task_id.lower() + ".log")
-    try:
-        with open(p, errors="replace") as f:
-            text = f.read()
-    except OSError:
+    detector = FAMILY_DETECTORS.get(family)
+    if detector is None:
         return None
-    worker = "\n".join(l for l in text.splitlines() if not l.startswith("[runner]"))
-    tail = worker[-REFUSAL_WINDOW_BYTES:] if len(worker) > REFUSAL_WINDOW_BYTES else worker
-    for rx, reason in PROVIDER_REFUSAL_SIGNATURES:
-        if rx.search(tail):
-            return reason
-    return None
+    require_terminal = bool(rr and rr.get("killed"))
+    return detector(lines, text, require_terminal)
 
+
+# ── T630: the historical-ledger census (brief Bars) ────────────────────────
+#
+# "Report the classification of every rc!=0 row in docs/infra/model-perf.md
+# under the new detectors, split by direction of change, so we learn how
+# much of the historical ledger was wrong and which way."  This is that
+# report, mechanical: read a model-perf ledger, classify every rc!=0 row
+# from the evidence KEPT (the run record — which later dispatches may have
+# overwritten — and the accumulated worker log), and print the direction of
+# change versus the recorded classification.  A row that cannot be
+# classified from the evidence kept is UNKNOWN — an unknowable count is a
+# finding, not a blank.
+
+def _trailer_classify(lines):
+    """Classify the log's own terminal [runner] trailer, or (None, None)
+    when the log has no runner trailer at all.
+
+    The accumulated log keeps every run's trailer; the last [runner]
+    exit/KILL line is the LAST run's terminal state.  Source 'trailer'."""
+    for ln in reversed(lines):
+        if not ln.startswith("[runner]"):
+            continue
+        if "exit " not in ln and "KILL" not in ln:
+            continue
+        m = re.search(r"exit \d+ \(([^)]*)\)", ln)
+        if m:
+            return _classify_killed(m.group(1)), "trailer"
+        if re.search(r"exit \d+", ln):
+            return "none", "trailer"
+        m = re.search(r"KILL: (.*?)$", ln)
+        if m:
+            return _classify_killed(m.group(1)), "trailer"
+    return None, None
+
+
+def census_classify(root, task_id, recorded_verified):
+    """Best-effort killed_by for a historical row, from the evidence kept.
+
+    Returns (killed_by, source) with source in
+    refusal / record-stamp / record / trailer / unknown.
+    A record whose exit is 0 under a failed row is a LATER run's (the
+    row's own record was overwritten) and is ignored for the kill
+    question; the accumulated log's own trailer then speaks, and a clean
+    trailer under a failed row is a different run's too — UNKNOWN."""
+    family, rr, text, lines = _family_evidence(root, task_id)
+    if family is not None and text is not None:
+        reason = FAMILY_DETECTORS[family](lines, text, False)
+        if reason:
+            return _PROVIDER_REASON_TO_KILLED_BY.get(reason, "provider-limit"), "refusal"
+    stale = bool(rr and rr.get("exit") == 0 and recorded_verified != "pass")
+    if rr and not stale:
+        kb = rr.get("killed_by")
+        if kb in KILLED_BY_VALUES:
+            return kb, "record-stamp"
+        killed = rr.get("killed") or ""
+        if killed:
+            return _classify_killed(killed, rr.get("kill_class")), "record"
+    if text is not None:
+        kb, src = _trailer_classify(lines)
+        if src == "trailer":
+            if kb != "none":
+                return kb, src
+            if not stale:
+                return "none", src
+    return "UNKNOWN", "no-evidence"
+
+
+_CENSUS_ROW_RX = re.compile(
+    r"^dispatch-verify \S+ (T\d+) (\S+) report=\S+ verified=(\S+)"
+    r"(?:\s+reason=(\S+))?(?:\s+fail=(\S+))?(?:\s+killed_by=(\S+))?\s*$")
+
+
+def run_census(root, perf_path):
+    """Classify every rc!=0 row of a model-perf ledger under the new
+    detectors and print the direction-of-change table (brief Bars).
+    Returns 0; rows that cannot be classified are UNKNOWN, not blank."""
+    if not os.path.isfile(perf_path):
+        print("census: no ledger at %s" % perf_path, file=sys.stderr)
+        return 2
+    rows = []
+    with open(perf_path) as f:
+        for ln in f:
+            m = _CENSUS_ROW_RX.match(ln)
+            if not m:
+                continue
+            task, model, verified, reason, failchk, kb = m.groups()
+            if verified == "pass":
+                continue
+            rows.append((task, model, verified,
+                         reason or failchk or "", kb or ""))
+    counts = {}
+    for task, model, verified, reason, kb in rows:
+        new_kb, src = census_classify(root, task, verified)
+        if new_kb == "UNKNOWN":
+            direction = "unknown"
+        elif (kb in ("", "none")) and new_kb != "none":
+            direction = "scored->censored"
+        elif kb not in ("", "none") and new_kb == "none":
+            direction = "censored->scored"
+        elif kb not in ("", "none") and kb != new_kb:
+            direction = "reason-changed"
+        else:
+            direction = "unchanged"
+        counts[direction] = counts.get(direction, 0) + 1
+        print("%s %s recorded=verified:%s reason:%s killed_by:%s "
+              "-> new_killed_by=%s source=%s direction=%s"
+              % (task, model, verified, reason or "-", kb or "-",
+                 new_kb, src, direction))
+    summary = " ".join("%s=%d" % (k, counts.get(k, 0))
+                       for k in ("unchanged", "scored->censored",
+                                 "censored->scored", "reason-changed",
+                                 "unknown"))
+    print("census: %d rc!=0 rows: %s" % (len(rows), summary))
+    return 0
 
 def _fail_perf(task_id, model, report, fail_check, unreached, directive_kill=None):
     """The perf tuple for a failed dispatch.  `unreached` (a provider-refusal
@@ -1099,9 +1309,15 @@ def main(argv):
     when clean; exit 2 when any file is malformed (naming each), so a broken
     findings file fails the gate loudly rather than silently.
 
-    --root <dir> overrides the repo root (default: current directory).
+    T630: `--census <model-perf-path>` runs the historical rc!=0 census
+    (brief Bars — how much of the ledger the new detectors would classify
+    differently, and which way) over the evidence kept under --root
+    (default: current directory).  Exit 0; unclassifiable rows are printed
+    UNKNOWN, never blank.  --dry-run remains the default when no census
+    path is given.
     """
     root = "."
+    census_path = None
     args = argv[1:]
     i = 0
     while i < len(args):
@@ -1112,9 +1328,18 @@ def main(argv):
                 root = args[i]
         elif a.startswith("--root="):
             root = a.split("=", 1)[1]
-        # --dry-run is the (only) mode; unknown flags are ignored so the
+        elif a == "--census":
+            if i + 1 < len(args):
+                i += 1
+                census_path = args[i]
+        elif a.startswith("--census="):
+            census_path = a.split("=", 1)[1]
+        # --dry-run is the default mode; unknown flags are ignored so the
         # acceptance line can evolve without breaking this gate.
         i += 1
+
+    if census_path:
+        return run_census(root, census_path)
 
     bad = [(rel, err) for rel, errs in scan_findings(root) for err in errs]
     if bad:

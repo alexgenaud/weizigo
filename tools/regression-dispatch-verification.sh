@@ -677,6 +677,12 @@ mkdir -p "$WORK/untracked/log"
 cat > "$WORK/untracked/log/t1003.log" <<'LOGEOF'
 [runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1003-x.md'
 [runner] task identity: T1003 (source: MANAGENT_TASK_ID)
+Preparing Pi...
+Checking Pi installation...
+Checking Pi web search package...
+
+Launching Pi...
+
 429: {"message":"you (test) have reached your session usage limit, upgrade: https://ollama.com/upgrade","type":"api_error","param":null,"code":null}
 Error: exit status 1
 LOGEOF
@@ -737,6 +743,12 @@ echo "  13. seeded: a claimed-then-refused worker heals with an unreached marker
 cat > "$WORK/untracked/log/t1005.log" <<'LOGEOF'
 [runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1005-x.md'
 [runner] task identity: T1005 (source: MANAGENT_TASK_ID)
+Preparing Pi...
+Checking Pi installation...
+Checking Pi web search package...
+
+Launching Pi...
+
 429: {"message":"you (test) have reached your session usage limit","type":"api_error","param":null,"code":null}
 Error: exit status 1
 LOGEOF
@@ -923,6 +935,12 @@ echo "  17. seeded: a provider refusal writes killed_by=provider-limit on the pe
 cat > "$WORK/untracked/log/t1009.log" <<'LOGEOF'
 [runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1009-x.md'
 [runner] task identity: T1009 (source: MANAGENT_TASK_ID)
+Preparing Pi...
+Checking Pi installation...
+Checking Pi web search package...
+
+Launching Pi...
+
 429: {"message":"you (test) have reached your session usage limit, upgrade: https://ollama.com/upgrade","type":"api_error","param":null,"code":null}
 Error: exit status 1
 LOGEOF
@@ -974,6 +992,239 @@ else
     FAIL=1
 fi
 
+# ── T630 arms: per-family refusal detectors (20-29) ──────────────────────
+# The four committed fixtures (tools/fixtures/, extracted from HEAD above)
+# are the load-bearing shapes; every run exercises all four in both
+# directions.  The detector's contract (brief item 1): consult ONLY the
+# harness's own evidence — the run record and the runner's diagnostic
+# lines and the client's own emission block — never worker content, by
+# construction rather than by window size.
+#
+#   20. seeded: claude session limit (fixture 1) → provider-limit
+#   21. null:   claude — worker quotes the message, envelope clean → fail
+#   22. seeded: ollama api_error block (fixture 2) → provider-limit
+#   23. null:   T526 — quoted 429 mid-log + watchdog kill → watchdog
+#   24. null:   T526 hard — quoted 429 TERMINAL + watchdog kill → still
+#               watchdog (the "fails early while quoting" case; the old
+#               8 KiB window would fire here, the new detector must not)
+#   25. seeded: T616 analog — claude + watchdog-killed record → provider-
+#               limit (the ONE harness-kill case a refusal can cause: the
+#               runner's own envelope diagnostic is terminal evidence)
+#   26. null:   T601 — the word quota in prose (fixture 4) → fail
+#   27. seeded: deepseek inherits the path via the runner's killed_by
+#               stamp on the record → provider-limit (no bespoke handling)
+#   28. null:   self-reference — a worker log containing dispatch_verify
+#               .py's own source classifies NOTHING (module literals are
+#               not emission shapes); plus a static guard on the source
+#   29. census: --census classifies a scratch ledger of rc!=0 rows
+
+echo "  20. seeded: the claude session limit (fixture 1) is classified provider-limit"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-claude-session-limit.fixture" "$WORK/untracked/log/t1012.log"
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1012 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1012 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: claude session limit -> verified=unreached killed_by=provider-limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected unreached provider-429 / provider-limit for the claude fixture"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  21. null: a worker QUOTING the claude message (envelope clean) is NOT a refusal"
+mkdir -p "$WORK/untracked/log"
+sed '/\[runner\] tokens: no reading/ d' \
+    "$WORK/tools/fixtures/refusal-claude-session-limit.fixture" \
+    > "$WORK/untracked/log/t1013.log"
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1013 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1013 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=none" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: quoted message without the runner diagnostic stays a scored fail (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected verified=fail killed_by=none for the quote-only claude log"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  22. seeded: the ollama api_error block (fixture 2) is classified provider-limit"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-ollama-session-limit.fixture" "$WORK/untracked/log/t1014.log"
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1014 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1014 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: ollama api_error block -> verified=unreached killed_by=provider-limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected unreached provider-429 / provider-limit for the ollama fixture"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  23. null: T526 — a quoted 429 mid-log over a watchdog kill is watchdog (fixture 3)"
+mkdir -p "$WORK/untracked/log" "$WORK/untracked/runs"
+cp "$WORK/tools/fixtures/refusal-quoted-429-watchdog.fixture" "$WORK/untracked/log/t1015.log"
+cat > "$WORK/untracked/runs/t1015.json" <<'RREOF'
+{"task": "T1015", "pid": 7715, "start": "2026-08-22T00:00:00Z", "start_epoch": 1, "command": "pi --provider deepseek --model deepseek-v4-flash --mode json -p 'Follow untracked/T1015-x.md'", "wall_budget": 3600, "exit": 124, "signal": 9, "wall": 1129.6, "killed": "progress timeout 600s (10'00) \u2014 no [progress] for 600s"}
+RREOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1015 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1015 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=watchdog" "$WEIZIGO_MODEL_PERF" \
+   && ! grep -q "T1015 .*unreached" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: quoted 429 mid-log + watchdog kill -> killed_by=watchdog, no refusal (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=watchdog and no unreached line for T1015"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  24. null: T526 hard — the quote at the TERMINAL of the log still does not fire"
+# The old 8 KiB tail window would match the quoted "too many requests"
+# prose here (RED pre-T630); the detector must be right because of where
+# it looks (the harness's own evidence), not because of how far.
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-quoted-429-watchdog.fixture" "$WORK/untracked/log/t1016.log"
+# make the quote the LAST substantive emission (drop the trailing worker
+# turns) — the adversarial position for a window-based classifier
+python3 - "$WORK/untracked/log/t1016.log" <<'PYEOF'
+import sys
+path = sys.argv[1]
+keep = []
+for ln in open(path):
+    if '"turn_end"' in ln or '"agent_settled"' in ln:
+        continue
+    keep.append(ln)
+open(path, "w").write("".join(keep))
+PYEOF
+cat > "$WORK/untracked/runs/t1016.json" <<'RREOF'
+{"task": "T1016", "pid": 7716, "start": "2026-08-22T00:00:00Z", "start_epoch": 1, "command": "ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1016-x.md'", "wall_budget": 3600, "exit": 124, "signal": 9, "wall": 1129.6, "killed": "progress timeout 600s (10'00) \u2014 no [progress] for 600s"}
+RREOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1016 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1016 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=watchdog" "$WEIZIGO_MODEL_PERF" \
+   && ! grep -q "T1016 .*unreached" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: terminal quote + watchdog kill -> killed_by=watchdog, no refusal (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=watchdog for the terminal-quote fixture"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  25. seeded: T616 analog — claude fixture over a watchdog-killed record is provider-limit"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-claude-session-limit.fixture" "$WORK/untracked/log/t1017.log"
+cat > "$WORK/untracked/runs/t1017.json" <<'RREOF'
+{"task": "T1017", "pid": 7717, "start": "2026-08-22T00:00:00Z", "start_epoch": 1, "command": "claude -p 'Follow untracked/T1017-x.md' --model claude-sonnet-5 --output-format json", "wall_budget": 2700, "exit": 124, "signal": 9, "wall": 600.8, "killed": "startup liveness timeout 600s"}
+RREOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1017 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1017 deepseek-v4-flash report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: claude runner diagnostic over a harness kill -> provider-limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected unreached provider-429 / provider-limit for the T616 shape"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  26. null: T601 — the word quota in prose is not a refusal (fixture 4)"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-quota-prose.fixture" "$WORK/untracked/log/t1018.log"
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1018 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1018 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=none" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: quota in prose stays a scored fail, killed_by=none (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected verified=fail killed_by=none for the quota-prose fixture"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  27. seeded: deepseek inherits the path via the runner's killed_by stamp"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-quota-prose.fixture" "$WORK/untracked/log/t1019.log"
+cat > "$WORK/untracked/runs/t1019.json" <<'RREOF'
+{"task": "T1019", "pid": 7719, "start": "2026-08-22T00:00:00Z", "start_epoch": 1, "command": "pi --provider deepseek --model deepseek-v4-flash --mode json -p 'Follow untracked/T1019-x.md'", "wall_budget": 2700, "exit": 1, "killed_by": "provider-limit"}
+RREOF
+OUT=$(STUB_MODE=die "$SUBAGENT" --provider deepseek T1019 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1019 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=provider-limit" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: the record stamp censors the deepseek row -> killed_by=provider-limit (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected killed_by=provider-limit from the record stamp"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo "  28. null: a worker that read dispatch_verify.py itself classifies NOTHING"
+# The module's own regex literals and docstrings are matchable by prose
+# scanners (quota, rate limit, session usage limit, 429...) — the live
+# self-reference hazard the old classifier would fire on.  The new
+# detectors require the client's emission SHAPE; the module source has
+# none at line start (asserted by the static guard below too).
+mkdir -p "$WORK/untracked/log"
+printf '%s\n' "[runner] argv = ollama launch pi --model glm-5.2:cloud -y -- -p 'Follow untracked/T1020-x.md'" \
+    > "$WORK/untracked/log/t1020.log"
+cat "$WORK/tools/dispatch_verify.py" >> "$WORK/untracked/log/t1020.log"
+OUT=$(STUB_MODE=refused "$SUBAGENT" --provider deepseek T1020 --dsflash \
+        --test-root="$WORK" --test-worker="$WORK/stub.py" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] \
+   && grep -q "T1020 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=none" "$WEIZIGO_MODEL_PERF"; then
+    echo "    PASS: module source in the log stays a scored fail, killed_by=none (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected verified=fail killed_by=none for the self-reference log"
+    cat "$WEIZIGO_MODEL_PERF" 2>/dev/null | sed 's/^/    | /'
+    FAIL=1
+fi
+# static guard: the committed module must never contain an emission shape
+# at line start, or the fixture above would fire on a future edit.
+if grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error' \
+      "$WORK/tools/dispatch_verify.py" >/dev/null 2>&1; then
+    echo "    FAIL: dispatch_verify.py contains a refusal emission shape at line start (self-reference guard)"
+    grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error' \
+        "$WORK/tools/dispatch_verify.py" | sed 's/^/    | /'
+    FAIL=1
+else
+    echo "    PASS: module source has no emission shape at line start (static guard)"
+fi
+
+echo "  29. census: --census classifies rc!=0 rows under the new detectors"
+mkdir -p "$WORK/untracked/log"
+cp "$WORK/tools/fixtures/refusal-claude-session-limit.fixture" "$WORK/untracked/log/t1012.log"
+cp "$WORK/tools/fixtures/refusal-quoted-429-watchdog.fixture" "$WORK/untracked/log/t1015.log"
+cat > "$WORK/census-perf.txt" <<'PEFEOF'
+dispatch-verify 2026-08-22 T1012 claude-fable-5 report=incomplete verified=fail fail=row killed_by=provider-limit
+dispatch-verify 2026-08-22 T1015 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=watchdog
+dispatch-verify 2026-08-22 T1021 deepseek-v4-flash report=incomplete verified=fail fail=row killed_by=none
+PEFEOF
+CENSUS_OUT=$(python3 "$WORK/tools/dispatch_verify.py" --census "$WORK/census-perf.txt" --root "$WORK" 2>&1)
+CRC=$?
+if [ "$CRC" -eq 0 ] \
+   && echo "$CENSUS_OUT" | grep -q "T1012 .*new_killed_by=provider-limit source=refusal direction=unchanged" \
+   && echo "$CENSUS_OUT" | grep -q "T1015 .*new_killed_by=watchdog" \
+   && echo "$CENSUS_OUT" | grep -q "T1021 .*direction=unknown" \
+   && echo "$CENSUS_OUT" | grep -q "census: 3 rc!=0 rows:.*unchanged=2.*unknown=1"; then
+    echo "    PASS: census classified the fixture ledger (refusal / watchdog / UNKNOWN)"
+else
+    echo "    FAIL: census rc=$CRC; expected refusal+watchdog+unknown rows"
+    echo "$CENSUS_OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 
 echo ""
 # ── T512 isolation assertion: nothing of the suite reached live telemetry ─
@@ -985,9 +1236,9 @@ ISO_FAIL=0
 APPENDED=$(tail -n +$((LIVE_HEALS_BASE + 1)) "$ROOT/docs/infra/dispatch-heals.jsonl" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-9]|101[01])"'; then
+elif echo "$APPENDED" | grep -qE '"task_id": "T(998|999|100[0-9]|101[0-9]|1020)"'; then
     echo "    FAIL: fixture heal record(s) appended to the LIVE heal log (F3 regression)"
-    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-9]|101[01])"' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE '"task_id": "T(998|999|100[0-9]|101[0-9]|1020)"' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/dispatch-heals.jsonl — appended lines carry no fixture data"
@@ -995,9 +1246,9 @@ fi
 APPENDED=$(tail -n +$((LIVE_PERF_BASE + 1)) "$ROOT/docs/infra/model-perf.md" 2>/dev/null)
 if [ -z "$APPENDED" ]; then
     echo "    PASS: docs/infra/model-perf.md — no lines appended during the run"
-elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-9]|101[01]) '; then
+elif echo "$APPENDED" | grep -qE ' T(998|999|100[0-9]|101[0-9]|1020) '; then
     echo "    FAIL: fixture perf line(s) appended to the LIVE model-perf.md"
-    echo "$APPENDED" | grep -nE ' T(998|999|100[0-9]|101[01]) ' | sed 's/^/    | /'
+    echo "$APPENDED" | grep -nE ' T(998|999|100[0-9]|101[0-9]|1020) ' | sed 's/^/    | /'
     ISO_FAIL=1
 else
     echo "    PASS: docs/infra/model-perf.md — appended lines carry no fixture data"
