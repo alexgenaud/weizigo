@@ -1,0 +1,328 @@
+{
+ "task_id": "T746",
+ "date": "2026-08-23",
+ "model": "claude-opus-5",
+ "identifier": "claude-opus-5/T746",
+ "landmark": "L1 (measurement integrity)",
+ "headline": "No \u2014 we are capturing more than we record, and the model the decision is about is the one lane with no cost reading at all. Three defects, all mechanical, all queued. The measurement design is sound; the recording surface is two joins and two fields behind it.",
+ "claims": [],
+ "verdict_per_agenda_item": {
+  "1_metric_audit": "decided + queued (T750)",
+  "2_token_split": "decided + queued (T751) \u2014 and methodology \u00a76 found stale: both halves already landed",
+  "3_oxalpha_placement": "plan decided; the free half queued (T753); the spending half PENDING OPERATOR AUTHORIZATION (ox-alpha appetite is RESERVED)",
+  "4_reveal_rekey": "gaps found + queued (T752)"
+ },
+ "evidence_gathered": {
+  "run_records_censused": 414,
+  "token_coverage_by_family_2026_08_23": {
+   "claude": "18/21 records carry a reading (claude-json-envelope)",
+   "deepseek": "48/93",
+   "ollama_cloud": "0/2",
+   "ox-alpha": "0/4 \u2014 every attempt reads 'no --session path at dispatch'"
+  },
+  "metrics_jsonl_rows": 24,
+  "metrics_jsonl_rows_with_cost": 0,
+  "tokens_jsonl_rows_with_null_model": 283,
+  "tokens_jsonl_split_fields_present": false,
+  "oxalpha_recorded_cells": 0,
+  "oxalpha_completed_lanes": [
+   "T735 audit-shaped, 521.1s, exit 0",
+   "T744 spec-shaped, 480.3s, exit 0"
+  ]
+ },
+ "decisions": [
+  {
+   "id": "T746-D1",
+   "item": "the two never-recorded D027 dimensions",
+   "ruling": "thoroughness (dim 3) RETIRED as a dimension, REPLACED by its mechanical successor canary_recall (seeded canaries landed / seeded canaries present, against a sealed key). citation_honesty (dim 7) RECORDED, from the race ledger per run, never from a keyword proxy.",
+   "why": "thoroughness has no per-task recorded signal and never had one \u2014 tools/model-profiles.py emits it as null by design and says the directive's own examples are allocation-confounded impressions. citation_honesty is the opposite case: it is already load-bearing as a QUALIFICATION GATE (methodology \u00a75, fabricated_citations == 0 disqualifies independently of score) while being absent from the record, so the gate cannot be run from the ledger. The signal exists per run \u2014 T626 itemizes 2/2/2/4/9 fabrications across five deepseek-v4-flash repeats of one brief; T706 grades evidence quality per lane.",
+   "queued": "T750"
+  },
+  {
+   "id": "T746-D2",
+   "item": "the audit headline metric (27% of volume)",
+   "ruling": "correctness (a rubric total) stops being the audit headline. The headline is the pair (canary_recall, false_flag_rate), recorded as numerator/denominator counts, never percentages.",
+   "why": "a rubric total is carried by volume of true-but-already-known findings. T706: deepseek-v4-pro 23/25 status and deepseek-v4-flash 24/25 status, both at 100% precision, caught 1/4 and 0/4 canaries. claude-haiku-4-5-20251001 scored 20/25 while catching 0/4 and fabricating citation paths (docs/epistemic/AXIOMS.md does not exist). claude-opus-5 caught 3/4 and was Pareto-dominant. One scalar cannot separate those four lanes; canary recall separates them cleanly. Same two-field discipline already ratified for verdicts.",
+   "queued": "T750"
+  },
+  {
+   "id": "T746-D3",
+   "item": "unique_catch (verified dissent)",
+   "ruling": "RECORD it. methodology \u00a75 calls verified dissent the most valuable output there is and nothing records it.",
+   "why": "T706 computed it and it is the sharpest per-model fact in the file \u2014 opus alone caught G34 status, G30 and G43 rationale; every other lane's unique set is empty; G35 was caught by no lane. That is a dispatch-relevant fact (who to add to a panel) that no scalar carries.",
+   "queued": "T750"
+  },
+  {
+   "id": "T746-D4",
+   "item": "per-type metrics for the remaining types",
+   "ruling": "infra (22%): record controls_before_reading (did a null control and a seeded-defect control precede the first reading). orchestration (8%): record close_latency_s and close_completeness \u2014 both are bin/managent queries per methodology \u00a76 and neither has ever been derived. battery (18%): already adequate, blocked only on cost. implement (11%): no new field \u2014 the fix is the sealed-acceptance-gate race, since three different bugs cannot rank three models. integration (6%) and research (4%): leave as verdict rows at n\u22481. spec (3%, the operator's stated growth cell): a panel score of a spec is the least falsifiable number we record; the honest predictor is downstream rework (did implementation renegotiate the spec), which is lagging \u2014 recorded as a retroactive census, not a live field.",
+   "queued": "T750"
+  },
+  {
+   "id": "T746-D5",
+   "item": "the token split / cost ladder",
+   "ruling": "methodology \u00a76 is STALE and must carry a dated correction. Both halves landed: (b) the fresh-vs-cache_read split in tools/runner (T558), (a) the pi session meter in bin/subagent (T662). The ladder is blocked by a JOIN, not by capture. Minimum recording change is three edits: (1) propagate tokens_fresh/tokens_cache_read into untracked/tokens/tokens.jsonl, which carries neither \u2014 so the very distinction \u00a76 asked for is invisible to every consumer including T730's pre-step; (2) canon_tag() in tools/token-capture.py does not map stealth/ox-alpha and its CANONICAL_MODELS omits ox-alpha, so three token rows carry a serving tag (the exact defect the T276 rule exists to remove) and any canonical-label aggregation drops ox-alpha silently \u2014 point the Python copies at bin/managent models --json and add the parity control token-capture.py lacks; (3) join run records to model-task-metrics.jsonl on task_id at grade time, writing UNKNOWN-with-reason where absent, never 0. Prices stay out (tokens-now-prices-later).",
+   "why": "cost is null in 24/24 metrics rows while the readings sit on disk \u2014 T726 sonnet 7,680,696 in / 63,286 out, T729 flash 37,954,524 / 132,587, T724 opus no reading. The capture problem was solved two days ago and the record never noticed.",
+   "queued": "T751"
+  },
+  {
+   "id": "T746-D6",
+   "item": "ox-alpha placement order",
+   "ruling": "Cheapest reliable first: (1) score the two lanes that ALREADY RAN against T730's existing ruling \u2014 a grade, not a dispatch, zero ox-alpha spend; (2) audit / T447 sealed key, the best-instrumented cell in the project (sealed key, 8 graded lanes, and a MEASURED within-model variance band); (3) spec / race-I waypoint-3, half-run already (ox-alpha T744 vs claude-opus-5 T740) and the operator's stated growth cell.",
+   "why": "T730 grades ten lanes and T735 is not one of them, so ox-alpha's completed audit lane is one reference-application away from being a recorded cell. T447 is the only cell where n=2 is interpretable, because T626 measured deepseek-v4-flash's spread on that exact key at 22\u201337 \u2014 15 points on a 30-point rubric.",
+   "queued": "T753 (item 1 only); items 2 and 3 pending operator authorization"
+  },
+  {
+   "id": "T746-D7",
+   "item": "n per cell before an ox-alpha tier claim",
+   "ruling": "methodology \u00a75's emission gate stands unchanged (anchored + n>=2 + >=2 qualified models at different cost) AND is tightened by a measured fact: n=3 before any tier claim on ox-alpha, n=2 licenses 'provisional' only, a single run licenses nothing regardless of margin.",
+   "why": "derived, not invented: deepseek-v4-flash's five repeats of one sealed-key audit brief scored 22, 28, 33, 36, 37 (T626). A 15-point spread on a 30-point rubric means n=2 yields a band, not an order. A tier claim from n=1 on ox-alpha would be a stronger claim than any this project has ever earned about a model it has raced for a month.",
+   "queued": "T753 applies it; the bar itself needs no row"
+  },
+  {
+   "id": "T746-D8",
+   "item": "what the reveal does to ox-alpha's statistics",
+   "ruling": "The reveal is a RELABEL, not an epoch bump. Learning a model's name is not evidence its weights changed, so measured cells survive the reveal under the new label. If the reveal ALSO discloses a version change, that is an epoch bump and those cells are labelled and uncounted \u2014 the two must be recorded as separate questions on the day.",
+   "why": "methodology \u00a72 / registry epoch rules already imply this but nowhere states it, and the sweep is what will need it. Same name across two epochs is suspicious, not disproven; a NEW name for the same weights is not an epoch event at all.",
+   "queued": "T752"
+  }
+ ],
+ "gaps_found": [
+  {
+   "gap": "ox-alpha is dispatched as raw `pi --provider openrouter --model stealth/ox-alpha -p \u2026`, bypassing bin/subagent's per-lane --session path (T662) and --mode json \u2014 so all four ox-alpha run records read 'no --session path at dispatch' and the model whose placement is the entire near-term decision is the one lane with zero cost readings. Its own onboarding row (T732) built the bin/subagent --provider pi branch that would have costed it.",
+   "severity": "highest \u2014 it defeats the decision this measurement serves",
+   "disposition": "dispatch discipline: every ox-alpha lane goes through bin/subagent --provider pi. Recorded in T751 (canonicalizer + join) and T753 (records the UNKNOWN honestly). A refuse-or-warn guard on a raw pi dispatch with no --session is the mechanism fix, not prose \u2014 flagged for the operator, not queued as a separate row."
+  },
+  {
+   "gap": "model-task-matrix.md \u00a72 has no ox-alpha column at all, so a reveal-time relabel sweep over the dispatch-policy surface finds nothing to relabel and reads as complete.",
+   "severity": "silent-success failure mode",
+   "disposition": "queued T752"
+  },
+  {
+   "gap": "283 of ~566 untracked/tokens/tokens.jsonl rows carry model: null \u2014 over half the token ledger is unattributable to a model.",
+   "severity": "blocks per-model cost aggregation independent of the join",
+   "disposition": "scoped into T751 as diagnose-and-report; a follow-up row if the dispatch path fix is larger than the join"
+  },
+  {
+   "gap": "the canonicalizer is duplicated in four places (src/managent/main.zig canonicalizeModelTag, tools/token-capture.py canon_tag, tools/model-profiles.py, tools/runner _model_from_argv) and only model-profiles.py has a registry-parity control.",
+   "severity": "the ox-alpha serving-tag leak is this defect firing",
+   "disposition": "queued T751 \u2014 parity control for the copies that lack one; managent stays the single source"
+  },
+  {
+   "gap": "T735's row is still 'dispatchable' in the kanban while findings/T735-race-g-science.json exists on disk \u2014 lane/register drift of the kind `managent lanes` exists to catch.",
+   "severity": "bookkeeping",
+   "disposition": "noted for the orchestrator seat; not queued from this console"
+  }
+ ],
+ "queued_rows": [
+  {
+   "id": "T772",
+   "title": "cost ladder has no quality gate; picks haiku",
+   "status": "dispatchable",
+   "severity": "highest"
+  },
+  {
+   "id": "T773",
+   "title": "stdout liveness fuse killed a working lane and diagnosed the model",
+   "status": "dispatchable"
+  },
+  {
+   "id": "T750",
+   "title": "record canary_recall + fabricated_citations + unique_catch; retire thoroughness",
+   "status": "dispatchable"
+  },
+  {
+   "id": "T751",
+   "title": "runner falls back to the cwd-slug scan; trust grades end-to-end; the metrics join",
+   "status": "dispatchable",
+   "note": "rewritten per OR2 \u2014 tooling changes to fit the invocation, not the reverse"
+  },
+  {
+   "id": "T752",
+   "title": "ox-alpha reveal checklist + matrix column + relabel-not-epoch ruling",
+   "status": "dispatchable"
+  },
+  {
+   "id": "T753",
+   "title": "ox-alpha placement vs opus/sonnet/dspro/flash",
+   "status": "blocked: needs T730",
+   "note": "rewritten per OR1 \u2014 it now dispatches ox-alpha instead of treating it as reserved"
+  }
+ ],
+ "deferrals": [
+  {
+   "item": "ox-alpha T447 sealed-key runs (2-3 lanes) and the race-I spec-pair grade",
+   "reason": "ox-alpha appetite is RESERVED \u2014 never auto-drawn, only the operator's explicit stealth-test dispatch. The plan and the n-bar are decided (T746-D6, T746-D7); the authorization is not this console's to give. One question put to the operator.",
+   "blocks": "a defensible ox-alpha tier claim before the reveal"
+  },
+  {
+   "item": "anchor renormalization, moving averages, the generated tier report",
+   "reason": "methodology \u00a74/\u00a77 item 3 \u2014 they need several anchored races first, and building them now would be measuring an empty matrix. Unchanged by this row.",
+   "blocks": "nothing today"
+  },
+  {
+   "item": "spec-type downstream-rework census",
+   "reason": "a lagging indicator; worth one retroactive row once T750's schema exists, not before.",
+   "blocks": "nothing today"
+  }
+ ],
+ "new_rows": [
+  "T750",
+  "T751",
+  "T752",
+  "T753",
+  "T772",
+  "T773"
+ ],
+ "notes": "T746 (console: are we measuring right?) \u2014 discussion-delegate protocol, four agenda items, four rows queued, one question outstanding. Verdict: the measurement DESIGN is sound and the RECORD is two joins and two fields behind it. Three specific defects: (1) 414 run records carry wall/cpu/rss/tokens and nothing joins them to the 24 metrics rows, all of which read cost: null; (2) the model the near-term decision is about (ox-alpha) has zero recorded cells and zero token readings despite two completed lanes, because it is dispatched with raw pi rather than through the bin/subagent branch its own onboarding row built; (3) the metric that predicts re-dispatch (canary recall at a stated false-flag rate) is measured in exactly one place \u2014 findings/T706-race-g-batch2-grade.json \u2014 and is not in the ledger. Correction owed to the canonical doc: measurement-methodology.md \u00a76 calls token instrumentation the highest-leverage unbuilt item and says the cost ladder is uncomputable until the split lands; the split landed in T558 and the pi meter in T662, and the page was never updated. Honest limits of this row: I did not re-run any grade, so every number above is read from committed findings and from untracked/runs + untracked/tokens censuses I ran myself; T730's ruling does not exist yet, so T753 is blocked and the ox-alpha audit cell is not yet a reading; and the two-taxonomy hazard (matrix \u00a71's T-A..T-H vs D027's eight types) is already re-keyed in the JSONL but still live in prose across both docs, which is a naming defect I flagged rather than fixed. Inbox polled empty via bin/managent inbox T746 --ack at claim; no directives to record. REVISED 2026-08-23 after operator rulings: four rulings recorded (OR1-OR4), the data fixed on disk (448 lane readings recovered, ledger coverage 20%->53%, all four never-metered families now metered, ox-alpha 0->5 lanes), two new high-severity findings queued (T772 cost ladder has no quality gate and routes to the worst measured discriminator; T773 the liveness fuse killed a working lane and blamed it), and the whole diagnosis handed to the claude-fable-5 oversight seat at docs/status/T746-measurement-handover.md. The earlier framing of ox-alpha as RESERVED was a record defect, not an operator ruling, and is corrected in docs/infra/model-registry.md.",
+ "handover": "docs/status/T746-measurement-handover.md",
+ "operator_rulings_2026_08_23": [
+  {
+   "id": "T746-OR1",
+   "ruling": "ox-alpha is used LIBERALLY, not reserved. Verbatim: 'use oxalpha liberally' and 'I want to compare Opus, Sonnet, DSPro, and Flash to oxalpha to get a sense of its strengths and weaknesses and where it lands on a ladder for our most frequent and important task types and phases.'",
+   "corrects": "docs/infra/model-registry.md recorded appetite RESERVED with the gloss 'only the operator's explicit stealth-test dispatch' \u2014 a reservation the operator never made. The mislabel was load-bearing: bin/managent assign --dry-run excluded ox-alpha from every mechanized pick.",
+   "action": "registry corrected in this session; src/managent/main.zig:321 .appetite=.reserved is the owed one-liner, serialized behind other main.zig rows"
+  },
+  {
+   "id": "T746-OR2",
+   "ruling": "The `pi --provider openrouter` invocation stays and the TOOLING changes to fit it. Its API-key handling may be more secure than what we do for Claude/DeepSeek/Ollama, in which case it is the pattern the others should converge toward.",
+   "corrects": "the earlier T751 brief, which proposed routing ox-alpha through bin/subagent so the existing meter would see it",
+   "action": "T751 rewritten; integration of the pattern handed to Fable as open work"
+  },
+  {
+   "id": "T746-OR3",
+   "ruling": "cpu/rss/token figures are collected but NOT trusted as reliable or repeatable, and must not drive critical decisions.",
+   "corrects": "nothing recorded \u2014 but it makes the cost ladder's unguarded use of measured cost a DEFECT rather than a preference",
+   "action": "every recovered reading carries trusted:false + corroborated:<grade>; T772 requires the trust grade be honoured end-to-end"
+  },
+  {
+   "id": "T746-OR4",
+   "ruling": "Retroactively fix the data and collect more ox-alpha data.",
+   "action": "done \u2014 448 lane readings recovered, all 5 ox-alpha lanes among them"
+  }
+ ],
+ "data_fixed_on_disk": {
+  "token_ledger": {
+   "rows_before": 621,
+   "rows_after": 1069,
+   "readings_before": 127,
+   "readings_after": 575,
+   "recovered_lanes": 448,
+   "superseding_an_explicit_unknown": 63,
+   "never_recorded_before": 385,
+   "by_model_gained": {
+    "deepseek-v4-pro": 172,
+    "deepseek-v4-flash": 146,
+    "glm-5.2": 81,
+    "minimax-m3": 32,
+    "kimi-k2.7": 11,
+    "ox-alpha": 5,
+    "qwen3.8:27b-mlx": 1
+   },
+   "families_that_had_never_been_metered": [
+    "glm-5.2",
+    "minimax-m3",
+    "kimi-k2.7",
+    "ox-alpha"
+   ],
+   "residual_no_reading_anywhere": 85,
+   "residual_note": "mostly bakeoff/t542-g2override-* synthetic lanes and TL1A-F fixtures; honest UNKNOWN"
+  },
+  "validation": {
+   "parser_vs_dispatch_time_truth": "54/54 exact on both tokens_in and tokens_out",
+   "attribution_model_conflicts": "0 over 160 comparable run records",
+   "fully_corroborated": 96,
+   "task_only": 64,
+   "no_run_record": 288,
+   "seeded_defect_controls": "2, each shown to FAIL on a seeded regression and pass clean",
+   "unvalidatable_end_to_end": "a lane writes EITHER a per-lane session file OR a cwd-slug one, never both \u2014 the two populations are disjoint by construction, so the ledger cannot cross-validate the method"
+  },
+  "tools_added": [
+   "tools/token-backfill.py (controlled, idempotent, dry-run by default)"
+  ],
+  "tools_corrected": [
+   "tools/token-capture.py \u2014 canon_tag maps stealth/ox-alpha -> ox-alpha; CANONICAL_MODELS gains ox-alpha"
+  ],
+  "docs_corrected": [
+   "docs/infra/model-registry.md \u2014 ox-alpha appetite SPEND (was RESERVED), read-only scope, relabel-not-epoch-bump ruling, token-capture note"
+  ]
+ },
+ "oxalpha_lanes_recovered": [
+  {
+   "task": "T735",
+   "attempt": 1,
+   "start": "2026-08-23T10:11:42.275Z",
+   "tokens_in": 1596905,
+   "tokens_fresh": 113257,
+   "tokens_cache_read": 1483648,
+   "tokens_out": 16657,
+   "turns": 39,
+   "corroborated": "run-record"
+  },
+  {
+   "task": "T735",
+   "attempt": 2,
+   "start": "2026-08-23T10:47:35.328Z",
+   "tokens_in": 2168300,
+   "tokens_fresh": 146028,
+   "tokens_cache_read": 2022272,
+   "tokens_out": 19060,
+   "turns": 40,
+   "corroborated": "run-record",
+   "note": "the lane the liveness fuse killed as 'produced no output since launch (bundle never read?)'"
+  },
+  {
+   "task": "T744",
+   "start": "2026-08-23T10:49:25.490Z",
+   "tokens_in": 2135104,
+   "tokens_fresh": 171840,
+   "tokens_cache_read": 1963264,
+   "tokens_out": 19069,
+   "turns": 42,
+   "corroborated": "run-record"
+  },
+  {
+   "task": "T745",
+   "start": "2026-08-23T10:58:00.360Z",
+   "tokens_in": 6634961,
+   "tokens_fresh": 547409,
+   "tokens_cache_read": 6087552,
+   "tokens_out": 44762,
+   "turns": 125,
+   "corroborated": "none"
+  },
+  {
+   "task": "T754",
+   "start": "2026-08-23T11:53:01.299Z",
+   "tokens_in": 399829,
+   "tokens_fresh": 105237,
+   "tokens_cache_read": 294592,
+   "tokens_out": 7540,
+   "turns": 15,
+   "corroborated": "run-record"
+  }
+ ],
+ "new_high_severity_findings": [
+  {
+   "id": "T746-F1",
+   "row": "T772",
+   "severity": "highest \u2014 decides dispatches today",
+   "finding": "bin/managent assign's soloPick picks the cheapest model by MEASURED COST over the appetite-eligible set, with no methodology \u00a75 qualification gate applied anywhere. Its own doc comment says 'cheapest qualified' but 'qualified' in code means 'allowed to be asked'. Live consequence: assign T750 --dry-run -> claude-haiku-4-5-20251001, the model measured most consistently as unable to say no (0/30 on T557 with a false-negative report; 19/19 items called real in Race F where five are refutable; 0/4 canaries with fabricated citation paths in T706). Compounding bias: unknown cost is never preferred over known-cheaper, so the mechanism systematically preferred the family it could meter \u2014 both DeepSeek lanes read 'unknown'.",
+   "consequence_of_the_backfill": "DeepSeek race lanes now cost 1.1M-6.0M tokens against claude-opus-5's 26.6M in race G. docs/infra/complementarity.md's 'cheapest fully-costed full-coverage pair is opus-5 + sonnet-5 at ~33.7M tokens (deepseek seats cost unknown, so a cheaper pair may exist)' is very likely now false. 12 lanes across race-a/c/f/g + 8 sensitivity inputs hold cost:null and are now fillable, all 12 in the strongest corroboration class.",
+   "deliberately_not_done": "tools/complementarity-record.json was NOT regenerated. Doing so would change live dispatch behaviour from trusted:false numbers \u2014 exactly what operator ruling OR3 forbids \u2014 and filling the sealed complementarity-inputs edits a sha256-sealed input to a dispatch decision, which wants ratification."
+  },
+  {
+   "id": "T746-F2",
+   "row": "T773",
+   "severity": "high",
+   "finding": "The stdout-only startup-liveness fuse killed ox-alpha/T735 attempt 2 at wall 600.9s with the note 'agent lane produced no output since launch (bundle never read?)'. Its pi session file records first record 2026-08-23T10:47:35.328Z (1.3s after launch), last record 10:57:34.766Z (0.2s before the kill), 86 records, 40 assistant turns, 19,060 output tokens. The lane worked continuously for the whole 600s. The fuse reads stdout; pi buffers stdout to completion \u2014 documented twice before (T447 qwen; Race F, where the WINNING claude-opus-5 lane was killed the same way with its 43KB deliverable already written and recorded verified=fail).",
+   "why_it_matters_now": "every ox-alpha lane uses the raw pi invocation the operator wants kept, so the blind spot lands hardest on the model we are trying to place",
+   "second_defect": "the note DIAGNOSES ('bundle never read?') \u2014 a causal claim about the model that the evidence refutes. A guard may state what it measured; it may not attribute a cause it did not measure (the killed_by / stop-never-attribute discipline already ratified for the token-limit guard)."
+  }
+ ],
+ "open_for_operator": [
+  "Does the D044 DeepSeek time-priced rate band survive the 2026-08-23 budget-meter retirement? It is a price-time fact ('peak hours') computed at write time, and the retirement says agents know nothing of costs and never mention peak hours. Flagged, not decided.",
+  "Is the pi/openrouter API-key pattern in fact more secure, and should Claude/DeepSeek/Ollama converge on it? The operator raised it; it is a security review, not a measurement question.",
+  "Filling the 12 now-fillable cost:null lanes in the sha256-sealed tools/complementarity-inputs/*.json changes a dispatch-decision input from trusted:false readings. Ratification question."
+ ]
+}

@@ -62,7 +62,7 @@ Prices are deliberately NOT surfaced: the tokens-now-prices-later doctrine
 
 Model tags are canonicalized exactly as `tools/model-profiles.py` does (the
 same transform managent applies at registration): strip `:cloud`,
-`kimi-k2.7-code` -> `kimi-k2.7`.
+`kimi-k2.7-code` -> `kimi-k2.7`, `stealth/ox-alpha` -> `ox-alpha`.
 
 Task: T521 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-20
 """
@@ -86,6 +86,7 @@ CANONICAL_MODELS = [
     "minimax-m3",
     "kimi-k2.7",
     "qwen3.8:27b-mlx",
+    "ox-alpha",
 ]
 
 # Usage keys summed per assistant turn.  A key missing from a turn counts 0.
@@ -113,12 +114,21 @@ def _empty_meta():
 
 
 def canon_tag(tag):
-    """The same :cloud strip / -code map managent applies at registration."""
+    """The same :cloud strip / -code / stealth map managent applies at
+    registration (src/managent/main.zig canonicalizeModelTag).
+
+    T746: `stealth/ox-alpha` is a SERVING TAG and must never reach a record
+    (the T276 rule).  Before this map existed the ledger accepted three rows
+    spelling it the serving way, and every per-canonical-label aggregation
+    dropped ox-alpha silently instead of loudly.  The parity control is
+    tools/regression-token-capture-canon.sh."""
     t = (tag or "").strip()
     if t.endswith(":cloud"):
         t = t[:-len(":cloud")]
     if t == "kimi-k2.7-code":
         t = "kimi-k2.7"
+    if t == "stealth/ox-alpha":
+        t = "ox-alpha"
     return t
 
 

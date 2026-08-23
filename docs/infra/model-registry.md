@@ -72,10 +72,36 @@ grand-race.md §2).
   **harness:** pi (headless `pi --provider openrouter --model stealth/ox-alpha -p …`)
 - **serving tag:** `stealth/ox-alpha` — a serving tag only; it never reaches the ledger
   (records store the canonical label `ox-alpha`).
-- **appetite:** RESERVED — never auto-drawn; only the operator's explicit stealth-test dispatch.
+- **appetite:** **SPEND — corrected 2026-08-23 (T746).** The earlier `RESERVED` entry recorded a
+  reservation the operator never made; his instruction was *"use oxalpha liberally"* and
+  *"compare Opus, Sonnet, DSPro and Flash to oxalpha to get a sense of its strengths and
+  weaknesses and where it lands on a ladder for our most frequent and important task types
+  and phases."* The mislabel was load-bearing, not cosmetic: `bin/managent assign --dry-run`
+  excluded ox-alpha from **every** mechanized pick with the reason
+  `ox-alpha: family ox-alpha appetite RESERVED (reserved task types only)` — i.e. the record
+  blocked the exact comparison it was supposed to serve.
+  `src/managent/main.zig` still carries `.{ .family = "ox-alpha", .appetite = .reserved }`
+  (line ~321); that one-line change is owed and is serialized behind the other `main.zig`
+  rows, so it is queued rather than applied here.
+- **scope:** read-only advisor (T745, 2026-08-23) — a *scope* limit, not an appetite limit.
+  Dispatch it liberally on read-only work; audit (27% of volume) and spec/design review are
+  exactly that shape, so the scope limit costs almost nothing in placement coverage.
 - **epoch note:** identity sealed; on reveal, relabel and re-key statistics via an in-place
   epoch-boundary note (the model-perf format convention). Same name across two epochs is
   suspicious, not disproven — the label is an epoch-dependent pointer until the reveal.
+  **Ruling (T746, 2026-08-23): the reveal is a RELABEL, not an epoch bump.** Learning a
+  model's name is not evidence its weights changed, so measured cells survive the reveal
+  under the new label. If the reveal *also* discloses a version change, that is an epoch bump
+  and those cells are labelled and uncounted — the two are separate questions and must be
+  recorded separately on the day.
+- **token capture:** ox-alpha is dispatched as raw `pi --provider openrouter --model
+  stealth/ox-alpha -p …`, which the operator confirms works and which may be the *better*
+  API-key pattern (2026-08-23). It bypasses `tools/runner`'s `--session` meter, so all five
+  ox-alpha lanes were first recorded UNKNOWN. They are **not** unattributable: the cwd-slug
+  session scan in `tools/token-capture.py` recovers every one of them, and
+  `tools/token-backfill.py` (T746) appended the readings — T735 ×2, T744, T745, T754, all
+  five corroborated against an independent run record where one exists. The durable fix is
+  the runner falling back to that scan; the invocation pattern stays.
 
 ## Epoch rules (measurement-methodology.md §2; grand-race.md §2)
 
