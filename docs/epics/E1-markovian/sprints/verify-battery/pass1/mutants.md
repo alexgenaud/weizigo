@@ -1,4 +1,4 @@
-# Mutation Catalogue — Phase 1 verify-battery
+# Mutation Catalogue — Waypoint 1 verify-battery
 
 ```
 Task: T291 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-03
@@ -91,7 +91,7 @@ battery (I5 SCC containment), but the synthetic fixture does not trigger
 a kill: on the 2×2 all-legal graph, every legal state at passes=0 is
 cycle-reachable. The proper killer is the T267 key-agreement invariant
 (G1/G3), which does not exist yet. The test assertion for M3
-expects `.pass` (survival), marked `[EXPECTED-GAP G1/G3]`. **When the Phase 2
+expects `.pass` (survival), marked `[EXPECTED-GAP G1/G3]`. **When the Waypoint 2
 kernel lands and key-agreement is runnable, invert this assertion** to
 expect `.fail` — the fixture corruption is correct; only the check is
 absent.

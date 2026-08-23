@@ -37,7 +37,7 @@ Per `spec.md` Rev 5 §2.3: prove the L/H values in the 4×4 table are the fixpoi
 | I11: 0 mismatches on sampled space | ✅ PASS — 0 / 50,000 (all rungs 0: 114 / 978 / 25,350 / 643,378 / 50,000) |
 | I5: KO_SENSITIVE ⊆ cycle-reachable | ✅ **PASS at 4×3 and 4×4** — 4×3: 0 / 170,181 KO_SENSITIVE (V=1,929,035, E=6,858,926, maxSCC=1,284,078); 4×4: **0 / 3,455,412** (V=99,133,036, E=565,402,416, maxSCC=47,429,504, cycle-reachable 97,689,592, 136 s, 2768 MB peak RSS). Seeded-defect control demonstrated red-then-green at 4×4 (baseline 0 → spurious L≠H → 1 → restore → 0). **Vacuity finding (T363): at 3×2 every passes=0 ko=NONE slot is cycle-reachable in the full-graph model, and at 4×3 the non-CR slots are all already KO_SENSITIVE — the spec §7.2 premise that 3×2 is the first non-vacuous rung does not hold for the full (colex, side, ko, passes) graph; the first genuine red-then-green rung is 4×4.** **N1 (T474, `findings/T474-second-auditor.json`): the 4×4 I5 instrument is placement-only** — `checkI5Wzo2`'s pass-edge path is dead (SMD1 sentinel), so CR/E are computed on the placement-only subgraph (E=565,402,416 placement-only vs ~616M with pass edges). Placement-only CR ⊆ full-graph CR, so 0/3,455,412 remains valid for the full-graph claim (false PASS impossible); the E metric is not cross-comparable with 3×2/4×3 (which count pass edges). |
 | Key-agreement: 0 mismatches | ✅ PASS — 0 / 99,133,036 at 4×4 (T345); **0 / 643,378 at 4×3** (T363 retroactive rung, WZO1 artifact slice) |
-| Seven mutants killed | ✅ **6 of 10 confirmed killed** (corrected by T475 from T363's "7 of 7" overstatement) — M5/M6/M7 by I2/I7/I2, **M8 by C-A1/C-A2 closure and M10 by I11 null control** (both asserted red-then-green in `vb_mutants.zig`, T363), M9 by BATT-HEALTH (T347). M1/M2/M3/M4 SURVIVE: T345 KEY-4x4 calibration demonstrates machinery sensitivity to colex bit-flip but is not per-mutant kill-verification; per-mutant fixtures for M1/M2/M4 do not exist; M3 test (`src/vb_mutants.zig:94`) asserts `I5Status.pass` (vacuous at 2×2). The remaining Gap G1/G3 is owed to Phase 2 kernel producer-extraction. |
+| Seven mutants killed | ✅ **6 of 10 confirmed killed** (corrected by T475 from T363's "7 of 7" overstatement) — M5/M6/M7 by I2/I7/I2, **M8 by C-A1/C-A2 closure and M10 by I11 null control** (both asserted red-then-green in `vb_mutants.zig`, T363), M9 by BATT-HEALTH (T347). M1/M2/M3/M4 SURVIVE: T345 KEY-4x4 calibration demonstrates machinery sensitivity to colex bit-flip but is not per-mutant kill-verification; per-mutant fixtures for M1/M2/M4 do not exist; M3 test (`src/vb_mutants.zig:94`) asserts `I5Status.pass` (vacuous at 2×2). The remaining Gap G1/G3 is owed to Waypoint 2 kernel producer-extraction. |
 
 ### 2.3 Headline numbers
 
@@ -234,7 +234,7 @@ Reproduces T363's figures exactly, including wall time and peak RSS.
 
 **Ruling: G3b is discharged.** Promotions per spec §1.1 are authorised — `4x4.C1` UNTESTED →
 CLAIMED, `4x4.FP1` UNTESTED → CLAIMED, `GLOBAL.H4` claim text updated to drop "partial" with no
-status change. CLAIMED is the ceiling pending Phase 3; nothing here is promoted to PROVEN, and the
+status change. CLAIMED is the ceiling pending Waypoint 3; nothing here is promoted to PROVEN, and the
 Amendment 2 mutation gate is satisfied by the 6/10 kills (T475 reconciliation; M1/M2/M3/M4 remain unasserted/surviving — Gap G1/G3).
 
 **Four scope limits ride with the discharge and must be quoted wherever it is cited:**
@@ -261,7 +261,7 @@ A row that reports its own ladder as vacuous, while holding the one rung that is
 behaviour this sprint was designed to produce. The spec's §7.2 premise is **corrected, not waived**.
 
 **Not discharged by this ruling:** the #2 auditor gate, Track A, and every claim outside spec
-§1.1's three rows. G3b is one lemma of Phase 3, not Phase 3.
+§1.1's three rows. G3b is one lemma of Waypoint 3, not Waypoint 3.
 
 **Landmark:** advances `L2 (proven 4×4 values)` — four of the table's correctness properties now
 hold at full scale with denominators, where two did this morning, and the closure result is

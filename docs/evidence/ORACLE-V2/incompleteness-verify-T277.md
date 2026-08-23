@@ -134,7 +134,7 @@ The scanner correctly identifies the shift: group 1 (single white stone, not sin
 
 ## 6. What I could not establish
 
-- **C-A1 and C-A2** (closure under the kernel move generator) remain unrun — they require the Phase 2 kernel.
+- **C-A1 and C-A2** (closure under the kernel move generator) remain unrun — they require the Waypoint 2 kernel.
 - **Stored L/H values** were not tested — only structural completeness was verified. The artifact could still be wrong-value.
 - **The W+2 self-play root cause** — T266 attributes it to a combination of the pre-T265 ko rule (which was in `gtp.zig` at the time of T261's measurement) and the display defect. I did not independently reconstruct the T261 measurement.
 - **A2/A8's failures** — not individually apportioned to the accept-module ko defect; only A1 was traced end-to-end.

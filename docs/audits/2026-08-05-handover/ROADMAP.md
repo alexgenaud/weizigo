@@ -36,7 +36,7 @@ at least as good as today's 4×4 engine, fixed upon whatever is demonstrably bet
 | 1 — battery before code | **delivered** | T290 spec / T291 mutants / T292 baselines; golden-master gate inside `zig build test`, full sweep behind `zig build battery-sweep`; calibration PASS today |
 | 2 — kernel extraction | **landed, unpromoted** | T273 (`koAfterCapture`, `stateKey`) + T339 MG-KERN (`legalMoves`/`applyMove`/`applyPass`, kernel-vs-solver differential 0 mismatches at 2×2/3×2/3×3 incl. ko≠NONE). Claims correctly held at CLAIMED per the Amendment 2 promotion gate |
 | 3 — A–Z reverification | **begun de facto, never decomposed** | G3b (value-correctness gate) pass0 ran: 0 Bellman violations / 95,677,624 entries; 0 key mismatches / 99,133,036; 0 move-set mismatches at every rung incl. 4×3. **G3b NOT discharged** — closure (C-A1/C-A2) was tabled as PASS on a 22-entry sample and corrected to Deferred; I5 cycle containment incomplete at 4×3/4×4; M8/M10 mutants unwired. T363 holds the four gaps in cost order |
-| 4 — the swap | not decomposed | correctly blocked on Phase 3 differential verification (dependency edge 4) |
+| 4 — the swap | not decomposed | correctly blocked on Waypoint 3 differential verification (dependency edge 4) |
 
 The honest sentence from STATE.md §1 still governs and must not be shortened: *the 4×4
 artifact is structurally complete; its values are verified for Bellman residual and key
@@ -83,19 +83,19 @@ commit STATE.md → rebuild/deploy managent → smoke with zero STALE → run ST
 - Orcha discharge ruling on G3b once all four close, with denominators (STATE rule 2).
 - **T348** (DISCHARGE) — blocked in practice until that ruling; do not let a console claim it early.
 
-**Tier 2 — decompose Phase 3 properly** (the step skipped so far; G3b is one lemma, not the phase):
+**Tier 2 — decompose Waypoint 3 properly** (the step skipped so far; G3b is one lemma, not the phase):
 - Ratify T305's 116 proposed-retired rows into `archives/` with epitaphs (operator ruling:
   archive, never delete — so no per-item approval needed).
 - Open rows for T305's 6 new-work gaps.
 - Row-by-row re-derivation against the requirement tree, ladder order
   2×2 → 3×2 → 3×3 → 4×3 → 4×4; kernel vs frozen fixtures differentially at every rung.
-- Promote the Phase 2 kernel claims held at CLAIMED as their mutants are killed — C8
+- Promote the Waypoint 2 kernel claims held at CLAIMED as their mutants are killed — C8
   (mutation adequacy) is the currency; consider making C8 fail rather than report as
   promotion volume grows.
 - **T354** (register triage) with the C3 ratchet belongs to this tier: re-derivation is what
   backs the 76 UNBACKED rows; the ratchet is what stops the number regrowing.
 
-**Tier 3 — Phase 4 swap.** Decompose only when Tier 2's differential rungs pass. Contents per
+**Tier 3 — Waypoint 4 swap.** Decompose only when Tier 2's differential rungs pass. Contents per
 DIRECTION §5: kernel becomes production, legacy frozen as fixtures, engine/experiment
 boundary in `src/`.
 
@@ -152,6 +152,6 @@ Written at handover, same authority as the rest of this document. What changed s
 
 ## 6. What this document is not
 
-Not the Phase 3 task decomposition (Orcha's to register), not a plan-doc revision (spec and
+Not the Waypoint 3 task decomposition (Orcha's to register), not a plan-doc revision (spec and
 plan are both Rev 5, RATIFIED, untouched), and not a claim of anything beyond §3's findings —
 each of which cites the instrument that produced it.

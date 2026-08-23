@@ -1,12 +1,12 @@
-# Phase 0 Execution Audit — the first execution portion of DIRECTION.md
+# Waypoint 0 Execution Audit — the first execution portion of DIRECTION.md
 
 Role: Auditor (ephemeral, per DIRECTION §6) · Model: Claude Fable 5 · Date: 2026-08-03 · At HEAD `f8eb7c3` (dirty: tasks.json, vb_common.zig, verify_battery.zig)
 
-**Scope.** Phase 0 per DIRECTION §5: AXIOMS.md, the requirement tree derived top-down
+**Scope.** Waypoint 0 per DIRECTION §5: AXIOMS.md, the requirement tree derived top-down
 from Z, old register rows mapped onto it, MIGOS/tie adjudication — executed as T271
 plus the T272 gate, declared delivered at `3058f81` (2026-08-02 21:58), with
-follow-ups T274/T275/T280/T281/T284/T285 and the Phase 1/2 boundary (T273, T290–T292)
-where it bears on Phase 0's gate function.
+follow-ups T274/T275/T280/T281/T284/T285 and the Waypoint 1/2 boundary (T273, T290–T292)
+where it bears on Waypoint 0's gate function.
 
 **Method.** Three parallel verification arms (register consistency; gate mechanization
 and history; phase mapping and ordering) plus the Auditor's own instrument runs:
@@ -20,15 +20,15 @@ Everything below is cited to files, commits, or observed runs.
 
 ## The verdict
 
-**Phase 0's content passed its own bar; Phase 0's bookkeeping is where every defect
+**Waypoint 0's content passed its own bar; Waypoint 0's bookkeeping is where every defect
 lives.** The theorem is falsifiable, the non-claims are first-class, the MIGOS
 adjudication is exemplary, and T271's verification found three real defects before
 acceptance. But the grand audit's sharpest lesson — prose rules rot, coded rules
-hold — recurred *inside Phase 0 within hours of delivery*: the canonical register
+hold — recurred *inside Waypoint 0 within hours of delivery*: the canonical register
 currently states a refuted version of the ko axiom, a DIRECTION-specified deliverable
 was deferred into a task that was never registered, the mechanized gate was off
-during the exact window the floor was breached, and Phase 2 code shipped before
-Phase 1's battery existed even as tasks. All six findings are instances of two rules
+during the exact window the floor was breached, and Waypoint 2 code shipped before
+Waypoint 1's battery existed even as tasks. All six findings are instances of two rules
 the project already holds ("an axiom change is a recorded event" and "a rule that
 stays prose is a rule we have chosen to re-learn") being enforced by nothing.
 
@@ -51,22 +51,22 @@ edit"). `grep T275 docs/epistemic/CLAIMS.md` returns nothing. Only Amendment 3
 surface all 282 rows are supposed to be re-derived against — hands a cold reader the
 refuted axiom text.
 
-### F2. A Phase 0 deliverable was dropped, not deferred
+### F2. A Waypoint 0 deliverable was dropped, not deferred
 
-DIRECTION §5 lists "old register rows mapped onto it" as Phase 0 content
+DIRECTION §5 lists "old register rows mapped onto it" as Waypoint 0 content
 (DIRECTION.md:111-114). AXIOMS.md §6 defers it ("mapping all 282 register rows onto
 the tree (follows in its own task)", AXIOMS.md:399-400); the T271 brief defers it the
 same way (`untracked/T271-axioms-and-theorem.md:63-64`). **That task was never
 registered** — no entry in tasks.json through T296, no brief, no commit delivers it
 (T290's "map the existing checks onto the tree" maps battery checks, a different
-object). Phase 0 was declared "delivered" (`3058f81`) with the deliverable dangling,
+object). Waypoint 0 was declared "delivered" (`3058f81`) with the deliverable dangling,
 and nothing in the kanban will ever surface it. It is also the direct input to
-Phase 3's "every register row re-derived, demoted, or retired."
+Waypoint 3's "every register row re-derived, demoted, or retired."
 
-### F3. Battery-before-code was violated at the Phase 1/2 boundary, without a ruling
+### F3. Battery-before-code was violated at the Waypoint 1/2 boundary, without a ruling
 
-Timeline (all 2026-08-03, +0200): T273 (Phase 2 kernel — `koAfterCapture` +
-`stateKey`) landed 00:24 (`b475533`). Phase 1's battery tasks T290–T292 were
+Timeline (all 2026-08-03, +0200): T273 (Waypoint 2 kernel — `koAfterCapture` +
+`stateKey`) landed 00:24 (`b475533`). Waypoint 1's battery tasks T290–T292 were
 registered ~80 minutes *after* T273 closed (23:46–23:47Z per tasks.json); T290's spec
 landed 01:53 (`40b70c2`); T291's mutation catalogue landed 02:39 (`ad748c1`) and
 measured the battery at a **3/10 mutant kill rate** — calibration was demonstrably
@@ -78,17 +78,17 @@ There is a recorded, narrower justification: T273's brief
 invariant is "the test that must reproduce a known defect *before* the extraction
 moves anything — battery before code" in miniature; WAYPOINTS.md:41 repeats it, and
 WAYPOINTS.md:82 records the reverse dependency (G3b's closure checks need the kernel).
-The argument is defensible — but DIRECTION §5's phase ordering was never amended, no
-ruling authorizes the substitution, and the gate Phase 0 declared ("gates everything
-below") only gated on AXIOMS.md *existing*, not on phase order.
+The argument is defensible — but DIRECTION §5's waypoint ordering was never amended, no
+ruling authorizes the substitution, and the gate Waypoint 0 declared ("gates everything
+below") only gated on AXIOMS.md *existing*, not on waypoint order.
 
 > **Annotation (2026-08-03, T304 absorption):** F3 was true when written — at
-the time there was no ruling on phase ordering, and the gap it documents was
+the time there was no ruling on waypoint ordering, and the gap it documents was
 real. **Resolved by DIRECTION.md Amendment 2 (ruled 2026-08-03):** §5's phases
 are a dependency plan, not a schedule; no phase gates the dispatch of another,
 and "acceptance battery before code" binds **promotion, not dispatch**. T273's
 kernel extraction therefore shipped within the ruling: both kernel claims were
-held at `CLAIMED` ("pending Phase 3 end-to-end A–Z reverification",
+held at `CLAIMED` ("pending Waypoint 3 end-to-end A–Z reverification",
 `findings/T273-kernel-ko.json`; zero `PROVEN`), which is exactly what Amendment
 2's mutation-adequacy promotion gate permits. The finding's corrective content
 survives as Amendment 2's five dependency edges, mechanized as `needs` on the
@@ -152,9 +152,9 @@ flush bug in `src/claimlint.zig`).
 
 ### F6. Hand-maintained surfaces re-rotted within hours — the CA-2 pattern again
 
-- `WAYPOINTS.md:18` still says Phase 0 = "**T271 open** — gates everything below" and
+- `WAYPOINTS.md:18` still says Waypoint 0 = "**T271 open** — gates everything below" and
   `:20` says "T273 blocked"; both closed `pass` on 2026-08-02 (tasks.json). The file
-  *was* revised in place afterward (`540a275` added the Phase 1 section around the
+  *was* revised in place afterward (`540a275` added the Waypoint 1 section around the
   stale table) — stale by its own maintenance contract (`WAYPOINTS.md:3`).
 - AXIOMS.md §5 (line 386) still lists `GLOBAL.TIE-MIGOS` as CLAIMED with the refuted
   claim text, contradicting its own §4.2/§4.4 and CLAIMS.md:421 (FALSE-AS-SCOPED);
@@ -210,8 +210,8 @@ Deliverables:
 5. AXIOMS.md §3 Z-STATE-KEY: "outstanding" → done, cite T267 close.
 6. `4x4.BASICKO-TIE` (CLAIMS.md:479): append the T279 correction (surviving
    explanation = different game, not tie semantics).
-7. WAYPOINTS.md five-phase table state column refreshed (Phase 0 done; T273 done;
-   Phase 1 = T292 open).
+7. WAYPOINTS.md five-waypoint table state column refreshed (Waypoint 0 done; T273 done;
+   Waypoint 1 = T292 open).
 
 Acceptance: `grep -c "one ply" docs/epistemic/CLAIMS.md` returns 0 on axiom rows;
 claimlint exit unchanged vs floor; `grep "T271 open" docs/epics/E1-markovian/WAYPOINTS.md`
@@ -219,7 +219,7 @@ empty.
 
 ### A2 — Register the 282-row mapping task *(fixes F2)*
 
-The deferred Phase 0 deliverable, registered before any Phase 3 decomposition: map
+The deferred Waypoint 0 deliverable, registered before any Waypoint 3 decomposition: map
 every register row onto the requirement tree (§3 of AXIOMS.md); rows mapping nowhere
 are proposed-retired (dispositions, not deletions); tree nodes with no row are listed
 as new work. Deliverable: a tracked mapping table + a claimlint-checkable convention
@@ -254,13 +254,13 @@ Acceptance: one B1 text reachable from the claim ID; the new lemma test wired in
 
 Acceptance: resume output shows the check; T272's note present.
 
-### A5 — Rule on the Phase 1/2 ordering *(fixes F3)*
+### A5 — Rule on the Waypoint 1/2 ordering *(fixes F3)*
 
 A human ruling, recorded in WAYPOINTS.md (and DIRECTION amendment if granted): either
 (a) ratify the T273 brief's argument — a scoped extraction may precede full battery
 calibration when a defect-reproducing invariant (T267-class) exists for the exact
 function moved — or (b) reaffirm strict ordering and require T292 to complete before
-any further Phase 2 task dispatches. Either way the gate becomes checkable: Phase 2
+any further Waypoint 2 task dispatches. Either way the gate becomes checkable: Waypoint 2
 tasks carry `needs` on the ruling's condition, not on convention.
 
 ### A6 — File the claimlint truncation bug *(fixes F5 residue d)*
@@ -275,11 +275,11 @@ word for that.
 
 ## Coda
 
-Phase 0 proved the project can write a theorem worth proving and adjudicate its
+Waypoint 0 proved the project can write a theorem worth proving and adjudicate its
 hardest open question against primary sources. What it did not prove is that the
 paperwork keeps up with the work: every finding above is a divergence between two
 copies of the same fact — axiom vs register, doc vs kanban, promise vs delivered
 check — and the project already owns the doctrine that names this (one owner per
 fact, mechanized or re-learned). The A1–A6 plan is small precisely because the
 machinery to hold these fixes already exists; it only needs to be pointed at the
-surfaces Phase 0 added.
+surfaces Waypoint 0 added.

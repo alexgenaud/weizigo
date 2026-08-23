@@ -364,7 +364,7 @@ and mark that **unestablished** (§7).
 
 ---
 
-## 5. The completeness check the Phase 1 battery must run (deliverable 2)
+## 5. The completeness check the Waypoint 1 battery must run (deliverable 2)
 
 ### 5.1 The property, stated correctly
 
@@ -526,7 +526,7 @@ is the rule.
   cause is very likely, but I measured only A1's refusal states. Re-running
   A2/A8 after the accept-module ko fix is the test; it belongs to the fix task.
 - **C-A1 and C-A2 were not run.** They need the kernel move generator, which is
-  Phase 2. Everything measured here is the structural layer (§5.2).
+  Waypoint 2. Everything measured here is the structural layer (§5.2).
 - **Whether the solver's ko rule is the *right* rule** is not settled here — that
   is an axioms question (T271/T275, `AXIOMS.md`). This task establishes only that
   `exp6_solve.zig`, `gtp.zig` (post-T265) and the artifact agree, and that
@@ -544,9 +544,9 @@ is the rule.
    Prediction, recorded before the run so it can be wrong: A1 refusals → 0.
 2. Fix `gtp.zig:1223` to query before `applyMove` (or with `-side`). Prediction:
    `genmove b` misses → 0.
-3. Add C-B1–C-B4 to the Phase 1 battery with the K-series controls; specify
-   C-A1/C-A2 against the Phase 2 kernel.
-4. Grep the remaining ko copies for the same divergence before Phase 2 extraction
+3. Add C-B1–C-B4 to the Waypoint 1 battery with the K-series controls; specify
+   C-A1/C-A2 against the Waypoint 2 kernel.
+4. Grep the remaining ko copies for the same divergence before Waypoint 2 extraction
    — T265 fixed one of them, this task found the second, and DIRECTION says there
    are ~14.
 5. Fix C7's `new_rows` scanner (§6a) — two one-line changes — and re-run it over

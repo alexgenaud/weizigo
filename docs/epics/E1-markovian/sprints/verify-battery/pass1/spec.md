@@ -1,8 +1,8 @@
-# verify-battery — Phase 1 SPEC
+# verify-battery — Waypoint 1 SPEC
 
 ```
 Task:   T290 · Role: worker · Model: deepseek-v4-pro · Date: 2026-08-03
-Status: DRAFT — gates Phase 1 (T291, T292 blocked)
+Status: DRAFT — gates Waypoint 1 (T291, T292 blocked)
 Parent: pass0 spec (docs/epics/E1-markovian/sprints/verify-battery/pass0/spec.md)
 Inputs: AXIOMS.md §3 (requirement tree) · DIRECTION.md §5 + Amendment 1 (ratified 2026-08-03) ·
         ADR-0020 gap adjudication (T287) · pass0 spec (12 invariants, 6 acceptance criteria)
@@ -46,7 +46,7 @@ something the theorem does not claim, or the tree is missing a node.
 
 ## 2. Node → Check: which tree nodes have no check?
 
-These are the Phase 1 gaps — the reason this task exists. For each uncovered node,
+These are the Waypoint 1 gaps — the reason this task exists. For each uncovered node,
 state what a check would have to measure.
 
 | tree node | covered by | gap? | what a check would measure |
@@ -57,16 +57,16 @@ state what a check would have to measure.
 | `Z-R-STATE` | — | **GAP** — no check for state-key correctness. The T178/T193/T265 defect family (producer/consumer key mismatch) has no battery coverage. | T267's key-agreement invariant: for every (position, side, ko, passes), the producer's key equals the consumer's key. Requires both implementations; only one exists today. |
 | `Z-R-SIGN` | I2 | **covered** | — |
 | `Z-STATE-LEGAL` | I6 | **covered** (OEIS census) | — |
-| `Z-STATE-REACH` | — | **GAP** — no check that the reachable set is correctly computed. I6 verifies legal positions, not reachability. | C-A1/C-A2 closure checks (T266): every child of a reachable state is reachable (forward closure), and every state reachable from the root is in the table (backward closure). Needs Phase 2 kernel. |
-| `Z-STATE-KEY` | — | **GAP** — T267's key-agreement invariant is specified but not runnable: it needs both the producer implementation (solver kernel) and the consumer (battery's own encoder) to exist. Currently only the solver-side encoder exists; the battery re-implements its own per R8, making this a differential check. | Run both encoders on the same state space; count mismatches. Requires the Phase 2 kernel to provide the production encoder. |
+| `Z-STATE-REACH` | — | **GAP** — no check that the reachable set is correctly computed. I6 verifies legal positions, not reachability. | C-A1/C-A2 closure checks (T266): every child of a reachable state is reachable (forward closure), and every state reachable from the root is in the table (backward closure). Needs Waypoint 2 kernel. |
+| `Z-STATE-KEY` | — | **GAP** — T267's key-agreement invariant is specified but not runnable: it needs both the producer implementation (solver kernel) and the consumer (battery's own encoder) to exist. Currently only the solver-side encoder exists; the battery re-implements its own per R8, making this a differential check. | Run both encoders on the same state space; count mismatches. Requires the Waypoint 2 kernel to provide the production encoder. |
 | `Z-CONVERGE-MONO` | — | **GAP** — no explicit monotonicity probe, though the property is mathematical (Knaster–Tarski) and a violation would likely manifest as a Bellman violation in I4. | A check would construct two valuation vectors A ≤ B and verify Φ(A) ≤ Φ(B) at every state. Impractical at 4×4 scales; the mathematical proof `[GLOBAL.FP1:PROVEN]` is the defence. This gap is acknowledged and accepted. |
 | `Z-CONVERGE-FINITE` | I4, I7 | **indirect** — I4 passing means convergence was achieved; I7 passing means DTT is finite-valued. No explicit sweep-count or non-convergence test. | A check would verify the build's sweep count and confirm that the final sweep produced zero changes. For existing artifacts, the sweep count is embedded in provenance, not in the artifact itself — this is a build-provenance check, not a battery check. |
 | `Z-CONVERGE-SEED` | — | **GAP** — no check that the table was seeded from (−N, +N). A table from different seeds could pass I3 and I4 while being the wrong fixpoint. | A check would verify build provenance (command-line flags, seed vectors). This is a build-documentation check, not something the artifact itself records — the artifact is the converged fixpoint, not the seeds. Accepted gap: seeded from wrong values, the fixpoint would differ from the true one, but there is no independent oracle to compare against except I9 (anchors) and the #2 auditor. |
 | `Z-CONVERGE-FIX` | I3, I4, I5 | **covered** (strong) | — |
-| `Z-TABLE-ROUNDTRIP` | — | **GAP** — no write-then-read check. The battery reads the artifact; it does not write it back and verify round-trip fidelity. | A check would: load artifact, write to a temp file, reload, compare bit-for-bit. Needs the Phase 2 kernel's artifact I/O module (the only writer). |
+| `Z-TABLE-ROUNDTRIP` | — | **GAP** — no write-then-read check. The battery reads the artifact; it does not write it back and verify round-trip fidelity. | A check would: load artifact, write to a temp file, reload, compare bit-for-bit. Needs the Waypoint 2 kernel's artifact I/O module (the only writer). |
 | `Z-TABLE-FAITHFUL` | I7, I8, I9 | **partial** — I7/I8 test specific failure modes; I9 tests a few root values. No general check that every slot's stored value equals the fixpoint value. | For loopy-game fixpoint builds, I4 IS this check — if L=Φ(L) and H=Φ(H) everywhere, the stored values ARE the fixpoint. For finisher-based builds, this would require re-running the finisher and comparing. The ADR-0020 path makes this gap moot: the table IS the fixpoint. |
 | `Z-TABLE-CONSISTENCY` | I1, I2, I3, I12 | **covered** | — |
-| `Z-COMPLETE-ENUM` | I6 | **thin** — I6 checks legal positions, not whether all reachable states are in the table. The C-A1/C-A2 closure checks are specified but not runnable. | C-A1 (forward): for every state in the table, every child reachable by a legal move is also in the table. C-A2 (backward, root-reachable): every state reachable from the fresh-start root is in the table. Needs Phase 2 kernel. |
+| `Z-COMPLETE-ENUM` | I6 | **thin** — I6 checks legal positions, not whether all reachable states are in the table. The C-A1/C-A2 closure checks are specified but not runnable. | C-A1 (forward): for every state in the table, every child reachable by a legal move is also in the table. C-A2 (backward, root-reachable): every state reachable from the fresh-start root is in the table. Needs Waypoint 2 kernel. |
 | `Z-COMPLETE-PASSES` | — | **GAP** — the passes dimension enumeration is currently checked only indirectly via I6 (which tests legal positions, not passes-dimension completeness). The passes=1 structural incompleteness claim was refuted (T266/T277/T279), but no positive check verifies the passes dimension. | A check would verify that for every (position, side, ko) where passes=0 is present, the appropriate passes=1 and passes=2 slots also exist. Requires understanding the state encoding's pass-dimension layout. |
 | `Z-SYM` | I2 | **covered** (colour inversion). Dihedral symmetry is not independently checked but is implied by the colex index scheme. | — |
 | `Z-AUDIT` | — | **GAP — by design.** The #2 self-consistency auditor is a separate gate specified in `AGENTS.md`, not a battery invariant. The battery's job is to check the artifact; the auditor's job is to check the solver that produced it. | — |
@@ -74,7 +74,7 @@ state what a check would have to measure.
 
 **Summary of gaps requiring new battery checks (for T291/T292):**
 
-| gap ID | tree node | severity | required for Phase 2? |
+| gap ID | tree node | severity | required for Waypoint 2? |
 |---|---|---|---|
 | G1 | `Z-R-STATE` (key agreement) | **critical** — the T178/T193/T265 defect family is the project's most expensive bug class | needs kernel (producer encoder) |
 | G2 | `Z-STATE-REACH` (closure C-A1/C-A2) | **critical** — an incomplete table is a false Z | needs kernel (move generator) |
@@ -120,7 +120,7 @@ single-valued. The 24 states are the ones that hit a buffer-aliasing defect in E
 (T102); they happen to be states where the fixpoint median and the truncation value agree.
 The 716 L<H states are elsewhere in the state space.
 
-**Rule for Phase 1:** I8's pass condition remains "0 mismatches on the 24-fixture / 172
+**Rule for Waypoint 1:** I8's pass condition remains "0 mismatches on the 24-fixture / 172
 reachable non-terminals." The spec must state explicitly that this is a **regression test
 for buffer aliasing**, not a single-valuedness claim. The bracket rate (716/1620 L<H at
 2×2, 106/170 on the genuinely reachable set) is a **measurement** reported by I3, not a
@@ -171,9 +171,9 @@ tests a synthetic mutant or a regression artifact.
 
 ---
 
-## 5. Runnability — which checks can run now, and which need the Phase 2 kernel
+## 5. Runnability — which checks can run now, and which need the Waypoint 2 kernel
 
-Phase 1 is battery-before-code: the spec is written now, the kernel comes in Phase 2.
+Waypoint 1 is battery-before-code: the spec is written now, the kernel comes in Waypoint 2.
 Mark each check honestly.
 
 | check | runnable now? | needs kernel? | needs artifact we don't have? | notes |
@@ -188,15 +188,15 @@ Mark each check honestly.
 | **I8** truncation-gap regression | yes (at 2×2 only; n/a at larger gobans) | no — uses the committed Python fixtures (T102/T103) | no | The 24-state fixture and both evaluators are committed in `docs/evidence/QA-026/calibration-2x2-mismatch.py`. |
 | **I9** anchors | yes | no | no | Reads stored root values only. Anchors are committed in AXIOMS.md §4.4 and pass0 §4. |
 | **I10** TIE median | yes | no | no | Reads stored L/H/TIE values only. |
-| **I11** move-set consistency | **NO** | **yes — needs Phase 2 kernel's move generator and the solver-side dump utility (SMD1)** | no | The battery's independent move generator (per R8) is needed, AND the solver must dump its move set for comparison. The SMD1 binary format is specified in pass0 design §4.6 but does not exist. Without the solver-side dump, I11 can only compare the battery against itself — vacuously true. |
+| **I11** move-set consistency | **NO** | **yes — needs Waypoint 2 kernel's move generator and the solver-side dump utility (SMD1)** | no | The battery's independent move generator (per R8) is needed, AND the solver must dump its move set for comparison. The SMD1 binary format is specified in pass0 design §4.6 but does not exist. Without the solver-side dump, I11 can only compare the battery against itself — vacuously true. |
 | **I12** score range | yes | no | no | Reads stored values only; range is fixed by goban geometry. |
-| **C-A1/C-A2** closure | **NO** | **yes — needs Phase 2 kernel for the move generator and the full state graph** | no | Specified in T266; requires computing the forward/backward closure of the reachable set. |
-| **Key agreement** (G1, G3) | **NO** | **yes — needs Phase 2 kernel's production state-key encoder to compare against the battery's own** | no | T267's invariant: run both encoders on the same state space, count mismatches. Currently only the solver-side encoder exists. |
+| **C-A1/C-A2** closure | **NO** | **yes — needs Waypoint 2 kernel for the move generator and the full state graph** | no | Specified in T266; requires computing the forward/backward closure of the reachable set. |
+| **Key agreement** (G1, G3) | **NO** | **yes — needs Waypoint 2 kernel's production state-key encoder to compare against the battery's own** | no | T267's invariant: run both encoders on the same state space, count mismatches. Currently only the solver-side encoder exists. |
 
 **Summary:** 10 of 12 invariants are specifiable now and runnable with the battery's own
 re-implementations (per R8). I11 and the closure checks (C-A1/C-A2) are **specified now,
-runnable after Phase 2**. The key-agreement check (G1/G3) is specified now, runnable after
-Phase 2. This is honest: a check specified and unrunnable is a deliverable; a check quietly
+runnable after Waypoint 2**. The key-agreement check (G1/G3) is specified now, runnable after
+Waypoint 2. This is honest: a check specified and unrunnable is a deliverable; a check quietly
 not run is the `CODE.BATTERY-STUBBED` failure.
 
 ---
@@ -259,8 +259,8 @@ not silently overwritten.
   produces `design.md` — the implementation language, output format, invariant algorithms,
   SMD1 binary format for I11, and the synthetic mutant construction method. T292 reads
   T291's design and implements the battery.
-- **Gaps G1–G6 (§2) are specified here.** T291 decides which to include in the Phase 1
-  battery as "specified, runnable after Phase 2" and which to defer to a later sprint.
+- **Gaps G1–G6 (§2) are specified here.** T291 decides which to include in the Waypoint 1
+  battery as "specified, runnable after Waypoint 2" and which to defer to a later sprint.
 - **The §6a matrix from pass0 carries forward unchanged** — twelve invariants × five gobans
   = sixty cells, with the exhaustiveness declarations (E/S/G/n/a) as written. The matrix is
   not reproduced here to avoid drift; T291 copies it from pass0.

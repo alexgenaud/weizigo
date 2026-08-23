@@ -507,7 +507,7 @@ is discharged `[CODE.WZO2-PASS1-LAW:PROVEN]`, G3b value correctness is
 untouched. The measurements that are real stand: root V=+1 under basic-ko +
 TIE=0, H=+16 verified genuine, 99.997% single-ko
 `[4x4.BASICKO-TIE:MEASUREMENT]` `[4x4.KO-CENSUS:MEASUREMENT]` — but the
-closure checks C-A1/C-A2 are specified and unrun (they need the Phase 2
+closure checks C-A1/C-A2 are specified and unrun (they need the Waypoint 2
 kernel), and the acceptance harness that was meant to check the values had
 its own divergent ko rule, so A1/A2/A8 were measuring their own off-manifold
 walk `[CODE.ACCEPT-KOKEY:SUPERSEDED]`. The foreclosures remain measured, not

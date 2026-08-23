@@ -60,7 +60,7 @@ the following from their current status:
 | claim ID | current status | target status after G3b |
 |---|---|---|
 | `4x4.C1` (fresh-start scores correct at 4×4) | UNTESTED | CLAIMED (value-correctness verified by closure + Bellman) |
-| `GLOBAL.H4` (partial Bellman verification) | CLAIMED | CLAIMED — claim text updated to remove "partial"; no status change because CLAIMED is the ceiling pending Phase 3 |
+| `GLOBAL.H4` (partial Bellman verification) | CLAIMED | CLAIMED — claim text updated to remove "partial"; no status change because CLAIMED is the ceiling pending Waypoint 3 |
 | `4x4.FP1` (L/H are least/greatest fixpoints) | UNTESTED (checks 1–2); check 3 PASSES | CLAIMED (Bellman residual = 0 verifies fixpoint property) |
 
 The seven known-unkilled mutants from `mutants.md` that invert (M1, M2, M3, M4,
@@ -212,7 +212,7 @@ C-A1/C-A2 row needs kernel-movegen-row
 
 The kernel move generator is the critical path. Without it, C-A1/C-A2 closure
 checks cannot be run. The move generator must be extracted from the solver
-(`src/exp6_solve.zig`) into the Phase 2 kernel (`src/rules.zig`), headed by a
+(`src/exp6_solve.zig`) into the Waypoint 2 kernel (`src/rules.zig`), headed by a
 prose spec sentence and claim ID, with TDD per §6.
 
 ### Edge 2: kernel move generator extraction ← defect-reproducing invariant
@@ -267,7 +267,7 @@ The seven T291 known-unkilled mutants are the promotion currency. No claim in
 mutation-adequacy criterion from Amendment 2. A mutant that stays unkilled is a
 finding; a killed mutant is a gate passed.
 
-### 3.1 Serialization — file ownership, not phase order
+### 3.1 Serialization — file ownership, not waypoint order
 
 Per Amendment 2, **phase number is not a dependency.** Concurrency across
 phases is permitted. The real serializer is file ownership via managent sets:
@@ -289,7 +289,7 @@ must declare it in plan.md and the Orchestrator serializes those touches.
 
 ## 4. R8 independence — I11 gets a null control and a seeded-defect control
 
-`pass1/spec.md` §5 marks I11 as "runnable after Phase 2" — it needs the kernel
+`pass1/spec.md` §5 marks I11 as "runnable after Waypoint 2" — it needs the kernel
 move generator AND SMD1. But the battery's independent move generator (R8) is
 **itself a sprint deliverable**, not a pre-existing module. `sprint.md:100`
 calls independent re-implementation the only gate that finds real defects and
