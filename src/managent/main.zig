@@ -824,7 +824,7 @@ fn panelPick(
     }
 
     const next = try greedyPanelStep(measured.items, measured_caught.items, measured_costs.items, seats, sreasons);
-    const idx = next orelse return error.NoQualifiedCandidate;
+    const idx = next orelse return error.PanelFull;
     return .{
         .model = try alloc.dupe(u8, measured.items[idx]),
         .method = try alloc.dupe(u8, "panel-greedy"),
@@ -6841,6 +6841,15 @@ fn cmdAssign(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
             w.diag("  error: no qualified candidate for {s} (all canonical models excluded)\n", .{id});
             std.process.exit(1);
         }
+        if (err == error.PanelFull) {
+            if (use_json) {
+                w.data("{{\"id\":\"{s}\",\"error\":\"panel-full\",\"candidates\":[],\"reasons\":[]}}\n", .{id});
+            } else {
+                w.data("method=none\nmodel=\ncandidates=\nreasons=panel full: no qualified candidate adds a unique catch given the seats already filled\n", .{});
+            }
+            w.diag("  error: panel full for {s} — no qualified candidate adds a unique catch (diminishing returns)\n", .{id});
+            std.process.exit(1);
+        }
         return err;
     };
     defer freeAssignResult(&result);
@@ -6958,11 +6967,12 @@ fn cmdShape(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
     };
-    const old = ts_ptr.shape;
+    const old_owned = if (ts_ptr.shape) |s| try alloc.dupe(u8, s) else null;
+    defer if (old_owned) |o| alloc.free(o);
     if (ts_ptr.shape) |oldsh| alloc.free(oldsh);
     ts_ptr.shape = try alloc.dupe(u8, value);
     try writeStateLocked(io, state_path, &state);
-    w.diag("\n  {s}  shape {s} -> {s}\n", .{ id, old orelse "(none)", value });
+    w.diag("\n  {s}  shape {s} -> {s}\n", .{ id, old_owned orelse "(none)", value });
 }
 
 /// T635: copy a computed assignment onto the row (owning copies so the store
