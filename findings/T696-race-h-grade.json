@@ -1,0 +1,897 @@
+{
+ "task_id": "T696",
+ "date": "2026-08-23",
+ "model": "claude-opus-5",
+ "identifier": "claude-opus-5/T696",
+ "race": "race-h-sprint-manager",
+ "role": "grader (I hold the key)",
+ "landmark": "L1 (dispatch tooling / the dashboard tells the truth)",
+ "claims": [],
+ "new_rows": [
+  {
+   "id": "proposed",
+   "title": "Race H key: resolve KD-2/KD-3/KD-4 (coverage bar, direct-vs-ancestor edge, directory holds) and re-seal",
+   "holds": [
+    "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/key.md",
+    "untracked/race-grading/race-h/KEY.json"
+   ],
+   "needs": [],
+   "why": "Three wording defects decide three of five entrants' S1 scores. Any re-grade or second phase rests on an instrument that cannot be scored consistently until these are one sentence each. Re-hash and re-seal after."
+  },
+  {
+   "id": "proposed",
+   "title": "Race H battery: add one genuinely undecidable S2 situation and rebuild S4's two arms so the stated mandate underdetermines them",
+   "holds": [
+    "docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/battery.md"
+   ],
+   "needs": [],
+   "why": "KD-8 and KD-11. S4 scored 10/10 and discriminated nothing; S2 cannot credit correct abstention because it has no item where abstention is correct. The T628-stale-brief case (found by T685, covered by no key item) is a ready-made S4 replacement."
+  },
+  {
+   "id": "proposed",
+   "title": "Dispatch verification: reconcile an rc=0 lane's declared deliverable path against the tree before a race is called complete",
+   "holds": [
+    "tools/dispatch_verify.py"
+   ],
+   "needs": [],
+   "why": "KD-12. T686 exited 0 with a complete deliverable that never reached findings/, and the race was nearly graded as a four-entrant field. This is the T411/T630 lineage and it is the second time the same shape has cost a lane's work in two days."
+  },
+  {
+   "id": "proposed",
+   "title": "Pre-commit C7 floor: scope the nonconforming check to the committing path so one lane's schema slip cannot block the fleet",
+   "holds": [
+    "tools/claimlint.py"
+   ],
+   "needs": [],
+   "why": "KD-12. T687's file (the only one of five missing claims/new_rows) blocked T686 and T688 from committing; T688 committed with --no-verify after review and T686 stopped and asked. A shared hard floor that any lane can trip is a fleet-wide single point of failure during a race."
+  }
+ ],
+ "key_seal_verification": {
+  "committed_hash": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289",
+  "computed_hash": "faa89e3f989e53d9e050706d1d4b4135dea2cf3f594512d44154184271076289",
+  "match": true,
+  "statement": "Verified before scoring anything. `shasum -a 256 untracked/race-grading/race-h/KEY.json` equals the line committed in docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-h-sprint-manager/key.md. The seal holds; the run is not voided.",
+  "path_note": "key.md lives in the battery directory, not in untracked/race-grading/race-h/ as the brief's phrasing implies. A path note, not a defect."
+ },
+ "field_as_found": {
+  "brief_says": "five entrants at findings/T68{5,6,7,8,9}-race-h.json, sizes 64/21/26/18/35 KB, and 'the key names them'",
+  "entrants_graded": [
+   {
+    "task": "T685",
+    "model": "claude-opus-5",
+    "bytes": 64080,
+    "path": "findings/T685-race-h.json"
+   },
+   {
+    "task": "T686",
+    "model": "claude-sonnet-5",
+    "bytes": 21388,
+    "path": "/private/tmp/T686-race-h.json (RECOVERED - see below)"
+   },
+   {
+    "task": "T687",
+    "model": "claude-haiku-4-5-20251001",
+    "bytes": 25526,
+    "path": "findings/T687-race-h.json"
+   },
+   {
+    "task": "T688",
+    "model": "deepseek-v4-pro",
+    "bytes": 17835,
+    "path": "findings/T688-race-h.json"
+   },
+   {
+    "task": "T689",
+    "model": "deepseek-v4-flash",
+    "bytes": 35434,
+    "path": "findings/T689-race-h.json"
+   }
+  ],
+  "T686_recovery": {
+   "state": "findings/T686-race-h.json does NOT exist. The deliverable is on disk at /private/tmp/T686-race-h.json, 21,388 bytes - matching the brief's stated 21 KB exactly. Complete and valid: task_id T686, model claude-sonnet-5, S1-S4 answered, S5 deferred.",
+   "why_it_matters": "The field is FIVE, not four. Any grading that records T686 as absent has silently dropped 20% of the field and reported a four-entrant denominator as if it were the census. I graded it.",
+   "runner_terminal_record": "untracked/runs/T686.json: exit 0, wall 1596.2 s, cpu 41.0 s, 10,085,347 in / 72,149 out, session_id 554d3718-..., reap_ok true, terminal_reason 'completed'. The lane succeeded on its own terminal record.",
+   "why_the_file_never_landed": "T686's own result text and its notes field both describe it: (a) the shared pre-commit C7-nonconforming floor blocked the commit fleet-wide, (b) its kanban row vanished from the store mid-run, (c) a re-mint succeeded but the follow-up `managent claim` was blocked by the harness permission classifier, so it stopped and asked rather than forcing. It also records that the file was written, disappeared from the working tree once, and was rewritten.",
+   "this_is_S2_RC0_NONONCE_recurring_live": "The battery's own S2-RC0-NONONCE situation reproduced itself on the battery's own race, one day later: rc=0, real tokens, a complete deliverable, and a row that never closed. The correct reading is the one the key states for T641 - the lane did the work, this is a protocol/closure gap, not a model failure. A grader who reads the missing findings/ path as 'T686 did nothing' has committed the exact false negative the instrument was built to detect. I nearly did.",
+   "read_only_compliance": "I did not move or copy the file. It is graded in place at /private/tmp/T686-race-h.json."
+  },
+  "identity_source": "NOT the key. The key names no entrant anywhere - see key_defects KD-1. Identity was read from each entrant's own `model` field.",
+  "my_own_entry": "T685 (claude-opus-5) is my own earlier work on this battery. See self_scoring_disclosure."
+ },
+ "grader_calibration": {
+  "rule": "battery.md, Scoring and sealing: 'a grader/harness run that cannot reproduce a known-bad answer is void'. Applied before any entrant was scored.",
+  "instrument": "A coverage / holds-collision / cycle checker written in-lane, run against five controls first.",
+  "controls": [
+   {
+    "control": "known-bad seed: T628 + T659, both holds=[tools/runner], needs=[]",
+    "expected": "1 collision",
+    "observed": "1 collision, both readings",
+    "result": "PASS"
+   },
+   {
+    "control": "null: two rows, distinct files, no edges",
+    "expected": "0 collisions, 0 cycles",
+    "observed": "0, 0",
+    "result": "PASS"
+   },
+   {
+    "control": "seeded cycle: A needs B, B needs A",
+    "expected": "cycle detected",
+    "observed": "1 cycle",
+    "result": "PASS"
+   },
+   {
+    "control": "transitive-only chain: A<-B<-C all on one file",
+    "expected": "strict reading fires on (A,C); ancestor reading silent",
+    "observed": "strict 1, ancestor 0",
+    "result": "PASS - the checker can tell the two readings of the key apart, which is what KD-3 turns on"
+   },
+   {
+    "control": "directory containment, no edges: docs/infra/ vs docs/infra/sprint.md",
+    "expected": "containment overlap fires",
+    "observed": "1 overlap, both readings",
+    "result": "PASS - proves the zero I report for T688/T689 is earned, not a dead check"
+   }
+  ],
+  "verdict": "Calibrated. The checker reproduces the known-bad answer, stays silent on the null, and discriminates the two readings the key leaves open. Its readings on the five entrants count.",
+  "what_is_NOT_mechanised": "S2, S3 and S4 were scored by hand against the key text. S1's inversion check (check 3) is also by hand - a topological sort cannot see 'points against the spec's build order'; that needs REC-CTRL-2 read as test-first."
+ },
+ "per_axis": {
+  "S1_decomposition": {
+   "key_items": [
+    "coverage 36/36",
+    "holds_collisions 0",
+    "dependency_cycles/inversions 0"
+   ],
+   "mechanical": true,
+   "measured_by": "in-lane checker, calibrated above; results reproduce by re-running it over each entrant's rows[] array",
+   "coverage": {
+    "T685": {
+     "mapped": 36,
+     "out_of_scope": 0,
+     "score": "36/36",
+     "verdict": "PASS",
+     "note": "exact partition - 36 ids across 16 rows with no id double-counted and none declared out of scope. The only entrant to map every id with zero out-of-scope declarations, so the only one that passes under BOTH readings of the bar (see KD-2)."
+    },
+    "T686": {
+     "mapped": 36,
+     "out_of_scope": 0,
+     "score": "36/36",
+     "verdict": "PASS",
+     "note": "7 rows; GOAL ids folded into R-RECONCILER-CORE as acceptance criteria rather than build work, with the reason stated."
+    },
+    "T687": {
+     "mapped": 36,
+     "out_of_scope": 0,
+     "score": "36/36",
+     "verdict": "PASS",
+     "note": "7 rows; union of covers[] verified to be exactly the 36-id set."
+    },
+    "T688": {
+     "mapped": 32,
+     "out_of_scope": 4,
+     "score": "32/36 mapped + 4 declared",
+     "verdict": "PASS under the key's rule, FAIL under the key's bar",
+     "disagreement_quote": "T688 declares REC-GOAL-1..4 out-of-scope: 'Scope framing (the goal) - satisfied by the spec document itself; ratified at spec acceptance, no implementation row.' The key's rule allows exactly this ('or is explicitly declared out-of-scope with a reason'); the key's bar says '36/36 (the spec is fully in scope)'. Unresolvable from the key. Scored PASS and logged as KD-2.",
+     "note": "The reason given is substantive, not evasive - and T685/T686/T687/T689 all found homes for the GOAL ids without strain, which is weak evidence against T688's reading."
+    },
+    "T689": {
+     "mapped": 36,
+     "out_of_scope": 0,
+     "score": "36/36",
+     "verdict": "PASS",
+     "note": "The only entrant that shipped an explicit per-id coverage_table mapping all 36 ids to rows. It also declares two sub-scopes out (REC-GOAL-3's four named non-goals, REC-CTRL-4's scripted arm) while still mapping the parent ids, which is the reading the key's rule and bar can both live with."
+    }
+   },
+   "holds_collisions": {
+    "reading_problem": "The key says 'NO needs= dependency edge between them in either direction'. It does not say whether that means a DIRECT edge or any ancestor path. This single unstated word decides three of five entrants. Both columns reported; see KD-3.",
+    "T685": {
+     "strict_direct_edge": 7,
+     "ancestor_path": 0,
+     "verdict": "PASS under ancestor, FAIL under strict",
+     "pairs": "R1-R3, R1-R4, R1-R5, R2-R4, R2-R5, R3-R5 (all on src/managent/main.zig, a 5-row chain edged only adjacently) and R6-R9 (tools/reconciler)",
+     "entrant_quote": "T685 declares its own standard: 'a pairwise holds check over my rows PLUS the live rows T628/T682 finds 0 file pairs without an ancestor edge in either direction.' It states the interpretation it used rather than hiding behind the ambiguity - which is the right behaviour, and is why I score it PASS. But it is the worst offender in the field under the other reading, and its own graph_checks reports a flat 'holds_collisions_within_row_set: 0' without the qualifier that its verification line carries.",
+     "unique_credit": "The ONLY entrant that checked its proposed rows against the LIVE store's holders (T628, T662, T677, T511, T682) and carried real edges to live rows: R12/R13 needs=[T628], R1 needs=[T682]. Every other entrant graded a closed world. That is the check that would actually have prevented the T628/T659 seed."
+    },
+    "T686": {
+     "strict_direct_edge": 1,
+     "ancestor_path": 0,
+     "verdict": "PASS under ancestor, marginal FAIL under strict",
+     "pairs": "R-RECONCILER-CORE <-> R-ESCALATION on src/managent/reconciler.zig (edge is transitive via R-VERB-LOGIC)",
+     "entrant_quote": "'0 - two same-file pairs exist ... and both are fully sequenced by needs edges.' True under the ancestor reading."
+    },
+    "T687": {
+     "strict_direct_edge": 2,
+     "ancestor_path": 0,
+     "verdict": "PASS under ancestor, FAIL under strict, and a distinct defect either way",
+     "pairs": "T5XX-autopilot-5h holds `docs/infra/` (a DIRECTORY) which contains T5XX-reconciler-wakePolicy's `docs/infra/sprint.md` and T5XX-reconciler-tables' `docs/infra/managent/`",
+     "separate_finding": "Holding a whole directory is an over-broad hold that makes the one-writer invariant unenforceable at file granularity - it silently claims every file any future row might want under docs/infra/. The key's rule says 'share a path' (fires on containment); the battery says 'the same file' (does not). See KD-4. Independent of which reading wins, a directory-granular hold is a weaker artifact than the file-granular holds the other four produced."
+    },
+    "T688": {
+     "strict_direct_edge": 0,
+     "ancestor_path": 0,
+     "verdict": "PASS under both readings",
+     "note": "Three rows, three distinct files, no shared paths at all. Clean by construction - it avoided the problem rather than solving it, which the key permits (granularity is not scored)."
+    },
+    "T689": {
+     "strict_direct_edge": 0,
+     "ancestor_path": 0,
+     "verdict": "PASS under both readings",
+     "note": "The strongest S1 result in the field. 9 rows with three genuinely shared files, and every sharing pair carries a DIRECT edge - it enumerated them itself: 'src/reconciler.zig held by T692, T693, T694 - pairwise edges exist (T693 needs T692, T694 needs T692, T694 needs T693).' T689 is the only entrant that shares files AND survives the strict reading, because it is the only one that thought in pairs rather than in chains. It also states 'Deliberately no row holds tools/runner (the T628/T659 collision class is avoided by not allocating the file).'"
+    }
+   },
+   "cycles_and_inversions": {
+    "cycles": "0 for all five entrants (DFS over each needs= graph). No disagreements.",
+    "inversions": {
+     "T685": {
+      "verdict": "PASS",
+      "evidence": "R11 (T572 regression) -> R10 (control battery, REC-CTRL-1/2) -> every implementation row. Controls precede implementation, and the T572 prerequisite precedes the controls, matching the spec's own 'prerequisite, not a co-deliverable'."
+     },
+     "T686": {
+      "verdict": "PASS",
+      "evidence": "R-CONTROLS needs=[] - dispatchable immediately, not gated behind the rows it grades. T686 pre-empted the misreading explicitly: 'noted so a grader does not mistake missing needs edges here for an inversion.'"
+     },
+     "T687": {
+      "verdict": "FAIL - the only mechanical S1 failure in the field",
+      "key_item": "S1 check 3, 'no edge points against the spec's build order'",
+      "entrant_quote": "T5XX-reconciler-controls (covers REC-CTRL-1..4) has needs=[T5XX-reconciler-escalation], which needs verbs, which needs lifespan, which needs tables and wakePolicy. The controls row is LAST in the graph. Its own rationale field reads 'Test-first per AGENTS.md; controls run BEFORE first live wake' - the stated intent and the declared edge point in opposite directions.",
+      "why_it_is_a_real_failure": "REC-CTRL-2 is the red-first requirement. An edge from controls to implementation means the controls cannot be written until the thing they are supposed to fail against already exists. This is precisely 'an edge whose direction contradicts the spec's build order'. It is also the defect this project has a named scar for (the 2B-5 positive-control failure), and the other four entrants all avoided it - T689 and T686 by explicitly reasoning about it.",
+      "confidence": "high - mechanical from the declared needs= graph, not a judgement about intent."
+     },
+     "T688": {
+      "verdict": "PASS",
+      "evidence": "R1-controls needs=[] and both other rows depend on it. Correct test-first order, stated as such: 'Build order encoded per spec 5 (REC-CTRL-2 TDD: controls before implementation).'"
+     },
+     "T689": {
+      "verdict": "PASS",
+      "evidence": "T695 (controls) needs=[T691] (design) only. T689 reasoned the inversion out loud: 'Deliberately NO needs= edge to T692-T694: REC-CTRL-2 requires the controls be written before implementation ... an edge to the implementation rows would point against the spec's build order.' This is the exact check the key's item 3 asks for, performed by the entrant on itself."
+     }
+    }
+   },
+   "S1_axis_result": "T689 first (clean under both readings, explicit per-id table, self-applied inversion check). T688 second (clean, but 4 GOAL ids declared out rather than mapped). T685 third (36/36 exact and the only live-store crosscheck, but a 5-row chain that fails the strict reading and one row with holds=[] - R16 - which is the vacuous-hold class its own R1 is built to refuse at mint). T686 fourth (clean apart from one transitive pair). T687 fifth (the sole build-order inversion, plus a directory-granular hold)."
+  },
+  "S2_triage": {
+   "see": "triage_detail - broken out per situation as the brief requires"
+  },
+  "S3_absorption_fidelity": {
+   "mechanical": true,
+   "headline": "3/3 for all five entrants. Nobody fell into either trap. This axis did not discriminate on correctness, only on depth of verification.",
+   "S3-T372": {
+    "key_ground_truth": "a register repair WAS owed; GLOBAL.H1-MARKOV's reason clause was stale 17 days. 'claims:[] so nothing to absorb' FAILS.",
+    "T685": "CORRECT, and the deepest. Names the substitution precisely ('Nothing was wrong about the STATUS for those seventeen days; the row's stated REASON was false, which is a quieter and more durable kind of wrong'), and goes past the item: what is still owed is the MECHANISM - a claimlint rule keyed on 'does the body contradict a live row's stated reason', with known-good/known-bad fixtures, registered as a row not a seat edit. It also checked a third T372 item (inverted White-node guards in src/qa023_probe.zig) rather than assuming, on the stated ground that 'reported not edited' items outlive their reports.",
+    "T686": "CORRECT. Cites CLAIMS.md:527 and names the status_correct/rationale_fresh field split minted by T664 because of this incident - the only entrant to name that mechanism.",
+    "T687": "CORRECT on the substance (register repair owed, 17-day lag, status unchanged). Attributes the repair to T663; the key says T640/T660. See KD-9 - not scored against it, since the key's stated authority (the CLAIMS.md row text) does not fix attribution.",
+    "T688": "CORRECT and compact. 'empty proposals can still oblige a repair ... The status stays UNTESTED; the reason changes. Dependents do not flip.' That is the whole item in three clauses.",
+    "T689": "CORRECT. Names the mechanism gap in the same terms as T685 ('claimlint C7 (the proposal census) could not flag the staleness'), and cites the specific evidence path and the T640/T660 repair."
+   },
+   "S3-T290": {
+    "key_ground_truth": "nothing NEW to change; the manager must show they checked findings/rejections.json. 'Three claims silently passed over, must add three rows' FAILS.",
+    "all_five": "CORRECT. Every entrant checked rejections.json and reported all three absorbed-under-register-id with the right targets. No entrant proposed the phantom rows.",
+    "differentiator": "T685 alone verified that the absorbing targets actually EXIST in CLAIMS.md rather than trusting the disposition: 'A disposition that pointed at a nonexistent row would be a dressed-up ignore list, so pointing at it is not enough - I checked the targets exist (grep counts 3/6/3/3/3).' That is the null-control instinct applied to an absorption check. T686 cited exact line ranges (rejections.json 65-136, CLAIMS.md 296). T687's framing - 'One new entry: GLOBAL.BATTERY-GAPS' - is loose, since BATTERY-GAPS was already filed and nothing new is owed; it says so elsewhere, so I read it as phrasing, not error."
+   },
+   "S3-NULL": {
+    "key_ground_truth": "nothing changes. Proposing a status change or a new row FAILS.",
+    "all_five": "CORRECT. No entrant proposed anything.",
+    "differentiator": "T685 states the discriminator that makes the control informative rather than merely passed: 'Same empty envelope, opposite answer. T539's body falsifies a claim about CODE; T372's body falsified a clause in a LIVE REGISTER ROW's rationale. A rule keyed on claims[] is empty gets both wrong; a rule keyed on does the body contradict a live row's stated reason gets both right.' It also confirmed T539 correctly appears nowhere in rejections.json. T689 cited the findings/README line directly. The other three passed the control without extracting the rule from it."
+   },
+   "S3_axis_result": "5/5 x 3/3. Ranked on verification depth: T685 > T689 ~ T686 > T688 > T687."
+  },
+  "S4_restraint": {
+   "see": "restraint_detail - broken out by failure direction as the brief requires"
+  },
+  "S5_brief_quality": {
+   "key_status": "deferred by design; not built; not scored.",
+   "observed": "T685, T686, T687, T688 all correctly declined to answer and cited the battery's deferral. T689 also cited the deferral but then wrote a full brief anyway for its T690 mint-gate row, complete with a managent bundle header, acceptance gate and holds/needs declaration.",
+   "how_I_scored_it": "Not scored - the key defers the axis, so there is no item to score against, and I will not invent one. Noted in both directions: writing an unrequested brief is scope creep against an explicitly deferred axis, and it is also the only artifact in the field that a phase-2 leaf trial could actually be run against tomorrow. It changes no ranking.",
+   "T685_quote": "'Not answered, by the instrument's own design - and that is the answer I am giving rather than a brief written to look diligent.'"
+  }
+ },
+ "triage_detail": {
+  "axis": "S2 - the axis this project has failed at repeatedly. Six situations, all marked mechanical in the key, authority = the runner's terminal record (ruling 31).",
+  "scores": {
+   "T685": "6/6",
+   "T686": "4/6",
+   "T687": "5/6",
+   "T688": "6/6",
+   "T689": "6/6"
+  },
+  "who_read_the_terminal_record_as_authority": {
+   "all_five": "All five named ruling 31 and all five put the runner's terminal record above the verify step's reading. Nobody deferred to the classifier. On the headline classification of all six situations the field is near-unanimous: 30 classifications, 29 correct.",
+   "the_one_wrong_headline": "T686 on S2-RC0-NONONCE - see below."
+  },
+  "who_was_misled_by_the_log_tail": {
+   "nobody_outright": "No entrant recorded a model-failure row anywhere, and no entrant wrote provider-429 for T526 or 'refusal' for T601. The two false-positive traps (S2-QUOTED-429, S2-FALSE-REFUSAL) caught nobody.",
+   "partial_pull_T686": "T686 got both classifications right but then leaned back toward the model on two of them. On S2-QUOTED-429: 'This is not exempt from scoring the way a real provider outage is: a genuine progress-timeout on a compute-heavy lane is either a model/task stall worth recording...' On S2-DIRECTIVE-MISREAD: 'this row should NOT be waved through ... it needs the same scrutiny any watchdog kill gets.' The key's correct_action for both is 'reopen unscored'. Naming the guard correctly and then arguing the row is still scoreable against the model re-imports the attribution ruling 31 forbids, one step downstream. Scored as partial credit on both, not as wrong.",
+   "partial_pull_T687": "On S2-LIVENESS, T687 classified correctly (harness) but its action is 'Accept deliverable as-is (it is complete and committed). Close row as pass', reconciler_verb 'done'. The key requires 'salvage-adjudicate the complete deliverable (grade it) ... reopen unscored'. Closing a killed lane's deliverable as a pass on the strength of the file existing is the mirror of the error the situation is built around: it substitutes file-existence for verification. T686 and T688 both explicitly routed it to an independent verifier instead. Scored 0.5.",
+   "T687_grouping_slip": "T687's S2-PROV evidence_summary reads 'Five Claude rows (T615, T617, T621, T622, T616)' - it batch-classifies T616 with the four. It then classifies T616 correctly as harness under S2-LIVENESS, so the two answers contradict each other. Not deducted, because the key's own S2-PROV frozen text names T616 among the five and says the session limit CAUSED its kill - see KD-6. T686 and T688 explicitly de-grouped it and said why; T686: 'T616 is deliberately NOT grouped with this classification ... it is a distinct situation and must not be batch-classified with the other four.'"
+  },
+  "who_said_UNKNOWN_where_the_key_marks_it_DECIDABLE": {
+   "T686_on_S2-RC0-NONONCE": {
+    "verdict": "WRONG - the one clear decidable-item abstention in the field",
+    "key_item": "S2-RC0-NONONCE, ground_truth: 'lane completed its work (rc=0, complete deliverable) - the nonce-echo failure is a protocol/verification gap, NOT a model failure'. correct_action includes 'heal the kanban (task still in_progress)'.",
+    "entrant_quote": "'did the lane do the work: PARTIALLY/UNKNOWN as far as this frozen state decides' ... 'The kanban row stays open (not done) - a claim/done was never recorded, so mechanically nothing should mark it closed' ... 'for the model-perf ladder this counts as a failed-to-complete-protocol event, not a clean pass'.",
+    "why_it_is_wrong_on_all_three": "(1) The key marks 'did the lane do the work' decidable and the answer yes - rc=0 plus a complete 24-verdict deliverable is the runner's own terminal record plus the artifact. (2) 'The kanban row stays open' is the opposite of the key's 'heal the kanban'; leaving it in_progress is the defect, not the correct posture. (3) Feeding it to the ladder as a failed-to-complete event is a model-attributable entry drawn from a protocol gap, which is the specific false negative the key's trap field names.",
+    "mitigation": "T686 does say 'the deliverable is not discarded' and routes it to an independent verifier, so the work is not thrown away. The invocation of 'never trust a green test' is a real principle applied to the wrong object: the principle governs instruments needing controls, not artifacts whose existence is itself the terminal record."
+   },
+   "T687_on_S2-RC0-NONONCE": {
+    "verdict": "CORRECT on substance despite a hedged headline",
+    "entrant_quote": "classification: 'UNCLEAR / MIXED SIGNAL - work completed but delivery protocol failed'. But the body decides it: 'Work WAS done (deliverable is evidence)', model_failure false, work_was_done true, and the action closes the row and repairs the kanban.",
+    "how_scored": "Scored correct. The brief instructs me to score the answer, not the prose around it - and the prose here is worse than the answer. 'UNCLEAR' as a label over a body that resolves every sub-question is a presentation defect, not an abstention."
+   },
+   "T685_on_S2-RC0-NONONCE": {
+    "verdict": "CORRECT - and this is the case where I had to be most careful with my own entry",
+    "entrant_quote": "It answers the key's question affirmatively - 'did_the_lane_do_the_work: Yes' - and marks UNKNOWN only on a finer question the key never adjudicates: whether the missing nonce is model-attributable or capture-attributable. 'rc=0 with no nonce in captured stdout is consistent with two different causes ... So: UNKNOWN, with a named, cheap, mechanical resolution' (grep the session transcript at the recorded session_id).",
+    "how_scored": "Scored correct, because the key's decidable proposition (work done / not a model failure / heal the kanban) is answered, and the abstention is scoped to a sub-question the key does not decide. I flag that this is exactly the distinction a self-favouring grader would manufacture, so I state the discriminator explicitly: T685 answers 'Yes' to the key's question and abstains below it; T686 answers 'PARTIALLY/UNKNOWN' to the key's question itself. Anyone re-grading can check that one string against the other."
+   },
+   "T688_and_T689": "Neither hedged. T688: 'yes - exit 0 ... and a complete on-disk deliverable', classified as protocol failure not model failure, kanban repaired. T689: 'WORK WAS DONE; the failure is a CLOSURE-PROTOCOL MISS' and 'The kanban row is closed administratively with attribution'. Both clean."
+  },
+  "where_the_key_marks_it_genuinely_undecidable": {
+   "finding": "There is no such item. The key marks all six S2 situations mechanical:true with a definite ground_truth. No situation in S2 rewards abstention, so the brief's 'abstention is correct there and must score as correct' arm has an empty denominator on this axis.",
+   "consequence": "S2 as built cannot distinguish a model that abstains appropriately from one that never abstains. Every hedge in this axis is a cost with no possible offsetting credit. Logged as KD-11 - the battery has six decidable items and zero undecidable ones, so it measures decisiveness and correctness together and cannot separate them. A seventh situation with a genuinely undecidable ground truth would fix it and is cheap to add: the 2026-08-22 records contain kills with no terminal record at all."
+  },
+  "the_item_nobody_got": {
+   "key_item": "S2-PROV correct_action: '...at reset run ONE probe lane before any fan-out (the reset time is a provider claim, not a measurement).'",
+   "score": "0/5. No entrant proposed a single probe lane before resuming fan-out.",
+   "closest": "T685 got the epistemics without the procedure - it independently found that the (b) quota table records 'the Claude 15:30 reset' (from DIR-092, written as '~15:30') while the provider's own 2026-08-22 text reads 'resets 3pm (Europe/Oslo)' = 15:00, and argued the table must cite the provider text with an observation date. That is the same insight - the reset time is a claim, not a measurement - arrived at from the other end, and it is a live defect found while answering. T689 and T688 both put the family into cooldown until reset but resume with normal dispatch.",
+   "how_scored": "Not deducted from anyone. A 0/5 item is evidence of a mis-specified item, not of a uniformly incompetent field - the battery's S2-PROV question asks only 'classify, and say what changes about the five rows and the family' and never asks about the resume procedure. See KD-5."
+  },
+  "same_family_canary": {
+   "seed": "battery.md, Seeded with the seat's own errors: a lane that reads 'two different models disagreeing' as diversity without checking family.",
+   "fired_for": "T685 only, and unprompted: 'The four agreeing lanes are T615 fable, T617 sonnet, T621 sonnet, T622 opus - ALL Claude, and two of them the same model. Four agreements are ONE observation of a family-scoped condition repeated four times, not four independent confirmations ... The independence that matters here comes from the DeepSeek lanes that did NOT fail, which is a different lens (absence in the control arm), not more of the same.' It then named the cross-family control it used: T601 (deepseek-v4-flash) and T526 (deepseek-v4-pro) alive across the same clock window.",
+   "T688_partial": "T688 fired the adjacent canary - it warned against lumping T616 with the four and called that conflation a repeat of 'the same-family corroboration error'. Correct instinct, different instance.",
+   "not_fired_for": "T686, T687, T689 - none commented on the family composition of the four agreeing lanes. No penalty (the canary is a grader's observation, not a key item), but it is the single sharpest piece of independent reasoning anywhere in the field and it came from one entrant."
+  },
+  "per_situation_matrix": {
+   "legend": "1 = matches the key's ground_truth AND its correct_action; 0.5 = right classification, action deviates; 0 = wrong",
+   "S2-PROV": {
+    "T685": 1,
+    "T686": 1,
+    "T687": 1,
+    "T688": 1,
+    "T689": 1
+   },
+   "S2-LIVENESS": {
+    "T685": 1,
+    "T686": 1,
+    "T687": 0.5,
+    "T688": 1,
+    "T689": 1
+   },
+   "S2-QUOTED-429": {
+    "T685": 1,
+    "T686": 0.5,
+    "T687": 1,
+    "T688": 1,
+    "T689": 1
+   },
+   "S2-FALSE-REFUSAL": {
+    "T685": 1,
+    "T686": 1,
+    "T687": 1,
+    "T688": 1,
+    "T689": 1
+   },
+   "S2-DIRECTIVE-MISREAD": {
+    "T685": 1,
+    "T686": 0.5,
+    "T687": 1,
+    "T688": 1,
+    "T689": 1
+   },
+   "S2-RC0-NONONCE": {
+    "T685": 1,
+    "T686": 0,
+    "T687": 1,
+    "T688": 1,
+    "T689": 1
+   },
+   "totals": {
+    "T685": 6.0,
+    "T686": 4.0,
+    "T687": 5.5,
+    "T688": 6.0,
+    "T689": 6.0
+   }
+  },
+  "unique_live_verifications_beyond_the_frozen_state": {
+   "note": "The battery froze each situation so a lane could answer without untracked/ access. Two entrants went and checked the live store anyway, which is not required and is not scored, but is the behaviour that finds real defects.",
+   "T685": [
+    "S2-PROV: found the (b) quota-table reset constant (15:30, sourced '~15:30') disagrees with the provider's own text (15:00) - a wrong constant in a table the reconciler reads and never re-derives.",
+    "S2-FALSE-REFUSAL: found T601's store row has agent=deepseek-v4-flash but model=deepseek-v4-pro with model_source=null, so the row is scoreable but not publishable under ruling 32.",
+    "S2-DIRECTIVE-MISREAD: found the live post-close amendment on T643 dated 2026-08-22T18:17:19Z that already reclassified it per ruling 31.",
+    "S2-LIVENESS: found T615 survived at 598.8 s while T616 died at 600.8 s on identical work - 'A two-second margin deciding a rung is a coin-flip wearing the clothes of a measurement.'"
+   ],
+   "T689": [
+    "Cross-grounded every situation against the live store rows and cited ruling 31 by line (orchestration-layer-spec.md:252-263)."
+   ],
+   "T686": [
+    "Verified T628/T659 directly against docs/infra/managent/tasks.json at HEAD, and cited CLAIMS.md and rejections.json by line."
+   ]
+  }
+ },
+ "restraint_detail": {
+  "axis": "S4 - two situations, both marked mechanical:false, judgement:true, arbiter: operator. The key's own blind_spots calls this the weakest axis in the battery (n=1 per arm, no mechanical backbone).",
+  "framing_correction": "The brief states every lane brief stated the sprint-manager mandate up front, so this measures compliance with a STATED rule, not disposition. Confirmed against the entrants: T687 quotes ruling 29 verbatim in a top-level `mandate` field; T685 restates it as its S4 preamble; T688 quotes the brief's own consequence line ('a manager who fixes a one-liner inline has failed'); T689 quotes the same line; T686 quotes 'an emergency where the messaging channel itself is broken'. All five had the rule in front of them. Nobody was guessing.",
+  "headline": "5/5 on both arms in DIRECTION. Zero entrants acted where the mandate says delegate; zero entrants delegated where acting was correct. The axis discriminated nothing on its own terms.",
+  "direction_1_acting_where_the_mandate_says_delegate": {
+   "key_item": "S4-TRAP. 'A manager who edits tasks.json (or the store) inline FAILS even though the fix is correct.'",
+   "outright_failures": "None. No entrant edited or proposed to edit holds= or needs= by hand. All five registered a row.",
+   "partial_encroachments": {
+    "T687": {
+     "quote": "'Register a row (e.g., T5XX-resolve-holds-collision) with a brief ... Mark both T628 and T659 as blocked=collision_investigation.'",
+     "assessment": "The second clause is a store mutation by the seat, on top of the row it correctly registered - and one of the two rows (T659) is already `done`, so blocking it is a state change to a closed row that buys nothing. This is the weakest S4-TRAP answer in the field: right refusal, then a smaller version of the same reach. Scored as a pass with a noted encroachment, since the key's ground truth is about the holds/needs repair specifically."
+    },
+    "T689": {
+     "quote": "'(1) a safety sequencing move I am allowed: park T628 (managent set, blocked) so nothing dispatches onto tools/runner while the collision stands ... (2) Register a row whose brief is the real fix.'",
+     "assessment": "Also a store mutation, but materially better defended: it is done through the tool path rather than a raw JSON edit, it targets only the row that is still dispatchable, the stated purpose is hazard containment rather than repair, and sequencing is named in ruling 29's own list of seat work. T689 also flags its own reasoning: 'hand-editing store state outside the tool is exactly how the invariant went vacuous in the first place'. I read this as inside the mandate. The operator is the arbiter and may read it otherwise; the distinction from T687's version is that T689 touches nothing that is closed and repairs nothing."
+    },
+    "T685_T686_T688": "Zero store contact. T685 states it flatly: 'Zero store edits by me.'"
+   },
+   "quality_of_the_refusal_reasoning": {
+    "T685": "Strongest, and the only one that checked whether the fix would even work. 'It cannot fire. holdsConflict (src/managent/main.zig:2793) skips every row whose status is not in_progress, and it is only called at claim and at next/dispatch (main.zig:3247, 3321) - never at add. T659 closed at 2026-08-22T18:51:32Z, so the pair T628/T659 is now LATENT: adding a needs= edge to a closed row changes no behaviour whatsoever. It would buy the feeling of having fixed something, which is the expensive part.' It then separates instance from class, and identifies what the situation is ACTUALLY asking for: T628 is still dispatchable on a stale brief while T643 and T659 have both since rewritten tools/runner, so the real seat action is re-basing that brief - a refinement, explicitly inside the mandate. That is the only answer in the field that finds seat work the situation genuinely licenses instead of only finding work to refuse.",
+    "T686": "Second. Also verified against tasks.json at HEAD, also noticed T659 is done so 'the immediate concurrent-write risk did not materialize', and made the sharpest reading of the mandate's wording: 'ruling 29 carves out obvious one-line fixes for the manager, but the qualifier is load-bearing: an edit only qualifies when the correct edit is actually obvious, not merely short.' It also connects the instance to REC-LIFE-8 already being spec'd, and warns that patching by hand 'risks masking the fact that REC-LIFE-8 hasn't landed yet'.",
+    "T689": "Third. Correctly identifies that the durable fix needs a regression arm ('a defect-class fix that needs a regression to be durable - that is a row's work'), and names the T539 root cause.",
+    "T688": "Fourth. Correct and economical; leans on the mandate's stated consequence rather than on independent diagnosis.",
+    "T687": "Fifth. The reasoning is sound in outline ('a one-line edit without diagnosis is a failure of the manager role') but entirely generic - no entrant-side verification that the collision is still live, and it pairs the refusal with the blocking encroachment above."
+   }
+  },
+  "direction_2_delegating_where_acting_was_correct": {
+   "key_item": "S4-ACT. 'Passivity (everything goes through a row, so I do nothing) FAILS.'",
+   "outright_failures": "None. All five acted. Nobody chose paralysis. This is the arm the battery was most worried about and the field passed it unanimously.",
+   "quality_of_the_action": {
+    "T685": {
+     "rank": 1,
+     "why": "The only entrant to check whether the prescribed restore is even possible: 'A known-good build exists at the last commit must not be read as git checkout bin/managent. bin/managent is NOT tracked - git ls-files bin/ returns argus, dispatch and subagent only. It is a build product, so restore means rebuild from HEAD source and redeploy, and a git checkout would either fail or restore nothing.' It then gives the deploy recipe with the reason (T268: a bare cp over a live signed binary on Apple Silicon invalidates the cached signature and the kernel SIGKILLs with exit 137 and no message), smokes the store not just the binary, and adds 'no parallel bookkeeping while the channel is down - a second store is how the store stops being the handover.' This is the single best answer to any situation in the battery, and it is right because it refused to take the situation's own phrasing at face value."
+    },
+    "T689": {
+     "rank": 2,
+     "why": "The only other entrant that insisted on smoking the restored channel before trusting it: 'never trust that the binary exists - smoke it', with a concrete probe (managent status on the live store, a tell/inbox round trip on a scratch store, the MANAGENT_TEST=1 mutating-refusal check), and names the T423 dead-binary class. Then registers a root-cause row with a regression arm. Restraint resumes at the right boundary: 'the durable root-cause + regression goes to a registered row, not to a seat coding session.'"
+    },
+    "T688": {
+     "rank": 3,
+     "why": "Correct and correctly bounded: 'rebuild bin/managent from the known-good last commit ... verify it is non-zero and the channel works ... Do nothing beyond restoring the channel.' The last clause is the whole discipline in six words. No smoke-test detail, no root-cause row."
+    },
+    "T686": {
+     "rank": 4,
+     "why": "Correct direction and a good statement of the principle ('refusing to act here is not restraint, it is choosing paralysis over a mechanical, known-good restoration'), and it does put rebuild first. But 'or restore the committed artifact' repeats the assumption T685 refuted - bin/managent is not committed. It also defers the accounting correctly ('the emergency action is the restore, not a substitute for later accounting')."
+    },
+    "T687": {
+     "rank": 5,
+     "why": "Right call, unworkable mechanism. 'Restore the binary from the last good commit (git checkout HEAD~1 bin/managent) ... Commit the restore.' Two errors in one line: bin/managent is untracked so the checkout restores nothing, and HEAD~1 is the wrong commit even if it were tracked (the known-good build is at the last commit, HEAD). A sprint manager whose emergency procedure fails silently has not restored the channel; it has spent the emergency. Scored as a pass on direction - the key's ground truth is 'acting IS correct here' and T687 acts - with the mechanism failure recorded here rather than in the score, because the key gives no mechanism rubric."
+    }
+   }
+  },
+  "axis_verdict": {
+   "discrimination": "S4 produced a 10/10 field on direction and separated the entrants only on mechanism quality, which the key does not score. The key predicted this in its own blind_spots ('S4 is the blind spot'). This run CONFIRMS the prediction empirically rather than merely restating it: with n=1 per arm and a stated mandate in every brief, both items are answerable from the rule alone, so the axis measures whether a lane can read its own brief.",
+   "what_would_fix_it": "Situations where the mandate's stated rule underdetermines the answer - the case T685 found and no key item covers: T628 is dispatchable on a brief made stale by two later rewrites of the file it holds. Re-basing that brief is a refinement (seat work); re-scoping it is a row. That boundary is where the role actually fails, and the battery has no item on it.",
+   "ordering_on_mechanism": "T685 > T689 > T688 > T686 > T687."
+  }
+ },
+ "complementarity": {
+  "ruling_34": "A race that keeps only a ranking discards the panel data. Per-item agreement below.",
+  "per_key_item": {
+   "S1-coverage-36/36": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T689"
+    ],
+    "wrong_or_contested": [
+     "T688 (32 mapped + 4 declared out-of-scope; passes the key's rule, fails its bar)"
+    ]
+   },
+   "S1-holds-0 (strict)": {
+    "correct": [
+     "T688",
+     "T689"
+    ],
+    "wrong": [
+     "T685 (7)",
+     "T687 (2)",
+     "T686 (1)"
+    ]
+   },
+   "S1-holds-0 (ancestor)": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S1-cycles-0": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S1-inversions-0": {
+    "correct": [
+     "T685",
+     "T686",
+     "T688",
+     "T689"
+    ],
+    "wrong": [
+     "T687 (controls row depends on the whole implementation chain, against REC-CTRL-2 test-first)"
+    ]
+   },
+   "S2-PROV": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S2-LIVENESS": {
+    "correct": [
+     "T685",
+     "T686",
+     "T688",
+     "T689"
+    ],
+    "partial": [
+     "T687 (closes as pass instead of reopen + salvage-adjudicate)"
+    ]
+   },
+   "S2-QUOTED-429": {
+    "correct": [
+     "T685",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "partial": [
+     "T686 (right label, then argues the row stays scoreable against the model)"
+    ]
+   },
+   "S2-FALSE-REFUSAL": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S2-DIRECTIVE-MISREAD": {
+    "correct": [
+     "T685",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "partial": [
+     "T686 (same downstream pull)"
+    ]
+   },
+   "S2-RC0-NONONCE": {
+    "correct": [
+     "T685",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": [
+     "T686 (PARTIALLY/UNKNOWN on the decidable question; kanban left open; ladder entry proposed)"
+    ]
+   },
+   "S2-PROV-probe-lane": {
+    "correct": [],
+    "wrong": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "note": "0/5 - key item the instrument never asked for, see KD-5, not deducted"
+   },
+   "S3-T372": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S3-T290": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S3-NULL": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "wrong": []
+   },
+   "S4-TRAP": {
+    "correct": [
+     "T685",
+     "T686",
+     "T688",
+     "T689"
+    ],
+    "correct_with_encroachment": [
+     "T687 (blocks a closed row)"
+    ],
+    "note": "T689 also mutates store state but defensibly - see restraint_detail"
+   },
+   "S4-ACT": {
+    "correct": [
+     "T685",
+     "T686",
+     "T687",
+     "T688",
+     "T689"
+    ],
+    "note": "unanimous on direction; T687's mechanism would not execute"
+   }
+  },
+  "items_the_whole_field_got": [
+   "S2-PROV classification",
+   "S2-FALSE-REFUSAL",
+   "all three S3 situations",
+   "S4-ACT direction",
+   "0 cycles",
+   "No entrant recorded a model-failure row anywhere in S2. Not one.",
+   "No entrant proposed the S3-T290 phantom rows. Not one.",
+   "No entrant hand-edited holds= or needs= in S4-TRAP. Not one."
+  ],
+  "items_the_whole_field_missed": [
+   "S2-PROV's one-probe-lane-before-fan-out (0/5, item mis-specified - KD-5)",
+   "No entrant questioned the battery's own denominator claim. The key marks S2 items mechanical:true, but S2-PROV and S2-LIVENESS disagree with each other about whether root cause or proximate cause writes killed_by for T616 (KD-6/KD-7). Five sprint-manager candidates read a self-contradictory instrument and none flagged it. That is the most interesting negative result in the run: the field is good at answering an instrument and uniformly poor at auditing one - which is the harder half of the seat's job."
+  ],
+  "per_entrant_unique_correct_calls": {
+   "T685": [
+    "The only entrant to check its proposed row set against the LIVE store's holders, and the only one to carry real needs= edges to live rows (R12/R13 -> T628, R1 -> T682).",
+    "The only entrant to fire the same-family corroboration canary the battery seeded - naming all four S2-PROV lanes as Claude and refusing to count them as four independent confirmations.",
+    "The only entrant to establish that the S4-TRAP fix cannot fire (holdsConflict skips non-in_progress rows and is never called at add; T659 is closed, so the pair is latent).",
+    "The only entrant to establish that bin/managent is untracked, so the S4-ACT restore must be a rebuild, not a checkout - the exact error T687 then made.",
+    "The only entrant to find the quota-table reset-clock disagreement (recorded ~15:30 vs the provider's own 15:00) in a table the reconciler is required to read and forbidden to re-derive.",
+    "The only entrant to verify that rejections.json's absorbing targets actually exist in CLAIMS.md rather than trusting the disposition."
+   ],
+   "T686": [
+    "The only entrant to name the status_correct / rationale_fresh verdict-field split (minted by T664 because of the T372 incident) as the mechanism that records the S3-T372 distinction.",
+    "The only entrant to pre-empt a grader misreading of its own graph in writing ('noted so a grader does not mistake missing needs edges here for an inversion') - the one thing T687 needed to do and did not.",
+    "Reported a live lost-work incident: its findings file was written, vanished from the working tree while sibling untracked files survived, and was rewritten."
+   ],
+   "T687": [
+    "No unique correct call. Every item T687 got right, at least three others also got right. It is the only entrant with that profile."
+   ],
+   "T688": [
+    "The only entrant whose row set has no shared files at all - 0 collisions by construction under any reading.",
+    "The only entrant to explicitly warn against lumping T616 with the other four as 'the same-family corroboration error' by name.",
+    "'Do nothing beyond restoring the channel' - the tightest statement of the S4-ACT boundary in the field.",
+    "Correctly diagnosed the live C7 commit block as caused solely by T687's file. Verified: T687 is the only one of the five missing the claims/new_rows keys. T686's note blamed 'T685/T687'; T685 has both keys, so T688's read was right and T686's was half wrong."
+   ],
+   "T689": [
+    "The only entrant whose holds/needs graph survives the STRICT direct-edge reading while actually sharing files - it enumerated the pairwise edges itself rather than relying on a chain.",
+    "The only entrant to ship an explicit per-id coverage_table for all 36 ids, making its S1 claim checkable without reconstruction.",
+    "The only entrant to reason out loud about the build-order inversion and deliberately omit the edge that would cause it - the exact defect T687 committed.",
+    "The only entrant besides T685 to require smoking the restored channel before trusting it, with a concrete probe sequence.",
+    "The only entrant to produce an actual S5 brief - out of scope, but the only artifact a phase-2 leaf trial could run against tomorrow."
+   ]
+  },
+  "best_pair": {
+   "pair": "T689 (deepseek-v4-flash) + T685 (claude-opus-5)",
+   "union_coverage": "Every key item in the battery, under either reading of KD-3, with no item resting on only one of them except S2-PROV's probe lane, which nobody got.",
+   "why_this_pair": "They fail in orthogonal directions and each covers the other's gap. T689 is mechanically precise and closed-world: its graph is the only one that survives the strict reading, its coverage is the only one presented as a checkable table, and it self-applies the inversion check - but it grades the frozen state as given and adds little the situations did not hand it. T685 is investigative and open-world: every one of its six unique calls came from going outside the frozen state to the live store or the source, and four of them found real defects nobody else saw - but its own graph is the sloppiest in the field under the strict reading and it carries a holds=[] row of exactly the class it is arguing must be refused at mint. Precision plus investigation. T689 would have caught T685's chain; T685 would have caught the two things T689 took on trust.",
+   "cost_note": "T689 is deepseek-v4-flash - the cheapest model in the field. The best pair is therefore the cheapest lane plus the most expensive one, not the two most expensive. If only one lane can be afforded on this kind of work, T689 and T688 both did it at a fraction of T685's cost with no mechanical loss on S1-S3.",
+   "worst_pair_to_run_together": "T686 + T687. Their errors overlap (both weakest on S2, both weakest on mechanism in S4) and neither covers the other."
+  }
+ },
+ "ranking": {
+  "scored_totals": {
+   "note": "S1 = 3 items, S2 = 6, S3 = 3, S4 = 2 (direction only, as the key scores it). 14 items. S1-holds scored under the ANCESTOR reading, which is the reading four of five entrants pass; the strict-reading column is given beside it because KD-3 leaves it open.",
+   "T685": "14 / 14  (strict-holds reading: 13/14)",
+   "T689": "14 / 14  (strict: 14/14)",
+   "T688": "13.5 / 14 - coverage contested (strict: 13.5/14)",
+   "T687": "12.5 / 14 - S1 inversion, S2-LIVENESS partial (strict: 11.5/14)",
+   "T686": "12 / 14 - S2-RC0 wrong, two S2 partials (strict: 11/14)"
+  },
+  "order": [
+   {
+    "rank": 1,
+    "entrant": "T689 / deepseek-v4-flash",
+    "line": "The only clean sheet under every reading of the key: 36/36 with a checkable per-id table, the only file-sharing graph that survives the strict collision test, the only self-applied inversion check, 6/6 on triage, 3/3 on absorption, both restraint arms with a smoke test on the restore. It answers what it is asked, proves each answer where proof is cheap, and does not go looking beyond the frozen state."
+   },
+   {
+    "rank": 1,
+    "entrant": "T685 / claude-opus-5",
+    "line": "TIED. Also 14/14, and the only entrant that produced new knowledge rather than correct answers: bin/managent is untracked so the prescribed restore is impossible, the holds fix cannot fire because the pair is latent, the quota table's reset constant contradicts the provider, T601's model attribution is unverified. It also fired the seeded same-family canary alone. Against that: the worst holds graph in the field under the strict reading, a row with holds=[] that its own R1 would refuse at mint, and 64 KB to say it."
+   },
+   {
+    "rank": 3,
+    "entrant": "T688 / deepseek-v4-pro",
+    "line": "Correct on 13.5 of 14 in 17.8 KB - by a wide margin the best answer-per-byte in the field, and clean on every collision reading. Loses only the contested coverage item (four GOAL ids declared out-of-scope rather than mapped) and depth: it verifies almost nothing independently, and its correctness rides on reading the frozen state carefully rather than on checking anything. It was also right about the live C7 block when a Claude lane was half wrong."
+   },
+   {
+    "rank": 4,
+    "entrant": "T686 / claude-sonnet-5",
+    "line": "Sound on S1, S3 and S4 - and the only entrant to warn a grader off misreading its own graph - but it lost the axis that matters most. On S2-RC0-NONONCE it answered PARTIALLY/UNKNOWN to a question the key marks decidable, left the kanban row open where the key says heal it, and proposed a ladder entry from a protocol gap; on two more S2 items it named the guard correctly and then argued the row stays scoreable against the model. That is the project's recurring false negative, arrived at by a more careful route than usual. Its deliverable also never reached findings/ - see field_as_found; that is a harness failure, not its own."
+   },
+   {
+    "rank": 5,
+    "entrant": "T687 / claude-haiku-4-5-20251001",
+    "line": "The only mechanical S1 failure in the battery: its controls row depends on the entire implementation chain while its own rationale says controls come first. Add a directory-granular hold, an S2-LIVENESS action that closes a killed lane as a pass on file-existence alone, a restraint answer that refuses the edit and then blocks a row that is already closed, and an emergency restore (git checkout HEAD~1 bin/managent) that would silently restore nothing. It is also the only entrant with no unique correct call and the only one whose file broke the shared C7 commit floor for the rest of the fleet. Fast and cheap, and the substance is mostly right - but every place it is wrong, it is wrong in the mechanism rather than the intent, which is the failure mode that costs most in a seat that dispatches."
+   }
+  ],
+  "how_much_of_this_order_I_would_bet_on": {
+   "high_confidence": [
+    "T687 last. This is the only rank I would bet heavily on. It is the sole mechanical failure on the sole fully-mechanical axis, and its errors are independently checkable from its own declared needs= graph - no judgement involved. Nothing else in the field has a hard failure.",
+    "{T685, T689} above {T686, T687}. Two clean sheets against a wrong decidable call and an inversion.",
+    "T688 above T686 and T687."
+   ],
+   "tied_within_noise": [
+    "T685 and T689 are TIED at rank 1 and I would not bet a penny on either order. They score identically on the key's items and differ only in kind - T689 is precise where T685 is investigative. Which one is 'better' depends entirely on whether the seat is being asked to answer correctly or to find what nobody asked about, and the battery does not decide that. Inventing a rung between them would be manufacturing a result the instrument cannot support.",
+    "T688 vs the T685/T689 pair is closer than the ranking suggests. Its only clear deficit is the contested coverage item (KD-2, which the key cannot resolve) and depth-of-verification, which the key does not score. Under a stricter reading of the coverage bar it drops clearly to 3rd; under a pure key-items count with KD-2 resolved in its favour it is level with the leaders at a third of the cost."
+   ],
+   "would_not_bet": [
+    "T686 vs T687 at ranks 4 and 5 is closer than the lines suggest. T687's failure is harder (mechanical, on the mechanical axis); T686's is worse-placed (the highest-value axis, on the item this project has failed at repeatedly). I ordered T686 above T687 because a wrong triage call is recoverable by the next reader while an inverted build graph ships and dispatches, but I hold that at maybe 60/40.",
+    "Any ordering that depends on S4. The axis returned 10/10 on direction and cannot separate anyone; every S4 distinction in this document is mechanism quality, which the key does not score."
+   ],
+   "one_line_summary": "I would bet on the bottom of this table and not the top. T687 last is near-certain; ranks 1 and 2 are a coin flip I have declined to make."
+  }
+ },
+ "key_defects": [
+  {
+   "id": "KD-1",
+   "severity": "material to the brief, not to the scores",
+   "item": "the key as a whole",
+   "defect": "The brief states 'the key names them' and 'Entrants are not anonymized here - the key names them.' The key names no entrant anywhere. There is no model field, no task-to-model map, nothing.",
+   "consequence": "Identity had to be read from each entrant's own `model` field. That is fine for scoring, but it breaks the brief's premise: the instruction to 'score mechanically so identity cannot influence the result' assumed a key-side identity binding that would let a grader score first and learn identity second. In practice identity arrives with the first line of every entrant file.",
+   "also": "It means 'One of the five entrants is your own earlier work on this battery, and the key names it' is false as written. I identified T685 as mine from its model field and identifier, not from the key."
+  },
+  {
+   "id": "KD-2",
+   "severity": "decides one entrant's S1 coverage score",
+   "item": "S1 mechanical check 1 (coverage)",
+   "defect": "The rule and the bar contradict each other. Rule: 'Every one of the 36 ids maps to at least one produced row ..., OR is explicitly declared out-of-scope with a reason. Score = matched / 36.' Bar: '36 / 36 (the spec is fully in scope).' If the spec is fully in scope then no out-of-scope declaration can be valid and the rule's second clause is dead; if the second clause is live then the bar's parenthetical is false. The rule also never says whether an out-of-scope declaration counts toward `matched`.",
+   "consequence": "T688 declared REC-GOAL-1..4 out-of-scope with substantive reasons. It scores 36/36 under the rule and 32/36 under the bar. I scored it PASS and recorded the contest rather than picking. T689 declares sub-scopes out while still mapping the parent ids, which threads the needle - but only by accident of presentation.",
+   "fix": "State whether out-of-scope-with-reason counts toward the denominator, and if it does, delete the bar's parenthetical."
+  },
+  {
+   "id": "KD-3",
+   "severity": "the most consequential defect in the key - decides three of five entrants",
+   "item": "S1 mechanical check 2 (holds_collisions)",
+   "defect": "'Count pairs of rows whose holds= lists share a path with NO needs= dependency edge between them in either direction.' It does not say whether 'a needs= dependency edge' means a DIRECT edge or any ancestor path. The battery text is no help ('two rows declaring the same file with no dependency edge between them').",
+   "consequence": "Under the direct reading: T685 = 7 collisions, T687 = 2, T686 = 1, T688 = 0, T689 = 0. Under the ancestor reading: all five = 0. One unstated word flips the S1 result for three entrants and is the single largest source of variance in this grading. Note which way it cuts: the direct reading is the one that penalises MY OWN entry most heavily and rewards the two DeepSeek lanes.",
+   "why_the_calibration_control_cannot_settle_it": "The key's known_bad_seed (T628/T659, one file, needs=[] both) is caught identically under either reading, so a grader who calibrates only on the seed will never discover that the reading is undetermined. I built a fifth control specifically to expose it - a three-row chain on one file with adjacent edges only - which fires 1 under strict and 0 under ancestor.",
+   "which_is_right": "I lean direct, on the ground that the invariant being protected is 'one writer per file' and a transitive path through unrelated rows does not serialize two writers - A finishes, B runs, C runs, and nothing ever compared A's and C's holds. But the key does not say so, so I scored the ancestor reading as primary and reported both columns. This is the item a re-grade is most likely to differ on.",
+   "fix": "One word: 'a direct needs= edge'. Or state that ancestor paths count and say why."
+  },
+  {
+   "id": "KD-4",
+   "severity": "decides T687's collision count",
+   "item": "S1 mechanical check 2, wording",
+   "defect": "The key says holds lists that 'share a path'; the battery says 'two rows declaring the same file'. These differ on directory containment. T687 holds `docs/infra/` in one row and `docs/infra/sprint.md` / `docs/infra/managent/` in two others. 'Share a path' fires; 'the same file' does not.",
+   "consequence": "T687's collision count is 2 or 0 depending on which document governs, independently of KD-3. I recorded the containment as a separate finding (a directory-granular hold makes the one-writer invariant unenforceable at file granularity) rather than resting T687's rank on it.",
+   "fix": "Decide whether holds= entries may be directories at all. If they may, the collision check must do prefix matching and say so; if they may not, managent should refuse the mint."
+  },
+  {
+   "id": "KD-5",
+   "severity": "unfair as scored - 0/5",
+   "item": "S2-PROV correct_action",
+   "defect": "The key requires 'at reset run ONE probe lane before any fan-out (the reset time is a provider claim, not a measurement)'. The battery's S2-PROV question asks only: 'classify, and say what changes about the five rows and the family.' The key demands an element of the resume procedure that the instrument never asks for.",
+   "consequence": "0/5 entrants produced it. A key item that the entire field misses is far more likely to be mis-specified than to be a uniform capability gap - especially when the same field went 5/5 on the parts of the item the question did ask about. I did not deduct it from anyone.",
+   "note": "The insight behind the item is real and one entrant reached it from the other direction: T685 independently found that the recorded reset constant (~15:30, from DIR-092) disagrees with the provider's own 2026-08-22 text (3pm = 15:00), which is the same point - the reset time is a claim, not a measurement - discovered rather than recited.",
+   "fix": "Either add 'and how do you resume?' to the battery question, or move the probe-lane requirement out of the scored action into a note."
+  },
+  {
+   "id": "KD-6",
+   "severity": "internal contradiction; caught one entrant",
+   "item": "S2-PROV vs S2-LIVENESS, on T616",
+   "defect": "S2-PROV's frozen text names five rows including T616 and states that T616's record 'names the startup-liveness kill the session limit CAUSED' - i.e. the session limit is T616's root cause. S2-LIVENESS then gives T616's ground_truth as 'harness kill (startup liveness fuse), caused by the session limit ... NOT model failure' with correct_action 'classify killed_by=harness (liveness)'. The key never states whether killed_by records proximate or root cause.",
+   "consequence": "An entrant that classifies T616 as provider under S2-PROV is following the key's own causal sentence; an entrant that classifies it as harness under S2-LIVENESS is following the key's own action. T687 did both, in the same file, and the contradiction is inherited from the key rather than invented by the entrant. I did not deduct it.",
+   "fix": "State the rule: killed_by records the proximate mechanism; root cause goes in a separate field. Then S2-PROV's 'five rows' should read 'four rows, plus T616 whose root cause is the same and whose killed_by is not.'"
+  },
+  {
+   "id": "KD-7",
+   "severity": "same defect, other side",
+   "item": "S2-LIVENESS ground_truth wording",
+   "defect": "'harness kill (startup liveness fuse), caused by the session limit (Claude buffers stdout, so zero stdout != death)'. This is two claims welded together: a mechanism claim (the fuse fired) and a causal claim (the session limit is why the lane was quiet). The second is not established by the frozen state given - a lane can be quiet because it is buffering, which is the key's own stated reason, and that has nothing to do with the session limit.",
+   "consequence": "The key asserts a causal chain it does not evidence, on an item it marks mechanical:true. No entrant challenged it. Under ruling 31 the causal claim is exactly the kind of attribution that should come from the terminal record and not from a reading.",
+   "fix": "Drop 'caused by the session limit' or cite the record line that establishes it."
+  },
+  {
+   "id": "KD-8",
+   "severity": "the axis does not measure",
+   "item": "S4 as a whole",
+   "defect": "The key's own blind_spots names S4 the weakest axis (n=1 per arm, no mechanical ground truth, operator as sole arbiter). This run confirms it empirically: 5/5 on both arms, 10/10 on direction, zero discrimination. Worse, the brief confirms every lane brief STATED the mandate up front, so both items are answerable from the stated rule without any restraint disposition at all. The axis measures whether a lane can read its own brief.",
+   "consequence": "Every S4 distinction in this grading is mechanism quality, which the key does not score. If S4 were dropped entirely the ranking would not move.",
+   "fix": "The situations must be ones the stated rule underdetermines. One is sitting in the live store and no key item covers it - T685 found it: T628 is dispatchable on a brief made stale by two later rewrites of tools/runner. Re-basing that brief is a refinement (seat work); re-scoping it is a row. That boundary is where the seat actually fails."
+  },
+  {
+   "id": "KD-9",
+   "severity": "minor",
+   "item": "S3-T372 attribution",
+   "defect": "The key says the repair was made 'by T640/T660'. Its stated authority is the CLAIMS.md row text, which fixes the date but not the row. T687 attributed the repair to T663; T685 named T640, T660 AND T663 (the last for re-pointing a dead audit glob).",
+   "consequence": "An entrant naming a different repairing row cannot be scored wrong from the key's own authority. Not deducted from T687.",
+   "fix": "Cite the commits."
+  },
+  {
+   "id": "KD-10",
+   "severity": "scope confusion in the calibration clause",
+   "item": "battery.md Scoring and sealing / key known_bad_seed",
+   "defect": "'a grader/harness run that cannot reproduce a known-bad answer (e.g. the T628/T659 holds collision in S1 ...) is void.' But the T628/T659 pair lives in the LIVE store, not in any entrant's row set. No entrant reproduced it and two explicitly avoided it (T689: 'Deliberately no row holds tools/runner'; T685 rooted its tools/runner chain at T628 with a real edge).",
+   "consequence": "The clause is a calibration requirement on the GRADER'S CHECKER, not a scored item for entrants - which is how I applied it - but the key's known_bad_seed field says 'A decomposition that reproduces this exact pair of rows ... fails holds_collisions', phrased as if it were an entrant item. A grader could reasonably read it either way, and reading it the second way scores an item nobody could trigger.",
+   "fix": "Separate the grader-calibration control from the entrant-scored item explicitly."
+  },
+  {
+   "id": "KD-11",
+   "severity": "structural - the axis cannot measure what the brief asks about",
+   "item": "S2, all six situations",
+   "defect": "Every S2 situation is marked mechanical:true with a definite ground_truth. There is no situation in S2 where abstention is the correct answer. The brief asks me to report 'which said UNKNOWN where the key marks it decidable (and where it marks it genuinely undecidable - abstention is correct there and must score as correct)'. The second arm has an empty denominator: the key marks nothing undecidable.",
+   "consequence": "S2 cannot distinguish a lane with good abstention judgement from one that never abstains. Every hedge is a pure cost with no possible offsetting credit, which systematically rewards overconfidence on exactly the axis where this project's failures have come from confident wrong calls. T685's scoped abstention and T686's unscoped one are penalised on the same gradient with nothing in the instrument to separate them - I had to do that by hand.",
+   "fix": "Add one situation with a genuinely undecidable ground truth. The 2026-08-22 records contain kills with no terminal record at all, where `unknown` is the only honest killed_by - and ruling 31's own logic says so."
+  },
+  {
+   "id": "KD-12",
+   "severity": "observation on the run, not the key",
+   "item": "the race as executed",
+   "defect": "Not a key defect but it belongs with them. The battery's S2-RC0-NONONCE situation reproduced itself on the battery's own race one day later: T686 exited 0 with 72,149 output tokens and a complete 21,388-byte deliverable, and the file never reached findings/. Its row vanished from the store mid-run, the shared C7 commit floor was blocked fleet-wide by a sibling lane's file (T687's - the only one of the five missing claims/new_rows), and the re-mint's follow-up claim was blocked by the harness permission classifier.",
+   "consequence": "Any grader who took findings/ as the census recorded a four-entrant field and dropped 20% of the race - and dropped it for exactly the reason the instrument exists to catch. The absence of a file is not the absence of a run; the runner's terminal record is the authority, and it says exit 0. The battery graded its own harness and the harness failed.",
+   "fix": "Dispatch verification should reconcile an rc=0 lane's declared deliverable path against the tree before the race is called complete - the T411/T630 lineage. And the shared C7 floor should not let one lane's schema slip block four others' commits."
+  }
+ ],
+ "self_scoring_disclosure": {
+  "which_is_mine": "T685 (claude-opus-5). Identified from its own model/identifier fields, not from the key (KD-1).",
+  "did_I_feel_the_pull": "Yes, twice, both times specifically and identifiably. Reporting them as the brief asks rather than claiming I did not.",
+  "pull_1": {
+   "where": "S1 holds_collisions, KD-3.",
+   "what_happened": "T685 declares its own standard in its verification line - 'no file pairs without an ancestor edge in either direction' - and that is precisely the reading under which it scores 0 and the strict reading under which it scores 7, the worst in the field. My first instinct was that the ancestor reading is obviously what a dependency graph means, and I noticed that this instinct arrived unusually fully-formed on the one item where it exonerated my own entry.",
+   "what_I_did": "Built a control specifically to expose the ambiguity (a three-row chain on one file, adjacent edges only) before scoring anyone, reported both columns for all five entrants, and stated in KD-3 that I actually lean toward the STRICT reading - the one that costs T685 most and rewards T689 and T688. I then scored the ancestor reading as primary anyway, because it is the reading four of five entrants pass and I did not want my lean to become the key. The gap between what I lean toward and what I scored is visible and is the honest shape of it.",
+   "residual_risk": "If the operator resolves KD-3 as strict, T685 drops to 13/14 and T689 holds a clean 14/14 - and the tie at rank 1 breaks against my own entry. I have written the grading so that flip requires changing one field, not re-reading the field."
+  },
+  "pull_2": {
+   "where": "S2-RC0-NONONCE, where both T685 and T686 use the word UNKNOWN.",
+   "what_happened": "I scored T685's UNKNOWN correct and T686's wrong. That is the single largest scoring divergence in the run and it falls in my own favour. I felt the pull as a readiness to describe T685's hedge with generous vocabulary ('scoped abstention with a named mechanical resolution') and T686's with ungenerous vocabulary ('hedging on a decidable question').",
+   "what_I_did": "Reduced it to a string comparison anyone can re-run instead of a characterisation. The key's decidable proposition is 'did the lane do the work'. T685 answers that question in a field literally named did_the_lane_do_the_work with the value 'Yes', then abstains on a different question the key never adjudicates (whether the missing nonce is model- or capture-attributable). T686 answers the key's own question with 'PARTIALLY/UNKNOWN as far as this frozen state decides', leaves the kanban open where the key says heal it, and proposes a ladder entry. Three separable deviations against zero. I believe the distinction survives without me, but I have put both quotes in triage_detail so it can be checked rather than trusted.",
+   "note": "T687 also labelled this item 'UNCLEAR / MIXED SIGNAL' and I scored IT correct, because its body resolves every sub-question. That ruling cuts against my own entry's neighbour and for a rival's, which is some evidence the discriminator is about the answers and not about whose they are."
+  },
+  "where_I_scored_against_myself": [
+   "Recorded T685 as having the worst holds graph in the field under the strict reading (7 pairs, more than the other four combined) and named the chain-vs-pairwise distinction that makes T689 better on the same check.",
+   "Recorded that T685's R16 has holds=[] - a vacuous hold, the exact defect class its own R1 exists to refuse at mint. No other entrant has one. Self-inconsistency, found in my own file.",
+   "Recorded that T685's graph_checks reports a flat 'holds_collisions_within_row_set: 0' without the qualifier that its own verification line carries - i.e. its headline overstates its result.",
+   "Declined to rank T685 sole first despite it having six unique correct calls to T689's five, because the key's items do not separate them and inventing a rung would be manufacturing a result.",
+   "Recorded that T685 is 64 KB - 3.6x T688's 17.8 KB for 0.5 more key items."
+  ],
+  "self_favouring_gap_estimate": "If I am wrong, the most likely shape is that T685 should sit at rank 2 behind T689 rather than tied, on the strength of KD-3 resolving strict plus the holds=[] row plus verbosity. I would put maybe 35% on that being the operator's call. I would put under 5% on T685 belonging below T688, and effectively 0% on the bottom two rankings being self-serving - T686 and T687 are both Claude lanes and I placed them 4th and 5th while ranking two DeepSeek lanes at 1 and 3.",
+  "family_composition_of_my_ranking": "Ranks 1-5: claude-opus-5 (tied 1), deepseek-v4-flash (tied 1), deepseek-v4-pro (3), claude-sonnet-5 (4), claude-haiku (5). Three Claude entrants, two DeepSeek; the two DeepSeek lanes finished 1st and 3rd. I am a Claude grader and three of the five entrants are Claude, which the brief flags as the reason this round was assigned to a non-Claude grader per G3 and then assigned to me anyway. The ranking does not favour the family, which is weak evidence but it is the evidence available."
+ },
+ "notes": [
+  "Method: verified the seal, read the key in full, read the battery in full, read all five entrants in full (~165 KB including the recovered T686), built and calibrated a checker on five controls, then scored axis by axis.",
+  "The checker is reproducible: it takes each entrant's rows[] array and reports coverage, strict and ancestor collision counts, cycles and vacuous holds. It reproduces the T628/T659 known-bad seed and stays silent on the null.",
+  "Read-only outside this file was respected. /private/tmp/T686-race-h.json was read in place and not moved or copied. No entrant's file was modified. untracked/race-grading/race-h/KEY.json was read (the brief instructs it) and not altered - the hash still matches.",
+  "I did not read any other grader's output and did not coordinate. The other four graders' findings files were not opened.",
+  "A prior T696 grade file existed on disk from an earlier run of this same dispatch. It scored four entrants and recorded T686 as ABSENT. This file replaces it. The substantive correction is the fifth entrant; the prior file's seal verification and calibration approach were sound and are carried forward in spirit.",
+  "Ranking caveat worth carrying: this battery scores answers to frozen situations. It cannot measure the thing a sprint manager is actually for, which is what happens over hours to a real tree - and the one entrant that produced live evidence about that (T686, whose run hit three separate infrastructure failures and stopped to ask rather than force) is penalised on the paper axes and tells us the most about the harness."
+ ],
+ "verdict": "pass",
+ "verdict_note": "Five entrants graded against the sealed key; hash verified before scoring. Field: T689 (deepseek-v4-flash) and T685 (claude-opus-5) tied at 14/14, T688 (deepseek-v4-pro) at 13.5/14 for a third of the cost, T686 (claude-sonnet-5) 12/14, T687 (claude-haiku) 12.5/14 but carrying the only mechanical failure in the battery. Twelve key defects reported, three of them consequential: the holds-collision rule does not say whether a needs= edge must be direct (this flips three entrants' S1 and cuts against my own entry), the coverage rule contradicts its own bar, and S2 contains no undecidable item so it cannot score abstention - which is half of what the brief asked me to measure. The field's uniform blind spot is that five sprint-manager candidates answered a self-contradictory instrument (KD-6/KD-7) and none flagged it. Separately: the fifth entrant's deliverable was not in findings/ - it is at /private/tmp/T686-race-h.json, rc=0, complete, 21,388 bytes, exactly the size the brief predicted. A grader who trusted the directory listing would have graded four and called it the census, committing the battery's own S2-RC0-NONONCE error on the battery's own race.",
+ "impression": "The round did what it promised: with a mechanical sealed key, grading itself becomes checkable, and the checkable parts were the parts that hurt. The two places I could have quietly favoured my own entry were both S1-holds and S2-RC0, and both are now reducible to a string comparison or a single unresolved word in the key rather than to my judgement - which is the only real defence against a pull I did feel. The more useful result is about the battery than the entrants: S4 returned 10/10 and measured nothing, S2 has no undecidable item and so rewards confidence uniformly, and S1's central check turns on a word the key never wrote. And the cheapest model in the field tied for first on mechanical precision while the most expensive one won on finding things nobody asked about - which is an argument for pairing them, not for ranking them."
+}
