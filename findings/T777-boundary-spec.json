@@ -1,0 +1,8 @@
+{
+  "task_id": "T777",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Sprint-spec console (leaf, at the delegation cap — no dispatch). Deliverable is the complexity-boundary sprint spec (docs/epics/E1-markovian/sprints/complexity-boundary/spec.md), prose only: the epistemic-tree walk, the complexity push and the named boundary, the smaller-goban floor, the worker-row decomposition (T531 and T535 slotted, coordinated not duplicated), the red-then-green control discipline, and the explicit minting of engine-unification pass1 as Waypoint-2 work. No register status changes proposed here — the walk and push rows will propose their verdicts through the standard absorption gate in their own findings files. Inbox polled via 'bin/managent inbox T777 --ack' at start and before close: empty, no directives, none to record."
+}
