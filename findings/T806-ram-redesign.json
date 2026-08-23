@@ -1,0 +1,484 @@
+{
+ "task_id": "T806",
+ "date": "2026-08-23",
+ "model": "claude-opus-5",
+ "claims": [],
+ "new_rows": [],
+ "notes": "T806 redesigned the RAM policy from scratch under the operator's 2026-08-23 ruling (the S08 lock on the floor is lifted). Deliverable: docs/infra/host/ram-policy.md. DIRECTIVE D081 received mid-row (relayed by claude-opus-5/T771 at 2026-08-23T20:25:48Z) and DISCHARGED in full: (a) the provenance of total//8 was established from all four T362 artifacts and reported in policy 2.1 \u2014 no derivation exists beyond 'an eighth of RAM felt safe', stated in those words; (b) total//8 is deleted outright, not re-tuned, and is named explicitly as delete-list item 1; (c) the replacement backstop RESERVE_MB was RE-DERIVED from a measured quantity per D081 \u2014 it is now 4608 MB = the observed p95 of actual RSS in the heaviest duration band (was 4096 MB derived from the lowest observed avail reading, which D081's list does not admit; that reading is retained as corroboration only). Correcting the re-derivation also corrected the 2026-08-23 counterfactual: applying the reserve test properly refuses ALL THREE cloud judges, not two. No claims proposed and no register rows: this row writes a policy and a disposition table, it asserts nothing about the solver's epistemic register. Inbox polled at claim, mid-row and before done; D081 was the only directive. DO-NOT-IMPLEMENT honoured: tools/runner, bin/subagent, tools/fleet-keeper.sh, src/managent/main.zig and S08/spec.md are untouched.",
+ "evidence": {
+  "incident_reread": {
+   "source": "docs/infra/host/incident-2026-07-29.md",
+   "verdict": "floor's justification REFUTED",
+   "hog_rss_mb": 12800,
+   "hog_peak_mb": 22323,
+   "next_largest_mb": 2400,
+   "system_free_at_jetsam_mb": 46,
+   "normal_peak_at_clean_head_mb": 555,
+   "fixes_the_record_names": [
+    "default -O ReleaseFast (root cause)",
+    "per-process RSS cap (bounds the one runaway)"
+   ],
+   "floor_is_neither": "host-wide floor is T362, commit 1a3a6c1, 2026-08-20 04:47",
+   "days_between_panic_and_floor": 22,
+   "floor_trigger_mb": 6144,
+   "panic_condition_mb": 46,
+   "trigger_distance_multiple": 133,
+   "lowest_real_avail_reading_in_corpus_mb": 4247,
+   "floor_cannot_reach_the_2026_08_23_consumer": "kills only members of its own runner process group (tools/runner:3198-3275); the 18 GB ollama daemon is outside every such group"
+  },
+  "kill_census": {
+   "computed_at_head": "346b5b2",
+   "corpus": "untracked/log/*.log",
+   "method": "S08 Appendix A, anchored on '^[runner] '",
+   "kill_lines_total": 34,
+   "kills_with_identified_member": 20,
+   "futile": 16,
+   "sufficient": 4,
+   "futile_rate": "16/20 = 80%",
+   "could_it_have_helped_ratio": "4/20 = 20%",
+   "sufficient_kill_shortfalls_mb": [
+    15,
+    31,
+    141,
+    176
+   ],
+   "sufficient_kills_were_all_transients": "largest sufficient shortfall is 176 MB = 2.9% below the floor on a 48 GB host; a dwell requirement suppresses all four",
+   "headline": "of 20 identified kills, ZERO were both necessary and effective",
+   "total_victim_rss_mb": 3090,
+   "total_shortfall_mb": 11287,
+   "kills_with_no_member_named": 14,
+   "smallest_shortfall_anywhere_mb": 6,
+   "smallest_shortfall_line": "[runner] KILL: host memory pressure \u2014 avail 6138 MB < floor 6144 MB (0.0125% of host RAM)",
+   "kills": [
+    {
+     "log": "t661.log",
+     "line": 145163,
+     "avail_mb": 4247,
+     "floor_mb": 6144,
+     "shortfall_mb": 1897,
+     "victim_rss_mb": 219,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t630.log",
+     "line": 136680,
+     "avail_mb": 4545,
+     "floor_mb": 6144,
+     "shortfall_mb": 1599,
+     "victim_rss_mb": 389,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t636.log",
+     "line": 96361,
+     "avail_mb": 4545,
+     "floor_mb": 6144,
+     "shortfall_mb": 1599,
+     "victim_rss_mb": 183,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t699.log",
+     "line": 54741,
+     "avail_mb": 4569,
+     "floor_mb": 6144,
+     "shortfall_mb": 1575,
+     "victim_rss_mb": 240,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t781.log",
+     "line": 10984,
+     "avail_mb": 5380,
+     "floor_mb": 6144,
+     "shortfall_mb": 764,
+     "victim_rss_mb": 133,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t549.log",
+     "line": 37,
+     "avail_mb": 5609,
+     "floor_mb": 6144,
+     "shortfall_mb": 535,
+     "victim_rss_mb": 255,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t782.log",
+     "line": 95,
+     "avail_mb": 5687,
+     "floor_mb": 6144,
+     "shortfall_mb": 457,
+     "victim_rss_mb": 129,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t780.log",
+     "line": 93,
+     "avail_mb": 5761,
+     "floor_mb": 6144,
+     "shortfall_mb": 383,
+     "victim_rss_mb": 251,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t521.log",
+     "line": 43,
+     "avail_mb": 5782,
+     "floor_mb": 6144,
+     "shortfall_mb": 362,
+     "victim_rss_mb": 40,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t529.log",
+     "line": 37,
+     "avail_mb": 5815,
+     "floor_mb": 6144,
+     "shortfall_mb": 329,
+     "victim_rss_mb": 186,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t545.log",
+     "line": 38,
+     "avail_mb": 5816,
+     "floor_mb": 6144,
+     "shortfall_mb": 328,
+     "victim_rss_mb": 87,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t542.log",
+     "line": 38,
+     "avail_mb": 5851,
+     "floor_mb": 6144,
+     "shortfall_mb": 293,
+     "victim_rss_mb": 60,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "duty-DCLAIM.log",
+     "line": 12,
+     "avail_mb": 5860,
+     "floor_mb": 6144,
+     "shortfall_mb": 284,
+     "victim_rss_mb": 127,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t543.log",
+     "line": 38,
+     "avail_mb": 5868,
+     "floor_mb": 6144,
+     "shortfall_mb": 276,
+     "victim_rss_mb": 60,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t527.log",
+     "line": 37,
+     "avail_mb": 5968,
+     "floor_mb": 6144,
+     "shortfall_mb": 176,
+     "victim_rss_mb": 204,
+     "form": "direct-child",
+     "verdict": "sufficient"
+    },
+    {
+     "log": "t531.log",
+     "line": 43,
+     "avail_mb": 6003,
+     "floor_mb": 6144,
+     "shortfall_mb": 141,
+     "victim_rss_mb": 205,
+     "form": "direct-child",
+     "verdict": "sufficient"
+    },
+    {
+     "log": "t783.log",
+     "line": 102,
+     "avail_mb": 6004,
+     "floor_mb": 6144,
+     "shortfall_mb": 140,
+     "victim_rss_mb": 126,
+     "form": "cull",
+     "verdict": "futile"
+    },
+    {
+     "log": "t774.log",
+     "line": 56961,
+     "avail_mb": 6041,
+     "floor_mb": 6144,
+     "shortfall_mb": 103,
+     "victim_rss_mb": 56,
+     "form": "direct-child",
+     "verdict": "futile"
+    },
+    {
+     "log": "t530.log",
+     "line": 37,
+     "avail_mb": 6113,
+     "floor_mb": 6144,
+     "shortfall_mb": 31,
+     "victim_rss_mb": 84,
+     "form": "direct-child",
+     "verdict": "sufficient"
+    },
+    {
+     "log": "t512.log",
+     "line": 220,
+     "avail_mb": 6129,
+     "floor_mb": 6144,
+     "shortfall_mb": 15,
+     "victim_rss_mb": 56,
+     "form": "direct-child",
+     "verdict": "sufficient"
+    }
+   ]
+  },
+  "rss_distribution": {
+   "corpus": "untracked/runs/*.json",
+   "records": 517,
+   "with_rss_mb": 481,
+   "nonzero": 365,
+   "caveat_field_semantics": "rss_mb = max(peak_rss.values()) \u2014 largest SINGLE member's peak, not the tree total (tools/runner:3449,3507); every default inherits this understatement",
+   "caveat_censoring": "116 zero values are censored, not zero: 116/116 are runs under 60 s; excluded, never counted as 0 MB",
+   "keys_refuted": {
+    "provider": "all providers converge \u2014 deepseek p95 3207, claude p95 3380, ollama-cloud p95 3184; the top of the distribution is one repeated ~3.2 GB value (3163-3224) across providers. ORC-GD-2's per-provider table is confounded.",
+    "compiles_or_not": "agent lanes with heavy zig activity p95 3198; with none p95 3208; bare zig build/test p95 3216. Indistinguishable."
+   },
+   "key_confirmed": "expected wall duration \u2014 monotone in every quantile",
+   "bands": [
+    {
+     "band": "<60s",
+     "n": 97,
+     "p50": 14,
+     "p90": 523,
+     "p95": 570,
+     "p99": 856,
+     "max": 989,
+     "default_ram_mb": 768,
+     "covered_by_default": "93/97"
+    },
+    {
+     "band": "60-600s",
+     "n": 104,
+     "p50": 522,
+     "p90": 830,
+     "p95": 1626,
+     "p99": 1627,
+     "max": 1627,
+     "default_ram_mb": 1792,
+     "covered_by_default": "104/104"
+    },
+    {
+     "band": "600-1800s",
+     "n": 119,
+     "p50": 524,
+     "p90": 1427,
+     "p95": 2992,
+     "p99": 3779,
+     "max": 12296,
+     "default_ram_mb": 3072,
+     "covered_by_default": "113/119"
+    },
+    {
+     "band": ">=1800s",
+     "n": 45,
+     "p50": 856,
+     "p90": 3224,
+     "p95": 4574,
+     "p99": 10617,
+     "max": 13661,
+     "default_ram_mb": 4608,
+     "covered_by_default": "42/45"
+    }
+   ],
+   "rounding_rule": "default = ceil(p95/256 MB) * 256 MB (ORC-GD-2's rule, retained; p99 for T-H consoles)",
+   "coverage": "352/365 = 96.4% of measured runs fit their band's default",
+   "resident_model_charge_mb": 18432,
+   "resident_model_basis": "docs/infra/model-registry.md:62 'local, 18 GB MLX'; NOT the task's own RSS (qwen's own pid shows 521 MB, n=2, because the footprint lives in the ollama daemon)"
+  },
+  "danger_signal": {
+   "finding": "the kernel already publishes the verdict the floor approximates",
+   "kern.memorystatus_vm_pressure_level": "1 (1=normal 2=warn 4=critical) \u2014 Jetsam's own verdict",
+   "kern.memorystatus_level": 90,
+   "live_control": "runner's _host_avail_bytes() = 32515 MB while vm_stat Pages free alone = 1651 MB \u2014 a 20x spread between two defensible readings of the same machine",
+   "panic_signature_was_not_free_pages": "the 2026-07-29 panic's indicator was 'Compressor Info: 100% of segments limit (BAD)', not a free-page count",
+   "recommendation": "L3 reads kern.memorystatus_vm_pressure_level >= 2, sustained per INV-4, and reports compressor/swap alongside"
+  },
+  "policy_shape": {
+   "L0": "root-cause defaults: -O ReleaseFast + --rss-cap-mb (the two mechanisms the incident record actually names) \u2014 may stop ONLY the process that overran",
+   "L1": "declaration: ram_mb at registration",
+   "L2": "admission: avail - committed - candidate >= RESERVE_MB (4608 = the observed p95 of actual RSS in the >=1800 s band, D081-compliant); refuse leaves the row dispatchable",
+   "L3": "danger alarm: kernel pressure signal, dwell-gated, names the consumer, stops admitting \u2014 NO kill verb at all",
+   "reserve_derivation": "D081-compliant: RESERVE_MB = 4608 MB = observed p95 of actual RSS in the heaviest duration band (>=1800 s, p95 4574 -> 4608 at 256 MB rounding). Its job is to absorb the worst single UNDER-DECLARATION the corpus has produced. Does not scale with hw.memsize; recomputed as declared_vs_actual records accumulate (ORC-GD-5). Corroboration only (not the derivation): lowest real avail reading 4247 MB with no instability; panic condition 46 MB, so ~100x above the cliff.",
+   "structural_difference_from_the_floor": "crossing the reserve causes a REFUSAL, not a kill"
+  },
+  "invariants": [
+   {
+    "id": "INV-1",
+    "statement": "no task dies for a process it does not conflict with; a running task may be stopped only for its own overrun of its own declaration",
+    "arm_seeded": "inject a danger-level reading with a FOREIGN consumer holding the memory and all members in budget -> zero signals to workers, one alarm naming the consumer, admission closed",
+    "arm_null": "same fleet, no pressure -> no alarm, no kill, admission open",
+    "post_hoc_detector": "any run record with a guard-caused death whose peak RSS <= its declared ram_mb is a violation, detectable from the record alone"
+   },
+   {
+    "id": "INV-2",
+    "statement": "no futile stop \u2014 every stop must be able to relieve what it targets",
+    "arm": "census instrument over the post-change corpus reports kills_for_host_condition=0 AND futile=0; ORC-G10's null (no kills -> rate UNDEFINED, never 0%) and seeded (one futile + one sufficient -> 50%) arms carry over; T785's red arm becomes a deletion check"
+   },
+   {
+    "id": "INV-3",
+    "statement": "memory is decided at admission, not during execution; refuse and leave the row dispatchable",
+    "arm_seeded": "declared needs summing past avail-RESERVE -> last candidate REFUSED, row still dispatchable, NO process spawned, zero signals to running tasks",
+    "arm_null": "needs that fit -> all admitted, no refusals"
+   },
+   {
+    "id": "INV-4",
+    "statement": "a guard-caused death is labeled with killed_by, and no response fires on a single sample: 3 consecutive polls spanning >= 2 s",
+    "arm_seeded": "single-sample overrun spike cleared next poll -> NO stop; sustained overrun past dwell -> stop with killed_by present",
+    "fixture": "the T783 record \u2014 culled at untracked/log/t783.log:102-103, exited 1 at 88.1 s with no killed_by",
+    "threshold": "stop only above 125% of declared (ORC-GD-5's recommendation, adopted); 100-125% is logged as declared_vs_actual and nothing else"
+   },
+   {
+    "id": "INV-5",
+    "statement": "no threshold is a fraction of hardware",
+    "arm": "S08 \u00a710.5 INVERTED \u2014 accept fails a diff that INTRODUCES a hw.memsize/total//N-derived memory threshold"
+   }
+  ],
+  "delete_list": [
+   "tools/runner:2807 \u2014 the host_total // 8 derivation. DELETED OUTRIGHT per D081, not re-tuned, form not preserved; unprovenanced (see total_div_8_provenance)",
+   "tools/runner:3198-3275 \u2014 the whole host-floor comparison path (the only code path that kills a worker for a foreign process)",
+   "tools/runner:2582,2591 \u2014 --host-mem-floor-mb / --no-host-guard",
+   "_select_host_guard_victim \u2014 largest-member kill selection; T785's pending fix is MOOT, remove rather than repair",
+   "tools/runner:3224-3225 \u2014 T711's tenant add-back (its only consumer was the floor)",
+   "the tenant auto-detect ps scan DEMOTED to a labeled 'sample' diagnostic; D1's startup race becomes structurally impossible",
+   "WEIZIGO_HOST_TENANT_RESERVATION_MB retires as the production path (T714's D2: the control injected what it should have measured); survives as a test hook",
+   "bin/subagent:232-233 \u2014 MEMORY_GATE_MARGIN_MB=2048 and LOCAL_LANE_COST_DEFAULT_MB=16384; two unexplained constants become one derived RESERVE_MB",
+   "_lane_is_memory_heavy \u2014 the provider-shaped special case; every lane declares, so there is no heavy-lane class (this generalises T713 to the whole fleet)"
+  ],
+  "kept": [
+   "-O ReleaseFast default",
+   "--rss-cap-mb (amended: defaults to ceil(declared ram_mb * 1.25) where a declaration exists, else 12288)",
+   "wall/CPU/progress watchdogs",
+   "reap paths"
+  ],
+  "s08_disposition_summary": {
+   "retained": [
+    "ORC-G1 (strengthened)",
+    "ORC-G2 (as invariant)",
+    "ORC-G5 (narrowed)",
+    "ORC-G7 (narrowed)",
+    "ORC-G8 (re-pointed to overrun+alarm)",
+    "ORC-G9 (principle)",
+    "ORC-G10 (target strengthened)",
+    "ORC-GD-1 (unchanged)",
+    "ORC-GD-5 (promoted; 25% adopted)"
+   ],
+   "amended": [
+    "ORC-G3 (admission half only)",
+    "ORC-GD-2 (provider keying refuted -> duration bands)",
+    "ORC-GD-3 (floor_bytes -> RESERVE_MB)",
+    "ORC-GP-3 (pass 2 becomes a deletion pass)"
+   ],
+   "superseded": [
+    "ORC-G4 (no sampling at all)",
+    "\u00a72a 'the floor's value does not move'"
+   ],
+   "retired": [
+    "ORC-GD-4 (the backstop is NOT unchanged)",
+    "\u00a73 'Raising the floor. Forbidden'"
+   ],
+   "inverted": [
+    "\u00a710.5 accept check"
+   ],
+   "moot": [
+    "T785"
+   ],
+   "unaffected": [
+    "ORC-G6"
+   ],
+   "dischargeable": [
+    "T715 from \u00a71"
+   ],
+   "correction_to_s08": "ORC-G5 says the memory decision is split three ways; tools/fleet-keeper.sh has NO memory logic at HEAD (its pressure.json is contention only) \u2014 the split is two ways, not three"
+  },
+  "counterfactuals": {
+   "2026-08-23T15:19:09": "qwen lane declares 18432 (registry), each judge 4608 (>=1800s band). Avail before the qwen loaded reconstructs to ~24193 MB (observed 5761 + ~18 GB). Applying the admission test with RESERVE_MB=4608: qwen ADMITTED (24193-0-18432 = 5761 >= 4608); judge 1 REFUSED (24193-18432-4608 = 1153 < 4608), judges 2 and 3 likewise. One lane admitted, three left dispatchable, ZERO kills. All four 88-second deaths \u2014 the three at 251/133/129 MB and T783's unlabeled cull \u2014 do not happen. The 18 GB consumer is not invisible: it is CHARGED to the task that asked for it and is precisely why the batch did not fit.",
+   "2026-07-29T02:37": "L0 acts alone: -O ReleaseFast is the root-cause fix, and --rss-cap-mb bounds THAT process (the record's own arithmetic: caught 5 s before the cliff at a 4 GB cap). L2 refuses further lanes alongside a heavy build. L3 reads pressure_level=4 and compressor at 100% of segments \u2014 the panic's actual signature \u2014 closes admission and names zig pid 92604 at 12.5 GB. The FLOOR, at 6144 MB free, would have fired somewhere in the descent from 48 GB to 46 MB and killed the largest member of some runner's process group \u2014 on the corpus's evidence a 40-389 MB agent lane, not the 12.5 GB compiler. Futile, and the panic happens anyway."
+  },
+  "total_div_8_provenance": {
+   "question": "where did total // 8 come from?",
+   "answer": "no derivation exists beyond 'an eighth of RAM felt safe'",
+   "artifacts_read": {
+    "untracked/T362-fleet-aware-memory-guard.md Scope 1": "'Derive the floor from hw.memsize rather than hardcoding it' \u2014 mandates the FORM, names no value and no divisor",
+    "commit 1a3a6c1": "'below a danger floor derived from hw.memsize (total // 8, ...)' \u2014 restates the formula",
+    "findings/T362-fleet-guard.json": "'The floor is derived from hw.memsize (total // 8 ~= 6 GB on 48 GB)' \u2014 restates the formula",
+    "findings/T362-context.json": "'default 0 = derive total//8 ~= 6 GB on 48 GB' \u2014 restates the formula"
+   },
+   "count": "four artifacts, four restatements of the arithmetic, zero sentences saying why eight",
+   "no_reference_to_the_panic_numbers": "the 46 MB free that actually preceded the panic appears in the precedent citation but never in the derivation",
+   "the_briefs_instruction_is_the_origin_of_the_defect": "'derive from hw.memsize rather than hardcoding it' treats a fraction of hardware as more principled than a constant; it is the reverse \u2014 a constant must be justified to be written down, a fraction merely LOOKS derived, and that false rigour survived T711, T713 and T803 unquestioned",
+   "T362_diagnosed_right_specified_wrong": "its one quantitative argument is 'five such rows would commit 40 GB' \u2014 an argument about total committed demand, which is what the admission arithmetic bounds, NOT an argument for a free-memory threshold with a kill verb"
+  }
+ },
+ "unnamed_kill_lines": [
+  {
+   "log": "t531-baseline.log",
+   "line": 1614,
+   "shortfall_mb": 80
+  },
+  {
+   "log": "t531-post.log",
+   "line": 2279,
+   "shortfall_mb": 337
+  },
+  {
+   "log": "t546.log",
+   "line": 38,
+   "shortfall_mb": 368
+  }
+ ],
+ "directives_acted_on": [
+  {
+   "id": "D081",
+   "from": "claude-opus-5/T771 (operator ruling relay)",
+   "at": "2026-08-23T20:25:48Z",
+   "requirements_and_disposition": [
+    {
+     "required": "do NOT preserve total//8 in any form; do not merely re-tune the divisor",
+     "done": "policy 6 delete-list item 1 \u2014 deleted outright, form not preserved; INV-5 makes a re-introduction fail accept"
+    },
+    {
+     "required": "establish where the number came from (T362, the incident record) and report it; if no derivation exists beyond 'an eighth of RAM felt safe', say that in those words",
+     "done": "policy 2.1 \u2014 all four T362 artifacts read (bundle Scope 1, commit 1a3a6c1, findings/T362-fleet-guard.json, findings/T362-context.json); four restatements of the arithmetic, zero statements of why eight; the sentence is stated verbatim as required"
+    },
+    {
+     "required": "the delete list must name it explicitly",
+     "done": "policy 6 item 1 names it as the first entry, anchored at tools/runner:2807"
+    },
+    {
+     "required": "any replacement backstop must derive from a MEASURED quantity \u2014 largest declared need in flight, observed p95 of actual RSS, or the compressor segment limit that failed in 2026-07-29 \u2014 never a fraction of installed hardware",
+     "done": "RESERVE_MB re-derived 4096 -> 4608 = the observed p95 of actual RSS in the >=1800 s band (D081's second allowed derivation). The committed-demand term (sum of declared needs in flight) is D081's first allowed quantity and is already the arithmetic's main term. L3's danger trigger is the compressor-segment signal, D081's third. No threshold in the policy is a fraction of hardware (INV-5)."
+    }
+   ]
+  }
+ ]
+}

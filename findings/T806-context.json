@@ -1,0 +1,61 @@
+{
+ "task_id": "T806",
+ "date": "2026-08-23",
+ "model": "claude-opus-5",
+ "identifier": "claude-opus-5/T806",
+ "type": "context-dump",
+ "claims": [],
+ "new_rows": [],
+ "what_was_read": [
+  "bin/managent orient (worker preamble)",
+  "untracked/T806-ram-policy-redesign.md (the bundle)",
+  "findings/README.md (schema)",
+  "docs/infra/host/incident-2026-07-29.md (full \u2014 the load-bearing artifact)",
+  "docs/infra/runner.md (memory/RSS/floor/panic grep + :6-16 the two named fixes, :14-15 ReleaseFast)",
+  "docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md \u2014 \u00a71 incident, \u00a71.2 census, \u00a72 ORC-G1..G10, \u00a72a ORC-GD-1..5 (T803), \u00a73 scope/floor lock, \u00a75 pass order, Appendix A census command",
+  "tools/runner \u2014 :1290-1440 (host-mem design comment, _host_mem_bytes, _host_avail_bytes, tenant add-back), :2576 (--rss-cap-mb default 12288), :2582/2591 (floor flags), :2796-2830 (floor derivation + banner), :3198-3275 (the kill path), :3449/3507 (peak_rss_mb = max), _select_host_guard_victim, _sum_mlx_tenant_bytes",
+  "bin/subagent \u2014 :191-233 (T713 gate design comment + MEMORY_GATE_MARGIN_MB/LOCAL_LANE_COST_DEFAULT_MB), _memory_gate_verdict body, :21-27 (--override-memory-gate)",
+  "tools/fleet-keeper.sh \u2014 memory/rss/host-mem grep: NO memory logic at HEAD (its 'pressure'/'memory' hits are dispatch contention and heal-cooldown state)",
+  "docs/infra/model-registry.md :45,:62,:170 (qwen3.8:27b-mlx = local 18 GB MLX)",
+  "docs/infra/model-task-matrix.md \u00a71 (the T-A..T-H task-type taxonomy and each type's shape)",
+  "docs/infra/managent/tasks.json (439 tasks \u2014 confirmed type/task_type absent, caps [] on 438, ram_mb/expected_wall_s null on all 439)",
+  "docs/infra/managent/directives.jsonl (D027/D027b/D027c)",
+  "untracked/log/*.log \u2014 the whole corpus (kill census, avail readings, t783.log:48-59 tenant non-monotonicity)",
+  "untracked/runs/*.json \u2014 517 records (RSS distribution, provider/compile/duration keying tests)",
+  "D081 provenance chase: untracked/T362-fleet-aware-memory-guard.md (Scope 1 + the 'five such rows would commit 40 GB' argument), commit 1a3a6c1 message, findings/T362-fleet-guard.json, findings/T362-context.json \u2014 all four searched for a derivation of the divisor"
+ ],
+ "what_was_computed": [
+  "kill census at HEAD 346b5b2, anchored on '^[runner] ': 34 kill lines, 20 with an identified member, 16 futile (80%), 4 sufficient, 14 unattributed",
+  "the four 'sufficient' kills' shortfalls: 15, 31, 141, 176 MB \u2014 max is 2.9% below the floor (the finding that no kill was both necessary and effective)",
+  "smallest shortfall anywhere: 6 MB (avail 6138 < floor 6144) = 0.0125% of host RAM",
+  "sum of all victim RSS (3090 MB) vs sum of all shortfalls (11287 MB)",
+  "T362 floor commit dated: 1a3a6c1, 2026-08-20 04:47 \u2014 22 days after the panic",
+  "lowest real avail reading in the corpus: 4247 MB (the 276 readings <=1000 MB are the injected test values, excluded)",
+  "per-provider RSS distribution (REFUTES ORC-GD-2's keying: all providers converge at p95 ~3.2 GB)",
+  "compile/no-compile RSS split (REFUTES the 'zig build is the discriminator' hypothesis: p95 3198 vs 3208)",
+  "duration-band RSS distribution (CONFIRMED discriminator: p95 570/1626/2992/4574, monotone in every quantile)",
+  "censoring analysis: 116/116 zero-RSS records are runs under 60 s \u2014 censored, not zero",
+  "rss_mb field semantics from source: max(peak_rss.values()), the largest SINGLE member, not the tree",
+  "live control on this host: _host_avail_bytes() = 32515 MB vs vm_stat Pages free = 1651 MB (20x spread)",
+  "kern.memorystatus_vm_pressure_level = 1, kern.memorystatus_level = 90 \u2014 the kernel publishes the verdict the floor approximates",
+  "concurrency check of the proposed defaults on 48 GB (5 leaves @3072 + qwen = 33.0 GB; 2 consoles @10752 + 3 leaves = 30.7 GB)",
+  "the 2026-08-23 15:19:09 admission reconstruction (avail before qwen load ~= 24193 MB; admit qwen + one judge, refuse two, zero kills)",
+  "D081: the provenance of total//8 \u2014 four artifacts, four restatements of the arithmetic, zero sentences saying why eight",
+  "D081: RESERVE_MB re-derived from the measured p95 of actual RSS in the >=1800 s band (4574 -> 4608), replacing a figure derived from the lowest observed avail reading"
+ ],
+ "what_was_not_done": [
+  "no implementation: tools/runner, bin/subagent, tools/fleet-keeper.sh, src/managent/main.zig and S08/spec.md untouched (DO-NOT-IMPLEMENT scope)",
+  "no register claims or new rows proposed \u2014 this row writes a policy and a disposition table, not an epistemic finding",
+  "the 3.2 GB modal ceiling's cause is NOT identified: 8 of 16 records in the 3163-3224 MB band ran the zig suite heavily, 8 did not. It is stated as unexplained rather than attributed, and it does not affect the policy (it refutes provider keying either way)",
+  "absence of a second .panic artifact is NOT claimed as proof of no recurrence \u2014 the claim made is about the absence of a second incident RECORD over 22 days, which is the only evidence available and does not favour the floor",
+  "the resident-model release call (ollama unload path) is named as a requirement, not identified \u2014 a build-row item",
+  "the task-type -> duration-band mapping in \u00a73.3 is a judgment mapping over model-task-matrix.md \u00a71 shapes; expected_wall_s does not exist yet (T786's field), so the mapping is stated to be validated once it does",
+  "the reserve is sized for ONE heaviest-task under-declaration, not for simultaneous under-declaration by every admitted task; that is a stated design choice (declarations are summed, so a systematic under-declaration across the fleet is an ORC-GD-5 corpus problem, not a reserve-sizing problem) and it is the assumption most worth attacking in review"
+ ],
+ "inbox": "polled at claim (empty), mid-row (empty), and before done \u2014 D081 received and acked at that third poll (amend, from claude-opus-5/T771, operator ruling relay, 2026-08-23T20:25:48Z). Acted on in full before reporting done: see findings/T806-ram-redesign.json directives_acted_on. It changed two things substantively \u2014 the reserve's derivation (4096 from lowest-observed-avail -> 4608 from the measured p95 of actual RSS) and, as a consequence of applying that test correctly, the 2026-08-23 counterfactual (three judges refused, not two).",
+ "deliverables": [
+  "docs/infra/host/ram-policy.md",
+  "findings/T806-ram-redesign.json",
+  "findings/T806-context.json"
+ ]
+}
