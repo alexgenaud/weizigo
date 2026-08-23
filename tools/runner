@@ -1397,6 +1397,26 @@ def _host_avail_bytes():
 #      resident MLX engine — the multi-GB holder) and sums its RSS.
 #      No matching process ⇒ reservation 0 ⇒ byte-identical to pre-T711.
 
+def _sum_mlx_tenant_bytes(ps_lines):
+    """Sum the RSS (bytes) of every `ollama runner --mlx-engine` process in a
+    `ps -axo pid=,rss=,command=` listing (the resident model server's
+    footprint, T711).  Pure arithmetic over the ps text (T791): ps reports
+    RSS in kB, so each matching process contributes int(rss_kB) * 1024; a
+    malformed RSS column is skipped, never guessed."""
+    total = 0
+    for line in ps_lines:
+        if "ollama runner --mlx-engine" not in line:
+            continue
+        parts = line.split(None, 2)
+        if len(parts) < 2:
+            continue
+        try:
+            total += int(parts[1]) * 1024
+        except ValueError:
+            continue
+    return total
+
+
 def _declared_tenant_reservation_bytes():
     """Return the declared-tenant footprint in bytes to add back to the
     available-memory reading, or 0 when there is nothing to subtract.
@@ -1424,18 +1444,27 @@ def _declared_tenant_reservation_bytes():
         return 0
     if out.returncode != 0:
         return 0
-    total = 0
-    for line in out.stdout.splitlines():
-        if "ollama runner --mlx-engine" not in line:
-            continue
-        parts = line.split(None, 2)
-        if len(parts) < 2:
-            continue
-        try:
-            total += int(parts[1]) * 1024
-        except ValueError:
-            continue
-    return total
+    return _sum_mlx_tenant_bytes(out.stdout.splitlines())
+
+
+def _select_host_guard_victim(poll_rss, shortfall_bytes):
+    """Pick the pid the host-memory guard kills to relieve a shortfall.
+
+    Pure arithmetic over injectable readings (T791): the largest member of
+    the process group, but ONLY when that member's RSS is at least the
+    shortfall — killing a member smaller than the shortfall relieves nothing
+    (2026-08-23 15:19:09: three lanes of 251/133/129 MB were killed for a
+    383 MB shortfall).  Returns None when there is nothing to kill.
+
+    NOTE (T791): the RSS >= shortfall guard is NOT yet enforced here — the
+    current implementation returns the largest member unconditionally (the
+    incident arithmetic).  The fix is owned by T785 (S08); the red arm is
+    recorded in tests/unit/test_runner.py.
+    """
+    if not poll_rss:
+        return None
+    largest_pid = max(poll_rss, key=lambda p: poll_rss[p])
+    return largest_pid
 
 
 # ── logging ──────────────────────────────────────────────────────────
@@ -1689,6 +1718,29 @@ def _pi_session_sensor_desc(target):
     kind, path = target
     return (f"pi session file {path!r}" if kind == "file"
             else f"pi session dir {path!r}")
+
+
+def _startup_liveness_note(timeout, since_session, had_session_activity,
+                           pi_session_target):
+    """The startup-liveness kill reason — states only what was measured.
+
+    T773: the note names what the runner observed (no stdout bytes since
+    launch, and the pi-session sensor reading), never a cause it did not
+    measure.  "bundle never read?" was such an unmeasured causal claim and
+    was refuted by T735 attempt 2 (40 turns, 19,060 output tokens already in
+    the session file when the fuse fired).
+    """
+    if pi_session_target and had_session_activity:
+        sess_reading = (
+            f"no pi session activity for {since_session:.0f}s "
+            f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
+    else:
+        sess_reading = (
+            f"no pi session activity since launch "
+            f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
+    return (f"startup liveness timeout {timeout}s "
+            f"({_format_duration(timeout)}) — "
+            f"no stdout bytes since launch; {sess_reading}")
 
 
 # ── T586: agent-lane detection (the startup-liveness scope) ─────────────────
@@ -3148,7 +3200,14 @@ def main():
                 if avail is not None and tenant_res > 0:
                     avail += tenant_res
                 if avail is not None and avail < host_floor_bytes:
-                    largest_pid = max(poll_rss, key=lambda p: poll_rss[p])
+                    victim_pid = _select_host_guard_victim(
+                        poll_rss, host_floor_bytes - avail)
+                    if victim_pid is None:
+                        # No member's RSS covers the shortfall — nothing to
+                        # kill (T785 fix pending; currently unreachable: the
+                        # selector returns the largest member unconditionally).
+                        continue
+                    largest_pid = victim_pid
                     largest_rss = poll_rss[largest_pid]
                     avail_mb = avail // (1024 * 1024)
                     floor_mb = host_floor_bytes // (1024 * 1024)
@@ -3329,20 +3388,11 @@ def main():
                         # bytes, and the session reading — never a cause it
                         # did not measure.  "bundle never read?" was a causal
                         # claim about the model that the evidence refuted.
-                        if pi_session_target and last_pi_session_activity > t0 + 1.0:
-                            sess_reading = (
-                                f"no pi session activity for "
-                                f"{since_session:.0f}s "
-                                f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
-                        else:
-                            sess_reading = (
-                                f"no pi session activity since launch "
-                                f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
-                        kill_reason = (
-                            f"startup liveness timeout {args.startup_timeout}s "
-                            f"({_format_duration(args.startup_timeout)}) — "
-                            f"no stdout bytes since launch; {sess_reading}"
-                        )
+                        kill_reason = _startup_liveness_note(
+                            args.startup_timeout, since_session,
+                            bool(pi_session_target)
+                            and last_pi_session_activity > t0 + 1.0,
+                            pi_session_target)
                         # T634: a liveness-fuse kill is unscoreable — mark the
                         # run record so the verification layer (T629 killed_by)
                         # can refuse to attribute it to the model.  The stderr
