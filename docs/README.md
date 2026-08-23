@@ -18,7 +18,8 @@ Working notes for the brute-force / perfect small-goban Go solver.
    every goban-size tree must address; definitions only, no status).
 9. `epistemic/boards/4x4/EPISTEMIC.md` — the 4×4 epistemic tree (the active focus).
 10. `status/HANDOVER.md` — tactical session continuity. `engine/ARCHITECTURE.md` — module
-    map. `engine/TODO.md` — legacy backlog (being superseded by PROGRESS + status/).
+    map. Legacy backlog absorbed into `epistemic/PROGRESS.md` §7.6 (archived
+    original: `engine/archive/TODO.md`).
 
 ## Layout
 
@@ -43,7 +44,8 @@ Working notes for the brute-force / perfect small-goban Go solver.
 - `epistemic/GLOSSARY.md` — terms and abbreviations. Project-invented shorthand is
   marked `[project term]`.
 - `status/HANDOVER.md` — session-continuity snapshot (tactical; updated every
-  session). `engine/ARCHITECTURE.md` — module map. `engine/TODO.md` — legacy backlog.
+  session). `engine/ARCHITECTURE.md` — module map. Legacy backlog absorbed into
+  `epistemic/PROGRESS.md` §7.6 (archived original: `engine/archive/TODO.md`).
 
 ## Conventions
 

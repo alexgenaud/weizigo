@@ -1,0 +1,8 @@
+{
+  "task_id": "T705",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Repo hygiene (docs/README.md routing, deepseek-v4-flash/T705). After T701-T704 landed, rewrote the two routing lines that still named the retired engine/TODO.md (deleted by T704's git mv to docs/engine/archive/TODO.md; content absorbed into docs/epistemic/PROGRESS.md §7.6). Line 21 (read order item 10): OLD 'map. `engine/TODO.md` — legacy backlog (being superseded by PROGRESS + status/).' NEW 'map. Legacy backlog absorbed into `epistemic/PROGRESS.md` §7.6 (archived original: `engine/archive/TODO.md`).' Line 46/48 (Layout): OLD 'session). `engine/ARCHITECTURE.md` — module map. `engine/TODO.md` — legacy backlog.' NEW 'session). `engine/ARCHITECTURE.md` — module map. Legacy backlog absorbed into `epistemic/PROGRESS.md` §7.6 (archived original: `engine/archive/TODO.md`).' Both rewrites keep `engine/ARCHITECTURE.md` (refreshed canonical module map, T704) and route the backlog to the current canonical hub PROGRESS.md §7.6, citing the archive path so the retired name still resolves on disk; grep confirms zero remaining bare `engine/TODO.md` references in docs/README.md and no other stale engine/TODO.md routing anywhere else in docs/ (INDEX.md and about-this-document.md already re-pointed by T704). All four named paths verified to exist on disk: docs/status/HANDOVER.md, docs/engine/ARCHITECTURE.md, docs/engine/archive/TODO.md, docs/epistemic/PROGRESS.md. Acceptance (README routing matches the tree on disk; no dangling pointer) met. No claim status changes proposed (claims=[]), no new register rows (new_rows=[]); docs-only hygiene task, no evidence needed."
+}
