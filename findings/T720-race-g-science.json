@@ -1,0 +1,301 @@
+{
+ "task_id": "T720",
+ "date": "2026-08-23",
+ "model": "deepseek-v4-pro",
+ "claims": [],
+ "new_rows": [],
+ "identifier": "deepseek-v4-pro/T720",
+ "vocabulary": "two-field binding format: headline_status_correct / rationale_fresh, each correct|incorrect|unverifiable-at-head (the bundle's step-6 VERIFIED/REFUTED vocabulary is subordinate to the ratified two-field format)",
+ "verdicts": [
+  {
+   "key": "G26",
+   "claim_id": "4x4.C1",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "Artifact on disk: `ls -la data/` -> `-rw-r--r-- oracle-4x4-v2.wzo2 518123097` (the WZO2 table the discharge reads). accept.md \u00a72.1/\u00a72.3 reproduce the register's numbers exactly: I4 `0 Bellman violations ... 95,677,624` clear entries, key agreement `0 / 99,133,036`, C-A1/C-A2 corrected-decode denominators `0 / 616,030,190` / `0 / 99,133,034`. The T473/T472/T383 findings the row leans on all exist (`findings/T473-i11-exhaustive.json`, `findings/T472-track-a-ruling.json`, `findings/T383-ko-decode.json`).",
+   "reproduction": null,
+   "status_should_be": "CLAIMED",
+   "cascades": "none \u2014 status held",
+   "why": "Status CLAIMED is the honest ceiling (Phase 3 pending); the discharge evidence exists, is internally consistent, and the scope limits (fresh-start under R only) are stated. Discriminating test was existence+consistency of artifact and accept.md, not a re-run of the 95M-entry Bellman check (which the row itself does not claim is PROVEN)."
+  },
+  {
+   "key": "G27",
+   "claim_id": "4x4.F3",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '123,126p' docs/epistemic/boards/4x4/EPISTEMIC.md` -> `- **F3** \u2b1c writes-off (memo_writes=false) finisher self-consistent at 4\u00d74 (sampled). [T07-6] Experiment: bounded #2 auditor, deepest-first...` \u2014 the hypothesis is still marked \u2b1c (untested), and lines 141-147 confirm the writes-off checkpoint is `confirmed INCOMPLETE (M7: root slot UNDEF)`, so no discharge has occurred.",
+   "reproduction": null,
+   "status_should_be": "UNTESTED",
+   "cascades": "none \u2014 status held",
+   "why": "UNTESTED is right: the writes-off artifacts exist (untracked/oracle-4x4-writesoff-*.wzo) but are incomplete and unaudited, so F3 remains an open hypothesis. Executed test: read the cited EPISTEMIC.md lines and the writes-off incompleteness note."
+  },
+  {
+   "key": "G28",
+   "claim_id": "4x4.FP1",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "accept.md \u00a72.1 T343 row: `I4-4x4 | pass | 0 Bellman violations on KO_SENSITIVE-clear entries | 95,677,624 clear entries checked`. `4x4/EPISTEMIC.md:69-97` records the three-check FP1 acceptance with `DONE for the shipped single-value columns ... EXHAUSTIVELY at 4\u00d74 (M4): PASS`.",
+   "reproduction": null,
+   "status_should_be": "CLAIMED",
+   "cascades": "none \u2014 status held",
+   "why": "CLAIMED (not PROVEN) with the Bellman residual 0/95,677,624 as the load-bearing check, and the KO_SENSITIVE column explicitly distrusted pending Track A. Executed test: matched register numbers to accept.md \u00a72.1/\u00a72.3 and the FP1 acceptance block."
+  },
+  {
+   "key": "G29",
+   "claim_id": "CODE.I5-INSTRUMENT-ADJUDICATION",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`docs/evidence/I5-DISAGREEMENT/adjudication-2026-08-06.md` exists and its up-front verdict matches the row (vb_graph wrong on every metric, vb_scc_4x4 correct but with the descending-CR-propagation bug that fabricated the 24 natural violations, third-route Python). The claimed cross-size differential gate is real: `grep -n i5_differential build.zig` -> `1254: .root_source_file = b.path(src/i5_differential.zig)`.",
+   "reproduction": null,
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none \u2014 status held",
+   "why": "MEASUREMENT is right for an instrument adjudication. Executed test: confirmed the adjudication doc and findings exist and that the i5 differential is wired into build.zig."
+  },
+  {
+   "key": "G30",
+   "claim_id": "GLOBAL.FP2",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '31,32p' docs/epistemic/boards/CONCEPTS.md` -> `- **FP2** where L==H, the score is history-independent. **ADR-0009 honesty clause \u2014 explicitly NOT a theorem.**`",
+   "reproduction": null,
+   "status_should_be": "CLAIMED",
+   "cascades": "none \u2014 status held",
+   "why": "The row is correctly scoped as an honesty clause, explicitly NOT a theorem \u2014 which is exactly the settled foreclosure (L==H is fresh-start exact, not history-independent). Executed test: read the cited CONCEPTS.md lines verbatim."
+  },
+  {
+   "key": "G31",
+   "claim_id": "3x3.BRACKET-NOT-KO",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`findings/T385-corr3x3.json` reproduces the row's numbers: `vertices: 49428`, `lh_entries: 5408`, `eq_in_nontriv_pct: 98.1236`, `lh_ko_reachable: 304` (5.6%), `eq_ko_reachable: 3280` (7.5%); the string `5072` (the ko-free bracket count behind 93.8%) is present.",
+   "reproduction": null,
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none \u2014 status held",
+   "why": "MEASUREMENT is right for an exhaustive 3\u00d73 graph census. Executed test: loaded the cited findings JSON and matched the register's fractions."
+  },
+  {
+   "key": "G32",
+   "claim_id": "3x3.E2-RUN1",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '36p;74p' docs/status/leak-crisis.md` -> line 36 `E2 found 3\u00d73 leaks (25/4000 games: promise +3 \u2192 final \u22129, 12-pt leak)`; line 74 table `| 3\u00d73 | 4000 | **25** (promise +3 \u2192 final \u22129; some \u22122) | 0 | **C3 falsified** |`.",
+   "reproduction": null,
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none \u2014 status held",
+   "why": "25/4000 = 0.625%, worst leak 12 pts \u2014 cited lines reproduce the measurement exactly. Executed test: read leak-crisis.md:36,74 verbatim."
+  },
+  {
+   "key": "G33",
+   "claim_id": "3x3.E2-RUN2",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "incorrect",
+   "citation": "The 8,000-game figure itself is endorsed at HEAD: `grep -n '8,000' docs/epistemic/PROGRESS.md` -> `118: An independent replication produced the same rate on 8,000 [games]`.",
+   "reproduction": "`sed -n '128p' docs/epistemic/PROGRESS.md` -> `` `[4x4.B43:MEASUREMENT]`. `` \u2014 the cited line is the 4\u00d74 clean-leak-rate citation, NOT the 50/8,000 E2-run-2 figure. The cited `PROGRESS.md:128` no longer points at the content the row claims it points at (drift to line 118).",
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none (citation repair only; status unchanged) \u2014 dependents 3x3.C3, QA-009, \u00a76-D1 read the number, which still holds",
+   "why": "Status MEASUREMENT is right and the 50/8,000 number is still endorsed, but the rationale's load-bearing citation `PROGRESS.md:128` resolves to the wrong line; the evidence column does not carry the evidence its prose describes. Executed test: sed of the cited line vs grep of the true location."
+  },
+  {
+   "key": "G34",
+   "claim_id": "2x2.T12",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "incorrect",
+   "citation": "The tautology claim is true at HEAD, just not at the cited lines: `grep -n tautolog docs/epistemic/boards/4x4/EPISTEMIC.md` -> `376: (2\u00d72) tautological; T13 (3\u00d72) FALSIFIED`, `407-408: C2-pilot-2\u00d72 ... DONE (tautological: 2\u00d72 has no reachable non-root cycles)`.",
+   "reproduction": "`sed -n '255,257p;287,288p' docs/epistemic/boards/4x4/EPISTEMIC.md` -> `- **M6** (2026-07-27) sound-vs-unsound discriminator ... the ko-sensitive misprice rate of M4 halves ...` / `floor is the ADR-0013 ko_ref >= d GHI bug ... the ADR predicts (all excess inside the flag ...)`. Neither cited line says 2\u00d72 admits no reachable non-root cycles.",
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none (citation repair only) \u2014 dependent 3x2.T13 design calibration reads the tautology, which still holds",
+   "why": "Status MEASUREMENT is right, but the cited evidence lines 255-257/287-288 are the M6/ko-sensitive block, not the 2\u00d72 tautology (which lives at 376 and 407-408). Executed test: sed of the cited lines vs grep of the true location."
+  },
+  {
+   "key": "G35",
+   "claim_id": "WZO2.I2-CLEAN",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`python3 -c 'import json; print(json.load(open(\"docs/evidence/BATTERY/i2-wzo2-T270/4x4-raw.json\"))[\"numpy\"][\"checked\"], ...)'` \u2014 4\u00d74 raw: `checked 99133036, violations 0, not_found 0`; 3\u00d73 raw: `checked 49428, violations 0, not_found 0`. Both raw files exist and carry the register's exact zeroes.",
+   "reproduction": null,
+   "status_should_be": "MEASUREMENT",
+   "cascades": "none \u2014 status held",
+   "why": "The I2 colour-inversion zeroes reproduce from the committed raw JSON. Executed test: parsed both raw evidence files and matched the 0/0/99,133,036 and 0/0/49,428 counts."
+  },
+  {
+   "key": "G36",
+   "claim_id": "CODE.ACCEPT-KOKEY",
+   "headline_status_correct": "incorrect",
+   "rationale_fresh": "incorrect",
+   "citation": null,
+   "reproduction": "`sed -n '158,162p' src/oracle_v2_accept.zig` -> `/// Delegates to rules.koAfterCapture \u2014 the single production ko rule (Phase 2 kernel, T273).` / `fn koAfterCapture(...) { return rules.koAfterCapture(...); }`. The 'second, unfixed copy of the pre-T265 ko rule' at the cited 150-165 no longer exists \u2014 the fix (T273) landed. `grep -n koAfterCapture src/oracle_v2_accept.zig` shows only the delegation + calls (161, 625, 854, 1087), no second copy.",
+   "status_should_be": "SUPERSEDED",
+   "cascades": "T273 (fix), A1/A2/A8 battery cells, oracle-v2 G3 \u2014 the defect they were gated on is closed",
+   "why": "Present-tense PROVEN finding whose diagnosed defect has been fixed at HEAD. The correct disposition is SUPERSEDED (true when written, overtaken by the T273 fix), matching the CODE.WZO2-UNRUN / CODE.WZO2-CHAINSHORT convention. Executed test: read the cited source lines at HEAD and confirmed delegation to the single production rule."
+  },
+  {
+   "key": "G37",
+   "claim_id": "CODE.ADR0011-FMT",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '23,53p' src/artifact.zig` -> the header comment lists exactly six frozen columns `vb|vw|fb|fw|db|dw`, a 32-byte little-endian header, `column_count = 6`, and no `lo`/`hi` bracket columns anywhere in the schema. `sed -n '311p' src/artifact.zig` -> `test \"reader refuses: bad magic, version, layout, total, checksum, truncation\"`.",
+   "reproduction": null,
+   "status_should_be": "PROVEN",
+   "cascades": "none \u2014 status held",
+   "why": "Code claim about the WZO1 format, verified against the format contract comment and the refusal test. Executed test: read the header schema and the reader-refusal test."
+  },
+  {
+   "key": "G38",
+   "claim_id": "CODE.CLAIMLINT-C7-NEWROWS",
+   "headline_status_correct": "incorrect",
+   "rationale_fresh": "incorrect",
+   "citation": null,
+   "reproduction": "`sed -n '3705,3735p' src/claimlint.zig` -> `// new_rows[] \u2014 every entry, not just the first (the T266 defect).` then `for (nr_val.array.items) |item| { result.new_rows_total += 1; ... item.object.get(\"status\") ... }` \u2014 the brace-scanner truncation and status mis-parse are gone (T269 part 3). `bin/weizigo-claimlint` C7 reports `new-rows touched: 100`, not '2 regardless of file contents'.",
+   "status_should_be": "SUPERSEDED",
+   "cascades": "T269 (fix), absorption queue, C7 gate decision \u2014 the truncation they were gated on is closed",
+   "why": "Present-tense PROVEN finding whose diagnosed C7 truncation/mis-parse has been fixed at HEAD (std.json structural parse, full loop). SUPERSEDED. Executed test: read the current parseFindingsFile and ran claimlint C7."
+  },
+  {
+   "key": "G39",
+   "claim_id": "CODE.VB-STUBS",
+   "headline_status_correct": "incorrect",
+   "rationale_fresh": "incorrect",
+   "citation": null,
+   "reproduction": "`sed -n '26,32p' src/verify_battery.zig` -> imports `vb_common`, `vb_table`, `vb_fixpoint`, `vb_graph` (not 'only vb_common'). `grep -n stubCheck src/verify_battery.zig` -> no matches (stubCheck does not exist). `sed -n '512,537p' src/verify_battery.zig` -> `.I1 => mapI1(vbt.checkI1(art), ctx) ... .I4 => mapI4(vbf.checkI4(dec, ctx.gs), ctx) ... .I5 => vbg.checkI5(...)`. `grep -n 'vb_fixpoint_tests' build.zig` -> 241-250 wires vb_fixpoint tests into test_step; vb_table (201-211), vb_graph (253-262) likewise.",
+   "status_should_be": "SUPERSEDED",
+   "cascades": "every future battery result, G3 acceptance, 4x4.I5-FEAS RSS validation",
+   "why": "The headline 'not wired to any invariant module / zero real verification runs' is false at HEAD: the harness now imports and dispatches to real check functions and its tests run under `zig build test`. (I8/I11 remain not_applicable stubs, so one sub-clause still holds, but the headline and most sub-clauses are overtaken.) SUPERSEDED. Executed test: read the imports, dispatch, and build wiring at HEAD."
+  },
+  {
+   "key": "G40",
+   "claim_id": "GLOBAL.ADR0003-AREA",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '13,16p;21,24p' docs/decisions/0003-ruleset-chinese-area-and-positional-superko.md` -> 'Area score is a pure function of the terminal snapshot' and 'Territory score needs prisoner counts, which are path-dependent and NOT recoverable from a snapshot'.",
+   "reproduction": null,
+   "status_should_be": "PROVEN",
+   "cascades": "none \u2014 status held",
+   "why": "Definitional scoring claim, stable and correctly PROVEN. Executed test: read the cited ADR lines verbatim."
+  },
+  {
+   "key": "G41",
+   "claim_id": "GLOBAL.ADR0009-HONESTY",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '78,89p' docs/decisions/0009-retrograde-value-iteration.md` -> 'The honesty clause (known theoretical leak)' ... 'L \u2264 fresh-start \u2264 H and the L==H \u21d2 exact claim are strong structural evidence, not a theorem'.",
+   "reproduction": null,
+   "status_should_be": "PROVEN",
+   "cascades": "none \u2014 status held",
+   "why": "Correctly scoped 'as a statement about the argument'; the ADR does say exactly this, with one named leak. Executed test: read the cited lines."
+  },
+  {
+   "key": "G42",
+   "claim_id": "GLOBAL.FP1",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`docs/evidence/GLOBAL-FP1/proof-2026-07-30.md` contains a complete proof: Lemma 1 (monotonicity of T as a lattice polynomial), Lemma 2 (closure in [\u2212N,+N]), Theorem (a) L=lfp(T), (b) H=gfp(T) by Knaster\u2013Tarski / finite-height ascent-descent, with the fair-chaotic-iteration corollary.",
+   "reproduction": null,
+   "status_should_be": "PROVEN",
+   "cascades": "none \u2014 status held",
+   "why": "The missing committed proof now exists and is sound. Executed test: read the full proof note and verified it is a proof, not a probe."
+  },
+  {
+   "key": "G43",
+   "claim_id": "GLOBAL.FP3",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '43,46p' docs/epistemic/boards/CONCEPTS.md` -> 'FP3 iteration converges in finite sweeps (the theorem) ... monotone map on a finite lattice'; `sed -n '31p' docs/epistemic/boards/4x3/EPISTEMIC.md` -> 'FP3 finite-sweep convergence (theorem) \u2705 PROVEN | Knaster-Tarski on a finite lattice; size-generic structural proof'.",
+   "reproduction": null,
+   "status_should_be": "PROVEN",
+   "cascades": "none \u2014 status held",
+   "why": "Structural theorem, correctly PROVEN. Executed test: read both cited lines verbatim."
+  },
+  {
+   "key": "G44",
+   "claim_id": "GLOBAL.H1-COMPUTABLE",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "All five cited evidence docs exist and carry the falsification: `docs/evidence/QA-023/probe-fix-2026-07-29.md`, `docs/audits/2026-07-29-2b-6-full-review.md`, `docs/epistemic/qa023-c2-adjudication-2026-07-29.md`, `docs/audits/2026-07-29-qa023-kernel-audit.md`, `docs/evidence/QA-023/pinrule-sufficiency-2026-07-29.md`. The pointwise-tie-pin non-computability at 3\u00d72 remains the settled view (AGENTS.md foreclosure).",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "FALSE-AS-SCOPED (3\u00d72) still holds; no later document overturned it. Executed test: existence of the five cited docs + consistency with the standing foreclosure."
+  },
+  {
+   "key": "G45",
+   "claim_id": "QA-026",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`docs/evidence/QA-023/probe-fix-2026-07-29.md` + `docs/audits/2026-07-29-2b-6-full-review.md` (independently confirmed) + `docs/evidence/QA-023/proof-v2-2026-07-28.md` all exist. The median(L,TIE,H) over-pin at 3\u00d72 (six White-to-move, passes=1, no-ko states) is the settled falsification; proof-v2 Thm 5.1 is recorded FALSE as stated.",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "FALSE-AS-SCOPED (3\u00d72) still holds and was independently confirmed. Executed test: existence of the cited falsification docs."
+  },
+  {
+   "key": "G46",
+   "claim_id": "QA-027",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`docs/research/newrule-certified-fraction-4x4-2026-07-31.md` and `docs/evidence/QA-027/4x4/PROVENANCE.md` exist and carry the 10.71% (3,000/28,000) 4\u00d74 certified-fraction falsification; `PROGRESS.md:360` still records `certified fraction 10.71% (3,000/28,000 fresh-start nodes)`.",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "FALSE-AS-SCOPED (at 4\u00d74; 3\u00d73 measured 100.00%) still holds. Executed test: existence of the PROVENANCE doc + the number reproduced at PROGRESS.md:360."
+  },
+  {
+   "key": "G47",
+   "claim_id": "GLOBAL.ADR0005-CACHE",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '90,93p' docs/decisions/0005-search-integration.md` -> 'A node at ply d is cacheable iff ko_ref \u2265 d'; `sed -n '32,38p' docs/decisions/0008-oracle-semantics-and-3x3-prototype.md` -> 'the rule is a sound-in-practice compromise, not a theorem'; `sed -n '20,44p' docs/decisions/0013-sound-finisher-and-dependency-guarded-memo.md` -> the exact bug site (`if (hashable and ctx.memo_writes and ko_ref >= d)`) and why `ko_ref \u2265 d` is not path-independent.",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "The theorem\u2192downgrade\u2192falsification chain is intact at HEAD across the three ADRs. Executed test: read all three cited ADR spans verbatim."
+  },
+  {
+   "key": "G48",
+   "claim_id": "GLOBAL.FP2-bounded",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`sed -n '33,37p' docs/epistemic/boards/CONCEPTS.md` -> 'FP2-bounded / C2-bounded \u2014 history-independence under a finite, well-specified set of ban sets ... **FALSIFIED at 3\u00d72 (T13, 2026-07-26).**'",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "FALSE-AS-SCOPED (at 3\u00d72) matches the settled T13 falsification. Executed test: read the cited CONCEPTS.md lines."
+  },
+  {
+   "key": "G49",
+   "claim_id": "GLOBAL.LONGCYCLE",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "correct",
+   "citation": "`docs/evidence/QA-023/probe-fix-2026-07-29.md`, `docs/audits/2026-07-29-2b-6-full-review.md`, `docs/epistemic/qa023-c2-adjudication-2026-07-29.md` exist; the C1 witness `(178,0,6,0)` and the `2232/322/34/34` corrected census are recorded. The fresh-start-vs-history-conditioned split is the settled reading (ADR-0019).",
+   "reproduction": null,
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none \u2014 status held",
+   "why": "FALSE-AS-SCOPED at 3\u00d72 still holds and is hand-verified. Executed test: existence of the falsification docs."
+  },
+  {
+   "key": "G50",
+   "claim_id": "GLOBAL.P3",
+   "headline_status_correct": "correct",
+   "rationale_fresh": "incorrect",
+   "citation": "The primary citation is sound: `sed -n '125p' docs/epistemic/boards/CONCEPTS.md` -> '- **P3** fresh-start player plays real-game score. (FALSE \u2014 the leak.)'.",
+   "reproduction": "`sed -n '25p' docs/epistemic/boards/4x4/EPISTEMIC.md` -> `  cross-validated). [T07-1] This sub-claim is what the OEIS count actually` \u2014 the cited `4x4/EPISTEMIC.md:25` is the S3a OEIS block, not the P3/leak claim. The second citation has drifted off the content it is meant to support.",
+   "status_should_be": "FALSE-AS-SCOPED",
+   "cascades": "none (citation repair only) \u2014 dependents GLOBAL.C4, arena programme read the leak fact, which still holds",
+   "why": "FALSE-AS-SCOPED is right (the leak is settled), but one of the two citations (4x4/EPISTEMIC.md:25) resolves to unrelated content. Executed test: sed of the cited line vs the CONCEPTS.md line that actually carries the claim."
+  }
+ ],
+ "notes": "Science-arm lane T720 over sealed batch-2 target set G26-G50. Three genuinely stale PROVEN rows found and reported (G36 CODE.ACCEPT-KOKEY, G38 CODE.CLAIMLINT-C7-NEWROWS, G39 CODE.VB-STUBS \u2014 all fixes landed, rows never marked SUPERSEDED); three citation drifts found (G33 PROGRESS.md:128->118, G34 EPISTEMIC.md 255-257/287-288->376/407-408, G50 EPISTEMIC.md:25). No builds or suites run while fleet hot; all discriminating tests were file reads, greps, sed line-reads, and a claimlint C7 run. Did not read batch-1 findings/grades or other lanes' findings.",
+ "directives": [
+  {
+   "id": "D040",
+   "action": "amend",
+   "honored": true,
+   "note": "Two-field format used (headline_status_correct + rationale_fresh, each correct/incorrect/unverifiable-at-head); every entry keyed by BOTH G<nn> and register claim_id; executed-discriminating-test attached to every verdict (citation for correct, reproduction for incorrect)."
+  },
+  {
+   "id": "D021",
+   "action": "amend",
+   "honored": true,
+   "note": "DO-NOT-SCORE for science-arm comparison (pilot exhaust, vocabulary contradiction). Ran to completion; this file informs the sprint Test phase only."
+  }
+ ]
+}
