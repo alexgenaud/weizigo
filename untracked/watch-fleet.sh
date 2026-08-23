@@ -35,12 +35,15 @@ REPO=$(pwd); T=/tmp/weizigo/.fleet.$$; mkdir -p /tmp/weizigo
 CONC_STATE=${FLEET_CONC_STATE:-/tmp/weizigo/fleet-concerns.tsv}   # CONCERNS first-seen, survives restarts (T591)
 STTY_SAVE=""; [ -t 0 ] && STTY_SAVE=$(stty -g < /dev/tty 2>/dev/null)
 [ -n "$STTY_SAVE" ] && stty -echo < /dev/tty 2>/dev/null      # keys never echo, even mid-redraw
-cleanup() { rm -f "$T".* 2>/dev/null
+CLEANED=0
+cleanup() { [ "$CLEANED" = 1 ] && return; CLEANED=1   # idempotent: q/^C/TERM/HUP call cleanup, then the EXIT trap calls it again
+            rm -f "$T".* 2>/dev/null
+            [ -t 1 ] && { printf '\n'; printf '\033[?25h'; }   # T799: fresh prompt line, then restore the cursor (the tput cnorm sequence)
             [ -n "$STTY_SAVE" ] && stty "$STTY_SAVE" < /dev/tty 2>/dev/null; }
 trap 'cleanup' EXIT
 trap 'cleanup; exit 130' INT      # ^C quits, immediately
 trap 'cleanup; exit 143' TERM                  # kill quits, immediately
-trap 'cleanup; printf "\n"; exit 0'  HUP
+trap 'cleanup; exit 0'  HUP                     # HUP quits, immediately (cleanup prints the exit newline)
 
 dur() { echo "$1" | awk -F: '{if(NF==3)printf"%dh%02d",$1,$2; else if(NF==2)printf"%d'\''%02d",$1,$2; else print $1}'; }
 # Short model names (T739): the single mapping is the "Short names → canonical"
@@ -79,6 +82,7 @@ show() { # $1 file  $2 slots — print up to $2 rows, then "(more)" if any remai
     [ "$tot" -gt "$2" ] && printf '  (more: %s)\n' "$((tot - $2))"; }
 
 ONESHOT=0; [ -t 1 ] || ONESHOT=1        # piped or redirected: draw once, exit, hand the shell back
+[ -t 1 ] && printf '\033[?25l'          # T799: hide the cursor while the watcher runs; cleanup restores it (the tput civis sequence)
 while true; do
     SZ=""; [ -r /dev/tty ] && SZ=$( (stty size < /dev/tty) 2>/dev/null )
     ROWS=${FLEET_LINES:-$(echo "$SZ" | cut -d' ' -f1)}; COLS=${FLEET_COLS:-$(echo "$SZ" | cut -d' ' -f2)}
@@ -249,14 +253,15 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
     for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
-    # T739: reserve exactly what the frame prints — k headings + (k-1) separators,
-    # the 2-line footer, one "(more)" per flexible section that can exceed its
-    # MIN_ROWS floor, and 1 spare so the footer never scrolls off. The old 2k+6
-    # kept the pre-T738 banner budget (3 lines), so a data-rich frame left blank
-    # lines while DONE/OPEN still had rows to show; every line recovered here
-    # becomes a visible row (arm K pins 32 vs the old 30).
+    # T739/T799: reserve exactly what the frame prints — k headings + (k-1)
+    # separators, one "(more)" per flexible section that can exceed its
+    # MIN_ROWS floor, and the 1-line footer. T799 dropped the footer's leading
+    # blank and trailing newline, so T739's "+1 spare" is gone: it existed to
+    # park the trailing-newline cursor row, which no longer exists. The footer
+    # is now the terminal's last line and needs no spare to stay on screen —
+    # every line recovered becomes a visible row (arm K pins 34 vs T739's 32).
     k=$(( (np>0) + (nc>0) + (nr>0) + (nd>0) + (no>0) ))
-    reserve=$(( 2*k - 1 + 2 + 1 ))                 # headings+seps, footer, spare
+    reserve=$(( 2*k - 1 + 1 ))                 # headings+seps, footer
     [ "$nd" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # DONE "(more)"
     [ "$no" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # OPEN "(more)"
     avail=$(( ROWS - reserve - np - nc - nr ))
@@ -287,7 +292,9 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     # how long have we been watching? refresh rate follows that, not the clock
     age=$(( $(date +%s) - START ))
     nap=$(nap_for_age "$age")
-    printf '\n  %s · q or ^C quits · another key to refresh %ss\n' "$(date '+%H:%M:%S')" "$nap"
+    # T799: the footer is the terminal's last line — no leading blank, no
+    # trailing newline (which parked the visible cursor on the line below).
+    printf '  %s · q or ^C quits · another key to refresh %ss' "$(date '+%H:%M:%S')" "$nap"
 
     # macOS ships bash 3.2, whose `read -t` returns 1 on TIMEOUT — the same status as EOF.
     # A timeout and a ^D are therefore indistinguishable here, so ^D cannot be a quit key

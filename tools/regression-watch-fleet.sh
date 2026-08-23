@@ -15,6 +15,9 @@
 #      reopened (WATCH_FLEET_HEAL=1) with an assertion recording why.
 #   D. heal does NOT fire wrongly: live process, fresh claim, and a
 #      non-in_progress row are all left alone, with no assertion written.
+#   L. T799: footer is the terminal's last line — no leading blank, no
+#      trailing blank; cursor hidden while watching, restored on q.
+#   M. T799: cursor restored on the ^C trap path (exit 130).
 #
 # Usage:  tools/regression-watch-fleet.sh [--build]
 
@@ -542,15 +545,19 @@ EOF
 if [ "$j_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKJ"
 
-# ── Arm K: T739 ruling 2 — recovered vertical space becomes visible rows ─
+# ── Arm K: T739/T799 ruling 2 — recovered vertical space becomes visible rows ─
 # Operator ruling 2026-08-23: T738 removed the banner and the empty sections
 # but the layout reserve kept the pre-T738 budget (2k+6), so a data-rich frame
-# left blank lines while DONE/OPEN still had rows to show. Red against the
-# pre-T739 live file: a 40-row terminal with 20 DONE + 20 OPEN rows shows
-# 15+15=30 data rows (35-line frame); green after: 16+16=32 rows (37-line
-# frame). NB one-shot frames exit before the footer (all arms parse them), so
-# the interactive frame would add the 2-line footer: 39 <= 40 with the spare.
-echo "  K. data-rich frame fills the screen — 32 rows shown, frame 37 (live file)"
+# left blank lines while DONE/OPEN still had rows to show. T739 recovered 2
+# rows (16+16=32 shown, 37-line one-shot frame). T799 removed the footer's
+# leading blank and trailing newline and dropped the spare (it existed to park
+# the trailing-newline cursor row), so the honest reserve is 2k-1 headings+seps
+# + 1 footer + (more)s: 17+17=34 rows (39-line one-shot frame; interactive =
+# 40 exactly, footer on the last line). Red against the pre-T799 live file:
+# 32 rows, 37 lines. One-shot piped output must also stay escape-free — the
+# T799 hide/restore are tty-guarded so a pipe stays clean for the
+# line-anchored arms above.
+echo "  K. data-rich frame fills the screen — 34 rows shown, frame 39 (live file)"
 WORKK=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
 mkdir -p "$WORKK/bin" "$WORKK/untracked" "$WORKK/docs/infra/managent"
 ln -s "$MG" "$WORKK/bin/managent"
@@ -578,13 +585,108 @@ k_fail=0
 K_DONE=$(printf '%s\n' "$FRAME_K" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
 K_OPEN=$(printf '%s\n' "$FRAME_K" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
 K_LINES=$(printf '%s\n' "$FRAME_K" | wc -l | tr -d ' ')
-[ "$K_DONE" = "16" ] && [ "$K_OPEN" = "16" ] || {
-    echo "    FAIL: want 16 DONE + 16 OPEN rows shown (recovered space = rows), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
-[ "$K_LINES" = "37" ] || {
-    echo "    FAIL: data-rich one-shot frame should be 37 lines (interactive +footer = 39 <= 40), got $K_LINES"; k_fail=1; }
+[ "$K_DONE" = "17" ] && [ "$K_OPEN" = "17" ] || {
+    echo "    FAIL: want 17 DONE + 17 OPEN rows shown (recovered space = rows), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
+[ "$K_LINES" = "39" ] || {
+    echo "    FAIL: data-rich one-shot frame should be 39 lines (interactive +footer = 40 exactly), got $K_LINES"; k_fail=1; }
 [ "$K_LINES" -le "40" ] || { echo "    FAIL: frame $K_LINES lines overflows the 40-row terminal"; k_fail=1; }
+case "$FRAME_K" in
+    *'[?25l'*|*'[?25h'*) echo "    FAIL: one-shot piped frame leaks cursor escapes"; k_fail=1;;
+esac
 if [ "$k_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKK"
+
+# ── Arm L: T799 — footer is the last line; no blanks; cursor hide/restore ──
+# Operator ruling 2026-08-23: "There are two blank lines at the bottom and
+# one is just a flashing prompt cursor." The pre-T799 footer printed a
+# leading blank above the footer and a trailing newline that parked the
+# (visible) cursor on a line below it. The fixed footer prints exactly one
+# line with no trailing newline; the cursor is hidden (^[[?25l) while the
+# watcher runs and restored (^[[?25h) by cleanup on exit. Red against the
+# pre-T799 live file: last line not the footer (blank below), blank above it,
+# no hide, no restore. Runs under a pty (script) so the watcher sees a real
+# terminal and renders the footer — one-shot frames exit before it.
+echo "  L. footer is last line, no blanks; cursor hidden, restored on q (live file)"
+WORKL=$(mktemp -d /private/tmp/weizigo/wf-footer-XXXXXX)
+mkdir -p "$WORKL/bin" "$WORKL/untracked" "$WORKL/docs/infra/managent"
+ln -s "$MG" "$WORKL/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKL/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKL" init -q
+git -C "$WORKL" config user.email t799@test
+git -C "$WORKL" config user.name T799
+STORE="$WORKL/docs/infra/managent/tasks.json"
+LIVE_COPYL="$WORKL/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPYL" 2>/dev/null
+printf '<!--managent -->\n# T995 — footer probe row\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORKL/untracked/T995-bundle.md"
+printf '{\n  "T995":{"status":"done","agent":"x","model":"x","bundle":"untracked/T995-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":"2026-08-19T09:00:00Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STORE"
+# draw one frame, then q quits. sleep 0.5 lets stty -echo land so the key
+# never echoes into the capture; the /dev/null file arg keeps the session on
+# stdout only (macOS script tees to both file and stdout otherwise).
+OUT_L=$( (sleep 0.5; printf 'q') | script -q /dev/null env -u WATCH_FLEET_SOURCE \
+    MANAGENT_STORE="$STORE" FLEET_LINES=24 FLEET_COLS=80 sh "$LIVE_COPYL" 2>/dev/null )
+l_fail=0
+case "$OUT_L" in
+    *'[?25l'*) ;;
+    *) echo "    FAIL: no cursor-hide sequence (^[[?25l) in interactive output"; l_fail=1;;
+esac
+case "$OUT_L" in
+    *'[?25h') ;;
+    *) echo "    FAIL: output must END with the cursor-restore sequence (^[[?25h)"; l_fail=1;;
+esac
+# strip clear + private-mode-25 escapes and CR (pty ONLCR) to recover the frame
+S_L=$(printf '%s' "$OUT_L" | sed $'s/\x1b\[[?0-9;]*[A-Za-z]//g' | tr -d '\r')
+# the footer is the last line that matches the footer shape; cleanup's exit
+# newline leaves one empty trailing field, so "no trailing blank" is: the
+# last NON-EMPTY line IS the footer (nothing visible below it), and the
+# line above it is data, not blank.
+F_N=$(printf '%s\n' "$S_L" | grep -n -E '^  [0-9][0-9]:[0-9][0-9]:[0-9][0-9] . q or .C quits . another key to refresh 10s$' | tail -1 | cut -d: -f1)
+V=$(printf '%s\n' "$S_L" | grep -c .)
+[ -n "$F_N" ] || { echo "    FAIL: footer line not found; frame: '$(printf '%s' "$S_L" | tr '\n' '|')'"; l_fail=1; }
+[ "$V" = "$F_N" ] || { echo "    FAIL: footer must be the last non-empty line (no trailing blank), $V non-empty lines but footer at line $F_N"; l_fail=1; }
+PREV=""
+[ -n "$F_N" ] && PREV=$(printf '%s\n' "$S_L" | sed -n "$((F_N - 1))p")
+[ -n "$PREV" ] || { echo "    FAIL: line above the footer is blank (leading blank)"; l_fail=1; }
+printf '%s\n' "$PREV" | grep -q '^  T995 ' || { echo "    FAIL: line above footer should be a data row (T995), got: '$PREV'"; l_fail=1; }
+[ "$V" -le 24 ] || { echo "    FAIL: frame is $V visible lines on a 24-row terminal"; l_fail=1; }
+if [ "$l_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKL"
+
+# ── Arm M: T799 — cursor restored on the ^C trap path (exit 130) ────────
+# The ^C path is the restore that gets forgotten: the INT trap must go
+# through cleanup so the cursor is restored (^[[?25h as the LAST bytes) and
+# the exit code is 130. Red against the pre-T799 live file: no hide, no
+# restore anywhere.
+echo "  M. cursor restored on the ^C trap path; exit 130 (live file)"
+WORKM=$(mktemp -d /private/tmp/weizigo/wf-int-XXXXXX)
+mkdir -p "$WORKM/bin" "$WORKM/untracked" "$WORKM/docs/infra/managent"
+ln -s "$MG" "$WORKM/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKM/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKM" init -q
+git -C "$WORKM" config user.email t799@test
+git -C "$WORKM" config user.name T799
+STORE="$WORKM/docs/infra/managent/tasks.json"
+LIVE_COPYM="$WORKM/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPYM" 2>/dev/null
+printf '<!--managent -->\n# T996 — trap path row\n\nBody.\n' > "$WORKM/untracked/T996-bundle.md"
+printf '{\n  "T996":{"status":"done","agent":"x","model":"x","bundle":"untracked/T996-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":"2026-08-19T09:00:00Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STORE"
+# ^C after one frame: the INT trap must fire mid-watch (footer already
+# rendered), restore the cursor and exit 130.
+OUT_M=$( (sleep 1; printf '\003') | script -q /dev/null env -u WATCH_FLEET_SOURCE \
+    MANAGENT_STORE="$STORE" FLEET_LINES=24 FLEET_COLS=80 sh "$LIVE_COPYM" 2>/dev/null )
+RC_M=$?
+m_fail=0
+[ "$RC_M" = "130" ] || { echo "    FAIL: ^C exit should be 130, got $RC_M"; m_fail=1; }
+case "$OUT_M" in
+    *'[?25l'*) ;;
+    *) echo "    FAIL: no cursor-hide sequence on the trap path"; m_fail=1;;
+esac
+case "$OUT_M" in
+    *'[?25h') ;;
+    *) echo "    FAIL: trap path must END with the cursor-restore sequence (^[[?25h)"; m_fail=1;;
+esac
+printf '%s' "$OUT_M" | grep -q 'another key to refresh' || { echo "    FAIL: no footer rendered before the ^C (trap fired too early)"; m_fail=1; }
+if [ "$m_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKM"
 
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
