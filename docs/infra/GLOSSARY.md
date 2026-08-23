@@ -135,6 +135,11 @@ file that carries the old word.
   CONFLICTS: "duty" in the plain sense of a seat's recurring responsibilities ("duties current
   by the gate", `docs/status/ROADMAP-2026-08-20.md`) and the kanban's `duty`/`why` fields are
   NOT the reserved sense — the reserved sense is the D-UID duty row.
+- **row** — not the unit of work: the preferred term is *kanban task*, or simply *task* (see
+  "kanban"). "Row" survives only for a literal table row.
+  CONFLICTS: the fixed compounds "standing row" (below) and "duty row" keep "row" as a name, and
+  "fleet rows and not race lanes" still contrasts rows with lanes; otherwise write *task*, not
+  *row*. Operator ruling 2026-08-23.
 - **standing row** — a kanban row auto-registered by a `managent standing` trigger
   (STANDING-ABSORB, STANDING-CLEANUP, STANDING-REEVIDENCE, STANDING-CONSOLIDATE,
   STANDING-HOLISTIC-AUDIT); a done/failed standing row re-registers rather than staying inert
@@ -150,6 +155,13 @@ file that carries the old word.
   CONFLICTS: claimlint uses "lane" for a sibling task's working-tree partition
   (`src/claimlint.zig:4088`), and the course distinguishes "fleet rows and not race lanes"
   (`docs/status/ROADMAP-2026-08-20.md`).
+  MISUSE: a *solo dispatched task is not a lane* — the running thing is a *worker console* (see
+  "console"), the unit of work a *kanban task* (see "row"/"kanban"). Worked example, T771 (the
+  2026-08-23 orchestration-oversight seat): "lane" was used for *any running task* —
+  `docs/status/roadmap-2026-08-23.md:249` ("16 lanes were reported in flight on 2026-08-23 when
+  zero were alive"); the operator counted 41 such uses across the seat's two committed docs and had
+  to ask twice what "lane" meant. A rule with a real failure attached survives; one stated
+  abstractly does not.
 - **seat** — a thinking-manager role (Orchestrator, Auditor, Dabir), persistent and invoked by
   role, not by model; "seat-authored" = produced from the role's own console
   (`docs/infra/delegation/ROLES.md`; the court, DIRECTION §6).
@@ -171,6 +183,22 @@ file that carries the old word.
 
 ## Race vocabulary
 
+- **arm / armed** — the general test/instrument sense: a single assertion or scenario that can
+  come out red or green; an id is *armed* when at least one arm actually tests it. Load-bearing
+  for spec discipline: it enforces the rule *"an id with no control is not a requirement, it is a
+  wish"* (`docs/epics/E1-markovian/L1-dashboard/S03-queue-layer/spec.md:96`; the same rule at S06
+  `spec.md:54` and S08 `spec.md:46`, the last in "arm" form: *"an id with no arm is not a
+  requirement, it is a wish"*). Clinical-trial in origin (treatment arm / control arm), arriving
+  here paired as the *null control arm + seeded-defect arm* every instrument ships
+  (`S03-queue-layer/spec.md:96`; `docs/status/roadmap-2026-08-23.md:139`); a race's treatment
+  condition is the "race arm" below.
+  CONFLICTS: "arm" also names a race's condition ("race arm," below) and the four grand-audit arms
+  (see "race arm"); "armed" is the predicate the fleet reports "22 of 31 ids armed"
+  (`docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/STATUS.md:44`).
+  WEAKNESS: it is binary — one arm and twenty arms both read "armed", so it says nothing about
+  adequacy; the discipline that repairs it is to *state the count* (S08 `spec.md:46`: "states its
+  arm count explicitly and the accept step recomputes it"). For mere presence, not adequacy, plain
+  "has a test" is often the better phrasing.
 - **race arm (bare / instructed)** — one treatment condition of a race over the same sealed
   target set: the bare arm runs the unadorned brief (measures disposition), the instructed arm
   prepends the ratified "do science" preamble (measures the ceiling); production lanes are

@@ -1,0 +1,65 @@
+{
+ "task_id": "T824",
+ "date": "2026-08-23",
+ "model": "qwen3.8:27b-mlx",
+ "identifier": "qwen3.8:27b-mlx/T824",
+ "type": "glossary-prose",
+ "instrument": "prose edit of docs/infra/GLOSSARY.md — three entries, no epistemic claim rows",
+ "claims": [],
+ "new_rows": [],
+ "changes": [
+   {
+     "entry": "arm / armed (ADDED)",
+     "action": "insert the general test/instrument sense at the top of \"## Race vocabulary\", immediately before \"race arm\"",
+     "post_edit_lines": "186-201 (file grew to 218 lines; pre-edit 190)",
+     "records": "definition (one assertion/scenario that can come out red or green; an id is 'armed' when at least one arm tests it); the two load-bearing things (the spec rule 'an id with no control is not a requirement, it is a wish' at S03-queue-layer/spec.md:96, echoed S06 spec.md:54 and S08 spec.md:46; the clinical-trial origin via the null-control + seeded-defect arm pair at roadmap-2026-08-23.md:139); and the one weakness ('binary: one arm and twenty both read armed; say nothing about adequacy; discipline is to state the count, S08 spec.md:46; 'has a test' the better phrasing for mere presence')."
+   },
+   {
+     "entry": "lane (AMENDED)",
+     "action": "keep the existing definition and its two CONFLICTS senses (claimlint working-tree partition; 'fleet rows and not race lanes'); add a MISUSE note",
+     "post_edit_lines": "MISUSE at 158-164 (definition + CONFLICTS unchanged at 146-157)",
+     "records": "a solo dispatched task is not a lane — the running thing is a worker console (see 'console'), the unit of work a kanban task (see 'row'/'kanban'); worked example T771 (2026-08-23 orchestration-oversight seat) used 'lane' for any running task, anchored on roadmap-2026-08-23.md:249 ('16 lanes were reported in flight ... when zero were alive'), with the operator's count of 41 such uses across its two committed docs and the note that the operator had to ask twice."
+   },
+   {
+     "entry": "row (ADDED)",
+     "action": "insert a short pointer before 'standing row' in \"## Queue, surface, and roles\" (row before 'standing row' keeps the row-family compounds adjacent)",
+     "post_edit_lines": "138-142",
+     "records": "operator ruling 2026-08-23: preferred term is 'kanban task' or 'task' (points at the 'kanban' entry, not a restatement); 'row' survives only for a literal table row; CONFLICTS notes 'standing row'/'duty row'/'fleet rows and not race lanes' as the surviving uses."
+   }
+ ],
+ "convention_notes": [
+   "Introduced two bold continuation labels — 'WEAKNESS:' (arm) and 'MISUSE:' (lane) — as siblings of the file's existing 'CONFLICTS:' label, same indent/citation style. The file's only pre-existing sub-label is 'CONFLICTS:', which per the brief governs multiple live senses; the brief explicitly asked for a 'misuse warning' and a 'weakness stated plainly', i.e. things that are not live-sense conflicts, so folding them into 'CONFLICTS:' would misstate their kind. The label choice is documented here for the auditor; it does not alter the two lane CONFLICTS senses, which are kept intact as the brief required.",
+   "Placement: 'arm / armed' leads 'Race vocabulary' alphabetically (arm < race arm < two-field verdict) and cross-references 'race arm' as its race subtype; 'row' sits just before its subtype 'standing row'. Both keep related terms adjacent, matching the file's loose thematic ordering of that section."
+ ],
+ "citation_audit": {
+   "head": "cc8f5e0-dirty",
+   "all_cited_paths_exist": true,
+   "volatile_citations_added": 0,
+   "claimlint_at_close": "C1a=0, C2=0, C6=0, C9=0 (all at floor; unchanged by this edit). No new dead link; no untracked//tmp/ citation added, so the C10 new-citation ratchet (gated on C2, floor 0) is not tripped.",
+   "paths_cited": [
+     "docs/epics/E1-markovian/L1-dashboard/S03-queue-layer/spec.md:96",
+     "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md:54",
+     "docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md:46",
+     "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/STATUS.md:44",
+     "docs/status/roadmap-2026-08-23.md:139",
+     "docs/status/roadmap-2026-08-23.md:249",
+     "src/claimlint.zig:4088 (pre-existing, kept)",
+     "docs/status/ROADMAP-2026-08-20.md (pre-existing, kept)"
+   ]
+ },
+ "count_nuance": "The brief's '41 times across two committed documents' is recorded as the operator's figure and attributed as such in the entry. A reproducible count of 'lane'/'lanes' across the two obviously-T771 2026-08-23 docs — docs/status/roadmap-2026-08-23.md (22) and docs/status/landmark-waypoints-seed-2026-08-23.md (6, T771-authored per its header) — currently sums to 28, not 41; the discrepancy is either a pre-close trim or a broader doc pair than these two. The hard, verifiable anchor in the glossary is roadmap-2026-08-23.md:249, where 'lane' unambiguously means 'a running task' ('16 lanes were reported in flight ... when zero were alive'); the 41 is carried as the operator's measurement, not as a number this leaf reproved.",
+ "scope_honoured": "Edited only docs/infra/GLOSSARY.md (the task's hold). No other doc swept; no register/CLAIMS.md change (claims [] / new_rows []); no volatile path cited.",
+ "test_gate": {
+  "claimlint_floor_gate": "PASSED — C1a=0, C2=0, C6=0, C9=0 (all at floor T814). No floor regression from the glossary edit; no untracked//tmp/ citation added, so the C10 volatile ratchet is not tripped.",
+  "fast_tier": "REFUSED the commit, then bypassed with a recorded TEST_GATE_BYPASS reason (loud, written to untracked/log/precommit-test-gate-bypass.log with task=T824, 2026-08-23T22:2x).",
+  "bypassed_arm": "tools/regression-claimlint-c7-json.sh (c7-json-shape). Every OTHER fast-tier arm PASSED, including the volatile-citation and c7-scope arms that guard this row's own work.",
+  "why_unrelated": "The failing arm prints 'FAIL: c7 --json exited 0 on the live tree (expected 0)', which is a mislabel: c7 --json actually exits 1 because the live tree carries 2 unabsorbed findings (T818, corpus-blind second pass, in_progress: MEAS.CORPUS-B and MEAS.CORPUS-B-METER-GAPS, both 'NO SUCH ID'). That arm is therefore red for EVERY unrelated commit until T818's findings are absorbed — it cannot fail because of this row's prose edit. T824's own finding is conforming (conforming=true, unabsorbed=0, non-conforming=0).",
+  "rationale": "Pre-existing fast-tier red, attributable to another console's in-flight work plus a shell bug in that test, not to T824's two-file prose change; the claimlint floor gate (the one that would regress on this row's error) passed. This is the hook's sanctioned bypass path for unrelated work with the red on record."
+ },
+ "pre_existing_defects_found": [
+  "DEFECT A (surfaced, not T824's to fix — a leaf at the delegation cap does not dispatch): tools/regression-claimlint-c7-json.sh, c7-json-shape arm, has a shell bug — 'if ! cmd; then RC=$?' captures the NEGATED exit code, so it always prints 'exited 0' and the arm's 'expected 0' is the opposite of the real non-zero exit; it also assumes c7 --json exits 0 on the live tree, conflating JSON-shape validity with C7 being green, so it goes red on any unabsorbed-finding state. A test that reports the opposite of its own result is a silent-wrong-answer class; it needs its own task (test-first: the arm should assert 'output parses + 8 fields', not 'c7 --json exits 0').",
+  "DEFECT B (an in-flight trip, not a defect): T818 left 2 unabsorbed findings, which make c7 --json exit 1 and trip the fast tier for every unrelated commit until T818 is absorbed. Noted so the operator/Orchestrator knows the c7-json fast arm is a transient blocker, not a T824 error."
+ ],
+ "inbox": "Polled with `bin/managent inbox T824 --ack` at claim, mid-edit, and before done. Empty every time; no directive ID to record.",
+ "status": "success"
+}
