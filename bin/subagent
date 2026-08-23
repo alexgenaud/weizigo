@@ -18,16 +18,21 @@
                          the cooldown is ENFORCED here (T677/D040) — a
                          gate only in bin/dispatch is advisory, and the
                          probe lane went around it tonight.
-  --override-memory-gate=<reason>
-                         bypass the T713 resident-aware memory gate for THIS
-                         launch only, with the operator's reason REQUIRED
-                         (printed loudly, nothing recorded — the per-launch
-                         human decision, the --allow-unisolated spirit).
-                         The gate refuses a LOCAL-model lane (provider
-                         ollama, non-:cloud tag) when a resident model
-                         server is detected and the host reports less than
-                         lane-cost + margin MB available; list-wait is the
-                         intended behaviour — killing a running lane is not.
+  --ram-mb=N             declared peak RSS need in MB (ORC-GD-1); overrides
+                         the per-provider default (T821,
+                         docs/infra/host/ram-policy.md).
+  --override-admission=<reason>
+                         bypass an admission REFUSAL for THIS launch only,
+                         with the operator's reason REQUIRED (printed
+                         loudly, nothing recorded — the per-launch human
+                         decision, the --allow-unisolated spirit).  T821
+                         replaces the T713 local-model-only gate with
+                         admission for EVERY lane: the declared need (a
+                         registry figure for a resident local model, a
+                         per-provider default otherwise) is checked against
+                         what tools/runner's arbiter has already admitted;
+                         list-wait is the intended behaviour — killing a
+                         running lane is not.
 
   test-only flags (T411 — the regression uses them; production dispatches never do):
   --test-root=<dir>    resolve the repo from <dir> instead of the script location
@@ -188,35 +193,57 @@ PI_TAG_TO_CANONICAL = {
     "stealth/ox-alpha": "ox-alpha",
 }
 
-# ── resident-aware memory gate (T713) ─────────────────────────────────
-# The resident MLX/Ollama model server (`ollama runner --mlx-engine`, the
-# qwen 27b MLX engine, ~15–20 GB RSS) is a NAMED tenant OUTSIDE every runner
-# process group that reduces the memory budget the fleet may spend.  The
-# runner's host guard (T362/T711) already stops reading the tenant as an
-# emergency; what this gate adds is the DISPATCH side: when the model server
-# is resident, the dispatcher knows the reduced budget (host total minus the
-# tenant) and refuses to launch a memory-heavy lane that the host cannot
-# physically take — instead of launching it and letting the runner's guard
-# kill a running lane when pressure lands (fratricide, T712's job to
-# coordinate the response).  Operator intent (T713): list-wait is acceptable
-# (the row stays dispatchable, nothing is killed), killing a running lane is
-# not.  Cloud-API lanes (deepseek / claude / pi-openrouter / `:cloud` ollama
-# tags) keep a small local RSS and dispatch freely — the gate never applies.
+# ── declared-need admission (T821) ─────────────────────────────────────
+# T821 (docs/infra/host/ram-policy.md) replaces the T713 gate — which only
+# ever looked at LOCAL ollama lanes — with admission for EVERY lane: every
+# dispatch declares a peak RSS need (ORC-GD-1) and tools/runner's arbiter
+# (the ONE component that owns this decision, ORC-G5) admits or refuses
+# BEFORE the child is spawned, against what it has already admitted.  This
+# file's job is only to compute the declaration and pass it through on the
+# SAME tools/runner invocation that already wraps every lane (T677/D040) —
+# it does not re-implement the arithmetic.
 #
-# Decision rule (active gate, memory-heavy lane only):
-#   admit iff available_memory >= lane_cost + margin
-# where available_memory is the system-wide reading — which ALREADY reflects
-# the tenant's footprint (its RSS is anonymous/wired, not reclaimable), so
-# the tenant is what makes the budget reduced and the gate tight.  The
-# T711 "available-to-the-fleet = available + tenant" arithmetic is NOT
-# applied here: that was for the guard's panic-floor comparison (the tenant
-# cancels out of it); a NEW lane cannot reclaim the tenant's RSS, so adding
-# it back would let two 16 GB lanes onto a host that fits one.  In-flight
-# lanes are charged implicitly — each resident lane lowers the next reading.
-#
-# Reading is unavailable ⇒ gate inert (cannot measure = cannot refuse, the
-# runner guard's stance).  An explicit override (--override-memory-gate=
-# <reason>, the --allow-unisolated spirit) launches anyway, loudly.
+# Defaults (ram-policy.md §2a/§3.3): a resident local model (provider
+# ollama, no `:cloud` suffix) declares the REGISTRY figure
+# (docs/infra/model-registry.md: "local, 18 GB MLX") — never a `ps` sample,
+# which is exactly what let the 2026-08-23 15:19:09 incident's tenant go
+# unseen (D1).  Every other lane (cloud-API, or an ollama `:cloud` tag)
+# declares its measured per-provider default.  `--ram-mb=N` overrides
+# either default with a stated value (ram-policy.md §3.3's override rule).
+RESIDENT_MODEL_RAM_MB = 18432             # docs/infra/model-registry.md:62
+PROVIDER_RAM_MB_DEFAULT = {               # ram-policy.md §2a's measured table
+    "claude": 1024,
+    "deepseek": 2816,
+    "pi": 1024,
+}
+OLLAMA_CLOUD_RAM_MB_DEFAULT = 3328        # remote ollama-served models
+
+
+def _declared_ram_mb(provider, raw_model, flags):
+    """The RAM (MB) this lane declares at admission (ORC-GD-1).  An
+    explicit --ram-mb=N always wins; otherwise a resident local model
+    (provider ollama, no :cloud tag) declares the registry figure, and
+    every other lane declares its per-provider default."""
+    override = flags.get("ram-mb")
+    if override not in (None, True):
+        try:
+            return int(override)
+        except ValueError:
+            pass  # fall through to the computed default
+    if provider == "ollama":
+        if raw_model and ":cloud" in raw_model:
+            return OLLAMA_CLOUD_RAM_MB_DEFAULT
+        return RESIDENT_MODEL_RAM_MB
+    return PROVIDER_RAM_MB_DEFAULT.get(provider, 3072)
+
+
+# ── sampling diagnostics (T711/T713), demoted by T821 ──────────────────
+# T821 deletes the T713 gate these fed (_lane_is_memory_heavy,
+# _memory_gate_verdict, MEMORY_GATE_MARGIN_MB, LOCAL_LANE_COST_DEFAULT_MB —
+# docs/infra/host/ram-policy.md §6 items 8-9).  The functions below are
+# RETAINED as labeled `sample` diagnostics only (§6 item 6) — no decision
+# may use a live ps/vm_stat reading; the resident charge above is a
+# registry declaration, never this sample.
 #
 # Test hooks (the same inject-don't-exhaust family as tools/runner's
 # WEIZIGO_HOST_MEM_AVAIL_MB / WEIZIGO_HOST_TENANT_RESERVATION_MB):
@@ -227,10 +254,6 @@ PI_TAG_TO_CANONICAL = {
 #                               runner); 0 = explicitly no tenant
 #   WEIZIGO_HOST_TOTAL_MB       inject total physical memory (MB)
 #   WEIZIGO_HOST_MEM_UNAVAIL=1  force the reading to None (inert path)
-#   WEIZIGO_LANE_COST_MB        the charge of one memory-heavy lane (MB)
-
-MEMORY_GATE_MARGIN_MB = 2048             # safety margin above a lane's charge
-LOCAL_LANE_COST_DEFAULT_MB = 16384       # one 27b MLX model (~15–20 GB)
 
 
 def _host_total_mb():
@@ -357,50 +380,6 @@ def _resident_tenant_mb():
         except ValueError:
             continue
     return total
-
-
-def _lane_is_memory_heavy(provider, raw_model):
-    """A lane is memory-heavy when it loads a big LOCAL model: provider
-    ollama with a non-`:cloud` tag.  Cloud-API lanes (deepseek, claude,
-    pi/openrouter) and `:cloud` ollama tags keep a small local RSS — they
-    dispatch freely, the gate never applies to them."""
-    if provider != "ollama":
-        return False
-    if raw_model and ":cloud" in raw_model:
-        return False
-    return True
-
-
-def _memory_gate_verdict(provider, raw_model, tenant_mb):
-    """→ (admit, reason).  Cloud-API lanes always admit.  A memory-heavy
-    lane is admitted only while a resident tenant is present AND the host
-    has at least lane_cost + margin MB genuinely available; no tenant ⇒ no
-    reduced budget ⇒ gate inactive; reading unavailable ⇒ gate inert."""
-    if not _lane_is_memory_heavy(provider, raw_model):
-        return True, None
-    if tenant_mb <= 0:
-        return True, None
-    avail = _host_avail_mb()
-    if avail is None:
-        return True, None
-    try:
-        cost = int(os.environ.get("WEIZIGO_LANE_COST_MB")
-                   or LOCAL_LANE_COST_DEFAULT_MB)
-    except ValueError:
-        cost = LOCAL_LANE_COST_DEFAULT_MB
-    margin = MEMORY_GATE_MARGIN_MB
-    if avail >= cost + margin:
-        return True, None
-    return False, (
-        f"memory budget cannot take another memory-heavy lane (T713): host "
-        f"reports {avail} MB available and the model server is resident "
-        f"(tenant ~{tenant_mb} MB); a local model lane costs "
-        f"~{cost} MB (+ {margin} MB margin).  Launching it now would push "
-        f"the host toward OOM — where the runner's host guard would have to "
-        f"kill a running lane (fratricide).  List-wait: leave the row "
-        f"dispatchable and re-dispatch when a lane finishes; idle is "
-        f"acceptable, killing a running lane is not (operator intent)."
-    )
 
 
 _session_path_counter = itertools.count()
@@ -561,43 +540,52 @@ def main(argv):
     if resolve_err:
         sys.exit(resolve_err)
 
-    # ── resident-aware memory gate (T713) ────────────────────────────────
-    # When the model server is resident, the dispatcher knows the reduced
-    # memory budget (host total − tenant) and refuses a memory-heavy lane
-    # the host cannot take — list-wait, never a kill.  Cloud-API lanes
-    # (deepseek / claude / pi / :cloud ollama tags) dispatch freely; the
-    # gate only ever applies to local-model lanes (provider ollama, local
-    # tag).  This is the launch chokepoint — every lane, dispatch or hand,
-    # passes through here (the T677/D040 principle), so a gate only in
-    # bin/dispatch would be advisory.  A dry-run reveals the refusal the
-    # same way a launch would.
-    if _lane_is_memory_heavy(provider, raw_model):
-        tenant = _resident_tenant_mb()
-        total = _host_total_mb()
-        if tenant > 0 and total is not None:
-            print(f"[subagent] T713: model server resident (tenant {tenant} MB) — "
-                  f"fleet budget reduced to {total - tenant} MB "
-                  f"(total {total} MB)", file=sys.stderr)
-        elif total is not None:
-            print(f"[subagent] T713: memory-heavy lane ({raw_model}) — no resident "
-                  f"model server detected; host total {total} MB", file=sys.stderr)
-        override = flags.get("override-memory-gate")
-        if override is True:   # bare flag, no value — parse_argv yields True
-            sys.exit("subagent: --override-memory-gate requires a reason: "
-                     "--override-memory-gate=<reason> (T713).\n"
-                     "  The flag exists for 'I have checked the host myself; "
-                     "proceed', not for convenience.")
-        admit, mem_reason = _memory_gate_verdict(provider, raw_model, tenant)
-        if not admit:
-            override = (flags.get("override-memory-gate") or "").strip()
-            if override:
-                print(f"subagent: WARNING — memory gate OVERRIDDEN for this launch "
-                      f"by operator reason {override!r} (T713); the host is tight "
-                      f"and the lane may compete for memory", file=sys.stderr)
-            else:
-                sys.exit("subagent: REFUSED — " + mem_reason + "\n"
-                         "  If you have checked the host yourself, launch with a "
-                         "recorded reason: --override-memory-gate=<reason> (T713).\n")
+    # ── declared-need admission (T821, ORC-GD-1/ORC-G5) ──────────────────
+    # Every lane declares a peak RSS need and is checked against what
+    # tools/runner's ONE arbiter has already admitted — never just local
+    # ollama lanes (the T713 gate this replaces).  This is the launch
+    # chokepoint (T677/D040), so bin/dispatch's own gate stays advisory.
+    # A --dry-run previews the SAME verdict the arbiter would reach
+    # WITHOUT reserving memory for work that will never run (the arbiter
+    # is a subprocess call, not a re-implementation — ORC-G5 "one
+    # arbiter").  The real launch below passes --ram-mb/--arbiter-id
+    # through on the SAME tools/runner invocation that wraps the worker,
+    # so a real refusal there means nothing was ever spawned.
+    ram_mb = _declared_ram_mb(provider, raw_model, flags)
+    arbiter_id = target  # stable per dispatch: the T-id or the file path
+    override_admission = flags.get("override-admission")
+    if override_admission is True:   # bare flag, no value
+        sys.exit("subagent: --override-admission requires a reason: "
+                 "--override-admission=<reason> (T821).\n"
+                 "  The flag exists for 'I have checked the host myself; "
+                 "proceed', not for convenience.")
+    override_admission = (override_admission or "").strip()
+    # ROOT, not `root`: tools/runner is project infrastructure, always the
+    # real repo's copy (mirrors how bin/dispatch resolves bin/subagent
+    # itself from ROOT — "the managent binary always comes from the real
+    # repo; --test-root only affects bundle/log resolution").  A relative
+    # "tools/runner" resolved against a --test-root scratch cwd has no
+    # tools/ directory at all and crashes with FileNotFoundError — caught
+    # live by tools/regression-fleet-keeper.sh, which dispatches through a
+    # scratch --test-root on every arm.
+    preview = subprocess.run(
+        [os.path.join(ROOT, "tools", "runner"), "--arbiter-preview",
+         "--arbiter-id", arbiter_id, "--ram-mb", str(ram_mb)],
+        cwd=root, capture_output=True, text=True)
+    if preview.stderr:
+        sys.stderr.write(preview.stderr)
+    if preview.returncode != 0:
+        if override_admission:
+            print(f"subagent: WARNING — admission OVERRIDDEN for this launch "
+                  f"by operator reason {override_admission!r} (T821); the "
+                  f"host is tight and the lane may compete for memory",
+                  file=sys.stderr)
+        else:
+            sys.exit(
+                "subagent: REFUSED — declared need does not fit "
+                "(docs/infra/host/ram-policy.md).\n"
+                "  If you have checked the host yourself, launch with a "
+                "recorded reason: --override-admission=<reason> (T821).\n")
 
     # ── provider-window gate (T628 + T677): the real launch chokepoint ──
     # bin/dispatch gates too, but subagent is where every lane actually
@@ -709,11 +697,18 @@ def main(argv):
     if task_id:
         env["MANAGENT_TASK_ID"] = task_id
 
+    # T821: the same admission tools/runner already decided (or previewed)
+    # above, carried through on the real launch — --arbiter-id is
+    # independent of --task-id (which also triggers managent claim/done).
+    arbiter_flags = ["--ram-mb", str(ram_mb), "--arbiter-id", arbiter_id]
+    if override_admission:
+        arbiter_flags.extend(["--override-admission", override_admission])
+
     # ── Build command ──────────────────────────────────────────────────
     if test_worker:
         cmd = [test_worker, prompt]
     elif provider == "deepseek":
-        cmd = ["tools/runner", "--max-wall", wall]
+        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags]
         if rss_mb:
             cmd.extend(["--rss-cap-mb", rss_mb])
         # T586: --mode json makes pi stream its session events (reasoning,
@@ -743,7 +738,7 @@ def main(argv):
         # lane trailer, ledger line) — null with a reason for the
         # pi/ollama lanes, which never emit one. The dispatch shape is
         # unchanged; capture is the wrapper's job.
-        cmd = ["tools/runner", "--max-wall", wall, "--",
+        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
                "claude", "-p", prompt, "--model", model,
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,
                "--output-format", "json"]
@@ -754,7 +749,7 @@ def main(argv):
         # is the operator-verified form
         # (`pi --provider openrouter --model stealth/ox-alpha -p "<prompt>"`),
         # wrapped in tools/runner for the wall guard.
-        cmd = ["tools/runner", "--max-wall", wall, "--",
+        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
                "pi", "--provider", "openrouter", "--model", raw_model,
                "-p", prompt]
     else:  # ollama
@@ -763,7 +758,7 @@ def main(argv):
         # a known per-lane file the runner reads after close — the meter
         # works for local lanes too, not just deepseek.
         session_rel = _pi_session_path(task_id)
-        cmd = ["tools/runner", "--max-wall", wall, "--",
+        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
                "ollama", "launch", "pi", "--model", raw_model, "-y", "--",
                "--session", session_rel, "-p", prompt]
 

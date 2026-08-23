@@ -670,7 +670,7 @@ each step committing before the next touches the store (commit → deploy → sm
 6. **Provider seam** (the one-registry-entry onboarding, measured against T732) — last, the
    acceptance demo.
 
-**ORC-PLAN-4 (regression scripts — counted disposition).** 81 `tools/regression-*.sh` at `HEAD`.
+**ORC-PLAN-4 (regression scripts — counted disposition).** 82 `tools/regression-*.sh` at `HEAD`.
 Dispositions: **ABSORB** (coverage re-expressed as `managent` Zig tests, shell script retired at
 phase close), **REWIRE** (script updated to the new mechanism; subject survives), **SURVIVE**
 (out of scope, untouched), **RETIRE** (mechanism deleted, no replacement owed — count is **0**,
@@ -704,6 +704,25 @@ paragraph and compares it to `glob("tools/regression-*.sh")`, with a null contro
 synthetic declaration passes) and a seeded control (a wrong one is caught) so the instrument
 earns its reading. The number above is maintained by that arm going red, never by a reader
 noticing.
+
+**Amendment (T821, 2026-08-24).** `docs/infra/host/ram-policy.md` (T806, ratified 2026-08-23)
+built the ORC-ARB-1 arbiter directly — ahead of, not inside, this sprint's P4.2 phase order
+("taken first… passes are sequenced by dependency, not by number," T821's own brief) — because
+every guard defect in `tools/runner`'s host-pressure path routed through it and the pressure was
+live (2026-08-23 15:19:09, four lanes dead in 88s). Three landings, live count 81 → **82**:
+
+| script | change | disposition |
+|---|---|---|
+| `regression-arbiter.sh` (new, T821) | the arbiter's own controls: real co-launch, futile-kill, effective overrun-stop, refusal, null | **SURVIVE** — the new standing control, the P4.2 bar itself (`orcha-acceptance.sh`'s pattern: the gate is not a thing under test) |
+| `regression-subagent-resident-gate.sh` | the T713 gate it tested is deleted (ram-policy.md §6 items 8-9); retired to an exit-0 banner naming the reason | **ABSORB, done early** — this row's own §708-715 P4.2 listing already named it; T821 discharges it ahead of the formal phase close |
+| `regression-runner-host-guard.sh` | the T362/T711 floor it tested is deleted (ram-policy.md §6 items 1-2, 5); retired to an exit-0 banner naming the reason | **REWIRE, done early** — this row's own §728 P4.2 listing already named it; T821 discharges it ahead of the formal phase close |
+
+The ABSORB-19/REWIRE-16/SURVIVE-45 bucket sums two paragraphs below are **not** rebalanced by this
+amendment — both retired scripts were already named inside those buckets (they are being
+*discharged* early, not reclassified), and the one new script is a fresh SURVIVE addition of
+exactly the same shape T801 recorded for `regression-canonicalizer-parity.sh`. A full phase-P4.2
+reconciliation (rewiring the twelve still-live `regression-runner-*.sh` REWIRE entries at §728 to
+the arbiter this row built) remains owed to whichever pass formally closes P4.2.
 
 **ABSORB — 19** (phase P4; their controls move into `zig build test`):
 
@@ -739,8 +758,9 @@ git-commit-mine-hook, process-ownership, pilot-gate, orcha-acceptance, precommit
 acceptance.sh` survives as the bar itself (it is the P5 gate, not a thing under test).
 
 **ORC-PLAN-5 (silent truncation is a defect — now mechanized).** The disposition table's counts
-sum to **80**, the `ls tools/regression-*.sh | wc -l` at `8c00704`; the T801 addition brings the
-live count to **81** (see the ORC-PLAN-4 amendment). If a later phase retires a
+sum to **80**, the `ls tools/regression-*.sh | wc -l` at `8c00704`; the T801 addition brought the
+live count to **81**, and the T821 amendment (one new SURVIVE script, two early discharges of
+already-listed entries) brings it to **82** (see the ORC-PLAN-4 amendments). If a later phase retires a
 script not listed here, the plan is amended; a script left off the table is a spec defect, not a
 reader's problem. **Amended T802:** that sentence is now enforced by
 `tests/unit/test_s06_conformance.py::TestDispositionCount`, which fails the moment the declared

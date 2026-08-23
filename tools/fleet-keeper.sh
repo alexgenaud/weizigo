@@ -114,6 +114,20 @@
 #                         in tools/fleet-cooldown.sh, not here (T511 F1).
 #
 # Task: T496/T501/T504/T536/T651/T511 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536/T651), deepseek-v4-flash (T511) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536), 2026-08-22 (T651), 2026-08-23 (T511)
+#
+# T821 (2026-08-24, docs/infra/host/ram-policy.md ORC-G5 correction): this
+# file has NO memory logic — `pressure` above is one-writer/holds
+# CONTENTION, never RAM.  The memory admission this task's brief asks the
+# fleet-wide dispatch loop to route through the one arbiter is already
+# routed: step 5's `bin/dispatch <id> <model>` reaches `bin/subagent`
+# (T677/D040's real launch chokepoint) for every firing, and bin/subagent
+# now declares a peak RSS need and lets tools/runner's arbiter admit or
+# refuse BEFORE anything is spawned — so this loop inherits admission with
+# no code change here.  A refusal surfaces as an ordinary failed dispatch
+# (heals like any other T477 case); the row stays dispatchable and this
+# loop naturally retries it next tick, which is already ORC-G1's "idle is
+# acceptable" shed order, achieved structurally rather than by this file
+# re-checking the arbiter itself.
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"

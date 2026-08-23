@@ -14,15 +14,15 @@ via `main(argv)`.
  1  _load_pinned_dispatch_verify bind `dispatch_verify` to the git-HEAD copy    module import (line ~145)    2026-08-22 T631  NO — every verify/heal call breaks; T631's
                                   so a concurrent in-flight edit on the module                                                own incident (T616) is the "unnoticed" case
                                   can't reach a running verifier
- 2  _host_total_mb                total physical memory (MB), injectable       memory-gate diagnostic print  2026-08-23 T713  NO but low-stakes — only the loud diagnostic
-                                                                                 in main(), _memory_gate_verdict                               line goes silent/wrong
- 3  _host_avail_mb                system-wide available memory (MB),           _memory_gate_verdict          2026-08-23 T713  NO — gate silently goes INERT forever
-                                  injectable, None on failure (inert path)
- 4  _resident_tenant_mb           resident MLX/Ollama tenant RSS (MB),          main() memory-gate block,     2026-08-23 T713  NO — gate reads "no tenant" always, i.e.
-                                  declared or auto-detected                     _memory_gate_verdict                          permanently inactive
- 5  _lane_is_memory_heavy         classify (provider, tag) as memory-heavy      main(), _memory_gate_verdict  2026-08-23 T713  NO — every lane looks "not heavy", gate
-                                  (local ollama tag only)                                                                     never engages
- 6  _memory_gate_verdict          admit/refuse decision for the T713 gate      main()                        2026-08-23 T713  NO — the T713 gate itself disappears
+ 2  _host_total_mb                total physical memory (MB), injectable       demoted `sample` diagnostic   2026-08-24 T821  NO but low-stakes — unused by any
+                                                                                 only (T821); no decision caller                              decision (T821, ram-policy.md §6)
+ 3  _host_avail_mb                system-wide available memory (MB),           demoted `sample` diagnostic   2026-08-24 T821  NO — same as above; the arbiter
+                                  injectable, None on failure (inert path)     only; no decision caller                      (tools/runner) reads its own copy
+ 4  _resident_tenant_mb           resident MLX/Ollama tenant RSS (MB),          demoted `sample` diagnostic   2026-08-24 T821  NO — the resident charge is now a
+                                  declared or auto-detected                     only; no decision caller                      registry declaration (§2a), never this
+ 5  _declared_ram_mb (T821)       the declared peak RSS need for admission      main(), the --arbiter-preview 2026-08-24 T821  NO — every lane's --ram-mb goes
+                                  (registry figure, per-provider default,       subprocess call and the                       missing/wrong, admission mis-sizes
+                                  or an explicit --ram-mb override)            real launch's cmd
  7  _pi_session_path              unique per-attempt session-file path for      main() (deepseek/ollama)      2026-08-22 T662  NO — pi/ollama lanes lose --session, the
                                   the token meter                                                                              token meter goes UNKNOWN for those lanes
  8  run_worker                    spawn + stream the worker subprocess,         main()                        2026-08-07 T411  NO — no lane could ever run
@@ -36,9 +36,26 @@ via `main(argv)`.
  12 _resolve_model (NEW, T792)     provider + raw tag -> canonical model        main()                        2026-08-23 T792  n/a (extracted this row; see below)
                                   label, or a ready-to-print error
 
-DELETION CANDIDATES: none.  All 12 functions have a live, findable production
-caller inside this file and touched activity in the last 24-72h (T713/T662/
-T631/T437/T792); none is dead weight.  #12 is new: the provider-routing
+T821 ADDENDUM (2026-08-24): this table is otherwise as T792 left it.  The
+T713 resident-aware memory gate (rows #5 `_lane_is_memory_heavy` and #6
+`_memory_gate_verdict`) is DELETED, not repaired -- docs/infra/host/
+ram-policy.md replaces it with declared-need admission for EVERY lane
+(row #5 is now `_declared_ram_mb`), decided by tools/runner's one arbiter
+via a subprocess call, never re-implemented here.  Rows #2-#4
+(`_host_total_mb`/`_host_avail_mb`/`_resident_tenant_mb`) are RETAINED but
+DEMOTED to labeled `sample` diagnostics with no decision caller (ram-
+policy.md §6 item 6) -- kept because deleting them would also delete their
+existing unit coverage for no gain (a stale sample is still a correct
+sample); nothing in this file's main() path reads them.
+tools/regression-subagent-resident-gate.sh, which tested the T713 gate
+directly, is RETIRED by the same row (T821) -- it now exits 0 immediately
+with a reason banner rather than being deleted (T821's findings file
+records why).
+
+DELETION CANDIDATES: none.  All remaining functions have a live, findable
+production caller inside this file and touched activity in the last
+24-72h (T821/T662/T631/T437/T792); none is dead weight.  #12 is new: the
+provider-routing
 decision (deepseek/claude/pi/ollama branches, previously inline in main(),
 lines ~495-527 pre-T792) was extracted verbatim into `_resolve_model` so the
 "table-driven arm over every registry tag" the brief asks for could run
@@ -95,11 +112,9 @@ and 'unknown_tag_falls_through_unvalidated'):
     `kimi-k2-thinking` -- a label that is not in canonical_models at all --
     with no error.
 
-No disagreement was found between any unit arm here and
-tools/regression-subagent-resident-gate.sh's shell arms: TestMemoryGate
-below reuses that script's exact fixture constants (TENANT_MB=8000,
-TOTAL_MB=49152, boundary/tight/ample avail readings) and reaches the same
-admit/refuse verdicts for every one of its lettered controls (A-H).
+T821 (2026-08-24) deletes the T713 gate this paragraph used to cross-check
+against tools/regression-subagent-resident-gate.sh (now RETIRED); see the
+T821 addendum above.
 """
 import contextlib
 import io
@@ -371,87 +386,50 @@ class TestResidentTenantMb(EnvIsolatedTestCase):
             self.assertEqual(sa._resident_tenant_mb(), 0)
 
 
-class TestLaneIsMemoryHeavy(unittest.TestCase):
-    """SHOULD: only a LOCAL ollama tag (no :cloud suffix) is memory-heavy;
-    every cloud-API lane (deepseek/claude/pi, or an ollama :cloud tag) is
-    not, regardless of which model it names."""
+class TestLaneIsMemoryHeavyRemoved(unittest.TestCase):
+    """SHOULD (T821, docs/infra/host/ram-policy.md §6 item 9): the T713
+    heavy/not-heavy classification and its verdict function are GONE --
+    every lane declares a need now, there is no separate heavy class.
+    Deletion checks, not behaviour tests."""
+
+    def test_lane_is_memory_heavy_removed(self):
+        self.assertFalse(hasattr(sa, "_lane_is_memory_heavy"))
+
+    def test_memory_gate_verdict_removed(self):
+        self.assertFalse(hasattr(sa, "_memory_gate_verdict"))
+
+
+class TestDeclaredRamMb(unittest.TestCase):
+    """SHOULD (T821, ram-policy.md §2a/§3.3): a resident local model
+    (provider ollama, no :cloud tag) declares the REGISTRY figure; every
+    other lane declares its per-provider default; an explicit --ram-mb
+    override always wins."""
 
     CASES = [
-        ("ollama", "qwen3.8:27b-mlx", True),
-        ("ollama", "glm-5.2", True),
-        ("ollama", "glm-5.2:cloud", False),
-        ("ollama", "qwen3.8:27b-mlx:cloud", False),
-        ("deepseek", None, False),
-        ("claude", "claude-opus-5", False),
-        ("pi", "stealth/ox-alpha", False),
+        ("ollama", "qwen3.8:27b-mlx", {}, sa.RESIDENT_MODEL_RAM_MB),
+        ("ollama", "glm-5.2", {}, sa.RESIDENT_MODEL_RAM_MB),
+        ("ollama", "glm-5.2:cloud", {}, sa.OLLAMA_CLOUD_RAM_MB_DEFAULT),
+        ("ollama", "qwen3.8:27b-mlx:cloud", {}, sa.OLLAMA_CLOUD_RAM_MB_DEFAULT),
+        ("deepseek", None, {}, sa.PROVIDER_RAM_MB_DEFAULT["deepseek"]),
+        ("claude", "claude-opus-5", {}, sa.PROVIDER_RAM_MB_DEFAULT["claude"]),
+        ("pi", "stealth/ox-alpha", {}, sa.PROVIDER_RAM_MB_DEFAULT["pi"]),
     ]
 
-    def test_classification_table(self):
-        for provider, raw_model, expected in self.CASES:
+    def test_defaults_table(self):
+        for provider, raw_model, flags, expected in self.CASES:
             with self.subTest(provider=provider, raw_model=raw_model):
-                self.assertEqual(sa._lane_is_memory_heavy(provider, raw_model), expected)
+                self.assertEqual(
+                    sa._declared_ram_mb(provider, raw_model, flags), expected)
 
-
-class TestMemoryGateVerdict(EnvIsolatedTestCase):
-    """SHOULD: admit iff available_memory >= lane_cost + margin, ONLY when a
-    resident tenant makes the budget reduced; inert (admit) when the
-    reading is unmeasurable; cloud lanes are never checked at all.
-
-    Reuses tools/regression-subagent-resident-gate.sh's own fixture
-    constants verbatim (TENANT_MB=8000, TOTAL_MB=49152, COST_MB=16384 the
-    default, MARGIN_MB=2048, THRESHOLD_MB=18432) so a disagreement between
-    the shell arm and this unit arm would show up as a test failure here.
-    None was found -- see module docstring."""
-
-    TENANT_MB = 8000
-    COST_MB = 16384
-    MARGIN_MB = 2048
-    THRESHOLD_MB = COST_MB + MARGIN_MB  # 18432
-
-    def test_control_A_H_cloud_lane_never_checked(self):
-        # Not memory-heavy at all: _memory_gate_verdict must be called only
-        # after _lane_is_memory_heavy gates it in main(), but the function
-        # itself also short-circuits on a non-heavy lane defensively.
-        admit, reason = sa._memory_gate_verdict("deepseek", None, self.TENANT_MB)
-        self.assertTrue(admit)
-        self.assertIsNone(reason)
-
-    def test_control_D_no_tenant_gate_inactive(self):
-        os.environ["WEIZIGO_HOST_MEM_AVAIL_MB"] = "100"  # red, would refuse if active
-        admit, reason = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", tenant_mb=0)
-        self.assertTrue(admit)
-        self.assertIsNone(reason)
-
-    def test_control_E_unmeasurable_reading_is_inert(self):
-        os.environ["WEIZIGO_HOST_MEM_UNAVAIL"] = "1"
-        admit, reason = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", self.TENANT_MB)
-        self.assertTrue(admit)
-        self.assertIsNone(reason)
-
-    def test_control_B_tight_avail_refused_list_wait(self):
-        os.environ["WEIZIGO_HOST_MEM_AVAIL_MB"] = "9000"
-        admit, reason = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", self.TENANT_MB)
-        self.assertFalse(admit)
-        self.assertIn("List-wait", reason)
-
-    def test_control_C_ample_avail_admitted(self):
-        os.environ["WEIZIGO_HOST_MEM_AVAIL_MB"] = "25000"
-        admit, reason = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", self.TENANT_MB)
-        self.assertTrue(admit)
-        self.assertIsNone(reason)
-
-    def test_control_F_boundary_is_admit_not_refuse(self):
-        os.environ["WEIZIGO_HOST_MEM_AVAIL_MB"] = str(self.THRESHOLD_MB)
-        admit, _ = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", self.TENANT_MB)
-        self.assertTrue(admit, ">=  not  >  at the boundary")
-        os.environ["WEIZIGO_HOST_MEM_AVAIL_MB"] = str(self.THRESHOLD_MB - 1)
-        admit, _ = sa._memory_gate_verdict("ollama", "qwen3.8:27b-mlx", self.TENANT_MB)
-        self.assertFalse(admit, "one MB below the boundary must refuse")
-
-    def test_control_H_cloud_ollama_tag_is_class_not_name(self):
-        # qwen3.8:27b-mlx:cloud is a CLOUD lane -- the :cloud suffix decides,
-        # not the model name -- so it is never even lane_is_memory_heavy.
-        self.assertFalse(sa._lane_is_memory_heavy("ollama", "qwen3.8:27b-mlx:cloud"))
+    def test_explicit_override_always_wins(self):
+        self.assertEqual(
+            sa._declared_ram_mb("ollama", "qwen3.8:27b-mlx", {"ram-mb": "500"}),
+            500,
+        )
+        self.assertEqual(
+            sa._declared_ram_mb("claude", "claude-opus-5", {"ram-mb": "9999"}),
+            9999,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -709,6 +687,17 @@ class TestMainRouting(unittest.TestCase):
         self.target = os.path.join(self._tmp.name, "target.md")
         with open(self.target, "w") as f:
             f.write("# scratch dispatch target\n")
+        # T821: an instance attribute of the same name shadows the class
+        # dict for every test in this class (no other call site needs to
+        # change) — WEIZIGO_ARBITER_STATE_FILE isolates the admission
+        # preview from the REAL untracked/arbiter-state.json, which the
+        # live fleet is genuinely writing to on a shared host (a bare
+        # WEIZIGO_HOST_MEM_AVAIL_MB injection is not enough: the arbiter
+        # also reads committed_mb from the ledger file itself).
+        self.BASE_ENV = dict(
+            TestMainRouting.BASE_ENV,
+            WEIZIGO_ARBITER_STATE_FILE=os.path.join(self._tmp.name, "arbiter-state.json"),
+        )
 
     def tearDown(self):
         self._tmp.cleanup()
@@ -749,21 +738,24 @@ class TestMainRouting(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("stealth/ox-alpha", out)
 
-    def test_ollama_cloud_tag_dry_run_success_no_memory_gate_noise(self):
+    def test_ollama_cloud_tag_dry_run_declares_remote_default(self):
+        # T821: a :cloud tag declares the small remote default, never the
+        # 18 GB resident-model registry figure.
         rc, out, err = _run_main(
             ["--provider", "ollama", "--model", "glm-5.2:cloud", self.target, "--dry-run"],
             self.BASE_ENV)
         self.assertEqual(rc, 0)
         self.assertIn("glm-5.2:cloud", out)
-        self.assertNotIn("T713", err, "a :cloud tag must never trip the memory gate")
+        self.assertIn(f"ram_mb={sa.OLLAMA_CLOUD_RAM_MB_DEFAULT}", err)
 
-    def test_ollama_local_tag_dry_run_triggers_memory_gate_diagnostic(self):
-        env = dict(self.BASE_ENV, WEIZIGO_HOST_TENANT_RESERVATION_MB="8000")
+    def test_ollama_local_tag_dry_run_declares_resident_registry_figure(self):
+        # T821: a LOCAL ollama tag declares the registry figure (18432 MB)
+        # at admission preview -- never a live ps sample.
         rc, out, err = _run_main(
             ["--provider", "ollama", "--model", "qwen3.8:27b-mlx", self.target, "--dry-run"],
-            env)
+            self.BASE_ENV)
         self.assertEqual(rc, 0, err)
-        self.assertIn("T713", err)
+        self.assertIn(f"ram_mb={sa.RESIDENT_MODEL_RAM_MB}", err)
         self.assertIn("qwen3.8:27b-mlx", out)
 
     def test_claude_invalid_label_refused(self):

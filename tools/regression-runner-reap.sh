@@ -26,9 +26,11 @@
 #   A2a seeded: same via the WALL ceiling (silent child, --max-wall) → child
 #        reaped.
 #   A2b seeded: same via the RSS cap → child reaped.
-#   A2c seeded: same via the HOST floor (injected WEIZIGO_HOST_MEM_AVAIL_MB)
-#        → child reaped.  The danger floor is never tested by exhausting
-#        host memory.
+#   A2c seeded: same via the DECLARED-NEED OVERRUN STOP (--ram-mb sizes
+#        --rss-cap-mb to ceil(ram_mb * 1.25), INV-4) → child reaped.  T821
+#        (docs/infra/host/ram-policy.md) deletes the host floor this arm
+#        used to trip; the overrun stop is its replacement as "a
+#        memory-pressure-shaped kill, not the plain RSS cap of A2b."
 #   A2d seeded: same via the DIRECTIVE kill (managent-style kill directive
 #        written to a scratch directives.jsonl mid-run) → child reaped.
 #   A3  null: a LIVE worker with a live suite-shaped child — two sweeps
@@ -145,8 +147,8 @@ if esc and hasattr(os, "setsid"):
     pids.append(subprocess.Popen([sys.executable, "-c", code], start_new_session=True).pid)
 open(tag, "w").write(" ".join(str(p) for p in pids))
 time.sleep(2)                      # let the poll observe the full tree
-x = bytearray(200 * 1024 * 1024)   # trip the RSS cap (host floor arms pass
-time.sleep(120)                    # --rss-cap-mb high and use the floor)
+x = bytearray(200 * 1024 * 1024)   # trip the RSS cap (200 MB > any arm's cap)
+time.sleep(120)
 PYEOF
 
 # A spawner that holds a suite-shaped child via an env var (no fixture path
@@ -220,22 +222,25 @@ for c in $CHILDREN; do
 done
 [ "$A2B_OK" -eq 1 ] && echo "    PASS: RSS cap killed the worker and reaped the child (survivors=0)" || FAIL=1
 
-# ── A2c: host floor (injected reading — never exhaust the host) ───────────
-echo "=== regression-runner-reap: A2c — host floor kills worker AND child ==="
+# ── A2c: declared-need overrun stop (T821 — the host floor this arm used
+#         to trip is DELETED, docs/infra/host/ram-policy.md; INV-4's
+#         overrun stop is the new memory-pressure-shaped kill trigger) ────
+echo "=== regression-runner-reap: A2c — declared-need overrun stop kills worker AND child (T821) ==="
 TAG="$WORK/a2c.tag"
-( cd "$REPO" && WEIZIGO_HOST_MEM_AVAIL_MB=100 MANAGENT_TASK_ID=T548A2C \
-    "$RUNNER" --no-prepend-zig --rss-cap-mb 8192 --max-wall 60 -- \
+( cd "$REPO" && MANAGENT_TASK_ID=T548A2C \
+    "$RUNNER" --no-prepend-zig --ram-mb 100 --max-wall 60 -- \
     sh -c "python3 '$WORK/worker.py' '$TAG'" >/dev/null 2>"$WORK/a2c.run.log" )
 RC=$?
 CHILDREN=$(cat "$TAG" 2>/dev/null || echo "")
 A2C_OK=1
-[ "$RC" -eq 124 ] || { echo "    FAIL: expected exit 124 (host floor), got $RC"; A2C_OK=0; }
-grep -q 'host memory pressure' "$WORK/a2c.run.log" || { echo "    FAIL: no host-pressure kill message"; A2C_OK=0; }
+[ "$RC" -eq 124 ] || { echo "    FAIL: expected exit 124 (overrun stop), got $RC"; A2C_OK=0; }
+grep -q 'RSS cap 125 MB exceeded' "$WORK/a2c.run.log" || { echo "    FAIL: no overrun-stop kill message (rss cap sized to ceil(100*1.25))"; A2C_OK=0; }
+grep -q "overrunning its OWN declared need" "$WORK/a2c.run.log" || { echo "    FAIL: no INV-4 overrun note"; A2C_OK=0; }
 grep -q 'survivors=0' "$WORK/a2c.run.log" || { echo "    FAIL: reap line missing survivors=0"; A2C_OK=0; }
 for c in $CHILDREN; do
-    if alive "$c"; then echo "    FAIL: child $c survived the host-floor kill"; A2C_OK=0; LEFTOVERS="$LEFTOVERS $c"; fi
+    if alive "$c"; then echo "    FAIL: child $c survived the overrun-stop kill"; A2C_OK=0; LEFTOVERS="$LEFTOVERS $c"; fi
 done
-[ "$A2C_OK" -eq 1 ] && echo "    PASS: host floor killed the worker and reaped the child (survivors=0)" || FAIL=1
+[ "$A2C_OK" -eq 1 ] && echo "    PASS: declared-need overrun stopped the worker and reaped the child (survivors=0)" || FAIL=1
 
 # ── A2d: directive kill (mid-run poll reads the scratch directives.jsonl) ─
 echo "=== regression-runner-reap: A2d — kill directive stops the worker AND reaps the child ==="

@@ -10,31 +10,33 @@
 # the EXP-9 close-out: ReleaseFast by default, SIGKILL the process group
 # at any ceiling breach, clear reporting on stderr, exit 124.
 #
-# Four guards, three default-on:
-#   --rss-cap-mb 12288  SECONDARY bound: SIGKILL the process group when any
-#                       member exceeds this RSS.  Generous now that the
-#                       host guard exists — catches a single runaway
-#                       allocation, not a legitimate 4.1 GB check.
-#   --host-mem-floor-mb FLEET-AWARE guard (T362): read system-wide available
-#                       memory; below a danger floor (default derived from
-#                       hw.memsize, total // 8) SIGKILL the LARGEST member
-#                       of the process group — a fleet citizen relieving
-#                       host pressure before the host panics.  The per-
-#                       process cap bounds ONE worker; five such workers
-#                       would commit 40 GB.  The 2026-07-29 panic had
-#                       system free ~46 MB of 48 GB before watchdogd
-#                       starved — do not raise the floor casually.
-#                       --no-host-guard disables.  WEIZIGO_HOST_MEM_AVAIL_MB
-#                       injects the reading for the test (never exhaust
-#                       the host to test the floor).
-#                       T711 declared-tenant subtraction: the resident model
-#                       server (ollama runner --mlx-engine) is a NAMED tenant
-#                       OUTSIDE every group, so its ~15–20 GB is added back
-#                       to the reading before the floor comparison —
-#                       "available" means available-to-the-fleet.  A resident
-#                       qwen must not read as an emergency.
-#                       WEIZIGO_HOST_TENANT_RESERVATION_MB declares the
-#                       reservation for the test / as a manual override.
+# T821 (2026-08-24): the host-wide `total // 8` floor and its largest-member
+# kill are DELETED — docs/infra/host/ram-policy.md found 16 of 20 recorded
+# kills futile and 0 of 20 both necessary and effective (the mechanism never
+# once prevented a recurrence).  Memory is now governed by the ONE arbiter
+# below: declared-need ADMISSION before launch (never kills), a per-process
+# RSS cap sized to the declaration (the only remaining stop, and it is
+# always an overrun of the stopped task's OWN declaration), and a kernel-
+# signalled ALARM backstop that names the real consumer and never kills.
+#
+# Guards:
+#   --ram-mb N          declared peak need in MB (ORC-GD-1).  Checked against
+#                       what is already admitted BEFORE the child is spawned
+#                       (L2 admission, ram-policy.md §4.1): refuse, and the
+#                       row stays dispatchable — idle is acceptable, killing
+#                       a running task is not (INV-1/INV-3).  Sizes
+#                       --rss-cap-mb's default to ceil(ram_mb * 1.25) unless
+#                       --rss-cap-mb is explicit (INV-4's overrun threshold).
+#                       See `--arbiter-admit`/`--arbiter-release` below for
+#                       the same decision as a standalone, no-spawn call.
+#   --rss-cap-mb 12288  SIGKILL the process group when any member exceeds
+#                       this RSS — the ONLY stop a running task can suffer,
+#                       and (with --ram-mb) it is always that task's OWN
+#                       overrun, never a stranger's memory (INV-1).
+#   --override-admission=<reason>
+#                       bypass an admission REFUSAL for this launch only,
+#                       reason required and logged loudly (the
+#                       --allow-unisolated escape-hatch pattern).
 #   --max-wall 1800     (fallback for silent children) SIGKILL after this
 #                       many wall seconds if no [progress] lines seen.
 #                       macOS does not have timeout(1), so this is the
@@ -43,13 +45,22 @@
 #                       sum of cumulative CPU seconds across ALL
 #                       descendants exceeds this.  Reported per-PID on exit.
 #
+# The backstop (L3): every poll reads the kernel's own pressure verdict
+# (`kern.memorystatus_vm_pressure_level`, ram-policy.md §4.4) instead of a
+# hand-rolled fraction of hw.memsize.  Sustained pressure (3 polls / >= 2s,
+# the same dwell shape as every other guard here) ALARMS — naming the
+# largest host-wide process, which may be structurally outside this
+# runner's own process group — and never kills anything (§4.3: a foreign
+# consumer is never signalled; the fleet's own contribution is already
+# bounded by admission, so the correct response is to hold, not shed).
+#
 # Why multiple guards?  The 2026-07-29 panic proved that a single guard
-# (per-process RSS) is not enough — and per-process RSS says nothing
-# about the fleet.  A `zig test` binary spinning at 0% RSS sat undetected
-# for 5 hours because name-based greps missed the anonymous process.  The
-# host guard catches fleet-wide memory pressure; the wall/CPU ceilings
-# catch the silent long/throughput cases; the progress watchdog catches
-# stuck children that still emit progress lines.
+# (per-process RSS) is not enough.  A `zig test` binary spinning at 0% RSS
+# sat undetected for 5 hours because name-based greps missed the anonymous
+# process.  Admission bounds the fleet's total commitment before anything
+# runs; the RSS cap catches one process ballooning past its own declared
+# need; the wall/CPU ceilings catch the silent long/throughput cases; the
+# progress watchdog catches stuck children that still emit progress lines.
 #
 # macOS timeout(1) gap.  macOS ships no `timeout` utility (it is
 # Linux-only / coreutils-only).  Agents reaching for `timeout` to bound
@@ -108,6 +119,10 @@
 # Standard library only.  No external dependencies.
 
 import argparse
+import atexit
+import contextlib
+import fcntl
+import itertools
 import json
 import math
 import os
@@ -1395,18 +1410,16 @@ def _host_avail_bytes():
     return None
 
 
-# ── declared-tenant subtraction (T711) ────────────────────────────────
+# ── declared-tenant sampling (T711, demoted to a diagnostic by T821) ───
 #
-# The 2026-07-29 panic-floor semantics stay intact (the floor is NOT
-# raised); what changes is WHAT the floor is compared against.  The
-# resident model server (ollama runner --mlx-engine) is a NAMED tenant
-# OUTSIDE every runner process group: its ~15–20 GB RSS is not memory the
-# fleet can free, so a system-wide `available < floor` reading that is
-# actually the tenant's footprint fired the guard on an innocent lane and
-# freed ~454 MB against a 25 GB tenant (T626/T700/T715).  The guard now
-# ADDS the tenant's footprint back to the reading before the comparison —
-# "available" means available-to-the-fleet — so a resident qwen does not
-# read as an emergency.
+# T821 (docs/infra/host/ram-policy.md §6 item 6): the floor comparison this
+# sampling used to feed is DELETED.  The functions below are RETAINED as a
+# labeled `sample` diagnostic only — they are non-monotone and under-report
+# by roughly 2x even after they settle (ORC-G9), so no decision may use
+# them.  The resident model's charge for admission and for the L3 alarm's
+# naming is a REGISTRY DECLARATION (docs/infra/model-registry.md, ~18 GB),
+# never this ps sample.  The resident model server (ollama runner
+# --mlx-engine) is a NAMED tenant OUTSIDE every runner process group.
 #
 # Reservation sources, in priority order:
 #   1. WEIZIGO_HOST_TENANT_RESERVATION_MB — a declared reservation constant
@@ -1471,24 +1484,243 @@ def _declared_tenant_reservation_bytes():
     return _sum_mlx_tenant_bytes(out.stdout.splitlines())
 
 
-def _select_host_guard_victim(poll_rss, shortfall_bytes):
-    """Pick the pid the host-memory guard kills to relieve a shortfall.
+# _select_host_guard_victim (largest-member kill selection) is DELETED —
+# T821, docs/infra/host/ram-policy.md §6 item 4.  With no host-condition
+# kill (see the arbiter below) there is no victim to select; a kill record
+# with no member that could relieve its shortfall was the 2026-08-23
+# 15:19:09 incident's own shape (three lanes of 251/133/129 MB killed for a
+# 383 MB shortfall).  tests/unit/test_runner.py's selector tests become a
+# deletion check (T791's red arm is now moot, not repaired).
 
-    Pure arithmetic over injectable readings (T791): the largest member of
-    the process group, but ONLY when that member's RSS is at least the
-    shortfall — killing a member smaller than the shortfall relieves nothing
-    (2026-08-23 15:19:09: three lanes of 251/133/129 MB were killed for a
-    383 MB shortfall).  Returns None when there is nothing to kill.
 
-    NOTE (T791): the RSS >= shortfall guard is NOT yet enforced here — the
-    current implementation returns the largest member unconditionally (the
-    incident arithmetic).  The fix is owned by T785 (S08); the red arm is
-    recorded in tests/unit/test_runner.py.
-    """
-    if not poll_rss:
+# ── admission arbiter (T821, ORC-G5 "one arbiter") ─────────────────────
+#
+# One component decides admission: given a task's declared need (--ram-mb)
+# and what is already admitted, admit or refuse BEFORE the child is
+# spawned.  Refusal never kills anything and never touches a running task
+# (INV-1/INV-3) — the row simply stays dispatchable.  State is a small JSON
+# ledger of currently-admitted tasks (docs/infra/host/ram-policy.md §8 open
+# question 2, option (a) — a file in untracked/ the runners poll, the same
+# shape as tools/fleet-keeper.pressure.json).  A ledger entry older than
+# ARBITER_STALE_S is presumed abandoned (a runner that died without
+# releasing — e.g. SIGKILLed) and purged before the next decision, so a
+# crash cannot wedge admission shut forever.
+#
+# bin/subagent (the one launch chokepoint, T677/D040) is the only caller —
+# it passes --ram-mb/--arbiter-id straight through on the SAME tools/runner
+# invocation that wraps the worker, so the decision and the launch are one
+# call: refused means nothing was ever spawned.  --arbiter-admit/-release/
+# -status below expose the identical decision as a standalone, no-spawn
+# call (used by tools/regression-arbiter.sh to test the arithmetic without
+# launching anything).
+
+ARBITER_RESERVE_MB = 4608   # ram-policy.md §4.1: the p95 of actual RSS in
+                            # the heaviest observed duration band — a
+                            # measured quantity, never a fraction of
+                            # hw.memsize (INV-5).
+ARBITER_STALE_S = 4 * 3600  # an admitted entry older than this is presumed
+                            # abandoned and purged before the next decision.
+
+
+def _arbiter_resolve_state_path(explicit, repo_root):
+    """Priority: --arbiter-state-file (explicit) > WEIZIGO_ARBITER_STATE_FILE
+    (the same inject-don't-exhaust family as WEIZIGO_HOST_MEM_AVAIL_MB — a
+    test hook so a caller with no --test-root of its own, e.g. an
+    in-process unit test that never spawns a scratch repo, can still
+    isolate the ledger from the live untracked/arbiter-state.json) >
+    the repo-root default."""
+    return (explicit or os.environ.get("WEIZIGO_ARBITER_STATE_FILE")
+            or _arbiter_state_path(repo_root))
+
+
+def _arbiter_state_path(repo_root):
+    return os.path.join(repo_root or ".", "untracked", "arbiter-state.json")
+
+
+def _arbiter_load(state_path):
+    """The admission ledger, or an empty one when absent/corrupt (a
+    missing/unreadable ledger must never block admission)."""
+    try:
+        with open(state_path) as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("admitted"), dict):
+            return data
+    except (OSError, ValueError):
+        pass
+    return {"admitted": {}}
+
+
+def _arbiter_save(state_path, state):
+    os.makedirs(os.path.dirname(state_path) or ".", exist_ok=True)
+    # A per-process, per-call temp name (pid + monotonic counter): two
+    # concurrent admits sharing one state_path (the real-co-launch shape,
+    # T821 control 1) must never race on the SAME tmp path, or the loser's
+    # os.replace raises FileNotFoundError on the winner's already-renamed
+    # file — observed live under regression-arbiter.sh's co-launch arm.
+    tmp = f"{state_path}.{os.getpid()}.{next(_ARBITER_TMP_COUNTER)}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(state, f)
+    os.replace(tmp, state_path)
+
+
+_ARBITER_TMP_COUNTER = itertools.count()
+
+
+@contextlib.contextmanager
+def _arbiter_locked(state_path):
+    """Serialize load-decide-save across CONCURRENT runner processes
+    sharing one ledger (flock, advisory but sufficient — every writer here
+    is this same function).  Without this, two admits racing the same
+    read-modify-write can both see stale committed_mb and both admit past
+    RESERVE_MB — the exact failure mode ORC-GD-3 exists to prevent."""
+    os.makedirs(os.path.dirname(state_path) or ".", exist_ok=True)
+    lock_path = state_path + ".lock"
+    with open(lock_path, "a+") as lockf:
+        fcntl.flock(lockf.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lockf.fileno(), fcntl.LOCK_UN)
+
+
+def _arbiter_purge_stale(state, now=None):
+    """Drop admitted entries older than ARBITER_STALE_S in place."""
+    now = now if now is not None else time.time()
+    for tid in list(state["admitted"]):
+        if now - state["admitted"][tid].get("ts", 0) > ARBITER_STALE_S:
+            del state["admitted"][tid]
+
+
+def _arbiter_committed_mb(state, exclude=None):
+    return sum(v.get("ram_mb", 0) for tid, v in state["admitted"].items()
+              if tid != exclude)
+
+
+def _arbiter_decide(avail_mb, committed_mb, ram_mb):
+    """Pure arithmetic (ORC-GD-3/INV-3): admit iff
+    avail_mb - committed_mb - ram_mb >= RESERVE_MB.  Returns
+    (admit, projected_mb, reason).  An unmeasurable avail reading admits —
+    cannot measure = cannot refuse, the guard's long-standing stance."""
+    if avail_mb is None:
+        return (True, None,
+                "host availability unmeasurable — admission gate inert")
+    projected_mb = avail_mb - committed_mb - ram_mb
+    if projected_mb >= ARBITER_RESERVE_MB:
+        return True, projected_mb, "fits"
+    return False, projected_mb, (
+        f"declared need {ram_mb} MB does not fit: avail {avail_mb} MB - "
+        f"committed {committed_mb} MB - candidate {ram_mb} MB = "
+        f"{projected_mb} MB < reserve {ARBITER_RESERVE_MB} MB "
+        f"(docs/infra/host/ram-policy.md §4.1).  Refused, not killed — "
+        f"the row stays dispatchable; idle is acceptable."
+    )
+
+
+def _arbiter_admit(identity, ram_mb, state_path, avail_mb=None):
+    """L2 admission (ORC-GD-3/INV-3) — MUTATING: admitted candidates are
+    added to the ledger (and must be released later); a refusal mutates
+    nothing beyond the stale purge, and the caller must not spawn.
+
+    Locked (_arbiter_locked): two concurrent admits sharing one ledger
+    (T821 control 1, the real co-launch shape) must never both read the
+    same stale committed_mb and both admit past RESERVE_MB — that race is
+    exactly what ORC-GD-3's admission arithmetic exists to prevent, so the
+    read-decide-write here is one atomic section, not three."""
+    if avail_mb is None:
+        avail_bytes = _host_avail_bytes()
+        avail_mb = avail_bytes // (1024 * 1024) if avail_bytes is not None else None
+    with _arbiter_locked(state_path):
+        state = _arbiter_load(state_path)
+        _arbiter_purge_stale(state)
+        committed_mb = _arbiter_committed_mb(state, exclude=identity)
+        admit, projected_mb, reason = _arbiter_decide(avail_mb, committed_mb, ram_mb)
+        if admit:
+            state["admitted"][identity] = {"ram_mb": ram_mb, "ts": time.time()}
+        _arbiter_save(state_path, state)  # persist the stale purge either way
+    return {"admit": admit, "avail_mb": avail_mb, "committed_mb": committed_mb,
+            "reserve_mb": ARBITER_RESERVE_MB, "projected_mb": projected_mb,
+            "reason": reason}
+
+
+def _arbiter_preview(identity, ram_mb, state_path, avail_mb=None):
+    """The verdict _arbiter_admit would reach, WITHOUT mutating the ledger —
+    for --dry-run (bin/subagent) so a preview can show a real refusal
+    without reserving memory for work that will never run."""
+    if avail_mb is None:
+        avail_bytes = _host_avail_bytes()
+        avail_mb = avail_bytes // (1024 * 1024) if avail_bytes is not None else None
+    state = _arbiter_load(state_path)
+    committed_mb = _arbiter_committed_mb(state, exclude=identity)
+    admit, projected_mb, reason = _arbiter_decide(avail_mb, committed_mb, ram_mb)
+    return {"admit": admit, "avail_mb": avail_mb, "committed_mb": committed_mb,
+            "reserve_mb": ARBITER_RESERVE_MB, "projected_mb": projected_mb,
+            "reason": reason}
+
+
+def _arbiter_release(identity, state_path):
+    """Idempotent: releasing an identity that was never admitted (or was
+    already released/purged) is a no-op, never an error.  Locked for the
+    same reason as _arbiter_admit — a release racing an admit must not
+    lose an update."""
+    with _arbiter_locked(state_path):
+        state = _arbiter_load(state_path)
+        if identity in state["admitted"]:
+            del state["admitted"][identity]
+            _arbiter_save(state_path, state)
+
+
+# ── L3 backstop: kernel-signalled alarm, never a kill (ram-policy.md §4.4) ─
+
+def _kernel_pressure_level():
+    """The kernel's own memory-pressure verdict (macOS Jetsam:
+    1=normal, 2=warn, 4=critical), or None when unavailable (non-macOS, or
+    the call fails) — cannot measure = cannot alarm, the guard's stance
+    throughout this file.  WEIZIGO_KERNEL_PRESSURE_LEVEL injects the
+    reading (the seeded-arm hook, same family as WEIZIGO_HOST_MEM_AVAIL_MB)."""
+    injected = os.environ.get("WEIZIGO_KERNEL_PRESSURE_LEVEL")
+    if injected is not None:
+        try:
+            return int(injected)
+        except ValueError:
+            return None
+    try:
+        out = subprocess.run(
+            ["sysctl", "-n", "kern.memorystatus_vm_pressure_level"],
+            capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return int(out.stdout.strip())
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+def _top_host_consumer():
+    """(command, rss_bytes) of the single largest process host-wide, or
+    None.  The alarm must NAME the actual consumer (§4.4) — which may sit
+    structurally outside this runner's own process group (a resident model
+    server, a browser, a foreign compile) — never guess or kill it."""
+    try:
+        out = subprocess.run(
+            ["ps", "-axo", "pid=,rss=,command="],
+            capture_output=True, text=True, timeout=2.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
-    largest_pid = max(poll_rss, key=lambda p: poll_rss[p])
-    return largest_pid
+    if out.returncode != 0:
+        return None
+    best = None
+    for line in out.stdout.splitlines():
+        parts = line.split(None, 2)
+        if len(parts) < 3:
+            continue
+        try:
+            rss = int(parts[1]) * 1024
+        except ValueError:
+            continue
+        if best is None or rss > best[1]:
+            best = (parts[2], rss)
+    return best
 
 
 # ── logging ──────────────────────────────────────────────────────────
@@ -2573,24 +2805,59 @@ def main():
                     "RSS / wall / CPU ceiling.  Also: --sweep for "
                     "orphan-zig detection.",
     )
-    ap.add_argument("--rss-cap-mb", type=int, default=12288,
-                    help="secondary bound: SIGKILL the process group when any "
-                         "member exceeds this RSS in MB (default 12288 — "
-                         "generous now that the host guard exists; catches a "
-                         "single runaway allocation, not a legitimate 4.1 GB "
-                         "check). 0 disables the per-process cap.")
+    ap.add_argument("--rss-cap-mb", type=int, default=None,
+                    help="SIGKILL the process group when any member exceeds "
+                         "this RSS in MB.  Default: ceil(--ram-mb * 1.25) "
+                         "when a declared need is given (INV-4's overrun "
+                         "threshold), else 12288.  0 disables the cap.")
     ap.add_argument("--host-mem-floor-mb", type=int, default=0,
-                    help="fleet-aware guard: when system-wide available "
-                         "memory falls below this floor, SIGKILL the LARGEST "
-                         "member of the process group (a fleet citizen relieving "
-                         "host pressure before the host panics).  Default 0 = "
-                         "derive from hw.memsize (total // 8).  The 2026-07-29 "
-                         "host panic (system free ~46 MB of 48 GB) is the "
-                         "precedent — do not raise it casually.  See "
-                         "docs/infra/host/incident-2026-07-29.md.")
+                    help="ACCEPTED, INERT (T821): the host-wide floor this "
+                         "used to set is DELETED (docs/infra/host/"
+                         "ram-policy.md) — 16 of 20 recorded kills were "
+                         "futile.  Kept as a no-op purely so callers that "
+                         "pass it to isolate from the old guard while "
+                         "testing something else do not need to change.")
     ap.add_argument("--no-host-guard", action="store_true",
-                    help="disable the fleet-aware host-pressure guard "
-                         "(the per-process cap and progress watchdog remain)")
+                    help="ACCEPTED, INERT (T821): no floor exists to "
+                         "disable.  Same compatibility reason as "
+                         "--host-mem-floor-mb.")
+    ap.add_argument("--ram-mb", type=int, default=None,
+                    help="declared peak RSS need in MB for this task "
+                         "(ORC-GD-1, docs/infra/host/ram-policy.md).  When "
+                         "set, the arbiter admits or refuses BEFORE the "
+                         "child is spawned — refusal leaves the row "
+                         "dispatchable, nothing is spawned, no running task "
+                         "is touched (INV-1/INV-3).  Omit or 0 to skip "
+                         "admission (always admitted, --rss-cap-mb stays at "
+                         "its own default).")
+    ap.add_argument("--arbiter-id", type=str, default=None,
+                    help="admission-ledger identity, independent of "
+                         "--task-id (which also triggers managent "
+                         "claim/done).  Defaults to --task-id, then "
+                         "MANAGENT_TASK_ID, then a pid form.")
+    ap.add_argument("--arbiter-state-file", type=str, default=None,
+                    help="admission-ledger path (test seam; default "
+                         "<repo>/untracked/arbiter-state.json)")
+    ap.add_argument("--override-admission", type=str, default=None,
+                    help="bypass an admission REFUSAL for this launch only; "
+                         "reason required, logged loudly.")
+    ap.add_argument("--arbiter-admit", action="store_true",
+                    help="standalone: run only the admission decision for "
+                         "--ram-mb against --arbiter-id and exit (0 = "
+                         "admitted, 3 = refused).  MUTATING: an admit adds "
+                         "the entry to the ledger (release it later).  No "
+                         "command needed; nothing is ever spawned.")
+    ap.add_argument("--arbiter-preview", action="store_true",
+                    help="standalone: the same verdict --arbiter-admit "
+                         "would reach, WITHOUT mutating the ledger (for "
+                         "--dry-run diagnostics).  0 = would admit, 3 = "
+                         "would refuse.")
+    ap.add_argument("--arbiter-release", action="store_true",
+                    help="standalone: release --arbiter-id's admission "
+                         "(idempotent) and exit 0.  No command needed.")
+    ap.add_argument("--arbiter-status", action="store_true",
+                    help="standalone: print the admission ledger as JSON "
+                         "and exit 0.  No command needed.")
     ap.add_argument("--max-wall", type=int, default=1800,
                     help="(fallback for silent children) SIGKILL after this "
                          "many wall seconds if no [progress] lines seen "
@@ -2713,6 +2980,54 @@ def main():
             args.runs_dir, args.harness_p95_out, repo_root)
         sys.exit(rc)
 
+    # Handle --arbiter-admit / --arbiter-release / --arbiter-status
+    # (standalone; T821).  No command needed; nothing is ever spawned by
+    # any of these three — they only read/mutate the admission ledger.
+    if (args.arbiter_admit or args.arbiter_preview or args.arbiter_release
+            or args.arbiter_status):
+        repo_root = _find_repo_root()
+        state_path = _arbiter_resolve_state_path(args.arbiter_state_file, repo_root)
+        identity = (args.arbiter_id or args.task_id
+                    or os.environ.get("MANAGENT_TASK_ID")
+                    or f"runner/{os.getpid()}")
+        if args.arbiter_status:
+            with _arbiter_locked(state_path):
+                state = _arbiter_load(state_path)
+                _arbiter_purge_stale(state)
+                _arbiter_save(state_path, state)
+            avail_bytes = _host_avail_bytes()
+            total_bytes = _host_mem_bytes()
+            print(json.dumps({
+                "admitted": state["admitted"],
+                "committed_mb": _arbiter_committed_mb(state),
+                "avail_mb": (avail_bytes // (1024 * 1024))
+                            if avail_bytes is not None else None,
+                "total_mb": (total_bytes // (1024 * 1024))
+                            if total_bytes is not None else None,
+                "reserve_mb": ARBITER_RESERVE_MB,
+            }, indent=2))
+            return
+        if args.arbiter_release:
+            _arbiter_release(identity, state_path)
+            print(json.dumps({"released": identity}))
+            return
+        ram_mb = args.ram_mb if args.ram_mb is not None else 0
+        if args.arbiter_preview:
+            verdict = _arbiter_preview(identity, ram_mb, state_path)
+        else:
+            verdict = _arbiter_admit(identity, ram_mb, state_path)
+        print(json.dumps(verdict))
+        verb = "WOULD REFUSE" if args.arbiter_preview else "REFUSED"
+        if not verdict["admit"]:
+            print(f"[runner] ARBITER {verb} {identity}: {verdict['reason']}",
+                  file=sys.stderr)
+            sys.exit(3)
+        verb = "WOULD ADMIT" if args.arbiter_preview else "ADMITTED"
+        print(f"[runner] ARBITER {verb} {identity}: ram_mb={ram_mb} "
+              f"committed_mb={verdict['committed_mb']} "
+              f"avail_mb={verdict['avail_mb']}", file=sys.stderr)
+        return
+
     # argparse.REMAINDER includes the leading `--` if present; strip it
     if not args.rest:
         ap.error("missing command; pass `-- <command> [args...]` or use `--sweep`")
@@ -2790,25 +3105,12 @@ def main():
               f"(stdout buffered — sensor = deliverables + session transcript)",
               file=sys.stderr)
 
-    cap_bytes = args.rss_cap_mb * 1024 * 1024
+    rss_cap_explicit = args.rss_cap_mb is not None
+    rss_cap_mb = args.rss_cap_mb if rss_cap_explicit else 12288
+    if args.ram_mb and not rss_cap_explicit:
+        rss_cap_mb = math.ceil(args.ram_mb * 1.25)
+    cap_bytes = rss_cap_mb * 1024 * 1024
     poll_s = args.poll_ms / 1000.0
-
-    # ── fleet-aware host-pressure guard (T362) ────────────────────────────
-    # The danger floor is derived from hw.memsize (total // 8) unless the
-    # caller sets --host-mem-floor-mb.  0 with no explicit override means
-    # "derive"; --no-host-guard disables.  If the reading is unavailable
-    # on the host, the guard is inert (cannot measure = cannot fire).
-    host_total = _host_mem_bytes()
-    if args.no_host_guard:
-        host_floor_bytes = 0
-    elif args.host_mem_floor_mb > 0:
-        host_floor_bytes = args.host_mem_floor_mb * 1024 * 1024
-    elif host_total is not None:
-        host_floor_bytes = host_total // 8
-    else:
-        host_floor_bytes = 0
-    host_guard_on = host_floor_bytes > 0
-    host_guard_fired = False  # set when the guard SIGKILLs a member
 
     # New process group so SIGKILL reaches the whole tree, not just the
     # wrapper's child. (The child becomes its own session leader; the
@@ -2817,16 +3119,21 @@ def main():
 
     print(f"[runner] argv = {shlex.join(argv)}", file=sys.stderr)
     guards = []
-    if args.rss_cap_mb:
-        guards.append(f"rss {args.rss_cap_mb} MB")
+    if rss_cap_mb:
+        if args.ram_mb and not rss_cap_explicit:
+            sized = "declared need x1.25"
+        elif rss_cap_explicit:
+            sized = "explicit"
+        else:
+            sized = "default"
+        guards.append(f"rss {rss_cap_mb} MB ({sized})")
     else:
         guards.append("rss off")
-    if host_guard_on:
-        floor_mb = host_floor_bytes // (1024 * 1024)
-        total_gb = (host_total // (1024 ** 3)) if host_total else 0
-        guards.append(f"host-floor {floor_mb} MB (of {total_gb} GB)")
+    if args.ram_mb:
+        guards.append(f"declared need {args.ram_mb} MB (L2 admission)")
     else:
-        guards.append("host-guard off")
+        guards.append("no declared need (admission skipped)")
+    guards.append("L3 alarm: kernel pressure (never kills)")
     if args.progress_timeout:
         guards.append(f"progress-timeout {args.progress_timeout}s ({_format_duration(args.progress_timeout)})")
     else:
@@ -2870,6 +3177,43 @@ def main():
     # `record_root` is None in degraded mode, so _write_run_record and
     # _finalize_run_record become no-ops (both early-return on a falsy root).
     record_root = repo_root if not identity_degraded else None
+
+    # ── admission arbiter (T821, ORC-GD-3/INV-3) ────────────────────────
+    # A declared need is checked against what is already admitted BEFORE
+    # the child is spawned.  Refused = nothing below this point runs; the
+    # row stays dispatchable (INV-1).  --arbiter-id is independent of
+    # --task-id so this never triggers the managent claim/done side effects
+    # below (which are opt-in via --task-id only).
+    arbiter_identity = None
+    arbiter_state_path = None
+    if args.ram_mb:
+        arbiter_state_path = _arbiter_resolve_state_path(args.arbiter_state_file, repo_root)
+        arbiter_identity = args.arbiter_id or task_identity
+        verdict = _arbiter_admit(arbiter_identity, args.ram_mb, arbiter_state_path)
+        if not verdict["admit"]:
+            if args.override_admission:
+                print(f"[runner] WARNING — admission OVERRIDDEN for this "
+                      f"launch by operator reason {args.override_admission!r}: "
+                      f"{verdict['reason']}", file=sys.stderr)
+                state = _arbiter_load(arbiter_state_path)
+                state["admitted"][arbiter_identity] = {
+                    "ram_mb": args.ram_mb, "ts": time.time(),
+                    "override": args.override_admission,
+                }
+                _arbiter_save(arbiter_state_path, state)
+            else:
+                print(f"[runner] ARBITER REFUSED {arbiter_identity}: "
+                      f"{verdict['reason']}", file=sys.stderr)
+                print("[runner] exit 3 (admission refused — nothing spawned, "
+                      "row stays dispatchable)", file=sys.stderr)
+                sys.exit(3)
+        else:
+            print(f"[runner] ARBITER ADMITTED {arbiter_identity}: "
+                  f"ram_mb={args.ram_mb} committed_mb={verdict['committed_mb']} "
+                  f"avail_mb={verdict['avail_mb']} "
+                  f"reserve_mb={verdict['reserve_mb']}", file=sys.stderr)
+        atexit.register(_arbiter_release, arbiter_identity, arbiter_state_path)
+
     pending_stops = _check_directives(task_identity, repo_root)
     if pending_stops:
         _emit_heartbeat(task_identity, shlex.join(argv), -1, -1, -1, repo_root)
@@ -3004,9 +3348,15 @@ def main():
     # D-11/D-35: the last poll walk persists past the loop so the C2/C3 reap
     # paths have a --seed even when the child exits before the first poll.
     last_poll_pids = []
-    # T711: last declared-tenant reservation (bytes) printed, so the
-    # subtraction diagnostic is emitted once per change, not every poll.
-    last_tenant_res = 0
+    # T821: L3 alarm dwell state (ram-policy.md §4.4/INV-4's dwell shape,
+    # applied to the alarm instead of a kill) — sustained pressure across
+    # ALARM_DWELL_POLLS polls spanning >= ALARM_DWELL_S fires ONE alarm per
+    # episode; it clears (and can re-fire) once pressure drops below warn.
+    ALARM_DWELL_POLLS = 3
+    ALARM_DWELL_S = 2.0
+    alarm_dwell_start = None
+    alarm_dwell_count = 0
+    alarm_active = False
 
     # ── T634: claude liveness fuse state (mtime, not stdout) ────────────
     # The watermark is the max sensor mtime at launch; any strictly-newer
@@ -3173,10 +3523,10 @@ def main():
                         continue
                 poll_rss[pid] = rss
                 peak_rss[pid] = max(peak_rss.get(pid, 0), rss)
-                if args.rss_cap_mb and rss > cap_bytes:
+                if rss_cap_mb and rss > cap_bytes:
                     over_rss = True
                     if not args.log_rss:
-                        print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {args.rss_cap_mb} MB", file=sys.stderr)
+                        print(f"[runner] PID {pid} RSS {rss // (1024*1024)} MB > cap {rss_cap_mb} MB", file=sys.stderr)
                     break
 
                 # CPU tracking (for fallback ceiling, always collected)
@@ -3195,83 +3545,50 @@ def main():
                         _runner_print(f"[runner] PID {pid}{extra}")
             sys.stderr.flush()
 
-            # ── fleet-aware host-pressure guard (T362) ──────────────────
-            # Read system-wide available memory; below the danger floor,
-            # SIGKILL the LARGEST member of the process group — a fleet
-            # citizen relieving host pressure before the host panics (the
-            # 2026-07-29 watchdog-timeout panic is the precedent).  Surgical:
-            # only the largest pid dies.  If that pid is the direct child,
-            # the run ends (kill_reason escalates to the exit-124 path);
-            # otherwise the loop continues and, if pressure persists, the
-            # next poll kills the next-largest.  The reading is injectable
-            # via WEIZIGO_HOST_MEM_AVAIL_MB so the danger floor is never
-            # tested by actually exhausting host memory.
+            # ── L3 backstop: kernel-signalled alarm, never a kill (T821) ─
+            # Ask the kernel's own pressure verdict, not a fraction of
+            # hw.memsize (ram-policy.md §4.4).  Sustained pressure ALARMS —
+            # naming the largest host-wide process, which may sit outside
+            # this runner's own process group entirely — and never touches
+            # any process (INV-1: the fleet's own contribution is already
+            # bounded by admission, so a foreign consumer is never
+            # signalled; we stop admitting and wait, which the arbiter's
+            # ledger above already does implicitly once nothing releases).
             kill_reason = None
-            if host_guard_on and poll_rss:
-                avail = _host_avail_bytes()
-                # T711: declared-tenant subtraction — add the resident model
-                # server's footprint back to the reading so "available" means
-                # available-to-the-fleet (a resident qwen must not read as an
-                # emergency).  The floor itself is untouched.
-                tenant_res = _declared_tenant_reservation_bytes()
-                if tenant_res != last_tenant_res:
-                    if tenant_res > 0:
-                        _runner_print(
-                            f"[runner] declared tenant subtraction: "
-                            f"{tenant_res // (1024*1024)} MB (available-to-the-fleet)",
-                            file=sys.stderr)
-                    last_tenant_res = tenant_res
-                if avail is not None and tenant_res > 0:
-                    avail += tenant_res
-                if avail is not None and avail < host_floor_bytes:
-                    victim_pid = _select_host_guard_victim(
-                        poll_rss, host_floor_bytes - avail)
-                    if victim_pid is None:
-                        # No member's RSS covers the shortfall — nothing to
-                        # kill (T785 fix pending; currently unreachable: the
-                        # selector returns the largest member unconditionally).
-                        continue
-                    largest_pid = victim_pid
-                    largest_rss = poll_rss[largest_pid]
-                    avail_mb = avail // (1024 * 1024)
-                    floor_mb = host_floor_bytes // (1024 * 1024)
-                    if largest_pid == proc.pid:
-                        # killing the direct child ends the run
-                        kill_reason = (
-                            f"host memory pressure — avail {avail_mb} MB "
-                            f"< floor {floor_mb} MB (largest member pid "
-                            f"{largest_pid} RSS "
-                            f"{largest_rss // (1024*1024)} MB)"
-                        )
-                    else:
-                        host_guard_fired = True
+            if poll_rss:
+                level = _kernel_pressure_level()
+                if level is not None and level >= 2:
+                    if alarm_dwell_start is None:
+                        alarm_dwell_start = time.monotonic()
+                    alarm_dwell_count += 1
+                    dwell_elapsed = time.monotonic() - alarm_dwell_start
+                    if (not alarm_active
+                            and alarm_dwell_count >= ALARM_DWELL_POLLS
+                            and dwell_elapsed >= ALARM_DWELL_S):
+                        alarm_active = True
+                        consumer = _top_host_consumer()
+                        cname, crss = consumer if consumer else ("unknown", 0)
                         print(
-                            f"[runner] KILL: host memory pressure — "
-                            f"avail {avail_mb} MB < floor {floor_mb} MB",
+                            f"[runner] ALARM: host memory pressure level "
+                            f"{level} sustained {dwell_elapsed:.1f}s "
+                            f"({alarm_dwell_count} polls) — largest host "
+                            f"process: {cname!r} RSS {crss // (1024*1024)} MB "
+                            f"(never killed — stop admitting and alarm, "
+                            f"docs/infra/host/ram-policy.md §4.3-4.4)",
                             file=sys.stderr,
                         )
-                        print(
-                            f"[runner]   reaping largest member: pid "
-                            f"{largest_pid} RSS "
-                            f"{largest_rss // (1024*1024)} MB",
-                            file=sys.stderr,
-                        )
-                        cull_reap = _reap_tree(largest_pid, since=spawn_epoch)
-                        # B-5: a mid-run host-guard cull is a reap the final
-                        # exit-path reap does NOT account for.  Record it
-                        # separately (never overwritten by the exit reap's
-                        # reap_* fields) so the ledger can see the cull's own
-                        # claimed/survivors/ok verdict at the incident's call
-                        # site (C6).
                         if run_record is not None:
-                            run_record.setdefault("cull_reaps", []).append({
-                                "pid": largest_pid,
-                                "claimed": cull_reap.get("claimed"),
-                                "survivors": cull_reap.get("survivors"),
-                                "ok": cull_reap.get("ok"),
-                                "reason": cull_reap.get("reason"),
-                                "unknown_partial": cull_reap.get("unknown_partial"),
+                            run_record.setdefault("host_alarms", []).append({
+                                "level": level,
+                                "dwell_s": round(dwell_elapsed, 1),
+                                "consumer": cname,
+                                "consumer_rss_mb": crss // (1024 * 1024),
+                                "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                             })
+                else:
+                    alarm_dwell_start = None
+                    alarm_dwell_count = 0
+                    alarm_active = False
 
             # ── WORKER-CHANNEL: mid-run directive poll (T370) ───────────
             # A `managent tell <id> pause|kill` issued after launch must
@@ -3336,12 +3653,20 @@ def main():
                         last_pi_session_activity = now_m
 
             # ── kill decisions ────────────────────────────────────────
-            if kill_reason:
-                pass  # host guard already decided (direct-child kill)
-            elif midrun_kill_reason:
+            if midrun_kill_reason:
                 kill_reason = midrun_kill_reason
             elif over_rss:
-                kill_reason = f"RSS cap {args.rss_cap_mb} MB exceeded"
+                kill_reason = f"RSS cap {rss_cap_mb} MB exceeded"
+                if args.ram_mb:
+                    # INV-4: this is an overrun of the task's OWN declared
+                    # need (rss_cap_mb was sized to ceil(ram_mb * 1.25)
+                    # unless the caller overrode it explicitly) — never a
+                    # stranger's memory (INV-1).  Printed here, not at exit
+                    # below: this branch always sys.exit(124)s before
+                    # reaching the bottom of the function.
+                    print(f"[runner] note: RSS cap stopping this task for "
+                          f"overrunning its OWN declared need (INV-4)",
+                          file=sys.stderr)
             elif claude_lane:
                 # T634: claude liveness is mtime movement, not stdout — a
                 # claude lane buffers its output, so "silent" is normal.
@@ -3544,8 +3869,6 @@ def main():
                             reap_ok=reap_result["ok"],
                             reap_unknown_partial=reap_result.get("unknown_partial"))
     _print_tokens_trailer(tok)
-    if host_guard_fired:
-        print(f"[runner] note: host guard fired during this run (relieved host pressure; proc exited {ret})", file=sys.stderr)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
 
     # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────

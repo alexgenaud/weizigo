@@ -8,8 +8,9 @@ tests that encode a SHOULD the code does not yet meet are marked
 ``@unittest.expectedFailure`` with the owning row id in the name/comment, so
 the suite stays green while the defect stays visible.
 
-Red arms (recorded defects, owned by other rows — not this row's failures):
-  * test_select_host_guard_victim_kills_nothing_when_no_member_covers_shortfall  — owner T785 (S08)
+T821 closed the `test_select_host_guard_victim_kills_nothing_when_no_member_covers_shortfall`
+red arm (owner T785): the selector it tested is deleted, not repaired
+(docs/infra/host/ram-policy.md §6 item 4) — the test is now a deletion check.
 
 T801 closed the former `test_model_from_argv_canonicalizes_serving_tag` red arm
 (owner T751): _model_from_argv now canonicalizes a serving tag at write time.
@@ -133,36 +134,48 @@ class TestHostMemoryGuard(unittest.TestCase):
                   WEIZIGO_HOST_MEM_AVAIL_MB="8000"):
             self.assertEqual(RUNNER._declared_tenant_reservation_bytes(), 0)
 
-    def test_select_host_guard_victim_empty_table_returns_none(self):
-        # SHOULD: nothing to kill when the group is empty.
-        self.assertIsNone(RUNNER._select_host_guard_victim({}, 100))
+    def test_select_host_guard_victim_removed(self):
+        # SHOULD (T821, docs/infra/host/ram-policy.md §6 item 4): the
+        # largest-member kill selector no longer exists at all — the
+        # 2026-08-23 15:19:09 incident (three lanes of 251/133/129 MB
+        # killed to relieve a 383 MB shortfall) is now impossible because
+        # there is no host-condition kill left to select a victim for.
+        # This is a deletion check, not a behaviour test.
+        self.assertFalse(hasattr(RUNNER, "_select_host_guard_victim"))
 
-    def test_select_host_guard_victim_returns_largest_when_it_covers_shortfall(self):
-        # SHOULD: the largest member is the victim when its RSS covers the
-        # shortfall (killing it actually relieves the pressure).
-        poll = {
-            1: 500 * 1024 * 1024,
-            2: 100 * 1024 * 1024,
-        }
-        self.assertEqual(
-            RUNNER._select_host_guard_victim(poll, 300 * 1024 * 1024),
-            1,
-        )
+    def test_arbiter_admit_refuses_when_reserve_would_be_breached(self):
+        # SHOULD (ORC-GD-3/INV-3): refuse when avail - committed - candidate
+        # < RESERVE_MB; nothing is mutated for the refused identity.
+        with tempfile.TemporaryDirectory() as d:
+            state_path = os.path.join(d, "arbiter-state.json")
+            verdict = RUNNER._arbiter_admit(
+                "T900", 4000, state_path, avail_mb=5000)
+            self.assertFalse(verdict["admit"])
+            state = RUNNER._arbiter_load(state_path)
+            self.assertNotIn("T900", state["admitted"])
 
-    @unittest.expectedFailure
-    def test_select_host_guard_victim_kills_nothing_when_no_member_covers_shortfall(self):
-        # SHOULD (owner: T785, S08): kill NOTHING when no member's RSS >= the
-        # shortfall.  2026-08-23 15:19:09 killed three lanes of 251/133/129 MB
-        # to relieve a 383 MB shortfall — arithmetic that cannot work.
-        # Current behaviour: returns the largest member unconditionally.
-        poll = {
-            11: 251 * 1024 * 1024,
-            22: 133 * 1024 * 1024,
-            33: 129 * 1024 * 1024,
-        }
-        self.assertIsNone(
-            RUNNER._select_host_guard_victim(poll, 383 * 1024 * 1024),
-        )
+    def test_arbiter_admit_admits_when_reserve_holds(self):
+        # SHOULD: admit when the projection clears RESERVE_MB, and record
+        # the committed need under the given identity.
+        with tempfile.TemporaryDirectory() as d:
+            state_path = os.path.join(d, "arbiter-state.json")
+            verdict = RUNNER._arbiter_admit(
+                "T901", 1000, state_path, avail_mb=20000)
+            self.assertTrue(verdict["admit"])
+            state = RUNNER._arbiter_load(state_path)
+            self.assertEqual(state["admitted"]["T901"]["ram_mb"], 1000)
+
+    def test_arbiter_release_is_idempotent(self):
+        # SHOULD: releasing an identity that was never admitted is a no-op,
+        # never an error.
+        with tempfile.TemporaryDirectory() as d:
+            state_path = os.path.join(d, "arbiter-state.json")
+            RUNNER._arbiter_release("never-admitted", state_path)  # no raise
+            RUNNER._arbiter_admit("T902", 500, state_path, avail_mb=10000)
+            RUNNER._arbiter_release("T902", state_path)
+            state = RUNNER._arbiter_load(state_path)
+            self.assertNotIn("T902", state["admitted"])
+            RUNNER._arbiter_release("T902", state_path)  # second release, no raise
 
 
 # ── token parsing (priority 2) — the _capture_tokens decision path ────────
