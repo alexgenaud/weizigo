@@ -1,0 +1,88 @@
+{
+  "task_id": "T759",
+  "date": "2026-08-23",
+  "model": "claude-fable-5",
+  "landmark": "L4 (the ledger is clean), L5 (one rulebook)",
+  "summary": "Doctrine-disambiguation console with the operator: all 9 agenda items driven to standing decisions. 6 rows queued, 4 inline doc fixes landed, 1 item deferred to the S05 orchestration-refactor spec, 1 deferred behind T757's file hold. Two operator rulings reshape prior doctrine: (a) no single-active-orchestrator gate — any seat may register and dispatch via bin/managent unless its brief says otherwise; (b) the predictive window-budget meter is retired — agents say nothing about budget or peak hours; appetite and reactive expiring cooldowns are the only regulation, both instructions to bin/managent, never agent-maintained context.",
+  "claims": [],
+  "new_rows": [],
+  "queued_kanban_rows": ["T764", "T766", "T767", "T768", "T769", "T770", "T771"],
+  "decisions": [
+    {
+      "item": 1,
+      "name": "who may dispatch",
+      "ruling": "Any seat may register and dispatch unless its brief says otherwise: brief file first, one bin/managent registration, bin/dispatch when ready. Paste-prompts only for interactive-console targets (sessions the human must launch because no running console owns them). bin/managent + the automated dispatcher keep sprints/tasks/races conflict-free (holds/needs); no single-active-orchestrator gate. SUPERSEDES the one-ACTIVE-decider invariant of findings/T733-orcha-seat.json seed §5.",
+      "home": "docs/infra/delegation/ROLES.md §'Dispatching, claiming, and the kanban' (the one home; AGENTS.md points at it)",
+      "disposition": "fixed inline (ROLES.md, AGENTS.md edits in this commit)"
+    },
+    {
+      "item": 2,
+      "name": "gate symmetry",
+      "ruling": "Per-lint, not per-door: substantive lints (landmark, deliverables, edges) fire at add; display preferences (40-char title) warn everywhere, block nowhere. Covered by S05 spec ORC-REG-2 (one bundle parser for suggest/add/dispatch) + ORC-GATE-1 (seed ruling 6).",
+      "home": "docs/epics/E1-markovian/L1-dashboard/S05-orchestration-refactor/spec.md",
+      "disposition": "deferred to S05 — no standalone row (cross-check rule honored)"
+    },
+    {
+      "item": 3,
+      "name": "findings schema for queued rows",
+      "ruling": "Findings files get a documented queued_kanban_rows field (array of kanban T-ids registered by the task), distinct from new_rows (CLAIMS.md proposals only). managent done accepts and validates it; refusals cite findings/README.md.",
+      "home": "findings/README.md (schema) + src/managent/main.zig (check)",
+      "disposition": "queued as T767 (this file uses the field, as the brief instructed)"
+    },
+    {
+      "item": 4,
+      "name": "budget meter",
+      "ruling": "OVERTURNS the recalibration direction: the predictive window-budget meter is RETIRED, not recalibrated. Agents know nothing of costs and mention neither budget nor peak hours; APPETITE (steering) and temporary reactive COOLDOWN (expiring, tripped by real provider refusals) are the only regulation, both instructions to bin/managent. T736's 35M calibration is superseded (epoch-boundary note, not deletion). Spend-aware model SUGGESTION inside managent is backburner, explicitly not now. S05 spec amendment (window_budgets block + budget column out) folds into the row.",
+      "home": "tools/window_policy.py + bin/dispatch (deletion), S05 spec (amendment)",
+      "disposition": "queued as T766"
+    },
+    {
+      "item": 5,
+      "name": "identifier lifecycle",
+      "ruling": "Sequence written down and mechanized: assign sets model -> dispatch may launch without identifier -> claim binds identifier, DEFAULTING from the row's model -> managent agent is the manual repair verb only. unknown/<id> means genuinely unknown, never a guess (a guessed model corrupts attribution).",
+      "home": "docs/infra/agent-identity-and-worker-channel.md + src/managent/main.zig",
+      "disposition": "queued as T768"
+    },
+    {
+      "item": 6,
+      "name": "citation discipline",
+      "ruling": "Affirmative rule: a brief cites committed paths; when the source is a conversation, commit a seed/findings first, then cite it (extends the T733 close gate to authoring time). Mechanism: report-only warn at add/suggest over untracked/T*.md path references (a taste gate warns, never refuses).",
+      "home": "docs/infra/delegation/DELEGATOR.md §'Naming and citing' (sentence, landed) + T764 (mechanism)",
+      "disposition": "sentence fixed inline; mechanism queued as T764"
+    },
+    {
+      "item": 7,
+      "name": "one defect per name",
+      "ruling": "A brief naming a defect disambiguates ID-scheme collisions from semantic collisions. Worked example recorded: 'D041/D042 binary-tag repurposing' conflated directive-ID duplication with landmark-IDs-as-area-tags (T683/T684 backfill).",
+      "home": "docs/infra/delegation/DELEGATOR.md §'Naming and citing'",
+      "disposition": "fixed inline"
+    },
+    {
+      "item": 8,
+      "name": "queue cool-down semantics",
+      "ruling": "Cool-down halts the AUTOMATED dispatch loop only; deliberate seat dispatches named as exceptions continue. Scoped, expiring (seed ruling 2 / ORC-PAUSE-1 carries the mechanism). Definition folded into the who-may-dispatch paragraph — one home, not two.",
+      "home": "docs/infra/delegation/ROLES.md §'Dispatching, claiming, and the kanban'",
+      "disposition": "fixed inline"
+    },
+    {
+      "item": 9,
+      "name": "short model names",
+      "ruling": "model-registry.md owns the one short-name table (oxalpha present, line 46, T739); GLOSSARY.md owns the sentence pointing at it.",
+      "home": "docs/infra/model-registry.md (done) + docs/infra/GLOSSARY.md (pending)",
+      "disposition": "deferred behind T757's hold on GLOSSARY.md; carried by seat row T771 duty 2"
+    }
+  ],
+  "operator_rulings_beyond_agenda": [
+    "ROLES.md and the delegation docs are reduced to principles — 'more principles and less prescriptive; depend on reliable simple robust tooling rather than fluffy agent role prose; LESS IS BEST' — queued as T769.",
+    "The fable seat takes ongoing responsibility for the refactorization (delegation, tooling, prose, processes); ox-alpha/T745 stood down to read-only advisor; oversight handover accepted and anchored as seat row T771."
+  ],
+  "incidents_disclosed": [
+    "suggest-then-edit dropped holds= on four fresh registrations (T761-T763, T765) — the exact T735/T749 parser family; repaired by retire + re-register through add --auto --bundle, which parses holds correctly. Fresh evidence for S05 ORC-REG-2 (one parser, three call sites).",
+    "The re-registration exposed a NEW defect: task-ID mint ignores the archive and the stored next_id — it re-minted T765 while archive.json held a retired T765 (cross-store ID collision; the T758 directive-mint defect in the task-ID scheme). Queued as T770.",
+    "Hand-repair of tasks.json disclosed: the four colliding rows were shifted T765-T768 -> T766-T769 and next_id set to 770, atomically, matching their brief files; no verb exists for this repair (oxalpha hand-repaired T757's store entry the same day, same reason). managent audit clean of new findings afterwards."
+  ],
+  "open_at_close": [
+    "T757 close verification, cool-down lift, GLOSSARY sentence, binary deploy + smoke, batch dispatch order, S05 ratification + numbering — all carried by seat row T771.",
+    "T746 (measurement console) untouched, per handover."
+  ]
+}
