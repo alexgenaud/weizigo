@@ -99,6 +99,25 @@ integration/reframe > research/census > spec/design > implementation-bounded
 selection rule and the type->data-count pairing map, never a graded
 dimension.
 
+Epochs (T525, D-e): model "epochs" (billing/version boundaries) must NOT be
+aggregated across — a model's profile is per-epoch.  The recorded boundary
+is the 2026-08-18 DeepSeek boundary (model-registry.md §Epoch rules; the
+archived model-perf 2026-08-18 section): deepseek-v4-pro shipped a new
+version under the same name and deepseek-v4-flash may have been silently
+updated, so every deepseek-v4-* observation before 2026-08-18 describes the
+pre-bump models and the label is now an epoch-dependent pointer.
+EPOCH_BOUNDARIES below mirrors that recorded fact (the registry-parity
+control in tools/regression-model-profiles.sh pins the mirror); a model
+with no recorded boundary has a single 'all' epoch.  Every observation is
+bucketed by its recorded date: a store task by claimed -> done -> added, a
+dispatch-verify close event by the line's date, a wall-kill efficiency
+event by its task's date.  An observation whose date the ledger does not
+record lands in 'epoch-unknown' — present and labeled, never merged into a
+dated epoch (the same present-and-labeled discipline the T629 census
+applies to guard-killed rows).  The exploration-first selection rule is
+epoch-scoped: a candidate's data is its NEWEST epoch's data only; old-epoch
+observations describe a different model and count as zero current data.
+
 The role->dimension map (D027, verbatim) — which dimensions define a good
 <role> — is emitted in --json and in the --table render so the model-perf
 section carries the taxonomy the directive ordered.
@@ -118,8 +137,9 @@ Canonical model labels mirror src/managent/main.zig canonical_models[]; the
 log-tag canonicalization (strip :cloud, kimi-k2.7-code -> kimi-k2.7) is the
 same transform managent applies at registration time.
 
-Task: T503 (first half) · T524 (8×8 extension) · Role: worker · Model:
-deepseek-v4-pro (T503) / deepseek-v4-flash (T524) · Date: 2026-08-20
+Task: T503 (first half) · T524 (8×8 extension) · T525 (epoch grouping) ·
+Role: worker · Model: deepseek-v4-pro (T503) / deepseek-v4-flash (T524,
+T525) · Date: 2026-08-20 (T503/T524) / 2026-08-23 (T525)
 """
 import argparse
 import json
@@ -140,6 +160,22 @@ CANONICAL_MODELS = [
     "kimi-k2.7",
     "qwen3.8:27b-mlx",
 ]
+
+# ── epoch boundaries (T525) ──────────────────────────────────────────────
+# Recorded in docs/infra/model-registry.md §Epoch rules (canonical fact
+# surface, extracted 2026-08-21 by T565 from the archived model-perf
+# 2026-08-18 section): "The DeepSeek 2026-08-18 boundary is the last known
+# bump: every deepseek-v4-* observation before 2026-08-18 describes the
+# pre-bump models" — deepseek-v4-pro shipped a new version under the same
+# name and deepseek-v4-flash may have been silently updated.  The label is
+# an epoch-dependent pointer: NEVER aggregate across this boundary.  The
+# registry-parity control in tools/regression-model-profiles.sh pins this
+# table to the recorded sentence; when the registry records a new boundary,
+# add it here (label -> [boundary dates]) and re-pin the control.
+EPOCH_BOUNDARIES = {
+    "deepseek-v4-pro": ["2026-08-18"],
+    "deepseek-v4-flash": ["2026-08-18"],
+}
 
 DIMENSIONS = [
     "correctness",
@@ -323,6 +359,95 @@ def canon_tag(tag):
     return t
 
 
+# ── epoch bucketing (T525) ───────────────────────────────────────────────
+# A model with a recorded boundary (EPOCH_BOUNDARIES) is never aggregated
+# across it: every observation is bucketed by its recorded date into one
+# per-epoch profile.  A model with no boundary has a single 'all' epoch.  An
+# observation whose date the ledger does not record lands in
+# 'epoch-unknown', present and labeled, never merged into a dated epoch.
+
+
+def _date_part(ts):
+    """The YYYY-MM-DD part of an ISO timestamp/date, or None."""
+    if not ts:
+        return None
+    s = str(ts).strip()
+    if len(s) >= 10 and s[:4].isdigit() and s[4:5] == "-" and s[7:8] == "-":
+        return s[:10]
+    return None
+
+
+def _task_date(t):
+    """The date the model did the work: claimed, falling back to done, then
+    added.  None when the ledger records none (-> 'epoch-unknown')."""
+    for k in ("claimed", "done", "added"):
+        d = _date_part(t.get(k))
+        if d:
+            return d
+    return None
+
+
+def epoch_for(bounds, model, date):
+    """The epoch label of an observation of `model` dated `date`.
+
+    Labels: 'all' (no boundary recorded), 'pre-<d1>', '<d1>..<d2>' (between
+    two boundaries), '<dn>+' (latest), 'epoch-unknown' (no date recorded).
+    """
+    ds = bounds.get(model) if bounds else None
+    if not ds:
+        return "all"
+    d = _date_part(date)
+    if d is None:
+        return "epoch-unknown"
+    ds = sorted(ds)
+    if d < ds[0]:
+        return "pre-" + ds[0]
+    for a, b in zip(ds, ds[1:]):
+        if a <= d < b:
+            return a + ".." + b
+    return ds[-1] + "+"
+
+
+def epoch_order(bounds, model):
+    """Chronological dated-epoch labels for `model` ('all' when no boundary
+    is recorded).  'epoch-unknown' is handled separately by renderers."""
+    ds = bounds.get(model) if bounds else None
+    if not ds:
+        return ["all"]
+    ds = sorted(ds)
+    order = ["pre-" + ds[0]]
+    for a, b in zip(ds, ds[1:]):
+        order.append(a + ".." + b)
+    order.append(ds[-1] + "+")
+    return order
+
+
+def newest_epoch(bounds, model):
+    """The epoch today's dispatch would draw from: the model's latest
+    recorded epoch ('all' when no boundary is recorded).  Old-epoch
+    observations describe a different model and never count toward a
+    candidate's current data (model-registry.md §Epoch rules)."""
+    order = epoch_order(bounds, model)
+    return order[-1] if order else "all"
+
+
+def _epoch_sort_key(label):
+    """Sort key that orders dated epoch labels chronologically within a
+    model: pre-d1 < d1..d2 < dn+; 'all' first (only label for no-boundary
+    models); 'epoch-unknown' last."""
+    if label == "all":
+        return (1, 0)
+    if label == "epoch-unknown":
+        return (3, 0)
+    if label.startswith("pre-"):
+        return (0, -1)
+    if label.endswith("+"):
+        return (0, int(label[:-1].replace("-", "")))
+    if ".." in label:
+        return (0, int(label.split("..")[0].replace("-", "")))
+    return (2, 0)
+
+
 def read_json(path):
     try:
         with open(path) as f:
@@ -500,20 +625,32 @@ def grade_independence(task):
     return 1 if any(m in blob for m in INDEPENDENCE_MARKERS) else 0
 
 
-def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
-    """Compute per-model dimension profiles and the type-count map.
+def build_profiles(store, perf_text, logs_dir, c7, root, no_git, bounds=None):
+    """Compute per-model, per-epoch dimension profiles and the type-count map.
 
     Returns (profiles, type_counts, task_type, census):
-      profiles[model][dim] = {"avg": float|None, "n": int, "counts": {...}}
-      type_counts[model][type] = int
+      profiles[model][epoch][dim] = {"avg": float|None, "n": int,
+                                     "counts": {...}}
+      type_counts[model][epoch][type] = int
       task_type[taskid] = type
       census = {"scored", "censored", "unattributed", "both", "eff_censored"}
         (T629 / Ruling 32 — the skip counts that must print next to every
         published number)
+
+    Epochs (T525): a model with a recorded boundary (bounds, from
+    EPOCH_BOUNDARIES or --epochs) is never aggregated across it — every
+    observation is bucketed by its recorded date into one per-epoch
+    profile.  A model with no boundary has a single 'all' epoch.  An
+    observation whose date the ledger does not record lands in
+    'epoch-unknown', present and labeled, never merged into a dated epoch
+    (the same present-and-labeled discipline as the T629 census).
     """
+    if bounds is None:
+        bounds = EPOCH_BOUNDARIES
     # ── grading records keyed by task id ─────────────────────────────────
     tasks = {k: v for k, v in store.items()
              if isinstance(v, dict) and k != "_sys" and not k.startswith("_")}
+    task_dates = {tid: _task_date(t) for tid, t in tasks.items()}
     dispatch = parse_dispatch_verify(perf_text)
     kills = scan_logs(logs_dir)
 
@@ -560,7 +697,8 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
     # recorded lines name a different verifier.  Completion observations are
     # keyed by the task's agent (below).  T629: a CENSORED row (killed_by
     # != none) contributes no close event — present, labeled, never scored.
-    close_events = {}  # model -> list of grades
+    # T525: a close event's epoch is the LINE's date.
+    close_events = {}  # model -> epoch -> [grades]
     for rec in dispatch:
         m = rec["model"]
         if not m:
@@ -574,7 +712,8 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
             g = 1 if reason in RECOVERABLE_FAIL else 0
         else:
             continue
-        close_events.setdefault(m, []).append(g)
+        ep = epoch_for(bounds, m, rec.get("date"))
+        close_events.setdefault(m, {}).setdefault(ep, []).append(g)
 
     # task ids that have at least one close event: those rows are covered by
     # the event grades and contribute no separate completion observation.
@@ -585,19 +724,22 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
     # efficiency: grade every (task, model) observed in a log segment.  A
     # segment with several kills takes the worst (minimum) grade.  T629: a
     # task whose ledger row is censored is not a model measurement — the
-    # guard stopped the lane, so the kill is counted, not graded.
-    eff_events = {}  # model -> list of grades
+    # guard stopped the lane, so the kill is counted, not graded.  T525: a
+    # kill's epoch is its TASK's recorded date (the log carries no date).
+    eff_events = {}  # model -> epoch -> [grades]
     for (task, model), reasons in kills.items():
         if not model:
             continue
         if task in censored_tasks:
             census["eff_censored"] += 1
             continue
-        eff_events.setdefault(model, []).append(min(_grade_reason(r) for r in reasons))
+        ep = epoch_for(bounds, model, task_dates.get(task))
+        eff_events.setdefault(model, {}).setdefault(ep, []).append(
+            min(_grade_reason(r) for r in reasons))
 
-    # per-model accumulator
-    acc = {}  # model -> {dim: [grades]}
-    type_counts = {}  # model -> {type: n}
+    # per-model, per-epoch accumulator
+    acc = {}  # model -> epoch -> {dim: [grades]}
+    type_counts = {}  # model -> epoch -> {type: n}
     task_type = {}
 
     for tid, t in tasks.items():
@@ -606,15 +748,18 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
         task_type[tid] = typ
         graded = (t.get("verdict") is not None) or (t.get("claimed") is not None)
         if model:
-            acc.setdefault(model, {d: [] for d in DIMENSIONS})
-            type_counts.setdefault(model, {x: 0 for x in TASK_TYPES})
+            ep = epoch_for(bounds, model, task_dates.get(tid))
+            acc.setdefault(model, {}).setdefault(
+                ep, {d: [] for d in DIMENSIONS})
+            type_counts.setdefault(model, {}).setdefault(
+                ep, {x: 0 for x in TASK_TYPES})
             if graded:
-                type_counts[model][typ] += 1
+                type_counts[model][ep][typ] += 1
 
             # correctness
             v = t.get("verdict")
             if v in CORRECTNESS_GRADE:
-                acc[model]["correctness"].append(CORRECTNESS_GRADE[v])
+                acc[model][ep]["correctness"].append(CORRECTNESS_GRADE[v])
 
             # completion/close discipline (merged, D027 dim 2): a close event
             # grades 2/1/0 and subsumes the row's completion; a graded task
@@ -622,18 +767,18 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
             # are attributed by the line's model and added after the loop;
             # completion observations are attributed to the task's agent.
             if graded and tid not in task_close_ids:
-                acc[model]["completion_close"].append(
+                acc[model][ep]["completion_close"].append(
                     1 if t.get("status") == "done" else 0)
 
             # falsifiability (D027 dim 5): named what would prove it wrong.
             if graded:
-                acc[model]["falsifiability"].append(_names_falsification(t))
+                acc[model][ep]["falsifiability"].append(_names_falsification(t))
 
             # scope discipline (D027 dim 8): findings conform per C7 AND
             # declared deliverables are git-committed, overridden to 0 by a
             # recorded scope incident.  No C7 entry and no incident -> no data.
             if _has_scope_incident(t):
-                acc[model]["scope_discipline"].append(0)
+                acc[model][ep]["scope_discipline"].append(0)
             else:
                 c7_entries = c7.get(tid)
                 if c7_entries:
@@ -645,36 +790,42 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git):
                             if not git_tracked(root, dl):
                                 conform = False
                                 break
-                    acc[model]["scope_discipline"].append(1 if conform else 0)
+                    acc[model][ep]["scope_discipline"].append(1 if conform else 0)
 
             # independence
             ind = grade_independence(t)
             if ind is not None:
-                acc[model]["independence"].append(ind)
+                acc[model][ep]["independence"].append(ind)
 
             # thoroughness / citation_honesty: no recorded per-task signal
             # (see the module docstring) — left null by construction.
 
-    # close events and wall-kill efficiency, keyed by model.  A task that has
-    # close events is covered by those grades (it contributes no separate
-    # completion observation — see the loop above).
-    for m, grades in close_events.items():
-        acc.setdefault(m, {d: [] for d in DIMENSIONS})["completion_close"].extend(grades)
-    for m, grades in eff_events.items():
-        acc.setdefault(m, {d: [] for d in DIMENSIONS})["efficiency"].extend(grades)
+    # close events and wall-kill efficiency, keyed by model+epoch.  A task
+    # that has close events is covered by those grades (it contributes no
+    # separate completion observation — see the loop above).
+    for m, eps in close_events.items():
+        acc.setdefault(m, {})
+        for ep, grades in eps.items():
+            acc[m].setdefault(ep, {d: [] for d in DIMENSIONS})["completion_close"].extend(grades)
+    for m, eps in eff_events.items():
+        acc.setdefault(m, {})
+        for ep, grades in eps.items():
+            acc[m].setdefault(ep, {d: [] for d in DIMENSIONS})["efficiency"].extend(grades)
 
     profiles = {}
-    for model, dims in acc.items():
+    for model, eps in acc.items():
         profiles[model] = {}
-        for dim, grades in dims.items():
-            if not grades:
-                profiles[model][dim] = {"avg": None, "n": 0, "counts": {}}
-            else:
-                profiles[model][dim] = {
-                    "avg": round(sum(grades) / len(grades), 2),
-                    "n": len(grades),
-                    "counts": _counts_for(dim, grades),
-                }
+        for ep, dims in eps.items():
+            profiles[model][ep] = {}
+            for dim, grades in dims.items():
+                if not grades:
+                    profiles[model][ep][dim] = {"avg": None, "n": 0, "counts": {}}
+                else:
+                    profiles[model][ep][dim] = {
+                        "avg": round(sum(grades) / len(grades), 2),
+                        "n": len(grades),
+                        "counts": _counts_for(dim, grades),
+                    }
 
     return profiles, type_counts, task_type, census
 
@@ -724,31 +875,44 @@ def default_candidates(profiles, type_counts):
     return sorted(models)
 
 
-def select(models, typ, profiles, type_counts):
-    """Exploration-first selection.  Returns the chosen model label."""
+def select(models, typ, profiles, type_counts, bounds=None):
+    """Exploration-first selection, epoch-scoped (T525).  A candidate's
+    data is its NEWEST recorded epoch's data: for a boundary model that is
+    the post-boundary epoch (dn+); old-epoch observations describe the
+    pre-bump model and count as zero current data.  Returns the chosen
+    model label."""
+    if bounds is None:
+        bounds = EPOCH_BOUNDARIES
     models = list(models)
     if not models:
         return None
-    counts = {m: type_counts.get(m, {}).get(typ, 0) for m in models}
+
+    def cur(m):
+        return newest_epoch(bounds, m)
+
+    counts = {m: type_counts.get(m, {}).get(cur(m), {}).get(typ, 0)
+              for m in models}
     min_count = min(counts.values())
 
     if min_count == 0:
         pool = [m for m in models if counts[m] == 0]
         # tie-break: fewer total tasks (more exploration room), then label.
-        total = {m: sum(type_counts.get(m, {}).values()) for m in pool}
+        total = {m: sum(type_counts.get(m, {}).get(cur(m), {}).values())
+                 for m in pool}
         pool.sort(key=lambda m: (total[m], m))
         return pool[0]
 
     # every candidate has data -> profile decides on the dominant dimension.
     dim = DOMINANT[typ]
     def score(m):
-        a = profiles.get(m, {}).get(dim, {}).get("avg")
+        a = profiles.get(m, {}).get(cur(m), {}).get(dim, {}).get("avg")
         # null dominant dimension -> fall back to correctness, then 0.
         if a is None:
-            a = profiles.get(m, {}).get("correctness", {}).get("avg")
+            a = profiles.get(m, {}).get(cur(m), {}).get("correctness", {}).get("avg")
         return a if a is not None else float("-inf")
     def diversity(m):
-        return sum(1 for t, n in type_counts.get(m, {}).items() if n > 0)
+        return sum(1 for t, n in type_counts.get(m, {}).get(cur(m), {}).items()
+                   if n > 0)
     pool = sorted(models, key=lambda m: (-score(m), -diversity(m), counts[m], m))
     return pool[0]
 
@@ -770,32 +934,36 @@ def census_line(census):
 
 def render_human(profiles, type_counts, census):
     lines = []
-    lines.append("Dimension averages (— = no data):")
-    header = "  %-22s %11s %12s %10s %12s %12s %10s %12s %12s" % (
+    lines.append("Dimension averages per (model, epoch) (— = no data):")
+    header = "  %-34s %11s %12s %10s %12s %12s %10s %12s %12s" % (
         "model", "correct", "comp/close", "thorough", "independ",
         "falsif", "efficienc", "citation", "scope")
     lines.append(header)
     for m in sorted(profiles):
-        p = profiles[m]
-        def cell(d):
-            a = p[d]["avg"]
-            return "—" if a is None else ("%.2f" % a)
-        lines.append("  %-22s %11s %12s %10s %12s %12s %10s %12s %12s" % (
-            m, cell("correctness"), cell("completion_close"),
-            cell("thoroughness"), cell("independence"), cell("falsifiability"),
-            cell("efficiency"), cell("citation_honesty"), cell("scope_discipline")))
+        for ep in sorted(profiles[m], key=_epoch_sort_key):
+            label = m if ep == "all" else "%s@%s" % (m, ep)
+            p = profiles[m][ep]
+            def cell(d):
+                a = p[d]["avg"]
+                return "—" if a is None else ("%.2f" % a)
+            lines.append("  %-34s %11s %12s %10s %12s %12s %10s %12s %12s" % (
+                label, cell("correctness"), cell("completion_close"),
+                cell("thoroughness"), cell("independence"), cell("falsifiability"),
+                cell("efficiency"), cell("citation_honesty"), cell("scope_discipline")))
     lines.append("")
-    lines.append("Task-type data counts (graded tasks per model):")
-    lines.append("  %-22s %6s %6s %13s %8s %6s %9s %9s %9s" % (
+    lines.append("Task-type data counts per (model, epoch) (graded tasks):")
+    lines.append("  %-34s %6s %6s %13s %8s %6s %9s %9s %9s" % (
         "model", "spec", "impl", "audit", "integr", "infra", "research",
         "battery", "orcha"))
     for m in sorted(type_counts):
-        tc = type_counts[m]
-        lines.append("  %-22s %6d %6d %13d %8d %6d %9d %9d %9d" % (
-            m, tc.get("spec/design", 0), tc.get("implementation-bounded", 0),
-            tc.get("audit/verification", 0), tc.get("integration/reframe", 0),
-            tc.get("infra/tooling", 0), tc.get("research/census", 0),
-            tc.get("battery-heavy", 0), tc.get("orchestration-seat", 0)))
+        for ep in sorted(type_counts[m], key=_epoch_sort_key):
+            label = m if ep == "all" else "%s@%s" % (m, ep)
+            tc = type_counts[m][ep]
+            lines.append("  %-34s %6d %6d %13d %8d %6d %9d %9d %9d" % (
+                label, tc.get("spec/design", 0), tc.get("implementation-bounded", 0),
+                tc.get("audit/verification", 0), tc.get("integration/reframe", 0),
+                tc.get("infra/tooling", 0), tc.get("research/census", 0),
+                tc.get("battery-heavy", 0), tc.get("orchestration-seat", 0)))
     lines.append("")
     lines.append(census_line(census))
     return "\n".join(lines)
@@ -830,20 +998,23 @@ def render_table(profiles, type_counts, date, census):
     docs/infra/model-perf.md.  Hand-editing it is C10-class drift (T523);
     regenerate with `tools/model-profiles.py --table` instead.  Carries the
     8 D027 dimensions, the 8-type data column and the role->dimension map
-    (T524)."""
+    (T524); one row per (model, epoch) — a boundary model renders
+    model@epoch rows (T525), a no-boundary model renders a single row."""
     lines = [TABLE_STAMP.format(date=date), TABLE_HEADER, TABLE_SEP]
     for m in sorted(profiles):
-        p = profiles[m]
-        def cell(d):
-            a = p[d]["avg"]
-            n = p[d]["n"]
-            return "—" if a is None else "%.2f (n=%d)" % (a, n)
-        tc = type_counts.get(m, {})
-        tcell = "/".join(str(tc.get(t, 0)) for t in TASK_TYPES)
-        lines.append("| %-26s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
-            m, cell("correctness"), cell("completion_close"), cell("thoroughness"),
-            cell("independence"), cell("falsifiability"), cell("efficiency"),
-            cell("citation_honesty"), cell("scope_discipline"), tcell))
+        for ep in sorted(profiles[m], key=_epoch_sort_key):
+            label = m if ep == "all" else "%s@%s" % (m, ep)
+            p = profiles[m][ep]
+            def cell(d):
+                a = p[d]["avg"]
+                n = p[d]["n"]
+                return "—" if a is None else "%.2f (n=%d)" % (a, n)
+            tc = type_counts.get(m, {}).get(ep, {})
+            tcell = "/".join(str(tc.get(t, 0)) for t in TASK_TYPES)
+            lines.append("| %-38s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % (
+                label, cell("correctness"), cell("completion_close"), cell("thoroughness"),
+                cell("independence"), cell("falsifiability"), cell("efficiency"),
+                cell("citation_honesty"), cell("scope_discipline"), tcell))
     lines.append(_role_map_block())
     lines.append(census_line(census))
     return "\n".join(lines)
@@ -889,6 +1060,10 @@ def main(argv):
     ap.add_argument("--model-perf", default=None, help="model-perf.md path")
     ap.add_argument("--logs", default=None, help="log dir (default <root>/untracked/log)")
     ap.add_argument("--c7", default=None, help="precomputed `claimlint c7 --json` file")
+    ap.add_argument("--epochs", default=None,
+                    help="JSON file mapping model label -> [boundary dates]; "
+                         "defaults to the built-in EPOCH_BOUNDARIES table "
+                         "(model-registry.md §Epoch rules, T525)")
     ap.add_argument("--no-git", action="store_true",
                     help="skip the git-committed deliverable check")
     args = ap.parse_args(argv)
@@ -914,15 +1089,19 @@ def main(argv):
                 break
     c7 = read_c7(args.c7, claimlint_bin, root)
 
+    bounds = EPOCH_BOUNDARIES
+    if args.epochs:
+        bounds = read_json(args.epochs) or {}
+
     profiles, type_counts, task_type, census = build_profiles(
-        store, perf_text, logs_dir, c7, root, args.no_git)
+        store, perf_text, logs_dir, c7, root, args.no_git, bounds)
 
     if args.select:
         if args.candidates:
             models = [m for m in args.candidates.split(",") if m.strip()]
         else:
             models = default_candidates(profiles, type_counts)
-        chosen = select(models, args.select, profiles, type_counts)
+        chosen = select(models, args.select, profiles, type_counts, bounds)
         if args.json:
             print(json.dumps({
                 "generated": _today(),
@@ -931,6 +1110,7 @@ def main(argv):
                 "dimensions": DIMENSIONS,
                 "task_types": TASK_TYPES,
                 "roles": ROLES,
+                "epoch_boundaries": bounds,
                 "type_counts": type_counts,
                 "profiles": profiles,
                 "census": census,
@@ -959,6 +1139,7 @@ def main(argv):
             "dimension_labels": DIMENSION_LABELS,
             "task_types": TASK_TYPES,
             "roles": ROLES,
+            "epoch_boundaries": bounds,
             "profiles": profiles,
             "type_counts": type_counts,
             "task_type": task_type,

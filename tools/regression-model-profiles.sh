@@ -42,6 +42,22 @@
 #   (j) --table       every model with data; cells equal the JSON;
 #                     deterministic; stamp present
 #   (k) --check-doc   FRESH exits 0, STALE exits 1, absent exits 2
+#   (l) epochs        models with a recorded epoch boundary (T525: the
+#                     2026-08-18 DeepSeek boundary, model-registry.md §Epoch
+#                     rules) split into per-epoch profiles — pre-2026-08-18
+#                     and 2026-08-18+ are distinct rows; a task's epoch is
+#                     its claimed/done/added date, a close event's epoch is
+#                     the line's date, a wall-kill's epoch is its task's
+#                     date; an undated observation lands in 'epoch-unknown',
+#                     present and labeled, never merged into a dated epoch
+#   (m) selection     the exploration-first rule is epoch-scoped: a boundary
+#                     model's OLD-epoch data counts as zero current data
+#                     (old-epoch observations describe the pre-bump model);
+#                     with new-epoch data on the type, the profile decides
+#   (n) multi-boundary + registry parity: --epochs buckets a model across
+#                     several boundaries (pre-d1 / d1..d2 / d2+); the tool's
+#                     built-in boundary table mirrors the recorded 2026-08-18
+#                     DeepSeek boundary in docs/infra/model-registry.md
 #
 # All fixtures are synthetic and run in a scratch dir under /tmp/weizigo.
 # The tool is invoked with --store/--model-perf/--logs/--c7 pointed at the
@@ -235,25 +251,30 @@ import json, sys
 d = json.loads(sys.argv[1])
 prof = d["profiles"]
 ok = True
+# T525: no boundary recorded for these fixture models -> single 'all' epoch
+for m in ("alpha", "beta", "gamma"):
+    if set(prof[m].keys()) != {"all"}:
+        print(f"    FAIL: {m} epochs = {sorted(prof[m].keys())}, expected ['all'] (no recorded boundary)")
+        ok = False
 # thoroughness has no recorded per-task signal by design (D027 dim 3)
 for m in ("alpha", "beta", "gamma"):
-    if prof[m]["thoroughness"]["avg"] is not None or prof[m]["thoroughness"]["n"] != 0:
-        print(f"    FAIL: {m} thoroughness should be null (no signal), got", prof[m]["thoroughness"])
+    if prof[m]["all"]["thoroughness"]["avg"] is not None or prof[m]["all"]["thoroughness"]["n"] != 0:
+        print(f"    FAIL: {m} thoroughness should be null (no signal), got", prof[m]["all"]["thoroughness"])
         ok = False
-    if prof[m]["citation_honesty"]["avg"] is not None or prof[m]["citation_honesty"]["n"] != 0:
-        print(f"    FAIL: {m} citation_honesty should be null (no incident recorded), got", prof[m]["citation_honesty"])
+    if prof[m]["all"]["citation_honesty"]["avg"] is not None or prof[m]["all"]["citation_honesty"]["n"] != 0:
+        print(f"    FAIL: {m} citation_honesty should be null (no incident recorded), got", prof[m]["all"]["citation_honesty"])
         ok = False
 # gamma has no log -> efficiency null
-if prof["gamma"]["efficiency"]["avg"] is not None or prof["gamma"]["efficiency"]["n"] != 0:
-    print("    FAIL: gamma efficiency should be null (no log), got", prof["gamma"]["efficiency"])
+if prof["gamma"]["all"]["efficiency"]["avg"] is not None or prof["gamma"]["all"]["efficiency"]["n"] != 0:
+    print("    FAIL: gamma efficiency should be null (no log), got", prof["gamma"]["all"]["efficiency"])
     ok = False
 # alpha/beta have no audit/verification tasks -> independence null
 for m in ("alpha", "beta"):
-    if prof[m]["independence"]["avg"] is not None:
-        print(f"    FAIL: {m} independence should be null (no verification tasks), got", prof[m]["independence"])
+    if prof[m]["all"]["independence"]["avg"] is not None:
+        print(f"    FAIL: {m} independence should be null (no verification tasks), got", prof[m]["all"]["independence"])
         ok = False
 if ok:
-    print("    PASS: empty dimensions are null (—), not 0")
+    print("    PASS: empty dimensions are null (—), not 0; no-boundary models are single-epoch 'all'")
 else:
     sys.exit(1)
 PYEOF
@@ -276,9 +297,12 @@ prof = d["profiles"]
 tc = d["type_counts"]
 ok = True
 
+# T525: no boundary recorded -> all observations in a single 'all' epoch
+ALL = "all"
+
 def chk(model, dim, expected_avg, expected_n):
     global ok
-    a = prof[model][dim]["avg"]; n = prof[model][dim]["n"]
+    a = prof[model][ALL][dim]["avg"]; n = prof[model][ALL][dim]["n"]
     if a is None and expected_avg is None:
         if n != expected_n:
             print(f"    FAIL: {model}.{dim} n={n} expected {expected_n}"); ok = False
@@ -319,7 +343,7 @@ TYPES = ["spec/design", "implementation-bounded", "audit/verification",
          "integration/reframe", "infra/tooling", "research/census",
          "battery-heavy", "orchestration-seat"]
 def tcd(tc_, model):
-    return {t: tc_.get(model, {}).get(t, 0) for t in TYPES}
+    return {t: tc_.get(model, {}).get(ALL, {}).get(t, 0) for t in TYPES}
 if tcd(tc, "alpha") != {"spec/design": 3, "implementation-bounded": 0,
                         "audit/verification": 0, "integration/reframe": 1,
                         "infra/tooling": 1, "research/census": 1,
@@ -335,6 +359,11 @@ if tcd(tc, "gamma") != {"spec/design": 0, "implementation-bounded": 0,
                         "infra/tooling": 0, "research/census": 0,
                         "battery-heavy": 0, "orchestration-seat": 0}:
     print("    FAIL: gamma type_counts wrong:", tcd(tc, "gamma")); ok = False
+# T525: the boundary table is emitted with the figure (model-registry.md §
+# Epoch rules — the 2026-08-18 DeepSeek boundary)
+eb = d.get("epoch_boundaries", {})
+if eb.get("deepseek-v4-pro") != ["2026-08-18"] or eb.get("deepseek-v4-flash") != ["2026-08-18"]:
+    print("    FAIL: epoch_boundaries =", eb); ok = False
 
 # schema: 8 dimensions in D027 order, 8 task types, role map present
 if d["dimensions"] != ["correctness", "completion_close", "thoroughness",
@@ -354,9 +383,13 @@ if [ $? -ne 0 ]; then FAIL=1; fi
 
 # ── (e) deliverables committed: git-tracked vs not (feeds scope) ──────────
 echo "  5. uncommitted deliverable flips scope_discipline"
-GITWORK="$(mktemp -d /tmp/weizigo/t524-git-XXXXXX)"
+mkdir -p /tmp/weizigo
+GITWORK="$(mktemp -d /tmp/weizigo/t524-git-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK" "$GITWORK"' EXIT
-cd "$GITWORK"
+# T626 bakeoff MEDIUM: an un-belted cd leaves the script in the repo root
+# if the scratch dir vanished, and `git init -q` below would re-init the
+# live repo.  Belt it (the mktemp itself is already belted, T445).
+cd "$GITWORK" || { echo "FATAL: could not cd into scratch $GITWORK; refusing to run (T626)" >&2; exit 2; }
 git init -q
 git config user.email t524@test
 git config user.name T524
@@ -403,7 +436,7 @@ GJSON=$("$TOOL" --json --root "$GITWORK" --store "$GITWORK/docs/infra/managent/t
 python3 - "$GJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
-prof = d["profiles"]["alpha"]["scope_discipline"]
+prof = d["profiles"]["alpha"]["all"]["scope_discipline"]
 # alpha has T8 (committed -> 1) and T9 (uncommitted -> 0): avg 0.5
 if prof["n"] != 2 or prof["avg"] is None or abs(prof["avg"] - 0.5) > 1e-9:
     print(f"    FAIL: committed-check scope avg={prof['avg']} n={prof['n']}, expected 0.5/2")
@@ -417,7 +450,7 @@ echo "  6. scope-incident override: amendments incident -> 0 even when findings 
 python3 - "$JSON1" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
-prof = d["profiles"]["alpha"]["scope_discipline"]
+prof = d["profiles"]["alpha"]["all"]["scope_discipline"]
 # T12 conforms on c7 but carries a COMMIT-ATTRIBUTION INCIDENT in its
 # amendments: expected avg (1+1+0+1+1+0)/6 = 0.67 — the incident pulled it
 # below the non-incident 0.8 (T1,T2,T3,T8,T9).
@@ -434,7 +467,7 @@ python3 - "$JSON1" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
 prof = d["profiles"]
-beta = prof["beta"]["falsifiability"]
+beta = prof["beta"]["all"]["falsifiability"]
 if beta["n"] != 4 or beta["avg"] is None or abs(beta["avg"] - 0.25) > 1e-9:
     print(f"    FAIL: beta falsifiability avg={beta['avg']} n={beta['n']}, expected 0.25/4")
     sys.exit(1)
@@ -596,15 +629,15 @@ else:
         if c.get(k) != v:
             print("    FAIL: census[%s] = %s, expected %s (census %s)" % (k, c.get(k), v, c))
             ok = False
-beta = d.get("profiles", {}).get("beta", {}).get("completion_close", {})
+beta = d.get("profiles", {}).get("beta", {}).get("all", {}).get("completion_close", {})
 if beta.get("n", 0) != 0:
     print("    FAIL: censored row scored beta completion_close n=%s (must be refused)" % beta.get("n"))
     ok = False
-gamma = d.get("profiles", {}).get("gamma", {}).get("completion_close", {})
+gamma = d.get("profiles", {}).get("gamma", {}).get("all", {}).get("completion_close", {})
 if gamma.get("avg") != 0.0 or gamma.get("n") != 1:
     print("    FAIL: gamma completion_close = %s (expected 0.0/1 — legacy fail still scores)" % gamma)
     ok = False
-alpha = d.get("profiles", {}).get("alpha", {}).get("completion_close", {})
+alpha = d.get("profiles", {}).get("alpha", {}).get("all", {}).get("completion_close", {})
 if alpha.get("avg") != 2.0 or alpha.get("n") != 1:
     print("    FAIL: alpha completion_close = %s (expected 2.0/1 — the pass still scores)" % alpha)
     ok = False
@@ -612,6 +645,249 @@ if ok:
     print("    PASS: census scored=2 censored=1 unattributed=1; censored row refused; pass and legacy-fail still grade")
 else:
     sys.exit(1)
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# ── (l) T525: epochs — recorded boundaries never aggregate across ────────
+# The 2026-08-18 DeepSeek boundary (model-registry.md §Epoch rules): every
+# deepseek-v4-* observation before 2026-08-18 describes the pre-bump models.
+# The profile is per-epoch — pre-2026-08-18 and 2026-08-18+ are distinct
+# rows — and an undated observation lands in 'epoch-unknown', present and
+# labeled, never merged into a dated epoch.
+echo "  l. epochs: deepseek-v4-pro splits at 2026-08-18; per-epoch averages; unknown bucket separate"
+EWORK="$WORK/epochs"
+mkdir -p "$EWORK/docs/infra/managent" "$EWORK/untracked/log" "$EWORK/untracked"
+python3 - "$EWORK" <<'PYEOF'
+import json, os, sys
+work = sys.argv[1]
+def task(claimed, done, verdict, bundle):
+    return {"agent": "deepseek-v4-pro", "status": "done", "verdict": verdict,
+            "bundle": bundle, "claimed": claimed, "done": done,
+            "note": None, "verdict_note": None}
+tasks = {
+    # old epoch (claimed before 2026-08-18)
+    "T100": task("2026-08-10T00:00:00Z", "2026-08-10T01:00:00Z", "pass",
+                 "untracked/T100-spec-design.md"),
+    "T101": task("2026-08-10T00:00:00Z", "2026-08-10T01:00:00Z", "pass-with-findings",
+                 "untracked/T101-spec-strategy.md"),
+    # new epoch (claimed on/after 2026-08-18)
+    "T102": task("2026-08-22T00:00:00Z", "2026-08-22T01:00:00Z", "pass",
+                 "untracked/T102-spec-design.md"),
+    "T103": task("2026-08-22T00:00:00Z", "2026-08-22T01:00:00Z", "fail-found",
+                 "untracked/T103-spec-draft.md"),
+    # no recorded date at all -> epoch-unknown, never merged into either
+    "T104": task(None, None, "pass", "untracked/T104-spec-plan.md"),
+}
+json.dump(tasks, open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w"))
+perf = [
+    "# epoch fixture\n",
+    "dispatch-verify 2026-08-10 T100 deepseek-v4-pro report=success verified=pass\n",
+    "dispatch-verify 2026-08-22 T102 deepseek-v4-pro report=success verified=pass\n",
+]
+open(os.path.join(work, "model-perf.md"), "w").writelines(perf)
+open(os.path.join(work, "c7.json"), "w").write("[]")
+# wall-kill log census: T100 is an old-epoch task -> its kill grades the OLD
+# epoch's efficiency; the new epoch has no efficiency signal.
+open(os.path.join(work, "untracked", "log", "t100.log"), "w").write(
+    "[runner] argv = ollama launch pi --model deepseek-v4-pro -y -p 'fixture'\n"
+    "[runner] task identity: T100 (source: MANAGENT_TASK_ID)\n"
+    "[runner] exit 124 (RSS cap 4096 MB exceeded) in 350.9 s\n")
+print("epoch fixture seeded")
+PYEOF
+ESTORE="$EWORK/docs/infra/managent/tasks.json"
+EPERF="$EWORK/model-perf.md"
+ELOGS="$EWORK/untracked/log"
+EC7="$EWORK/c7.json"
+EJSON=$("$TOOL" --json --no-git --root "$EWORK" --store "$ESTORE" --model-perf "$EPERF" --logs "$ELOGS" --c7 "$EC7" 2>/dev/null)
+python3 - "$EJSON" <<'PYEOF'
+import json, sys
+d = json.loads(sys.argv[1])
+ok = True
+prof = d["profiles"].get("deepseek-v4-pro", {})
+# exactly three buckets: pre-2026-08-18, 2026-08-18+, epoch-unknown
+expect = {"pre-2026-08-18", "2026-08-18+", "epoch-unknown"}
+if set(prof.keys()) != expect:
+    print("    FAIL: deepseek-v4-pro epoch keys =", sorted(prof.keys()), "expected", sorted(expect)); ok = False
+def avg(ep, dim):
+    return prof[ep][dim]["avg"], prof[ep][dim]["n"]
+# correctness: old = T100 pass(2)+T101 pwf(1) = 1.5/2; new = T102 pass(2)+
+# T103 fail-found(1) = 1.5/2; unknown = T104 pass(2) = 2.0/1
+for ep, exp in (("pre-2026-08-18", (1.5, 2)), ("2026-08-18+", (1.5, 2)),
+                ("epoch-unknown", (2.0, 1))):
+    a, n = avg(ep, "correctness")
+    if a is None or abs(a - exp[0]) > 1e-9 or n != exp[1]:
+        print(f"    FAIL: {ep} correctness = {a}/{n}, expected {exp[0]}/{exp[1]}"); ok = False
+# completion_close: old = T100 close-pass(2)+T101 done(1) = 1.5/2; new =
+# T102 close-pass(2)+T103 done(1) = 1.5/2; unknown = T104 done(1) = 1.0/1
+for ep, exp in (("pre-2026-08-18", (1.5, 2)), ("2026-08-18+", (1.5, 2)),
+                ("epoch-unknown", (1.0, 1))):
+    a, n = avg(ep, "completion_close")
+    if a is None or abs(a - exp[0]) > 1e-9 or n != exp[1]:
+        print(f"    FAIL: {ep} completion_close = {a}/{n}, expected {exp[0]}/{exp[1]}"); ok = False
+# efficiency: only the old epoch has a kill (T100, RSS -> grade 1)
+a, n = avg("pre-2026-08-18", "efficiency")
+if a != 1.0 or n != 1:
+    print(f"    FAIL: pre-2026-08-18 efficiency = {a}/{n}, expected 1.0/1"); ok = False
+a, n = avg("2026-08-18+", "efficiency")
+if a is not None or n != 0:
+    print(f"    FAIL: 2026-08-18+ efficiency = {a}/{n}, expected null/0"); ok = False
+# type counts per epoch: 2 spec rows old, 2 new, 1 unknown
+tc = d["type_counts"].get("deepseek-v4-pro", {})
+for ep, exp in (("pre-2026-08-18", 2), ("2026-08-18+", 2), ("epoch-unknown", 1)):
+    got = tc.get(ep, {}).get("spec/design", 0)
+    if got != exp:
+        print(f"    FAIL: {ep} spec/design count = {got}, expected {exp}"); ok = False
+# the boundary table is emitted so the figure carries its epoch source
+if d.get("epoch_boundaries", {}).get("deepseek-v4-pro") != ["2026-08-18"]:
+    print("    FAIL: epoch_boundaries =", d.get("epoch_boundaries")); ok = False
+if set(d["profiles"].keys()) != {"deepseek-v4-pro"}:
+    print("    FAIL: unexpected models in epoch fixture:", sorted(d["profiles"].keys())); ok = False
+if ok:
+    print("    PASS: deepseek-v4-pro split pre-/post-2026-08-18 + unknown; per-epoch averages and counts correct")
+else:
+    sys.exit(1)
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+
+# ── (m) T525: selection is epoch-scoped — old-epoch data is NOT data ─────
+# A boundary model's OLD-epoch profile describes the pre-bump model; for a
+# dispatch decision today it counts as zero current data, so exploration-
+# first names it over a model that HAS new-epoch data.  With new-epoch data
+# on the type, the profile decides (dominant dimension).
+echo "  m. selection: deepseek-v4-pro old-epoch data counts as zero current data"
+MWORK="$WORK/select-epochs"
+mkdir -p "$MWORK/docs/infra/managent" "$MWORK/untracked/log" "$MWORK/untracked"
+python3 - "$MWORK" <<'PYEOF'
+import json, os, sys
+work = sys.argv[1]
+tasks = {
+    # deepseek-v4-pro: spec/design data ONLY in the old epoch
+    "T110": {"agent": "deepseek-v4-pro", "status": "done", "verdict": "pass-with-findings",
+             "bundle": "untracked/T110-spec-design.md",
+             "claimed": "2026-08-10T00:00:00Z", "done": "2026-08-10T01:00:00Z",
+             "note": None, "verdict_note": None},
+    # alpha: no boundary -> its data is current
+    "T111": {"agent": "alpha", "status": "done", "verdict": "pass-with-findings",
+             "bundle": "untracked/T111-spec-design.md",
+             "claimed": "2026-08-22T00:00:00Z", "done": "2026-08-22T01:00:00Z",
+             "note": None, "verdict_note": None},
+    # deepseek-v4-pro NEW-epoch spec data (for the profile-decides arm)
+    "T112": {"agent": "deepseek-v4-pro", "status": "done", "verdict": "pass",
+             "bundle": "untracked/T112-spec-design.md",
+             "claimed": "2026-08-22T00:00:00Z", "done": "2026-08-22T01:00:00Z",
+             "note": None, "verdict_note": None},
+}
+json.dump(tasks, open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w"))
+open(os.path.join(work, "model-perf.md"), "w").write("# fixture\n")
+open(os.path.join(work, "c7.json"), "w").write("[]")
+print("select-epochs fixture seeded")
+PYEOF
+MSTORE="$MWORK/docs/infra/managent/tasks.json"
+MPERF="$MWORK/model-perf.md"
+MLOGS="$MWORK/untracked/log"
+MC7="$MWORK/c7.json"
+# arm 1: both candidates have NEW-epoch spec data (deepseek: T112, alpha:
+# T111) -> profile decides on the dominant dimension (spec/design ->
+# correctness): deepseek's pass (2.0) beats alpha's pwf (1.0).
+OUT=$("$TOOL" --no-git --root "$MWORK" --store "$MSTORE" --model-perf "$MPERF" \
+      --logs "$MLOGS" --c7 "$MC7" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
+if [ "$OUT" = "deepseek-v4-pro" ]; then
+    echo "    PASS: with new-epoch data on the type, profile decides (correctness 2.0 > 1.0)"
+else
+    echo "    FAIL: --select spec/design returned '$OUT', expected deepseek-v4-pro (profile decides on newest epoch)"
+    FAIL=1
+fi
+# arm 2: drop the new-epoch task -> deepseek has ZERO current spec data and
+# must be named by exploration-first despite its strong old-epoch profile.
+python3 - "$MWORK" <<'PYEOF'
+import json, os, sys
+work = sys.argv[1]
+store = json.load(open(os.path.join(work, "docs", "infra", "managent", "tasks.json")))
+del store["T112"]
+json.dump(store, open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w"))
+print("T112 removed")
+PYEOF
+OUT=$("$TOOL" --no-git --root "$MWORK" --store "$MSTORE" --model-perf "$MPERF" \
+      --logs "$MLOGS" --c7 "$MC7" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
+if [ "$OUT" = "deepseek-v4-pro" ]; then
+    echo "    PASS: exploration-first named deepseek-v4-pro (0 NEW-epoch spec data beats alpha's 1)"
+else
+    echo "    FAIL: --select spec/design returned '$OUT', expected deepseek-v4-pro (old-epoch data must not count)"
+    FAIL=1
+fi
+
+# ── (n) T525: multi-boundary bucketing (--epochs) + registry parity ──────
+# The built-in boundary table must mirror docs/infra/model-registry.md §
+# Epoch rules (the recorded 2026-08-18 DeepSeek boundary).  --epochs lets a
+# test exercise the general several-boundaries logic.
+echo "  n. multi-boundary bucketing (--epochs) + registry parity"
+NWORK="$WORK/epochs-multi"
+mkdir -p "$NWORK/docs/infra/managent" "$NWORK/untracked/log" "$NWORK/untracked"
+python3 - "$NWORK" <<'PYEOF'
+import json, os, sys
+work = sys.argv[1]
+def task(claimed, bundle):
+    return {"agent": "delta", "status": "done", "verdict": "pass",
+            "bundle": bundle, "claimed": claimed, "done": claimed,
+            "note": None, "verdict_note": None}
+tasks = {
+    "T120": task("2026-08-01T00:00:00Z", "untracked/T120-spec-design.md"),
+    "T121": task("2026-08-10T00:00:00Z", "untracked/T121-spec-design.md"),
+    "T122": task("2026-08-22T00:00:00Z", "untracked/T122-spec-design.md"),
+}
+json.dump(tasks, open(os.path.join(work, "docs", "infra", "managent", "tasks.json"), "w"))
+open(os.path.join(work, "model-perf.md"), "w").write("# fixture\n")
+open(os.path.join(work, "c7.json"), "w").write("[]")
+# two boundaries: 2026-08-05 (preview bump) and 2026-08-18 (full bump)
+json.dump({"delta": ["2026-08-05", "2026-08-18"]},
+          open(os.path.join(work, "epochs.json"), "w"))
+print("multi-epoch fixture seeded")
+PYEOF
+NSTORE="$NWORK/docs/infra/managent/tasks.json"
+NPERF="$NWORK/model-perf.md"
+NLOGS="$NWORK/untracked/log"
+NC7="$NWORK/c7.json"
+NEPOCHS="$NWORK/epochs.json"
+NJSON=$("$TOOL" --json --no-git --root "$NWORK" --store "$NSTORE" --model-perf "$NPERF" \
+        --logs "$NLOGS" --c7 "$NC7" --epochs "$NEPOCHS" 2>/dev/null)
+python3 - "$NJSON" <<'PYEOF'
+import json, sys
+d = json.loads(sys.argv[1])
+ok = True
+prof = d["profiles"].get("delta", {})
+expect = {"pre-2026-08-05", "2026-08-05..2026-08-18", "2026-08-18+"}
+if set(prof.keys()) != expect:
+    print("    FAIL: delta epoch keys =", sorted(prof.keys()), "expected", sorted(expect)); ok = False
+for ep in expect:
+    n = prof[ep]["correctness"]["n"]
+    if n != 1:
+        print(f"    FAIL: {ep} correctness n = {n}, expected 1"); ok = False
+if d.get("epoch_boundaries", {}).get("delta") != ["2026-08-05", "2026-08-18"]:
+    print("    FAIL: epoch_boundaries =", d.get("epoch_boundaries")); ok = False
+if ok:
+    print("    PASS: delta bucketed into three epochs across two boundaries")
+else:
+    sys.exit(1)
+PYEOF
+if [ $? -ne 0 ]; then FAIL=1; fi
+# registry parity: the built-in boundary table carries the recorded
+# 2026-08-18 DeepSeek boundary (model-registry.md §Epoch rules).
+python3 - "$ROOT" <<'PYEOF'
+import importlib.util, os, sys
+root = sys.argv[1]
+txt = open(os.path.join(root, "docs", "infra", "model-registry.md")).read()
+if "every deepseek-v4-* observation before 2026-08-18" not in txt:
+    print("    FAIL: model-registry.md no longer records the 2026-08-18 deepseek boundary sentence")
+    sys.exit(1)
+spec = importlib.util.spec_from_file_location(
+    "model_profiles", os.path.join(root, "tools", "model-profiles.py"))
+mp = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mp)
+for m in ("deepseek-v4-pro", "deepseek-v4-flash"):
+    if "2026-08-18" not in mp.EPOCH_BOUNDARIES.get(m, []):
+        print(f"    FAIL: tool's EPOCH_BOUNDARIES missing 2026-08-18 for {m}: {mp.EPOCH_BOUNDARIES.get(m)}")
+        sys.exit(1)
+print("    PASS: built-in boundary table matches the recorded 2026-08-18 DeepSeek boundary")
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
