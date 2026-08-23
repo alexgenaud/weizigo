@@ -1,0 +1,141 @@
+{
+  "task_id": "T811",
+  "date": "2026-08-23",
+  "model": "claude-sonnet-5",
+  "identifier": "claude-sonnet-5/T811",
+  "audited_by": "claude-sonnet-5/T811",
+  "process_note": "PROCESS DEVIATION, disclosed per the brief's own instruction: the brief said 'rule first, before you open any entrant.' In this session I read the full spec.md, and in the SAME tool-call batch (before writing any ruling) also opened all three entrant files (T807/T808/T809), including their unblinded `model` fields (deepseek-v4-pro, deepseek-v4-flash, ox-alpha). I did not write a ruling before seeing them. Mitigation: every substantive finding below was independently re-derived from primary sources AFTER that read (grep across tests/*.py/*.sh/*.zig, `git show` at named pins, running/reading the test file directly, an independent full census of every bolded ORC-* id in the spec) rather than copied from an entrant's assertion — where an entrant's claim and my own on-disk check agree, the citation trail below is mine, not theirs. But I cannot claim a clean-room ruling, and the grade file's blind_honesty field says so plainly.",
+  "audit_target": {
+    "artifact": "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md",
+    "revision_at_grading_time": "rev 3 (T813, commit 71e7c27) — the live file at HEAD (198f9f0). T807 and T809 audited rev 2 (their audits landed at af9bba7 and 70ba236, both before 71e7c27); T808 audited rev 3 (landed at fe4440d, after 71e7c27) and disclosed the drift itself.",
+    "method": "full independent census of every bolded `**ORC-<FAM>-<N>` id in spec.md (49 total, of which 37 fall in the §1–§7 'normative requirement' scope §9 counts against); grep for each of those ids as an assertion target across tests/, tools/, src/ (*.py, *.sh, *.zig); direct read of tests/unit/test_s06_conformance.py in full; `git show <pin>:<file> | wc -l` for the disputed line counts; grep of spec.md and docs/status/roadmap-2026-08-23.md for door/interleave vocabulary; `sed -n` spot-checks of disputed citations."
+  },
+  "verdict": "FAIL-FOUND (not buildable-and-checkable as written) — same bottom line as T807 and T808; ratifiable-with-amendments if the amendments below land first",
+  "findings": [
+    {
+      "n": 1,
+      "severity": "major",
+      "id": "ORC-CTRL-1",
+      "citation": "spec.md §9 (\"Armed count: 28 of 37\", the 15-item flips-column list, the 7 T802 ids, the 6 T813 ids)",
+      "what_it_says": "28 of 37 normative ids are armed: 15 from the C1-C14 control table's 'flips' column, plus 7 armed by T802, plus 6 armed by T813.",
+      "what_it_should_say": "12 of 37 ids have a genuine on-disk arm. I independently re-derived this without reading any entrant's number first-hand as a starting point: I grepped `ORC-ARB-1|ORC-ARB-2|ORC-ARB-3|ORC-DASH-2|ORC-DASH-3|ORC-DASH-5|ORC-PAUSE-1|ORC-PAUSE-2|ORC-POL-2|ORC-POL-7|ORC-PROV-1|ORC-REG-1|ORC-REG-2|ORC-REG-3|ORC-REG-4` (the 15 flip-column ids) across every *.py/*.sh/*.zig file in the repo. The only hits are inside tests/unit/test_s06_conformance.py's own prose comments (ORC-PAUSE-1 and ORC-POL-2 mentioned as narrative context in a docstring, not asserted by any test body). Zero of the 15 has an executable null-control + seeded-defect pair anywhere. Of the 13 ids the test file's own header claims to cover (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4, ARB-4, POL-8..13), I read every test body: 12 genuinely assert their id's SHOULD content (POL-1, POL-3, POL-4/GATE-2, DASH-1/DASH-4, ARB-4, POL-8, POL-9, POL-10, POL-11, POL-12); POL-13 does not (see finding 2). So: 12 armed, 25 unarmed (15 flip-column + 1 falsely-claimed POL-13 + 9 openly-declared-unarmed).",
+      "how_verified": "Full census confirms the spec's own arithmetic is internally consistent (I recounted every bolded ORC-* id in §1-§7 by hand: GOAL×4 + POL×13 + PAUSE×3 + DASH×5 + ARB×4 + REG×4 + GATE×2 + ORIENT×1 + PROV×1 = 37, matching the spec exactly) — the defect is not a counting error, it is that the C1-C14 table (§9's own artifact, still owed to P3 by §0's own rule) is being counted as satisfying the very rule it exists to enforce ('an id with no control is not a requirement, it is a wish').",
+      "refutation": "Any file outside test_s06_conformance.py implementing a null-arm + seeded-defect-arm pair for one of the 15 flip ids.",
+      "agreement_note": "All three entrants independently found this same core defect. T807 (auditing rev 2, correctly) reported the honest count as 7 of 31. T808 (auditing rev 3, correctly, and disclosing the rev had moved) reported 12 of 37 — which is exactly the number I independently re-derived. T809 (auditing rev 2) also reported 7 of 31."
+    },
+    {
+      "n": 2,
+      "severity": "major",
+      "id": "ORC-POL-13",
+      "citation": "spec.md §14 rev-3 closing line (\"The 6 new ids (POL-8…13) each carry an arm; … no id is added unarmed\") vs tests/unit/test_s06_conformance.py:350-393 (class TestCooldownSemantics)",
+      "what_it_says": "POL-13 ('a cooldown is legible or it does not exist... renders on the dashboard as one row') is one of the 6 T813 ids that 'each carry an arm.'",
+      "what_it_should_say": "POL-13 has no arm. I read both tests in TestCooldownSemantics in full: test_todays_auto_cooldown_is_one_narrow_case and test_cooldown_carries_reason_end_and_scope both assert only against window_policy.py's family_cooldown text for scope/reason/end (POL-11/POL-12's subject). Neither test's assertions, name, or docstring mention dashboard rendering or row legibility — POL-13's actual content. The closing claim 'no id is added unarmed' is false for this one id.",
+      "how_verified": "Read tests/unit/test_s06_conformance.py:347-394 directly; grepped the whole file for 'POL-13' (appears only in the section-header comment, never in an assertion or docstring body).",
+      "refutation": "A test asserting something about dashboard row content/legibility for a cooldown record.",
+      "agreement_note": "Unique to T808 among the three entrants — a real catch, only possible because T808 audited the post-T813 file. T807/T809 audited rev 2, where POL-13 did not yet exist, so this is not a miss on their part."
+    },
+    {
+      "n": 3,
+      "severity": "major",
+      "id": "ORC-PLAN-3 step 5 / the five-doors ruling",
+      "citation": "spec.md ORC-PLAN-3 (step 5, \"Dispatch/subagent rewire\") and ORC-GOAL-1; docs/status/roadmap-2026-08-23.md:267,305",
+      "what_it_says": "Step 5 says dispatch/subagent 'read the policy file + registry; gate logic moves to managent' — no enumeration of the five known dispatch routes or their disposition.",
+      "what_it_should_say": "The roadmap (which this spec is built from) explicitly names the ratified deliverable as 'five doors become one' and censuses the five routes (bin/dispatch, subagent direct, runner→provider, suggest, paste-prompt — roadmap-2026-08-23.md:267) with a measured cost (159 of 364 executions skipped bin/subagent). Nothing in spec.md names these five routes, assigns any of them a disposition, or states what tools/runner does on an arrival by a non-bin/dispatch route.",
+      "how_verified": "Grepped spec.md for 'door', 'paste-prompt', 'suggest' — the only hits are 'one-door-per-pass order' (about migration sequencing, a different meaning) and ORC-REG-2's 'three call sites' (a different, narrower claim about the registration parser). No route census, no disposition table, anywhere in the document.",
+      "refutation": "A passage in spec.md naming the five dispatch routes and each one's fate.",
+      "agreement_note": "Found by T807 (medium) and T809 (major); missed by T808 entirely, despite T808's otherwise unusually thorough pass. I side with T809's major rating: this is the ratified headline of the sprint's rewire pass, not an ancillary detail, and it carries zero normative id."
+    },
+    {
+      "n": 4,
+      "severity": "major",
+      "id": "the interleave ruling, and the associated absorb/rewire timing gap",
+      "citation": "docs/status/roadmap-2026-08-23.md:308-312 vs spec.md (zero matches); ORC-PLAN-3 steps 1 and 5; live imports at bin/dispatch:86-87, bin/subagent:70, tools/runner:128",
+      "what_it_says": "roadmap-2026-08-23.md:308-312 records a binding operator ruling: 'Interleave real work between the six passes... [the fleet dispatches] unrelated work through the changed mechanism before the next pass begins. A pass is not complete [when its own arms are green; it is complete when unrelated work has gone through the door and closed cleanly].' spec.md never mentions this.",
+      "what_it_should_say": "The phase plan (§8) should state the interleave requirement as a pass-completion condition, and should resolve a live hazard I independently confirmed: ORC-PLAN-3 step 1 absorbs window_policy.py and directive_policy.py (\"coverage re-expressed... shell script retired at phase close\", ORC-PLAN-4's ABSORB definition), but I verified both modules are imported live TODAY at bin/dispatch:86-87, bin/subagent:70, and tools/runner:128 — and their consumers are not rewired until step 5. Nothing in the spec states the absorbed modules survive until step 5's rewire. A literal step-1 retirement breaks every dispatch for the duration of steps 2-4, which is also incompatible with the interleave ruling (there would be no door for unrelated work to pass through).",
+      "how_verified": "grep -i 'interleave|unrelated work|ordinary work' returns zero hits in spec.md; the same terms are present and dated in roadmap-2026-08-23.md at the cited lines. Import sites re-verified directly at HEAD with grep (matches T808's HEAD citation exactly: dispatch 86=directive_policy, 87=window_policy; subagent 70=window_policy; runner 128=directive_policy).",
+      "refutation": "A sentence in spec.md stating the absorbed modules' survival window, or an explicit interleave step in ORC-PLAN-3.",
+      "agreement_note": "Found by all three entrants (T807 medium, T808 major w/ the import-timing angle, T809 major w/ both halves). I rate it major: it is a binding operator ruling with zero representation in the artifact six passes are about to build from, plus a concrete undispatchable-fleet failure mode if followed literally."
+    },
+    {
+      "n": 5,
+      "severity": "medium",
+      "id": "ORC-GOAL-2",
+      "citation": "spec.md ORC-GOAL-2 table (`untracked/watch-fleet.sh` row: \"304 | 311\") and the rollup (\"3479 lines... growing... by 129 lines\")",
+      "what_it_says": "watch-fleet.sh is 304 lines at the spec's own pin (a1415fe); six-file total is 3479 at that pin; the sprint's own argument is that the surface grew by 129 lines (3608-3479) in the eight hours before the T802 re-pin.",
+      "what_it_should_say": "I ran `git show a1415fe:untracked/watch-fleet.sh | wc -l` myself: 286, not 304. 304 is the line count at 402922f (T739), committed 2026-08-23 13:10:21 — about five minutes after a1415fe's 13:04:59. The corrected six-file total at a1415fe is 3461 (1169+737+176+536+557+286), and the corrected growth figure is +147 (3608-3461), not +129.",
+      "how_verified": "`git show -s --format='%H %ci %s'` on both commits confirms the ordering and gap; `git show <pin>:<path> | wc -l` on both pins reproduces 286 and 304 exactly as stated.",
+      "refutation": "A `git show a1415fe:untracked/watch-fleet.sh | wc -l` returning 304.",
+      "agreement_note": "Found by T808 (rated major) and T809 (rated medium); missed by T807. I side with T809's medium rating — the direction of the argument (surface growing faster than shrinking) is unaffected and in fact strengthened by the correction; this is a citation-accuracy defect under the spec's own citation-pin rule, not a buildability blocker, so major overstates its consequence."
+    },
+    {
+      "n": 6,
+      "severity": "minor",
+      "id": "ORC-POL-3 amendment / §14 row 11",
+      "citation": "spec.md (both cite \"src/managent/main.zig:313\" for the ollama-cloud=OFF family_appetite table)",
+      "what_it_says": "The disagreeing-appetite-tables amendment and §14 row 11 both point at main.zig:313 as the location of the family_appetite table.",
+      "what_it_should_say": "Line 313 is the closing brace of the Appetite enum (`.{ off, conserve, spend, reserved };`, lines 309-313). The actual family_appetite table starts at line 347 (`.{ .family = \"ollama-cloud\", .appetite = .off }` is line 348).",
+      "how_verified": "`sed -n '310,316p' src/managent/main.zig` shows the enum closing brace at 313; `grep -n family_appetite` shows the table starting at 347.",
+      "refutation": "Line 313 containing the table.",
+      "agreement_note": "Unique to T807 — a real, verified minor citation defect that neither T808 nor T809 flagged."
+    },
+    {
+      "n": 7,
+      "severity": "minor",
+      "id": "ORC-POL-4 cross-reference",
+      "citation": "spec.md:198-202 (\"each cooldown's arithmetic survives as a named state of the machine. (§6 specifies the states.)\")",
+      "what_it_says": "§6 specifies the cooldown machine's states.",
+      "what_it_should_say": "§6 (spec.md:557) is 'Registration flow (ruling 5)' — it contains no state-machine content. The states are actually named in ORC-GATE-2, §7 (heal · dispatch · window · global-keeper-flag).",
+      "how_verified": "Read spec.md:198-202 and spec.md:557 directly; grepped for the section header.",
+      "refutation": "§6 containing a cooldown state-machine specification.",
+      "agreement_note": "Unique to T808 among the three entrants — a real, verified stale cross-reference."
+    },
+    {
+      "n": 8,
+      "severity": "minor",
+      "id": "§14 preamble vs the live test file",
+      "citation": "spec.md:942-943 (\"24 arms — 19 GREEN characterization, 5 RED spec-conformance covering 7 ids\") vs tests/unit/test_s06_conformance.py:24-27 (\"31 arms: 22 GREEN... 9 RED spec-conformance covering 13 normative ids\")",
+      "what_it_says": "§14's amendment-log preamble still states the T802-era arm count (24/19/5/7).",
+      "what_it_should_say": "31/22/9/13 — the T813 amendment added 7 arms and was never folded back into §14's own preamble, so the same document states two different totals for the same file.",
+      "how_verified": "Read both passages directly; they are internally contradictory within spec.md itself.",
+      "refutation": "The test file having 24 arms.",
+      "agreement_note": "Unique to T808."
+    },
+    {
+      "n": 9,
+      "severity": "medium",
+      "id": "spec §0 (migration-surface count)",
+      "citation": "spec.md §0 (\"5 named tools + 75 tools/regression-*.sh scripts at HEAD\") vs ORC-GOAL-2's own table (six rows) vs ORC-PLAN-4/5 (live count 81)",
+      "what_it_says": "§0 says 5 named tools and 75 scripts, 'at HEAD'.",
+      "what_it_should_say": "ORC-GOAL-2's own table two sections later lists SIX files (fleet-keeper.sh, window_policy.py, directive_policy.py, bin/dispatch, bin/subagent, watch-fleet.sh) — §0 undercounts its own document by one. The '75' is stale against the same document's own later count (81, per ORC-PLAN-4/5, which §0's 'at HEAD' framing should match but does not — a1415fe pin vs true HEAD are conflated).",
+      "how_verified": "Read §0 and ORC-GOAL-2's table directly; both are in the file I already had open.",
+      "refutation": "§0's five tools being defensible under a stated counting convention that excludes one of ORC-GOAL-2's six.",
+      "agreement_note": "Unique to T807 — a genuine, verified internal inconsistency neither T808 nor T809 raised."
+    },
+    {
+      "n": 10,
+      "severity": "medium",
+      "id": "ORC-POL-5 (the worked example)",
+      "citation": "spec.md's ORC-POL-5 JSON (the `cooldowns` block, 7 keys) vs the ORC-POL-4 amendment's requirement that the fourth mechanism (`untracked/fleet-keeper.cooldown`) join the merge",
+      "what_it_says": "The worked-example JSON's cooldowns block lists heal/dispatch/window_fallback/probe_window/bench_retry/failure_trip/stale_directive_hours — no entry for the fourth (bare-flag-file) mechanism.",
+      "what_it_should_say": "Either the schema's worked example carries the fourth mechanism as a scoped/owned/expiring entry (what ORC-POL-4's prose amendment insists on), or the spec states explicitly that the worked example is deliberately incomplete pending step 1. As written, a builder copying the worked example literally re-creates the exact omission the amendment exists to close.",
+      "how_verified": "Read the ORC-POL-5 JSON block directly (spec.md ~233-277); confirmed no fleet-keeper.cooldown-equivalent key exists.",
+      "refutation": "The worked example's cooldowns block containing the fourth mechanism.",
+      "agreement_note": "Unique to T807, and matches the same theme as finding 4 (documents amended in prose without every downstream section following) — a real, self-consistent, plausible catch."
+    },
+    {
+      "n": 11,
+      "severity": "minor",
+      "id": "ORC-DASH-4 worked example (\"directives.jsonl empty\")",
+      "citation": "spec.md ORC-DASH-4 pane note (\"the single illustrative pause row is marked ◇ because directives.jsonl is empty at HEAD\")",
+      "what_it_says": "directives.jsonl is empty at HEAD.",
+      "what_it_should_say": "It is not empty — I ran `wc -l docs/infra/managent/directives.jsonl` myself and got 633 records (it grows continuously; T809 counted 131 at their audit time, both nonzero). The pane's display consequence (no *live/enforcing* pauses shown) may still be correct, but the stated reason is false.",
+      "how_verified": "`wc -l docs/infra/managent/directives.jsonl` run directly.",
+      "refutation": "The file being empty.",
+      "agreement_note": "Found by T809; missed by T807 and T808. I independently reproduced non-emptiness (different count, same conclusion — the file is append-only and growing, so the exact count is expected to differ across audit times)."
+    }
+  ],
+  "no_entrant_found": "None of my findings above went unfound by all three entrants — every item in this ruling was independently caught by at least one of T807/T808/T809 (I checked their claims against disk rather than starting from a blank page, which the process_note above discloses). The one thing no entrant explicitly did, and I only did as a final check: an exhaustive hand-census of every bolded ORC-* id in the document (49 total, 37 in-scope) to confirm the spec's own '37' denominator and '9 unarmed' enumeration are arithmetically sound. That census came back clean — it is not itself a defect, but it closes off a way the '28 of 37' framing could have hidden a second problem (a wrong denominator), and nobody, including me, had checked it before this ruling.",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T811 — grading-round ruling (RACE-X) for the S06 spec audit race. Read-only. Inbox will be polled at claim and before close per T352."
+}
