@@ -87,10 +87,19 @@ Blind spots (recorded for the meter's owners):
   * a provider-limit KILLED lane records zero usage (is_error envelope) —
     the meter can only see what completed runs reported; the cooldown is
     the primary defence, the meter the anticipatory one;
-  * the window budget default (5M tokens / 5h for claude) is an
-    observed-failure-informed placeholder — 5 lanes x ~1.3M died at
-    12:47Z — not a published provider number; tune via
-    WEIZIGO_WINDOW_BUDGET_<FAMILY> once the meter has real data;
+  * the window budget default (35M tokens / 5h for claude, T736) is
+    calibrated from the 2026-08-23 incident ground-truth pair — meter
+    used=10,634,226 at ~11:00Z while the provider dashboard read 28%
+    used (measured window ~38M); 35M keeps margin.  The 5M placeholder
+    it replaces was an observed-failure-informed guess (5 lanes x
+    ~1.3M died at 12:47Z) that refused at a FIFTH of the real window.
+    Tune via WEIZIGO_WINDOW_BUDGET_<FAMILY>;
+  * the meter counts tokens_in = input + cache_read (T558), and claude
+    lanes are ~100% cache reads — whether the provider's window counter
+    prices cache reads at full weight is settled by ONE ground-truth
+    pair (10,634,226 = 28%, which is consistent with full weight but
+    is a single observation); a second pair is needed before cache
+    pricing is settled — ledger OPEN, T736;
   * no cross-family generalization until a second family exhibits a
     windowed limit (the brief's non-goal);
   * a provider-limit death whose run record predates T629's vocabulary
@@ -134,12 +143,24 @@ FAMILY_OF = {}
 for _l in CLAUDE_LABELS:
     FAMILY_OF[_l] = "claude"
 
-# The per-family 5-hour window budget in input tokens.  Default: 5M —
-# five lanes of ~1.3M each died at 12:47Z on 2026-08-22, so 5M is
-# conservative against the observed failure point and leaves room for a
-# probe.  A measured provider number replaces it (env override per family:
-# WEIZIGO_WINDOW_BUDGET_CLAUDE).  Blind spot recorded in the docstring.
-DEFAULT_WINDOW_BUDGET = 5_000_000
+# The per-family 5-hour window budget in input tokens.  Default: 35M —
+# calibrated 2026-08-23 (T736) from the incident ground-truth pair:
+# at ~11:00Z the meter read used=10,634,226 (T727 2,953,530 + T726
+# 7,680,696 — both claude, both inside the rolling window) while the
+# operator's provider dashboard read 28% used, 3h00' to reset → the
+# provider's 5-hour window ≈ 10.63M / 0.28 ≈ 38M; 35M keeps margin
+# against the measured point while no longer refusing at a fifth of the
+# real window.  The old 5M placeholder refused 10,634,226 > 5,000,000
+# while the provider showed 28% used — an invented constant, not a
+# provider number (incident 2026-08-23 ~11:00Z; the refusal is recorded
+# in docs/epics/.../science-arm-sprint/build.md §4 for the earlier
+# 22.4M > 5M instance).  Env override per family:
+# WEIZIGO_WINDOW_BUDGET_CLAUDE.  The meter counts tokens_in
+# (input+cache_read, T558); claude lanes are ~100% cache reads and the
+# ONE ground-truth pair is consistent with the provider's counter
+# pricing the same pool at full weight — a second pair settles cache
+# pricing (ledger OPEN, T736).
+DEFAULT_WINDOW_BUDGET = 35_000_000
 
 # The meter degrades appetite to CONSERVE at this fraction of the budget.
 CONSERVE_RATIO = 0.75
@@ -421,10 +442,44 @@ def record_override(root, task_id, family, cooldown, reason, now=None):
         "ts": _iso(now),
         "task": task_id,
         "family": family,
+        "kind": "cooldown",
         "until": cooldown.get("until"),
         "source": cooldown.get("source"),
         "reset_text": cooldown.get("reset_text") or "",
         "fallback": bool(cooldown.get("fallback")),
+        "reason": reason.strip(),
+    }
+    try:
+        p = os.path.join(root, "untracked", WINDOW_OVERRIDES_FILE)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "a") as f:
+            f.write(json.dumps(line, sort_keys=True) + "\n")
+        return p
+    except OSError:
+        return None
+
+
+def record_budget_override(root, task_id, family, bc, reason, now=None):
+    """Record a human dispatch past the token-budget refusal (T736): append
+    one JSON line to <root>/untracked/fleet-window-overrides.jsonl with
+    kind="budget" and the meter numbers the refusal quoted (used /
+    estimate / remaining / budget).  Append-only, never overwritten — the
+    same audit file and discipline as the T677 cooldown override; the
+    reason is the operator's assertion that they have checked the provider
+    themselves.  Returns the path (None on OSError).
+    """
+    if not reason or not reason.strip():
+        return None
+    now = int(now if now is not None else time.time())
+    line = {
+        "ts": _iso(now),
+        "task": task_id,
+        "family": family,
+        "kind": "budget",
+        "used": bc.get("used"),
+        "estimate": bc.get("estimate"),
+        "remaining": bc.get("remaining"),
+        "budget": bc.get("budget"),
         "reason": reason.strip(),
     }
     try:

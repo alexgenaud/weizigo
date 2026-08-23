@@ -72,6 +72,11 @@
 #               says so and names the override
 #   D2  seeded  --override-window-cooldown=<reason> records the reason
 #               and proceeds; a bare flag without a reason is refused
+#   F1  seeded  (T736) the BUDGET refusal has the same recorded override:
+#               --override-window-budget=<reason> (kind=budget in the same
+#               jsonl), the refusal names the override path, a bare flag
+#               without a reason is refused, and the budget flag NEVER
+#               bypasses the cooldown gate
 #
 # Test-first (T628/T677): against the 2026-08-22 code the B1/C2/C3/D1/D2
 # arms FAIL (quote the red), the null arms pass, and after the fix all
@@ -680,6 +685,123 @@ if [ "$DRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'requires a reason'; then
 else
     echo "    FAIL(d): bare override rc=$DRC — expected usage refusal naming the reason requirement"
     printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -4
+    FAIL=1
+fi
+
+# ── F1. seeded (T736): the BUDGET refusal has the same recorded ─────────
+# override as the cooldown (T677 parity): reason required, appended to
+# untracked/fleet-window-overrides.jsonl as kind=budget, loud, and the
+# budget flag NEVER bypasses the cooldown gate (cross-guard).
+echo "  F1. seeded: --override-window-budget=<reason> records the reason and proceeds (T736)"
+clear_fixtures
+seed "$(rec_disp T7361)"
+mkbundle T7361
+NOWEPOCH=$(python3 -c "import time; print(int(time.time()))")
+python3 - "$NOWEPOCH" <<'PYEOF'
+import json, os, sys
+now = int(sys.argv[1])
+for i, ti in enumerate((3000, 3000)):
+    tid = "T736%d" % (i + 1)
+    rec = {
+        "task": tid, "attempt": 1, "model": "claude-sonnet-5",
+        "pid": 999, "start_epoch": now - 600, "wall": 300,
+        "end": None, "exit": 0,
+        "tokens_in": ti, "tokens_out": 400,
+        "tokens_fresh": 10, "tokens_cache_read": ti - 10,
+        "tokens_source": "claude-json-envelope",
+    }
+    with open(os.path.join(os.environ["WORK"], "untracked", "runs", tid + ".json"), "w") as f:
+        json.dump(rec, f)
+PYEOF
+# (a) without the override the budget refusal names the numbers AND the
+# override path (the hint is the discoverability half of the escape hatch)
+OUT=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run 2>&1)
+CRC=$?
+if [ "$CRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'REFUSED' \
+   && printf '%s' "$OUT" | grep -q 'window budget' \
+   && printf '%s' "$OUT" | grep -q '6,000' \
+   && printf '%s' "$OUT" | grep -q 'override-window-budget'; then
+    echo "    PASS(a): budget refusal names the numbers and the override path"
+else
+    echo "    FAIL(a): claude_rc=$CRC — expected REFUSED naming numbers + override hint; got:"
+    printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -6
+    FAIL=1
+fi
+# (b) with the override, dispatch proceeds (dry-run) and warns loudly
+OV=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run \
+    --override-window-budget="operator checked provider dashboard manually" 2>&1)
+OVRC=$?
+if [ "$OVRC" -eq 0 ] && printf '%s' "$OV" | grep -q 'dry-run T7361' \
+   && printf '%s' "$OV" | grep -qi 'OVERRIDDEN'; then
+    echo "    PASS(b): override proceeds (dry-run) with a loud warning"
+else
+    echo "    FAIL(b): override_rc=$OVRC — expected dry-run rc=0 + OVERRIDDEN warning; got:"
+    printf '%s' "$OV" | sed 's/^/      claude | /' | tail -6
+    FAIL=1
+fi
+# (c) the record is append-only with kind=budget, the reason and the meter
+# numbers (a dry-run records nothing — the decision is only recorded when
+# it executes)
+python3 - <<'PYEOF'
+import json, os, sys
+sys.path.insert(0, os.environ["ROOT"] + "/tools")
+import window_policy  # noqa: E402
+root = os.environ["WORK"]
+bc = {"used": 6000, "estimate": 3000, "remaining": -4000, "budget": 5000}
+p = window_policy.record_budget_override(root, "T7361", "claude", bc,
+                                         "operator checked provider dashboard manually")
+lines = open(p).read().splitlines()
+ok = len(lines) == 1
+if ok:
+    rec = json.loads(lines[0])
+    ok = rec["kind"] == "budget" and rec["reason"] == "operator checked provider dashboard manually" \
+         and rec["family"] == "claude" and rec["task"] == "T7361" \
+         and rec["used"] == 6000 and rec["budget"] == 5000
+print("    override record: %s" % (lines[0] if lines else "(none)"))
+sys.exit(0 if ok else 1)
+PYEOF
+if [ $? -eq 0 ]; then
+    echo "    PASS(c): override recorded append-only with kind=budget, reason and meter numbers"
+else
+    echo "    FAIL(c): override record missing or wrong"
+    FAIL=1
+fi
+# (d) a bare flag without a reason is refused (reason-required)
+OUT=$(cd "$WORK" && "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run --override-window-budget 2>&1)
+DRC=$?
+if [ "$DRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'requires a reason'; then
+    echo "    PASS(d): bare override flag without a reason is refused"
+else
+    echo "    FAIL(d): bare override rc=$DRC — expected usage refusal naming the reason requirement"
+    printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -4
+    FAIL=1
+fi
+# (e) cross-guard: the budget override NEVER bypasses the cooldown gate —
+# the two overrides are distinct escape hatches, not one master key
+clear_fixtures
+seed "$(rec_disp T7362)"
+mkbundle T7362
+python3 - <<'PYEOF'
+import json, os, sys, time
+now = int(time.time())
+rec = {
+    "task": "T7362", "attempt": 1, "model": "claude-sonnet-5",
+    "pid": 988, "start_epoch": now - 600, "wall": 300,
+    "end": None, "exit": 1, "killed_by": "provider-limit",
+    "provider_reset_epoch": now + 7200,
+    "provider_reset_text": "resets 3pm (Europe/Oslo)",
+}
+with open(os.path.join(os.environ["WORK"], "untracked", "runs", "t7362.json"), "w") as f:
+    json.dump(rec, f)
+PYEOF
+OUT=$(cd "$WORK" && "$DISPATCH" T7362 claude-sonnet-5 --test-root="$WORK" --dry-run --override-window-budget="trying to dodge the cooldown" 2>&1)
+CRC=$?
+if [ "$CRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'REFUSED' \
+   && printf '%s' "$OUT" | grep -qi 'cooldown'; then
+    echo "    PASS(e): budget override does not bypass the cooldown gate"
+else
+    echo "    FAIL(e): claude_rc=$CRC — expected REFUSED (cooldown) despite the budget override; got:"
+    printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -6
     FAIL=1
 fi
 

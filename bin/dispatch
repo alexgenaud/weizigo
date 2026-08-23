@@ -5,6 +5,7 @@ Usage:
   bin/dispatch <T-id> <model> [--wall=N] [--dry-run]
                [--test-root=<dir>] [--test-worker=<cmd>]
                [--override-window-cooldown=<reason>]
+               [--override-window-budget=<reason>]
 
   <model>   a canonical model label (src/managent/main.zig
             canonical_models[], T317) or a dispatch tag that canonicalizes
@@ -35,6 +36,17 @@ Usage:
               around the guard).  A reason is mandatory: the flag exists
               for "I have checked the provider myself; proceed", not for
               convenience.
+
+  --override-window-budget=<reason>
+              bypass the T628 token-budget refusal for THIS dispatch only
+              (T736, mirroring the cooldown override above): reason
+              REQUIRED and recorded append-only to the SAME
+              untracked/fleet-window-overrides.jsonl as kind=budget with
+              the meter numbers the refusal quoted.  The cooldown and
+              probe-concurrency gates still apply — this flag never
+              bypasses the cooldown.  A reason is mandatory: the flag
+              exists for "I have checked the provider myself; proceed",
+              not for convenience.
 
   test-only flags (T476 — the regression uses them; production never does):
   --test-root=<dir>    resolve bundle and log from <dir> (scratch repo)
@@ -178,6 +190,7 @@ def main(argv):
     test_root = None
     test_worker = None
     override_reason = None
+    override_budget_reason = None
 
     for a in argv:
         if a == "--dry-run":
@@ -203,6 +216,18 @@ def main(argv):
         elif a == "--override-window-cooldown":
             sys.exit("dispatch: --override-window-cooldown requires a reason: "
                      "--override-window-cooldown=<reason> (T677).\n"
+                     "  The flag exists for 'I have checked the provider myself; "
+                     "proceed', not for convenience.")
+        elif a.startswith("--override-window-budget="):
+            override_budget_reason = a.split("=", 1)[1].strip()
+            if not override_budget_reason:
+                sys.exit("dispatch: --override-window-budget requires a reason: "
+                         "--override-window-budget=<reason> (T736).\n"
+                         "  The flag exists for 'I have checked the provider myself; "
+                         "proceed', not for convenience.")
+        elif a == "--override-window-budget":
+            sys.exit("dispatch: --override-window-budget requires a reason: "
+                     "--override-window-budget=<reason> (T736).\n"
                      "  The flag exists for 'I have checked the provider myself; "
                      "proceed', not for convenience.")
         elif a.startswith("--"):
@@ -397,13 +422,38 @@ def main(argv):
                     + fallback_note)
         bc = window_policy.budget_check(fam, root, now)
         if not bc["allowed"]:
-            sys.exit(
-                f"dispatch: REFUSED — family {fam} 5-hour window budget: used "
-                f"{bc['used']:,} + estimated lane {bc['estimate']:,} > remaining "
-                f"{bc['remaining']:,} of {bc['budget']:,} (T628).\n"
-                f"  A lane now would die mid-run of the provider limit.  Degrade "
-                f"appetite to CONSERVE/OFF (FLEET_APPETITE) or wait for the window "
-                f"to roll; the keeper sizes the fan-out cap from this meter.")
+            if override_budget_reason:
+                # T736: the recorded escape hatch for the BUDGET refusal,
+                # mirroring the T677 cooldown override — same audit file,
+                # kind=budget with the meter numbers.  The operator asserts
+                # they have checked the provider; the reason is appended
+                # loudly.  A DRY-RUN is not a decision — recorded only when
+                # a real dispatch executes it.  The cooldown gate above is
+                # untouched: this flag never bypasses a cooldown.
+                if not dry_run:
+                    rec_path = window_policy.record_budget_override(
+                        root, task_id, fam, bc, override_budget_reason, now)
+                else:
+                    rec_path = None
+                where = (f"recorded in {os.path.relpath(rec_path, root)}"
+                         if rec_path else "(dry-run — override would be recorded on a real dispatch)")
+                print(f"dispatch: WARNING — 5-hour window budget for family {fam} "
+                      f"OVERRIDDEN for this dispatch by operator reason "
+                      f"{override_budget_reason!r}; {where} (T736)", file=sys.stderr)
+                if not dry_run and rec_path is None:
+                    print("dispatch: WARNING — could not append to "
+                          "untracked/fleet-window-overrides.jsonl; the override "
+                          "is NOT recorded (T736)", file=sys.stderr)
+            else:
+                sys.exit(
+                    f"dispatch: REFUSED — family {fam} 5-hour window budget: used "
+                    f"{bc['used']:,} + estimated lane {bc['estimate']:,} > remaining "
+                    f"{bc['remaining']:,} of {bc['budget']:,} (T628).\n"
+                    f"  A lane now would die mid-run of the provider limit.  Degrade "
+                    f"appetite to CONSERVE/OFF (FLEET_APPETITE) or wait for the window "
+                    f"to roll; the keeper sizes the fan-out cap from this meter.  If "
+                    f"you have checked the provider yourself, override with "
+                    f"--override-window-budget=<reason> (T736).")
         if bc["level"] == "CONSERVE":
             print(f"dispatch: window note — family {fam} at CONSERVE (used "
                   f"{bc['used']:,} of {bc['budget']:,} in the 5h window)",
