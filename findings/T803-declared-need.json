@@ -1,0 +1,68 @@
+{
+  "task_id": "T803",
+  "date": "2026-08-23",
+  "model": "claude-sonnet-5",
+  "audited_by": "claude-sonnet-5/T803",
+  "status": "pass — spec amendment landed",
+  "claims": [],
+  "new_rows": [],
+
+  "summary": "S08-fleet-guard-reliability/spec.md amended (T803): added §2a (ORC-GD-1..5), a declared resource-need block set at registration as admission's primary control, upstream of the machine-danger floor. No code touched — this is a spec amendment only, per the brief's own scope limit; T786 owns the task fields, the S08 build passes own the code.",
+
+  "gap_measured": {
+    "before": "no field records what a task needs anywhere: caps=[] on all 434 tasks, expected_wall_s populated 0/417; the only live knobs are per-invocation flags with global defaults (--max-rss, --host-mem-floor-mb default hw.memsize // 8), never a per-task declaration.",
+    "design_defect": "tools/runner:2731's host_total // 8 floor is a machine-level question (is the host in danger?) but tools/runner:3151's kill path (largest_pid = max(poll_rss, ...)) takes a task-level action with no comparison of that member's RSS against the shortfall anywhere in the path (tools/runner:3123-3196) — the two questions were never separated upstream of the existing ORC-G1..G10 response controls."
+  },
+
+  "amendment_added": {
+    "location": "docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md §2a",
+    "normative_ids": ["ORC-GD-1", "ORC-GD-2", "ORC-GD-3", "ORC-GD-4", "ORC-GD-5"],
+    "arms_added": ["A29", "A30", "A31", "A32", "A33", "A34"],
+    "count_after_amendment": "normative ids 21 -> 26; arms 28 -> 34; armless ids: 0",
+    "one_line_per_id": {
+      "ORC-GD-1": "declared-need block at registration: ram_mb required, cpu_s/max_siblings/wall_s optional",
+      "ORC-GD-2": "defaults come from task type + provider, measured not invented — resident-model tasks from model-registry.md, API tasks from the per-provider rss_mb distribution computed below",
+      "ORC-GD-3": "admission arithmetic as a formula: admit iff projected_available (host_avail - committed declarations - resident tenant charge - this task's declared need) >= the existing unchanged floor; no added spare constant",
+      "ORC-GD-4": "the machine-danger backstop (ORC-G1/G2/G7/G8) is unchanged and is reached far less often once ORC-GD-3 runs upstream",
+      "ORC-GD-5": "an overrun (actual RSS > declared) is logged as a declared_vs_actual defect record first, feeding the next round of defaults; a stop is a separate, [design-open] threshold (recommended 25%), not automatic"
+    }
+  },
+
+  "per_provider_rss_distribution": {
+    "method": "python3 over untracked/runs/*.json's rss_mb field (474/512 records carry it); provider resolved from the model field where present, else joined against docs/infra/managent/tasks.json's agent field by task-id prefix; 23/474 records left unresolved and excluded (not guessed) — stated, not silently dropped, per ORC-GP-4's own principle applied here",
+    "rounding_rule": "recommended default = ceil(p90_nonzero_rss_mb / 256) * 256 — headroom to the next quarter-GB, no additional spare constant",
+    "table": [
+      {"provider": "claude", "n_present": 76, "n_nonzero": 73, "p50_mb": 626, "p90_mb": 899, "max_mb": 13661, "recommended_default_mb": 1024},
+      {"provider": "deepseek", "n_present": 351, "n_nonzero": 246, "p50_mb": 472, "p90_mb": 2768, "max_mb": 12296, "recommended_default_mb": 2816},
+      {"provider": "pi/openrouter (ox-alpha)", "n_present": 9, "n_nonzero": 9, "p50_mb": 517, "p90_mb": 994, "max_mb": 994, "recommended_default_mb": 1024, "caveat": "n=9, low confidence, flag for re-measurement as ox-alpha volume grows"},
+      {"provider": "ollama-cloud (glm-5.2/minimax-m3/kimi-k2.7, served remotely)", "n_present": 13, "n_nonzero": 12, "p50_mb": 700, "p90_mb": 3210, "max_mb": 3210, "recommended_default_mb": 3328, "caveat": "n=13, low confidence, same flag"},
+      {"provider": "qwen3.8:27b-mlx resident task's OWN dispatched pid (not the daemon)", "n_present": 2, "n_nonzero": 2, "p50_mb": 521, "p90_mb": 521, "max_mb": 521, "recommended_default_mb": "NOT USED — see resident_model_declaration below; declaring the task-pid figure here would be D1 again, just moved into a registration field"}
+    ],
+    "unresolved_excluded": 23
+  },
+
+  "resident_model_declaration": {
+    "model": "qwen3.8:27b-mlx",
+    "measured_daemon_rss": "15.6 GB, findings/T711-declared-tenant.json implementation.process_name_confirmation (one measured instance)",
+    "non_monotone_evidence": "ORC-G9 (S08 spec, pre-existing): same run climbs 36 -> 1890 -> 9206 -> 10153 MB then settles ~7825 MB — the live sample under-reports by roughly 2x even after stabilizing",
+    "recommended_declared_default_mb": 18000,
+    "why_above_the_single_measured_instance": "operator's own framing in the brief ('18 GB', '18-25 GB usage') sits above the one measured 15.6 GB instance; the amendment recommends the declared default track the operator's stated ceiling rather than the single sample, since the goal is a default that does not recreate D1 (a startup-race sample winning before the model is fully resident)."
+  },
+
+  "floor_decision": {
+    "reopened": true,
+    "resolved": "kept the floor's VALUE unchanged (total // 8, tools/runner:2731 — the 2026-07-29 kernel panic precedent stands); changed the floor's ROLE from sole/only admission signal to machine-danger backstop, with declared-need admission (ORC-GD-1..3) added as the primary, far-more-frequent control that runs upstream of it.",
+    "evidence_cited": "the futile-kill census (S08 §1.2, pre-existing): 16/20 (80%) of identified kills were futile; the 2026-08-23 15:19:09 incident killed three lanes (639 MB combined RSS) that could not have cleared even one of their own shortfalls, while the true 15.6-18 GB qwen cause went untouched because nothing upstream of the guard ever asked what any task declared it would need.",
+    "counter_case_considered": "a reasoned case for leaving the floor's role unchanged would need to explain that record; none was found — the amendment states this rather than assuming the change was needed."
+  },
+
+  "what_this_would_have_changed_on_2026_08_23_15_19_09": "the qwen lane would have declared ram_mb ~= 18000 at registration (resident-model derivation) before any of the four lanes launched; ORC-GD-3's admission arithmetic, evaluated for the co-launch batch, would have shown projected_available falling below the floor once the qwen declaration and the three cloud lanes' own per-provider defaults were summed against the observed 5.4-6.0 GB available — using a number that does not depend on a ps sample winning a startup race. The batch would have been refused/queued at admission (T713's stance: stays dispatchable) and zero of the three 88-second kills at 251/133/129 MB RSS would have occurred, because none of those three lanes would have been running when the real 18 GB consumer was loading.",
+
+  "out_of_scope_respected": [
+    "no edits to tools/runner, bin/subagent, or the task-store schema",
+    "no code changes of any kind — spec amendment only",
+    "the floor's numeric value (total // 8) is unchanged; a diff touching it still fails accept (S08 §10.5)"
+  ],
+
+  "notes": "Inbox checked at claim, before this write, and before done (bin/managent inbox T803 --ack) — empty at each checkpoint, no directive to record."
+}

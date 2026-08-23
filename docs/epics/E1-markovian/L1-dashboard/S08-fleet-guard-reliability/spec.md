@@ -4,6 +4,11 @@
 pass). **Owner:** claude-opus-5/T785 · **Date:** 2026-08-23 · **Status:** PROPOSED (rev 1, for
 operator ratification) — audited before anything is built. Not a worker brief, not a plan, no code.
 
+**Amendment (T803, 2026-08-23, claude-sonnet-5).** §2a below adds ORC-GD-1..5 — a declared
+resource need, set at registration, as the admission control's primary input. It re-opens and
+resolves the shape (not the value) of the floor decision in §3. No code changes; §3, §5, §9, §10
+gain the corresponding cross-references.
+
 **Landmark.** Advances **L1 (dispatch tooling)** — the fleet stops losing lanes to its own guards.
 
 **Operator ruling, 2026-08-23 (the reason this sprint exists).** *"Our tooling and monitors are
@@ -226,6 +231,124 @@ instrument to report **0 futile kills** over the corpus produced after the pass 
 
 ---
 
+## 2a. Declared resource need (T803 amendment) — admission asks the task, not the machine
+
+**The measured gap this closes.** As of this amendment, nothing records what a task needs: `caps`
+is `[]` on all 434 tasks, `expected_wall_s` is populated on 0/417, and the two live knobs
+(`--max-rss`, `--host-mem-floor-mb`) are per-invocation flags with global defaults, never
+per-task declarations. §1's incident is what that gap produces: `tools/runner:2731`'s
+`host_total // 8` floor is a **machine**-level question — *is the host in danger?* — and every
+existing ORC-G id (G1, G2, G7, G8) governs the **response** once that question fires. None of them
+govern **admission**: whether a task should have been let in at all, given what it was going to
+need. ORC-GD-1..5 add that upstream control. They do not replace ORC-G1/G2/G8 — those still govern
+whatever reaches the backstop.
+
+**ORC-GD-1 (a declared-need block, set at registration).** Every task carries `ram_mb` (expected
+peak, required) and optionally `cpu_s`, `max_siblings`, `wall_s`. The block is a registration-time
+fact, not a runtime measurement — it is read once at admission, the same way ORC-G9 holds the
+tenant reading once per decision rather than re-sampling it. `caps`/`expected_wall_s` remain
+T786's fields to populate; ORC-GD-1 specifies what the resource-need fields must contain once
+T786 adds them, it does not add them itself (§3 restates: no store-schema edits here).
+
+**ORC-GD-2 (the default comes from task type and provider, not a global constant, and is
+measured).** Two derivations, neither invented:
+
+- **Resident-model tasks** (a task that asks a local model server to load a model) declare the
+  *model's* footprint from `docs/infra/model-registry.md`, never from the task's own process RSS.
+  This is D1/ORC-G3 stated as a declaration rule: `qwen3.8:27b-mlx`'s own dispatched lane shows
+  **521 MB** RSS on its own pid in the run corpus (n=2, `untracked/runs/*.json`) — because the
+  18 GB lives in the `ollama` daemon, on no process group the task owns. Declaring 521 MB for a
+  qwen task would be D1 again, just moved from the guard's sampling code into a registration
+  field. The declared default for a `qwen3.8:27b-mlx` resident task is the **measured** daemon
+  RSS, `findings/T711-declared-tenant.json` `implementation.process_name_confirmation`: **15.6 GB**
+  observed on one resident instance, non-monotone in other runs (ORC-G9: 36 → 10153 → settles
+  ~7825 MB, i.e. the *live sample* under-reports by roughly 2× even after it stabilizes). Recommend
+  the declared default be the **high-water figure, not the settled one** — 15.6 GB rounds to
+  **16000 MB**; the operator's own framing (*"18 GB", "18-25 GB usage"*) is a conservative ceiling
+  above the one measured instance, so the recommended default is **18000 MB**, citing both the
+  single measured instance and the operator's stated range as the reason for sitting above the
+  single sample rather than at it.
+- **API-provider tasks** declare the **per-provider** distribution computed from
+  `untracked/runs/*.json`'s `rss_mb` field (474 of 512 run records carry it), joined against
+  `docs/infra/managent/tasks.json`'s `agent` field where the run record itself omits `model`
+  (266 of 474 records; the join resolves all but 23 — those 23 are excluded, not guessed, and are
+  named here rather than silently dropped, per ORC-GP-4's own principle applied to this
+  computation):
+
+  | provider | n (rss present) | n (nonzero) | p50 | p90 | max | recommended `ram_mb` default |
+  |---|---|---|---|---|---|---|
+  | `claude` | 76 | 73 | 626 | 899 | 13661 | **1024** (ceil(p90/256)·256) |
+  | `deepseek` | 351 | 246 | 472 | 2768 | 12296 | **2816** (ceil(p90/256)·256) |
+  | `pi`/openrouter (`ox-alpha`) | 9 | 9 | 517 | 994 | 994 | **1024** — n=9, low-confidence, flag for re-measurement once ox-alpha volume grows |
+  | ollama-cloud (`glm-5.2`/`minimax-m3`/`kimi-k2.7`, served remotely) | 13 | 12 | ~700 | ~3210 | 3210 | **3328** — n=13, low-confidence, same flag |
+
+  Rounding rule stated, not invented: `default = ceil(p90_nonzero / 256 MB) * 256 MB` — headroom
+  to the next quarter-GB, no added spare constant (the brief's own example of a constant outliving
+  its reason is the standing warning against inventing one here). A brief may override either
+  derivation with a stated reason; the override and its reason are logged the same way a
+  characterization arm cites its repair id (ORC-GC-2's pattern, applied to overrides).
+
+**ORC-GD-3 (admission arithmetic, stated as a formula, no unexplained constant).** Before a task is
+admitted:
+
+```
+projected_available = host_avail_bytes()
+                     − Σ(declared ram_mb of already-admitted, not-yet-exited tasks)
+                     − resident_tenant_charge(ORC-G3's charge rule, held per ORC-G9)
+                     − declared ram_mb of the task being admitted
+
+admit  iff  projected_available >= floor_bytes   (the existing, unchanged total // 8)
+refuse/queue  otherwise — T713's stance: the task stays dispatchable
+```
+
+No additional spare margin is added beyond the existing floor — the floor **is** the safety
+margin (§3 restates it is unchanged in value). This is the *task-level* question from the brief:
+**does this task's declared need fit in what is actually available right now?** It runs before,
+and far more often than, the machine-level backstop.
+
+**ORC-GD-4 (the backstop is unchanged, and is now reached far less often).** ORC-GD-3 does not
+touch ORC-G1 (refuse before kill), ORC-G2 (no futile kill), ORC-G7 (label the death) or ORC-G8
+(dwell before acting) — a task that is admitted and then still trips the machine floor is handled
+exactly as those ids already require. What ORC-GD-3 changes is how often the backstop is reached
+at all: most of §1's incident shape (an over-committed co-launch) is refused at admission and never
+reaches a running-process kill decision.
+
+**ORC-GD-5 (overrun is a declaration defect, logged before it is punished).** A task whose peak
+actual RSS exceeds its declared `ram_mb` is recorded as `declared_vs_actual` (declared, actual,
+task type, provider) — feeding the corpus this section's own defaults were computed from, so the
+default improves rather than repeating a stale guess. `[design-open]`: the threshold past which an
+overrun also triggers a stop, in addition to being logged. Recommend **25 % over declared**,
+consistent with this section's own habit of a stated, arguable number rather than a silent one; the
+existing `--rss-cap-mb` still bounds any single worker regardless (§3, unchanged).
+
+**The floor decision, re-opened and resolved.** §3's *"Raising the floor. Forbidden"* is preserved
+**exactly as stated — the floor's value does not move.** What this amendment resolves is the
+floor's **role**: at `5552d81` it is the *only* admission signal, sole and task-blind, which is
+what makes an 18 GB daemon and a 130 MB cloud lane arithmetically interchangeable to the guard.
+The evidence for changing the role and not the value: **16/20 (80 %) of the corpus's identified
+kills were futile** (§1.2), the 2026-08-23 15:19:09 incident killed three lanes whose combined RSS
+(639 MB) could not have cleared even one of their own shortfalls, and the true cause — the 15.6 GB
+qwen tenant — was never named because nothing upstream of the guard ever asked what any task
+declared it would need. A reasoned case that the floor's role should stay unchanged would have to
+explain that record; this amendment does not find one. **Resolution: keep the floor's value as the
+machine-danger backstop (ORC-GD-4), add declared-need admission as the primary, far-more-frequent
+control (ORC-GD-1..3), and treat overrun as a defect in the declaration, not grounds to skip
+straight to a kill (ORC-GD-5).**
+
+**What this would have done differently on 2026-08-23 15:19:09.** The qwen lane's task would have
+declared `ram_mb ≈ 18000` (ORC-GD-2, resident-model derivation) at registration, before any of the
+four lanes launched. ORC-GD-3's arithmetic, evaluated for the batch, would have shown
+`projected_available` falling below the floor once the qwen declaration and the three cloud
+lanes' own declared defaults (≈1–3 GB each, ORC-GD-2's per-provider table) were summed against the
+observed **5.4–6.0 GB** available at the time — before any process was spawned, using a number that
+does not depend on a `ps` sample winning a startup race (closing D1 a second way, upstream of
+ORC-G4). The batch would have been refused or partially queued at admission (T780/781/782 held
+dispatchable, per ORC-GD-3), and **zero** of the three 88-second kills at 251/133/129 MB RSS would
+have occurred — because none of those three lanes would have been running at all when the real
+18 GB consumer was loading.
+
+---
+
 ## 3. What is out of scope, named
 
 - **Raising the floor.** Forbidden. The `total // 8` derivation (`tools/runner:2731`) exists
@@ -233,7 +356,10 @@ instrument to report **0 futile kills** over the corpus produced after the pass 
   (`docs/infra/host/incident-2026-07-29.md`). Raising it disables the one protection that
   precedent justifies. Every fix here is about *who* dies and *whether anyone needs to*, never
   about the threshold. (This is the content `untracked/T715-host-guard-incident-record.md` owes
-  the design doc; this spec supplies it, T715 places it.)
+  the design doc; this spec supplies it, T715 places it.) **§2a (T803) re-opens and resolves the
+  floor's *role*, not its value:** the floor stays the unchanged machine-danger backstop
+  (ORC-GD-4); ORC-GD-1..3 add declared-need admission as the primary, far-more-frequent control
+  upstream of it. A diff that changes `total // 8` still fails accept (§10.5, unchanged).
 - **Rewriting `tools/runner`.** Consistent with S06 ORC-GOAL-3: the runner survives as the
   launch/guard layer. Its *host-pressure decision* moves to the arbiter; its internals (reap,
   liveness, token capture, run records) do not.
@@ -284,7 +410,7 @@ by its guard path, not its 3493 total):
 |---|---|---|---|
 | 1 | *(none — characterization)* | pins all six | the operator's "prove what works works" ruling |
 | 2 | `tools/runner` (guard path, `:3123-3196`) | pressure **response** | **first**: every other defect routes through it, and ORC-G1/G2/G7/G8 all land here. The arbiter is born in this pass. |
-| 3 | `bin/subagent` (819) | memory **admission** (T713) | the other half of ORC-G3; the arbiter now owns both questions and can be shown answering them differently on purpose |
+| 3 | `bin/subagent` (819) | memory **admission** (T713) | the other half of ORC-G3; the arbiter now owns both questions and can be shown answering them differently on purpose. **Carries ORC-GD-1..3 (T803):** admission reads the declared-need block computed in §2a; this is the pass that wires it, not §2a itself. |
 | 4 | `tools/fleet-keeper.sh` (1169) | dispatch **rate** (caps, cooldowns, holds) | ORC-G1's "stop admitting" verb needs the rate limiter to be the arbiter's, not a peer's |
 | 5 | `bin/dispatch` (546) | the advisory gate | after the real chokepoint is arbiter-owned, the advisory gate is a thin caller (T677/D040: a gate only in `bin/dispatch` is advisory) |
 | 6 | `tools/window_policy.py` (548) | the token-window fan-out cap | the third admission dimension; last because it is independent of memory and blocks nothing |
@@ -362,7 +488,7 @@ fixture heartbeat in the live `untracked/heartbeat.jsonl`, T512/F3).
 |---|---|---|---|---|
 | A1 | real tenant, co-launch | a **real** local-model load concurrent with cloud lanes (no injected number) | no cloud lane dies; the tenant resolves to ≥ 90 % of its steady-state footprint before admission | ORC-G4, ORC-G9 |
 | A2 | futile shortfall | injected shortfall with **all** members smaller than it | **nothing is killed**; one record names the shortfall + every member considered | ORC-G2 |
-| A3 | sufficient shortfall | injected shortfall with **exactly one** member larger | exactly that member dies | ORC-G2 |
+| A3 | sufficient shortfall | injected shortfall with **exactly one** member larger | exactly that member dies | ORC-G2, ORC-GD-4 |
 | A4 | refuse before kill | pressure with a pending dispatch and a running lane | the pending dispatch is refused/list-waited; the running lane survives | ORC-G1 |
 | A5 | shed order | pressure persists after refusal, two lanes running | the newest/least-progressed is stopped first, never the oldest | ORC-G1 |
 | A6 | admission vs danger | tenant resident; ask both questions | *host in danger?* adds the tenant back; *can a lane fit?* does not — two answers, one arbiter | ORC-G3 |
@@ -388,13 +514,21 @@ fixture heartbeat in the live `untracked/heartbeat.jsonl`, T512/F3).
 | A26 | smoke gates the boundary | unit arms green, smoke red | the pass **does not close** | ORC-GS-2 |
 | A27 | boundary re-run | the S08 battery against a post-S06 tree | fully green; a dropped arm is a regression | ORC-GB-1, ORC-GB-2 |
 | A28 | pass order | a pass attempted out of the §5 order (e.g. `bin/subagent` before the arbiter exists) | refused at the pass gate, naming the prerequisite pass | ORC-GP-3 |
+| A29 | resident declaration, not task-pid RSS | a `qwen3.8:27b-mlx` resident task registers | declared `ram_mb` comes from `model-registry.md` (≈18000), never from the task's own dispatched-pid RSS (521 MB, the corpus figure) | ORC-GD-2 |
+| A30 | provider default, no override | an API-provider task registers with no brief override | declared `ram_mb` equals §2a's computed per-provider default (e.g. `claude` → 1024, `deepseek` → 2816); the number traces to the stated corpus computation, not a literal in code | ORC-GD-1, ORC-GD-2 |
+| A31 | admission refuses on projected shortfall | a co-launch batch whose summed declarations (incl. resident-tenant charge) breach the floor | the task is refused/queued, not admitted; no process is spawned | ORC-GD-3, ORC-G1 |
+| A32 | admission admits on projected headroom | a batch whose summed declarations stay at or above the floor | the task is admitted normally | ORC-GD-3 |
+| A33 | overrun is logged, not instantly punished | a task's peak actual RSS exceeds its declared `ram_mb` | a `declared_vs_actual` record is written; the task is not stopped for the overrun alone (the RSS cap, if any, is a separate, unchanged control) | ORC-GD-5 |
+| A34 | incident replay under admission | the 2026-08-23 15:19:09 batch (3 cloud + 1 qwen-resident) replayed with ORC-GD-1..3 wired | the batch is refused/queued at admission before launch; the three cloud lanes are never spawned to be killed | ORC-GD-3, ORC-GD-2, ORC-G2 |
 
-**The count, stated (the S06 audit's rule).** Normative ids: **21** — ORC-G1..G10 (10), ORC-GC-1..3
-(3), ORC-GP-1..4 (4), ORC-GS-1..2 (2), ORC-GB-1..2 (2). Arms: **28**. **Armless ids: 0.** Ids with
-more than one arm: ORC-G2 (A2, A3, A16), ORC-G8 (A10, A11, A12), ORC-G10 (A14, A15, A16), ORC-G7
-(A8, A9), ORC-G6 (A17, A18), ORC-G1 (A4, A5), ORC-G9 (A1, A13), ORC-G5 (A7, A9), ORC-GS-1 (A24, A25),
-ORC-GS-2 (A25, A26), ORC-GB-1/2 (A27). The accept step recomputes this
-table's coverage mechanically; a hand-maintained count is a wish about a count.
+**The count, stated (the S06 audit's rule).** Normative ids: **26** — ORC-G1..G10 (10), ORC-GC-1..3
+(3), ORC-GP-1..4 (4), ORC-GS-1..2 (2), ORC-GB-1..2 (2), **ORC-GD-1..5 (5, T803 amendment)**. Arms:
+**34**. **Armless ids: 0.** Ids with
+more than one arm: ORC-G2 (A2, A3, A16, A34), ORC-G8 (A10, A11, A12), ORC-G10 (A14, A15, A16), ORC-G7
+(A8, A9), ORC-G6 (A17, A18), ORC-G1 (A4, A5, A31), ORC-G9 (A1, A13), ORC-G5 (A7, A9), ORC-GS-1 (A24, A25),
+ORC-GS-2 (A25, A26), ORC-GB-1/2 (A27), ORC-GD-2 (A29, A30, A34), ORC-GD-3 (A31, A32, A34). Single-arm
+ids among the T803 additions: ORC-GD-1 (A30), ORC-GD-4 (A3), ORC-GD-5 (A33). The accept
+step recomputes this table's coverage mechanically; a hand-maintained count is a wish about a count.
 
 ---
 
@@ -412,6 +546,13 @@ table's coverage mechanically; a hand-maintained count is a wish about a count.
 6. The fleet is dispatchable on all four providers at every boundary (ORC-GP-2).
 7. `untracked/T715-host-guard-incident-record.md` can be closed from §1 + §3 of this document
    without further investigation.
+8. **(T803)** ORC-GD-1..5 each have ≥ 1 arm (A29-A34 above), recomputed at accept the same as
+   every other id.
+9. **(T803)** The per-provider declared-need defaults trace to a reproducible computation over
+   `untracked/runs/*.json` (§2a's table), not an asserted literal — the excluded/unresolved record
+   count is stated, not silently dropped.
+10. **(T803)** The floor's value is unchanged (restates #5); its role is resolved in §2a with
+    evidence, not left `[design-open]`.
 
 ---
 
