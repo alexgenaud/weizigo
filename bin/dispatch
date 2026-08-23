@@ -5,7 +5,6 @@ Usage:
   bin/dispatch <T-id> <model> [--wall=N] [--dry-run]
                [--test-root=<dir>] [--test-worker=<cmd>]
                [--override-window-cooldown=<reason>]
-               [--override-window-budget=<reason>]
 
   <model>   a canonical model label (src/managent/main.zig
             canonical_models[], T317) or a dispatch tag that canonicalizes
