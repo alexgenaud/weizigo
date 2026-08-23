@@ -1,0 +1,32 @@
+{
+  "task_id": "T711",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T711",
+  "claims": [],
+  "new_rows": [],
+  "audited_by": null,
+  "contract": {
+    "env": "WEIZIGO_HOST_TENANT_RESERVATION_MB",
+    "semantics": "Declared-tenant reservation in MB, added to the available-memory reading before the danger-floor comparison (available-to-the-fleet = available + reservation); the host guard fires only when that sum < floor. Amends T714's contract: the 'unset ⇒ byte-identical to today' clause now means 'unset AND a real (non-injected) reading ⇒ auto-detect the resident model server'. When the available reading is INJECTED via WEIZIGO_HOST_MEM_AVAIL_MB and no reservation is declared, auto-detection is skipped so the T362 seeded arm stays deterministic.",
+    "owner": "T711 (implemented)"
+  },
+  "implementation": {
+    "function": "_declared_tenant_reservation_bytes() in tools/runner, inserted after _host_avail_bytes()",
+    "priority": "1. WEIZIGO_HOST_TENANT_RESERVATION_MB (verbatim, including 0 = explicitly no tenant); 2. injected reading (WEIZIGO_HOST_MEM_AVAIL_MB set) ⇒ 0 — the test owns the scenario, a tenant must be declared explicitly; 3. otherwise auto-detect every process whose command carries `ollama runner --mlx-engine` and sum its RSS (kB from `ps -axo pid=,rss=,command=`).",
+    "call_site": "the `avail < floor` branch of the poll loop — after `avail = _host_avail_bytes()`, `avail += tenant_res` before the floor comparison; the floor itself is untouched.",
+    "diagnostic": "a deduped [runner] line 'declared tenant subtraction: N MB (available-to-the-fleet)' prints once per reservation change (last_tenant_res cell), never containing the 'host memory pressure' kill phrase.",
+    "process_name_confirmation": "the resident MLX engine is `ollama runner --mlx-engine --model qwen3.8:27b-mlx` (15.6 GB RSS, ppid = ollama serve) — docs/evidence/orcha-pass1-perfamily-topology/ollama-family.md:19 and OWNER-LOG.md:387; the substring match is exact."
+  },
+  "controls": {
+    "null": "GREEN — sh tools/regression-runner-host-guard.sh: all five concurrent guarded lanes complete (exit 0 + 'T714HG lane N done', no 'host memory pressure').",
+    "seeded_defect": "GREEN — runaway still dies exit 124, 'RSS cap 50 MB exceeded', run record killed_by=rss.",
+    "t362_regression": "GREEN — sh tools/regression-runner-guard.sh: all four arms pass, including the seeded arm that injects WEIZIGO_HOST_MEM_AVAIL_MB=100 and must still fire with 'avail 100 MB' (the injected reading skips auto-detection).",
+    "isolation": "PASS — no fixture heartbeat lines appended to the live untracked/heartbeat.jsonl (T512/F3)."
+  },
+  "files": [
+    "tools/runner (declared-tenant subtraction + header comment)",
+    "findings/T711-declared-tenant.json (this file)"
+  ],
+  "notes": "T711 (host guard: declared-tenant math) — advances L1 (dispatch tooling): a resident qwen no longer reads as an emergency; the host guard now subtracts the declared tenant's footprint so 'available' means available-to-the-fleet, while the 2026-07-29 panic floor is untouched (NOT raised). WHAT SHIPPED: _declared_tenant_reservation_bytes() with three-priority resolution (env reservation verbatim; injected reading ⇒ no auto-detect; real reading ⇒ auto-detect `ollama runner --mlx-engine` RSS) and one call-site change in the poll loop (`avail += tenant_res` before the floor comparison). Test-first: T714's controls were shown RED against HEAD (5/5 null lanes exit 124 'host memory pressure') and turned GREEN after this change; the T362 guard regression stays fully green (its seeded arm injects the reading with no reservation, so auto-detection is skipped by design and 'avail 100 MB' still fires). Regression wiring into `zig build test` was already committed by T714 (build.zig line 333, HEAD 65996c8) — no build.zig edit needed here; confirmed the host-guard controls dependOn the test step. Inbox loop (T352): `bin/managent inbox T711 --ack` polled at start and before done — no directives received. No CLAIMS.md changes proposed (claims=[]); claimlint floor untouched. Milestone: L1 (dispatch tooling) — the host guard stops fratriciding innocent lanes on tenant pressure (T714 null green); T712 (one arbiter) and T713 (resident-aware dispatch budget) remain, and T715 can now record the incident."
+}

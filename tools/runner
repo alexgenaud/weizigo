@@ -27,6 +27,14 @@
 #                       --no-host-guard disables.  WEIZIGO_HOST_MEM_AVAIL_MB
 #                       injects the reading for the test (never exhaust
 #                       the host to test the floor).
+#                       T711 declared-tenant subtraction: the resident model
+#                       server (ollama runner --mlx-engine) is a NAMED tenant
+#                       OUTSIDE every group, so its ~15–20 GB is added back
+#                       to the reading before the floor comparison —
+#                       "available" means available-to-the-fleet.  A resident
+#                       qwen must not read as an emergency.
+#                       WEIZIGO_HOST_TENANT_RESERVATION_MB declares the
+#                       reservation for the test / as a manual override.
 #   --max-wall 1800     (fallback for silent children) SIGKILL after this
 #                       many wall seconds if no [progress] lines seen.
 #                       macOS does not have timeout(1), so this is the
@@ -1361,6 +1369,73 @@ def _host_avail_bytes():
     except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
         pass
     return None
+
+
+# ── declared-tenant subtraction (T711) ────────────────────────────────
+#
+# The 2026-07-29 panic-floor semantics stay intact (the floor is NOT
+# raised); what changes is WHAT the floor is compared against.  The
+# resident model server (ollama runner --mlx-engine) is a NAMED tenant
+# OUTSIDE every runner process group: its ~15–20 GB RSS is not memory the
+# fleet can free, so a system-wide `available < floor` reading that is
+# actually the tenant's footprint fired the guard on an innocent lane and
+# freed ~454 MB against a 25 GB tenant (T626/T700/T715).  The guard now
+# ADDS the tenant's footprint back to the reading before the comparison —
+# "available" means available-to-the-fleet — so a resident qwen does not
+# read as an emergency.
+#
+# Reservation sources, in priority order:
+#   1. WEIZIGO_HOST_TENANT_RESERVATION_MB — a declared reservation constant
+#      in MB.  The test hook (T714) and a manual override; used verbatim
+#      when set (including 0 = explicitly no tenant).
+#   2. When the available reading is INJECTED via WEIZIGO_HOST_MEM_AVAIL_MB,
+#      no auto-detection runs — the test controls the full scenario, so a
+#      tenant must be declared explicitly (keeps the T362 seeded arm
+#      deterministic regardless of what is resident on the host).
+#   3. Otherwise the guard auto-detects the resident model server: every
+#      process whose command carries `ollama runner --mlx-engine` (the
+#      resident MLX engine — the multi-GB holder) and sums its RSS.
+#      No matching process ⇒ reservation 0 ⇒ byte-identical to pre-T711.
+
+def _declared_tenant_reservation_bytes():
+    """Return the declared-tenant footprint in bytes to add back to the
+    available-memory reading, or 0 when there is nothing to subtract.
+
+    Priority: explicit env reservation > injected-reading no-op >
+    auto-detect the resident `ollama runner --mlx-engine` process.
+    """
+    injected = os.environ.get("WEIZIGO_HOST_TENANT_RESERVATION_MB")
+    if injected is not None:
+        try:
+            return int(injected) * 1024 * 1024
+        except ValueError:
+            return 0
+    # Injected available reading: the test owns the whole scenario; no
+    # auto-detection (a resident tenant must be declared explicitly).
+    if os.environ.get("WEIZIGO_HOST_MEM_AVAIL_MB") is not None:
+        return 0
+    # Auto-detect the resident MLX engine (T711).  ps RSS is in kB.
+    try:
+        out = subprocess.run(
+            ["ps", "-axo", "pid=,rss=,command="],
+            capture_output=True, text=True, timeout=2.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return 0
+    if out.returncode != 0:
+        return 0
+    total = 0
+    for line in out.stdout.splitlines():
+        if "ollama runner --mlx-engine" not in line:
+            continue
+        parts = line.split(None, 2)
+        if len(parts) < 2:
+            continue
+        try:
+            total += int(parts[1]) * 1024
+        except ValueError:
+            continue
+    return total
 
 
 # ── logging ──────────────────────────────────────────────────────────
@@ -2750,6 +2825,9 @@ def main():
     # D-11/D-35: the last poll walk persists past the loop so the C2/C3 reap
     # paths have a --seed even when the child exits before the first poll.
     last_poll_pids = []
+    # T711: last declared-tenant reservation (bytes) printed, so the
+    # subtraction diagnostic is emitted once per change, not every poll.
+    last_tenant_res = 0
 
     # ── T634: claude liveness fuse state (mtime, not stdout) ────────────
     # The watermark is the max sensor mtime at launch; any strictly-newer
@@ -2936,6 +3014,20 @@ def main():
             kill_reason = None
             if host_guard_on and poll_rss:
                 avail = _host_avail_bytes()
+                # T711: declared-tenant subtraction — add the resident model
+                # server's footprint back to the reading so "available" means
+                # available-to-the-fleet (a resident qwen must not read as an
+                # emergency).  The floor itself is untouched.
+                tenant_res = _declared_tenant_reservation_bytes()
+                if tenant_res != last_tenant_res:
+                    if tenant_res > 0:
+                        _runner_print(
+                            f"[runner] declared tenant subtraction: "
+                            f"{tenant_res // (1024*1024)} MB (available-to-the-fleet)",
+                            file=sys.stderr)
+                    last_tenant_res = tenant_res
+                if avail is not None and tenant_res > 0:
+                    avail += tenant_res
                 if avail is not None and avail < host_floor_bytes:
                     largest_pid = max(poll_rss, key=lambda p: poll_rss[p])
                     largest_rss = poll_rss[largest_pid]
