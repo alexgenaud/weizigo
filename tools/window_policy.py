@@ -71,37 +71,17 @@ Consumers:
   bin/dispatch        the dispatch gate (cooldown refusal — overridable
                       with --override-window-cooldown=<reason>, recorded
                       to untracked/fleet-window-overrides.jsonl (T677);
-                      budget refusal; probe concurrency) — the last gate
-                      before a lane starts, so even a hand dispatch is
-                      stopped;
+                      probe concurrency) — the last gate before a lane
+                      starts, so even a hand dispatch is stopped;
   tools/fleet-keeper.sh  the loop-side watcher (watch() each iteration:
-                      arm/nudge/probe state + appetite override + cap
-                      sizing);
+                      arm/nudge/probe state + appetite override);
   tools/runner        (future) stamps provider_limit/provider_reset_epoch
                       on the run record at finalize — T659 holds the file;
                       window_policy already reads the record's killed_by
                       (T629) and parses provider_reset_text, so the
                       policy is live without the stamp.
 
-Blind spots (recorded for the meter's owners):
-  * a provider-limit KILLED lane records zero usage (is_error envelope) —
-    the meter can only see what completed runs reported; the cooldown is
-    the primary defence, the meter the anticipatory one;
-  * the window budget default (35M tokens / 5h for claude, T736) is
-    calibrated from the 2026-08-23 incident ground-truth pair — meter
-    used=10,634,226 at ~11:00Z while the provider dashboard read 28%
-    used (measured window ~38M); 35M keeps margin.  The 5M placeholder
-    it replaces was an observed-failure-informed guess (5 lanes x
-    ~1.3M died at 12:47Z) that refused at a FIFTH of the real window.
-    Tune via WEIZIGO_WINDOW_BUDGET_<FAMILY>;
-  * the meter counts tokens_in = input + cache_read (T558), and claude
-    lanes are ~100% cache reads — whether the provider's window counter
-    prices cache reads at full weight is settled by ONE ground-truth
-    pair (10,634,226 = 28%, which is consistent with full weight but
-    is a single observation); a second pair is needed before cache
-    pricing is settled — ledger OPEN, T736;
-  * no cross-family generalization until a second family exhibits a
-    windowed limit (the brief's non-goal);
+Blind spots (recorded for the cooldown's owners):
   * a provider-limit death whose run record predates T629's vocabulary
     (the 2026-08-22 outage lanes) arms nothing — the record is the only
     evidence, and those records carry no classification (T677, deliberate:
@@ -142,32 +122,6 @@ CLAUDE_LABELS = ("claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001"
 FAMILY_OF = {}
 for _l in CLAUDE_LABELS:
     FAMILY_OF[_l] = "claude"
-
-# The per-family 5-hour window budget in input tokens.  Default: 35M —
-# calibrated 2026-08-23 (T736) from the incident ground-truth pair:
-# at ~11:00Z the meter read used=10,634,226 (T727 2,953,530 + T726
-# 7,680,696 — both claude, both inside the rolling window) while the
-# operator's provider dashboard read 28% used, 3h00' to reset → the
-# provider's 5-hour window ≈ 10.63M / 0.28 ≈ 38M; 35M keeps margin
-# against the measured point while no longer refusing at a fifth of the
-# real window.  The old 5M placeholder refused 10,634,226 > 5,000,000
-# while the provider showed 28% used — an invented constant, not a
-# provider number (incident 2026-08-23 ~11:00Z; the refusal is recorded
-# in docs/epics/.../science-arm-sprint/build.md §4 for the earlier
-# 22.4M > 5M instance).  Env override per family:
-# WEIZIGO_WINDOW_BUDGET_CLAUDE.  The meter counts tokens_in
-# (input+cache_read, T558); claude lanes are ~100% cache reads and the
-# ONE ground-truth pair is consistent with the provider's counter
-# pricing the same pool at full weight — a second pair settles cache
-# pricing (ledger OPEN, T736).
-DEFAULT_WINDOW_BUDGET = 35_000_000
-
-# The meter degrades appetite to CONSERVE at this fraction of the budget.
-CONSERVE_RATIO = 0.75
-
-# The estimate for a lane with no observed data for its family (tokens_in).
-# T620 alone read 1,386,293 input tokens; ~1.3M is the observed lane size.
-DEFAULT_LANE_ESTIMATE = 1_300_000
 
 # Post-reset probe window: after a cooldown's nudge fires, the family runs
 # at most ONE concurrent lane (the probe) for this long, unless a lane
@@ -459,149 +413,6 @@ def record_override(root, task_id, family, cooldown, reason, now=None):
         return None
 
 
-def record_budget_override(root, task_id, family, bc, reason, now=None):
-    """Record a human dispatch past the token-budget refusal (T736): append
-    one JSON line to <root>/untracked/fleet-window-overrides.jsonl with
-    kind="budget" and the meter numbers the refusal quoted (used /
-    estimate / remaining / budget).  Append-only, never overwritten — the
-    same audit file and discipline as the T677 cooldown override; the
-    reason is the operator's assertion that they have checked the provider
-    themselves.  Returns the path (None on OSError).
-    """
-    if not reason or not reason.strip():
-        return None
-    now = int(now if now is not None else time.time())
-    line = {
-        "ts": _iso(now),
-        "task": task_id,
-        "family": family,
-        "kind": "budget",
-        "used": bc.get("used"),
-        "estimate": bc.get("estimate"),
-        "remaining": bc.get("remaining"),
-        "budget": bc.get("budget"),
-        "reason": reason.strip(),
-    }
-    try:
-        p = os.path.join(root, "untracked", WINDOW_OVERRIDES_FILE)
-        os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p, "a") as f:
-            f.write(json.dumps(line, sort_keys=True) + "\n")
-        return p
-    except OSError:
-        return None
-
-
-# ── the token meter ───────────────────────────────────────────────────────
-
-def token_meter(root, now=None, window_s=WINDOW_SECONDS):
-    """→ {family: {used_in, used_out, n, window_start}} — the rolling
-    5-hour usage per family from COMPLETED run records (tokens_in /
-    tokens_out, exit present, no harness kill).  A killed attempt's usage
-    is censored (Ruling 32) and its envelope is usually absent anyway."""
-    now = now if now is not None else time.time()
-    win = {}
-    for tid, recs in _read_run_records(root).items():
-        for rec in recs:
-            if rec.get("exit") is None or rec.get("exit") != 0:
-                continue
-            if rec.get("killed"):
-                continue
-            ti = rec.get("tokens_in")
-            if ti is None:
-                continue
-            end = _parse_iso_end(rec.get("end") or "")
-            if end is None and isinstance(rec.get("start_epoch"), (int, float)):
-                end = rec["start_epoch"] + (rec.get("wall") or 0)
-            if end is None or end < now - window_s or end > now + 60:
-                continue
-            fam = family_of(rec.get("model"))
-            w = win.setdefault(fam, {"used_in": 0, "used_out": 0, "n": 0,
-                                     "window_start": now - window_s})
-            w["used_in"] += int(ti or 0)
-            w["used_out"] += int(rec.get("tokens_out") or 0)
-            w["n"] += 1
-    return win
-
-
-def budget_for(family):
-    """The family's 5-hour window budget in input tokens.  Env override
-    WEIZIGO_WINDOW_BUDGET_<FAMILY> (tests + tuning), else the default."""
-    v = os.environ.get("WEIZIGO_WINDOW_BUDGET_" + family.upper())
-    if v:
-        try:
-            return int(v)
-        except ValueError:
-            pass
-    return DEFAULT_WINDOW_BUDGET
-
-
-def estimate_lane_tokens(family, root, now=None):
-    """Estimated input tokens for a new lane of `family`: the mean observed
-    tokens_in of the family's completed records in the window, else the
-    observed lane-size default (blind spot recorded in the docstring)."""
-    now = now if now is not None else time.time()
-    w = token_meter(root, now).get(family)
-    if w and w["n"] > 0:
-        return int(w["used_in"] / w["n"])
-    return DEFAULT_LANE_ESTIMATE
-
-
-def meter_level(family, root, now=None, budget=None):
-    """→ 'SPEND' | 'CONSERVE' | 'HARD-OFF' for the family's window.
-
-    CONSERVE once used >= CONSERVE_RATIO of the budget (the appetite
-    degradation — the keeper and operators slow down before the wall);
-    HARD-OFF once a NEW lane's estimate exceeds the remaining budget (the
-    refusal point — a lane now would die mid-run)."""
-    now = now if now is not None else time.time()
-    budget = budget if budget is not None else budget_for(family)
-    used = token_meter(root, now).get(family, {}).get("used_in", 0)
-    remaining = budget - used
-    if estimate_lane_tokens(family, root, now) > remaining:
-        return "HARD-OFF"
-    if used >= CONSERVE_RATIO * budget:
-        return "CONSERVE"
-    return "SPEND"
-
-
-def budget_check(family, root, now=None, budget=None):
-    """The dispatch gate's numbers: {allowed, level, used, remaining,
-    estimate, budget}.  `allowed` is False exactly at HARD-OFF."""
-    now = now if now is not None else time.time()
-    budget = budget if budget is not None else budget_for(family)
-    used = token_meter(root, now).get(family, {}).get("used_in", 0)
-    estimate = estimate_lane_tokens(family, root, now)
-    remaining = budget - used
-    level = meter_level(family, root, now, budget)
-    return {"allowed": level != "HARD-OFF", "level": level,
-            "used": used, "remaining": remaining,
-            "estimate": estimate, "budget": budget}
-
-
-def effective_cap(family, root, now=None, configured=None):
-    """The family's concurrent-lane cap, sized from the meter.
-
-    min(configured, floor(remaining / estimate) when the meter has data,
-    1 during the post-reset probe window).  A nearly-exhausted window
-    shrinks the cap before the refusal point; the probe gate opens the
-    family one lane at a time after a reset (verify-don't-assume)."""
-    now = now if now is not None else time.time()
-    cap = configured
-    # probe window: one lane at a time
-    st = load_state(root).get(family)
-    if st and st.get("probe_until") and now < st["probe_until"]:
-        cap = 1 if cap is None else min(cap, 1)
-        return cap
-    w = token_meter(root, now).get(family)
-    if w and w["n"] > 0:
-        budget = budget_for(family)
-        remaining = budget - w["used_in"]
-        estimate = int(w["used_in"] / w["n"])
-        if estimate > 0:
-            meter_cap = max(1, remaining // estimate)
-            cap = meter_cap if cap is None else min(cap, meter_cap)
-    return cap
 
 
 def family_inprog_count(family, rows):

@@ -1,0 +1,70 @@
+{
+  "task": "T766",
+  "date": "2026-08-23",
+  "agent": "claude-haiku-4-5-20251001",
+  "title": "retire predictive window-budget gate",
+  "summary": "T736 token-budget meter (HARD-OFF/CONSERVE logic) removed. Regulation collapses to APPETITE (steering) + COOLDOWN (reactive). No prediction, no per-lane estimates, no budget accounting at dispatch.",
+  "scope": {
+    "removed_functions": [
+      "token_meter",
+      "budget_for",
+      "estimate_lane_tokens",
+      "meter_level",
+      "budget_check",
+      "effective_cap",
+      "record_budget_override"
+    ],
+    "removed_constants": [
+      "DEFAULT_WINDOW_BUDGET",
+      "CONSERVE_RATIO",
+      "DEFAULT_LANE_ESTIMATE"
+    ],
+    "removed_gates": [
+      "bin/dispatch: --override-window-budget flag",
+      "bin/dispatch: budget check gate"
+    ],
+    "regression_changes": [
+      "Removed C1 test (budget meter anticipation)",
+      "Updated F1 as red-arm (over-budget dispatch proceeds after removal)"
+    ]
+  },
+  "test_results": {
+    "regression_test": "PASS",
+    "all_controls": [
+      "A1: killed_by + reset text arms cooldown",
+      "A2: provider_reset_epoch authoritative",
+      "A3: watch() schedules nudge, probe window active",
+      "A4: cooldown refused at dispatch",
+      "A5: provider-limit death reopens as provider-outage",
+      "B1: live lane quoting limit → no cooldown",
+      "B2: quote alone triggers nothing",
+      "B3: empty store proceeds",
+      "C2: watchdog-killed lane arms nothing",
+      "C3: wall-killed lane arms nothing",
+      "C4: deepseek death does not arm claude",
+      "D1: unparseable reset → fallback cooldown",
+      "D2: --override-window-cooldown records and proceeds",
+      "E1: cooldown enforced at bin/subagent",
+      "F1 (RED-ARM): budget gate retired; over-budget dispatch proceeds"
+    ]
+  },
+  "deliverables": {
+    "code_changes": {
+      "tools/window_policy.py": "197 lines removed; reset-watcher and probe mechanism survive",
+      "bin/dispatch": "84 lines removed; cooldown and probe gates survive, budget gate gone"
+    },
+    "regression_test": "tools/regression-window-resilience.sh updated for T766 (F1 red-arm validates removal)"
+  },
+  "left_unstaged": {
+    "rationale": "Not in holds list; belongs to other work or ratified separately",
+    "files": [
+      "docs/epics/E1-markovian/L1-dashboard/S05-orchestration-refactor/spec.md (amendment: window_budgets removed from ORC-POL-5)",
+      "docs/infra/model-perf.md (epoch-boundary note: T736 calibration superseded)"
+    ]
+  },
+  "notes": [
+    "Reactive cooldown (T677 reset-watcher, probe gate) unchanged",
+    "operator ruling 2026-08-23: predictive meter retired, regulation = APPETITE + COOLDOWN only",
+    "T736 35M/5h calibration marked superseded in model-perf.md (epoch boundary, not deleted)"
+  ]
+}
