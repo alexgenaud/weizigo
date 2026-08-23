@@ -166,14 +166,7 @@
    "blocks": "nothing today"
   }
  ],
- "new_rows": [
-  "T750",
-  "T751",
-  "T752",
-  "T753",
-  "T772",
-  "T773"
- ],
+ "new_rows": [],
  "notes": "T746 (console: are we measuring right?) \u2014 discussion-delegate protocol, four agenda items, four rows queued, one question outstanding. Verdict: the measurement DESIGN is sound and the RECORD is two joins and two fields behind it. Three specific defects: (1) 414 run records carry wall/cpu/rss/tokens and nothing joins them to the 24 metrics rows, all of which read cost: null; (2) the model the near-term decision is about (ox-alpha) has zero recorded cells and zero token readings despite two completed lanes, because it is dispatched with raw pi rather than through the bin/subagent branch its own onboarding row built; (3) the metric that predicts re-dispatch (canary recall at a stated false-flag rate) is measured in exactly one place \u2014 findings/T706-race-g-batch2-grade.json \u2014 and is not in the ledger. Correction owed to the canonical doc: measurement-methodology.md \u00a76 calls token instrumentation the highest-leverage unbuilt item and says the cost ladder is uncomputable until the split lands; the split landed in T558 and the pi meter in T662, and the page was never updated. Honest limits of this row: I did not re-run any grade, so every number above is read from committed findings and from untracked/runs + untracked/tokens censuses I ran myself; T730's ruling does not exist yet, so T753 is blocked and the ox-alpha audit cell is not yet a reading; and the two-taxonomy hazard (matrix \u00a71's T-A..T-H vs D027's eight types) is already re-keyed in the JSONL but still live in prose across both docs, which is a naming defect I flagged rather than fixed. Inbox polled empty via bin/managent inbox T746 --ack at claim; no directives to record. REVISED 2026-08-23 after operator rulings: four rulings recorded (OR1-OR4), the data fixed on disk (448 lane readings recovered, ledger coverage 20%->53%, all four never-metered families now metered, ox-alpha 0->5 lanes), two new high-severity findings queued (T772 cost ladder has no quality gate and routes to the worst measured discriminator; T773 the liveness fuse killed a working lane and blamed it), and the whole diagnosis handed to the claude-fable-5 oversight seat at docs/status/T746-measurement-handover.md. The earlier framing of ox-alpha as RESERVED was a record defect, not an operator ruling, and is corrected in docs/infra/model-registry.md.",
  "handover": "docs/status/T746-measurement-handover.md",
  "operator_rulings_2026_08_23": [
@@ -324,5 +317,6 @@
   "Does the D044 DeepSeek time-priced rate band survive the 2026-08-23 budget-meter retirement? It is a price-time fact ('peak hours') computed at write time, and the retirement says agents know nothing of costs and never mention peak hours. Flagged, not decided.",
   "Is the pi/openrouter API-key pattern in fact more secure, and should Claude/DeepSeek/Ollama converge on it? The operator raised it; it is a security review, not a measurement question.",
   "Filling the 12 now-fillable cost:null lanes in the sha256-sealed tools/complementarity-inputs/*.json changes a dispatch-decision input from trusted:false readings. Ratification question."
- ]
+ ],
+ "schema_note": "`new_rows` is CLAIMS.md rows, not kanban rows (findings/README.md \u00a7new_rows). An earlier revision of this file listed the six queued KANBAN ids there and the C7 absorption gate correctly refused the close with `NO SUCH ID` for each. The kanban ids live under `queued_rows`. Recorded because it is a live datum for T769/T767: the findings schema has no field for 'kanban rows this task registered', so the nearest-looking field gets misused \u2014 this seat did it on its first attempt. T767 (findings queued_kanban_rows field) is the fix."
 }
