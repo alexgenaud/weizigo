@@ -1,0 +1,1678 @@
+{
+ "task_id": "T817",
+ "date": "2026-08-23",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T817",
+ "claims": [],
+ "new_rows": [],
+ "instrument": "retro corpus mining (no epistemic claim rows \u2014 claims: [], new_rows: [])",
+ "result": {
+  "corpus_rows": 578,
+  "snapshot": {
+   "git_commit": "d372b66d996d020856436f8fe6c93f4c0a852373",
+   "tasks_json_sha256": "4490b3323f5d637ebb7fc241997304b8a69f5dec",
+   "archive_json_sha256": "aa119873c6fadd5f4178658c2370626ffac26c3c"
+  },
+  "counts": {
+   "task_type": {
+    "audit": 204,
+    "implement": 57,
+    "orchestration": 55,
+    "integration": 18,
+    "UNKNOWN": 20,
+    "infra": 133,
+    "spec": 23,
+    "battery": 45,
+    "research": 23
+   },
+   "task_type_legacy_classifier": {
+    "audit": 213,
+    "implement": 70,
+    "orchestration": 33,
+    "integration": 24,
+    "infra": 143,
+    "battery": 57,
+    "spec": 19,
+    "research": 19
+   },
+   "task_type_UNKNOWN": 20,
+   "task_type_UNKNOWN_ids": [
+    "STANDING-CLEANUP",
+    "T257",
+    "T265",
+    "T267",
+    "T273",
+    "T274",
+    "T372",
+    "T562",
+    "T580",
+    "T581",
+    "T762",
+    "T763",
+    "T767",
+    "T768",
+    "TL1A",
+    "TL1B",
+    "TL1C",
+    "TL1D",
+    "TL1E",
+    "TL1F"
+   ],
+   "type_classifier_disagreements_n": 215,
+   "task_scope": {
+    "S-unknown": 57,
+    "S4": 301,
+    "S2": 138,
+    "S1": 14,
+    "S5": 41,
+    "S3": 27
+   },
+   "task_scope_unknown": 57,
+   "capabilities": {
+    "arithmetic-over-corpus": 326,
+    "census-counting": 221,
+    "code-writing": 232,
+    "test-authoring": 212,
+    "long-horizon-execution": 57,
+    "discrimination-saying-no": 282,
+    "citation-verification": 143,
+    "adversarial-refutation": 95,
+    "long-document-coherence": 6
+   },
+   "epochs": {
+    "all": 248,
+    "post-2026-08-18": 197,
+    "pre-2026-08-18": 133
+   },
+   "verdicts": {
+    "None": 66,
+    "abandoned": 25,
+    "pass": 266,
+    "pass-with-findings": 206,
+    "fail-found": 4,
+    "blocked": 11
+   },
+   "brief_on_disk": 539,
+   "scope_fields_prefilled_in_store": 110,
+   "caps_prefilled_in_store": 0
+  },
+  "calibration": {
+   "self_declared": {
+    "n": 24,
+    "legacy_accuracy": 0.79,
+    "brief_accuracy": 1.0,
+    "brief_misses": []
+   },
+   "self_declared_plus_race_orgs": {
+    "n": 27,
+    "legacy_accuracy": 0.78,
+    "brief_accuracy": 1.0,
+    "brief_misses": []
+   },
+   "landmark_mapped_negative_result": {
+    "n": 288,
+    "legacy_accuracy": 0.24,
+    "brief_accuracy": 0.29,
+    "note": "Landmark line names the work-stream (domain), not the D027 task type; cannot serve as type ground truth \u2014 race lanes carry 'L2 (go science)' yet are audit."
+   }
+  },
+  "disagreement_set": [
+   {
+    "id": "STANDING-CLEANUP",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T226",
+    "legacy": "infra",
+    "brief": "spec",
+    "basis": "deliverable",
+    "evidence": "docs/epic-01-markovian/sprints/engine-unification/pass0/spec.md"
+   },
+   {
+    "id": "T227",
+    "legacy": "implement",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "check"
+   },
+   {
+    "id": "T228",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T229",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T230",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T231",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T232",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T241",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T242",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T243",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T249",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T250",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T251",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "regtest"
+   },
+   {
+    "id": "T257",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T258",
+    "legacy": "implement",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "battery"
+   },
+   {
+    "id": "T259",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "check"
+   },
+   {
+    "id": "T260",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "triage"
+   },
+   {
+    "id": "T265",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T266",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "declarative",
+    "evidence": "acceptance battery"
+   },
+   {
+    "id": "T267",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T270",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "declarative",
+    "evidence": "is a battery"
+   },
+   {
+    "id": "T271",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "axiom"
+   },
+   {
+    "id": "T273",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T274",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T275",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "orcha"
+   },
+   {
+    "id": "T278",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T281",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T283",
+    "legacy": "implement",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "bracket"
+   },
+   {
+    "id": "T285",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "axiom"
+   },
+   {
+    "id": "T288",
+    "legacy": "integration",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "ruling"
+   },
+   {
+    "id": "T291",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "mutant"
+   },
+   {
+    "id": "T294",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "orchestrat"
+   },
+   {
+    "id": "T295",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "managent"
+   },
+   {
+    "id": "T304",
+    "legacy": "orchestration",
+    "brief": "battery",
+    "basis": "declarative",
+    "evidence": "acceptance battery"
+   },
+   {
+    "id": "T305",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "deliverable",
+    "evidence": "docs/epistemic/CLAIMS.md"
+   },
+   {
+    "id": "T310",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "reproducib"
+   },
+   {
+    "id": "T311",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "probe"
+   },
+   {
+    "id": "T312",
+    "legacy": "battery",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T313",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "invariance"
+   },
+   {
+    "id": "T315",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/regression-subagent-prompt.sh"
+   },
+   {
+    "id": "T319",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "provenance"
+   },
+   {
+    "id": "T324",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "ruling"
+   },
+   {
+    "id": "T325",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "is a race"
+   },
+   {
+    "id": "T326",
+    "legacy": "spec",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "gtp"
+   },
+   {
+    "id": "T328",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "grader must"
+   },
+   {
+    "id": "T332",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "T333",
+    "legacy": "integration",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "T335",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T346",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "consistency"
+   },
+   {
+    "id": "T351",
+    "legacy": "battery",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T353",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "managent"
+   },
+   {
+    "id": "T354",
+    "legacy": "orchestration",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "is a proposal"
+   },
+   {
+    "id": "T360",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "recursion"
+   },
+   {
+    "id": "T369",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "suite-truth"
+   },
+   {
+    "id": "T372",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T374",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "alias"
+   },
+   {
+    "id": "T376",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "bakeoff"
+   },
+   {
+    "id": "T378",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "probe"
+   },
+   {
+    "id": "T379",
+    "legacy": "implement",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "consistency"
+   },
+   {
+    "id": "T380",
+    "legacy": "audit",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "exhaustive"
+   },
+   {
+    "id": "T381",
+    "legacy": "implement",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "independent"
+   },
+   {
+    "id": "T383",
+    "legacy": "implement",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "vb_"
+   },
+   {
+    "id": "T386",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "bracket"
+   },
+   {
+    "id": "T387",
+    "legacy": "research",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "budget"
+   },
+   {
+    "id": "T389",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "consistency"
+   },
+   {
+    "id": "T390",
+    "legacy": "audit",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T391",
+    "legacy": "battery",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "implement"
+   },
+   {
+    "id": "T393",
+    "legacy": "research",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "bracket"
+   },
+   {
+    "id": "T394",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "grade"
+   },
+   {
+    "id": "T398",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "research"
+   },
+   {
+    "id": "T400",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "axiom"
+   },
+   {
+    "id": "T402",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "budget"
+   },
+   {
+    "id": "T405",
+    "legacy": "implement",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T406",
+    "legacy": "battery",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "tooling"
+   },
+   {
+    "id": "T407",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "check"
+   },
+   {
+    "id": "T408",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "declarative",
+    "evidence": "is a tooling test"
+   },
+   {
+    "id": "T409",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T412",
+    "legacy": "infra",
+    "brief": "research",
+    "basis": "deliverable",
+    "evidence": "docs/research/loop-onset-2026-08-07.md"
+   },
+   {
+    "id": "T413",
+    "legacy": "infra",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T414",
+    "legacy": "audit",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T415",
+    "legacy": "audit",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "provenance"
+   },
+   {
+    "id": "T416",
+    "legacy": "battery",
+    "brief": "research",
+    "basis": "deliverable",
+    "evidence": "docs/research/optimal-cycle-test-2026-08-08.md"
+   },
+   {
+    "id": "T417",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T420",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "falsif"
+   },
+   {
+    "id": "T421",
+    "legacy": "integration",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "citation"
+   },
+   {
+    "id": "T431",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "recursion"
+   },
+   {
+    "id": "T437",
+    "legacy": "audit",
+    "brief": "integration",
+    "basis": "title",
+    "evidence": "consolidat"
+   },
+   {
+    "id": "T438",
+    "legacy": "battery",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "archive"
+   },
+   {
+    "id": "T440",
+    "legacy": "audit",
+    "brief": "integration",
+    "basis": "title",
+    "evidence": "migrate"
+   },
+   {
+    "id": "T441",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "T442",
+    "legacy": "audit",
+    "brief": "integration",
+    "basis": "title",
+    "evidence": "absorb"
+   },
+   {
+    "id": "T443",
+    "legacy": "research",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "is a proposal"
+   },
+   {
+    "id": "T449",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "runner"
+   },
+   {
+    "id": "T450",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T452",
+    "legacy": "audit",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "budget"
+   },
+   {
+    "id": "T454",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "manifest"
+   },
+   {
+    "id": "T458",
+    "legacy": "implement",
+    "brief": "research",
+    "basis": "deliverable",
+    "evidence": "docs/epistemic/GLOSSARY.md"
+   },
+   {
+    "id": "T461",
+    "legacy": "audit",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "spec only"
+   },
+   {
+    "id": "T463",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "fleet"
+   },
+   {
+    "id": "T464",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "managent"
+   },
+   {
+    "id": "T465",
+    "legacy": "infra",
+    "brief": "integration",
+    "basis": "deliverable",
+    "evidence": "findings/T440-regression-migration.json--"
+   },
+   {
+    "id": "T466",
+    "legacy": "spec",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "race lane"
+   },
+   {
+    "id": "T469",
+    "legacy": "integration",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "race lane"
+   },
+   {
+    "id": "T470",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "race lane"
+   },
+   {
+    "id": "T471",
+    "legacy": "audit",
+    "brief": "research",
+    "basis": "declarative",
+    "evidence": "is a research task"
+   },
+   {
+    "id": "T472",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "ruling"
+   },
+   {
+    "id": "T474",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "T475",
+    "legacy": "battery",
+    "brief": "integration",
+    "basis": "title",
+    "evidence": "absorb"
+   },
+   {
+    "id": "T476",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "orchestrat"
+   },
+   {
+    "id": "T478",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "landmark"
+   },
+   {
+    "id": "T481",
+    "legacy": "audit",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "spec only"
+   },
+   {
+    "id": "T483",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/hooks/claimlint-floor.json"
+   },
+   {
+    "id": "T484",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/git-commit-mine-lib.sh"
+   },
+   {
+    "id": "T485",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T486",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T489",
+    "legacy": "integration",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "stale"
+   },
+   {
+    "id": "T491",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "T493",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "fleet"
+   },
+   {
+    "id": "T495",
+    "legacy": "integration",
+    "brief": "orchestration",
+    "basis": "deliverable",
+    "evidence": "docs/status/orcha-decisions-2026-08-19.md"
+   },
+   {
+    "id": "T497",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "src/managent/main.zig"
+   },
+   {
+    "id": "T499",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T501",
+    "legacy": "spec",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/fleet-keeper.sh"
+   },
+   {
+    "id": "T503",
+    "legacy": "integration",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/model-profiles.py"
+   },
+   {
+    "id": "T504",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/fleet-keeper.sh"
+   },
+   {
+    "id": "T507",
+    "legacy": "audit",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "census"
+   },
+   {
+    "id": "T511",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "guard"
+   },
+   {
+    "id": "T512",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "isolation"
+   },
+   {
+    "id": "T515",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "taskid"
+   },
+   {
+    "id": "T518",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "assert"
+   },
+   {
+    "id": "T519",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "stale"
+   },
+   {
+    "id": "T520",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "telemetry"
+   },
+   {
+    "id": "T523",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/model-profiles.py"
+   },
+   {
+    "id": "T524",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "implement"
+   },
+   {
+    "id": "T528",
+    "legacy": "orchestration",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T534",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/deploy.sh"
+   },
+   {
+    "id": "T537",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "deliverable",
+    "evidence": "tools/orcha-acceptance.sh"
+   },
+   {
+    "id": "T538",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "deliverable",
+    "evidence": "tools/dispatch_verify.py"
+   },
+   {
+    "id": "T540",
+    "legacy": "implement",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T542",
+    "legacy": "audit",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "bakeoff"
+   },
+   {
+    "id": "T543",
+    "legacy": "orchestration",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T544",
+    "legacy": "research",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "src/managent/main.zig"
+   },
+   {
+    "id": "T545",
+    "legacy": "research",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "clobber"
+   },
+   {
+    "id": "T546",
+    "legacy": "orchestration",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T554",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T555",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "deliverable",
+    "evidence": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md"
+   },
+   {
+    "id": "T556",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "deliverable",
+    "evidence": "docs/infra/orcha-refactor/pass1/OWNER-LOG.md"
+   },
+   {
+    "id": "T557",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "seat"
+   },
+   {
+    "id": "T559",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T562",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T566",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "runner"
+   },
+   {
+    "id": "T576",
+    "legacy": "spec",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T579",
+    "legacy": "research",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "seat"
+   },
+   {
+    "id": "T580",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T581",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T583",
+    "legacy": "audit",
+    "brief": "spec",
+    "basis": "deliverable",
+    "evidence": "docs/epics/E1-markovian/L1-dashboard/S05-startup-surfaces/spec.md"
+   },
+   {
+    "id": "T625",
+    "legacy": "battery",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "stale"
+   },
+   {
+    "id": "T626",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "race brief"
+   },
+   {
+    "id": "T628",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/runner"
+   },
+   {
+    "id": "T629",
+    "legacy": "audit",
+    "brief": "research",
+    "basis": "declarative",
+    "evidence": "is a census"
+   },
+   {
+    "id": "T630",
+    "legacy": "research",
+    "brief": "audit",
+    "basis": "deliverable",
+    "evidence": "tools/dispatch_verify.py"
+   },
+   {
+    "id": "T636",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "src/managent/main.zig"
+   },
+   {
+    "id": "T637",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/complementarity.py"
+   },
+   {
+    "id": "T640",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T650",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/runner"
+   },
+   {
+    "id": "T651",
+    "legacy": "battery",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/fleet-keeper.sh"
+   },
+   {
+    "id": "T660",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "refut"
+   },
+   {
+    "id": "T677",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "tools/window_policy.py"
+   },
+   {
+    "id": "T701",
+    "legacy": "audit",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "managent"
+   },
+   {
+    "id": "T703",
+    "legacy": "audit",
+    "brief": "research",
+    "basis": "title",
+    "evidence": "census"
+   },
+   {
+    "id": "T704",
+    "legacy": "integration",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "hygiene"
+   },
+   {
+    "id": "T705",
+    "legacy": "integration",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "hygiene"
+   },
+   {
+    "id": "T707",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T710",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "note",
+    "evidence": "discrepanc"
+   },
+   {
+    "id": "T713",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "check"
+   },
+   {
+    "id": "T714",
+    "legacy": "infra",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T715",
+    "legacy": "infra",
+    "brief": "spec",
+    "basis": "title",
+    "evidence": "design"
+   },
+   {
+    "id": "T716",
+    "legacy": "research",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "fix"
+   },
+   {
+    "id": "T740",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "race"
+   },
+   {
+    "id": "T748",
+    "legacy": "spec",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "orchestrat"
+   },
+   {
+    "id": "T750",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "sealed key"
+   },
+   {
+    "id": "T752",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "note",
+    "evidence": "check"
+   },
+   {
+    "id": "T753",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "declarative",
+    "evidence": "sealed key"
+   },
+   {
+    "id": "T757",
+    "legacy": "audit",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T758",
+    "legacy": "audit",
+    "brief": "implement",
+    "basis": "title",
+    "evidence": "leak"
+   },
+   {
+    "id": "T759",
+    "legacy": "infra",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T761",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "budget"
+   },
+   {
+    "id": "T762",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T763",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T764",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "check"
+   },
+   {
+    "id": "T766",
+    "legacy": "infra",
+    "brief": "battery",
+    "basis": "title",
+    "evidence": "budget"
+   },
+   {
+    "id": "T767",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T768",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "T769",
+    "legacy": "spec",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "diet"
+   },
+   {
+    "id": "T778",
+    "legacy": "audit",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "orchestrat"
+   },
+   {
+    "id": "T785",
+    "legacy": "audit",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "this row writes the spec"
+   },
+   {
+    "id": "T786",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "docs/infra/managent/tasks.json"
+   },
+   {
+    "id": "T789",
+    "legacy": "integration",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T790",
+    "legacy": "integration",
+    "brief": "spec",
+    "basis": "title",
+    "evidence": "spec"
+   },
+   {
+    "id": "T791",
+    "legacy": "research",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "runner"
+   },
+   {
+    "id": "T792",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "gate"
+   },
+   {
+    "id": "T802",
+    "legacy": "battery",
+    "brief": "orchestration",
+    "basis": "title",
+    "evidence": "console"
+   },
+   {
+    "id": "T804",
+    "legacy": "implement",
+    "brief": "infra",
+    "basis": "title",
+    "evidence": "fleet"
+   },
+   {
+    "id": "T805",
+    "legacy": "research",
+    "brief": "battery",
+    "basis": "note",
+    "evidence": "budget"
+   },
+   {
+    "id": "T806",
+    "legacy": "battery",
+    "brief": "spec",
+    "basis": "title",
+    "evidence": "design"
+   },
+   {
+    "id": "T813",
+    "legacy": "audit",
+    "brief": "spec",
+    "basis": "declarative",
+    "evidence": "spec amendment"
+   },
+   {
+    "id": "T814",
+    "legacy": "infra",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "citation"
+   },
+   {
+    "id": "T816",
+    "legacy": "spec",
+    "brief": "infra",
+    "basis": "deliverable",
+    "evidence": "src/managent/main.zig"
+   },
+   {
+    "id": "T819",
+    "legacy": "battery",
+    "brief": "audit",
+    "basis": "title",
+    "evidence": "audit"
+   },
+   {
+    "id": "TL1A",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "TL1B",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "TL1C",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "TL1D",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "TL1E",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   },
+   {
+    "id": "TL1F",
+    "legacy": "infra",
+    "brief": "UNKNOWN",
+    "basis": "unknown",
+    "evidence": ""
+   }
+  ],
+  "anomalies_ranked": [
+   {
+    "rank": 1,
+    "id": "ORPHAN-BRIEFS",
+    "finding": "136 task briefs on disk (and 31 committed findings files) have no kanban row in store+archive \u2014 the delegation-evidence record is blind to ~19% of documented work; the T6xx orphans are recent (2026-08-20+), not archaeology.",
+    "query": "Q-ORPHAN / Q-ORPHAN-FINDINGS (anomalies.py)"
+   },
+   {
+    "rank": 2,
+    "id": "STALE-DELIVERABLES",
+    "finding": "53 pass rows cite a deliverable absent from disk today; 37 paths are one tree move (docs/epic-01-markovian -> docs/epics/E1-markovian), 20 are per-task relocations (bin/ollama-subagent -> bin/subagent, docs/infra/races/* -> S02-model-delegation, tools/claimlint.py -> src/claimlint.zig, assertion-ledger retired). The T278 close-time check (asks git at close) cannot catch post-close moves; deliverables= is load-bearing for scope, so stale paths are a scope-measurement hazard.",
+    "query": "Q-ABSENT (anomalies.py)"
+   },
+   {
+    "rank": 3,
+    "id": "FAIL-FOUND-CONCENTRATED",
+    "finding": "4 fail-found closes in 578 rows, 3 of them audit-type, all on battery/audit work; no fail-found ever recorded for infra/implement/spec/research/integration/orchestration. Pass+pfw rate is 91-100% for every model with >=3 closes.",
+    "query": "Q-FAIL / Q-PASS-MODEL (anomalies.py)"
+   },
+   {
+    "rank": 4,
+    "id": "KILL-CENSUS-CONFOUNDED",
+    "finding": "4,196 'exit 124' lines in 90 task-logs, dominated by kill-instrumentation tasks (T625 1,112; T643; T773; T629) whose subject IS the kill path; the runner's outer run records show exit 0 for the same tasks. The raw log census (model-profiles' efficiency signal) measures kill-path testing, not task efficiency.",
+    "query": "Q-KILL / Q-RUNS-EXIT (anomalies.py)"
+   },
+   {
+    "rank": 5,
+    "id": "ACCEPTANCE-SILENT-AT-CLOSE",
+    "finding": "73 of 539 briefs-on-disk rows (13.5%) mention acceptance/gate in close text; whether acceptance conditions were checked at close is not recorded for the other ~87%.",
+    "query": "Q-ACC-CLOSE (anomalies.py)"
+   },
+   {
+    "rank": 6,
+    "id": "UNKNOWN-IS-REAL",
+    "finding": "20 rows (3.5%) have no classifiable type signal (TL1* dummies, STANDING-CLEANUP, T762/T763 no-brief, ten thin-brief rows); never fold them into a bucket.",
+    "query": "classify.py --main"
+   },
+   {
+    "rank": 7,
+    "id": "RETRY-RHYTHM",
+    "finding": "89 rows claimed >1 time; flat across models (flash 24/pro 22/orcha 12), concentrated in audit (33)/infra (20)/implement (15); claim hours peak at 12:00Z and 22:00Z \u2014 a schedule rhythm, not a uniform process.",
+    "query": "Q-RETRY (anomalies.py)"
+   },
+   {
+    "rank": 8,
+    "id": "SCOPE-ORDINAL-HOLDS",
+    "finding": "the scope enumeration is monotone in measured wall and RSS: S1 (337 s median, 362 MB) < S2 (1,276 s, 524 MB) < S3 (2,325 s, 851 MB); S4 (647 s) sits between S1 and S2 as 'bounded read-only'; S5 (1,017 s) between S2 and S3.",
+    "query": "Q-SCOPE-ORDINAL (anomalies.py)"
+   }
+  ]
+ },
+ "notes": "T817 mined task type, scope and capabilities retroactively for the delegation-evidence lattice (L1). 578 corpus rows in docs/infra/task-corpus.jsonl; method, classifier accuracy, scope defence, capability vocabulary and limits in docs/infra/task-corpus.md. Every derived value carries basis+confidence; UNKNOWN is a value, never a fill. Scope enumeration adopted from the S07 lattice spec (LAT-DIM-5) with two documented data-driven amendments; capabilities derived from corpus demand-phrases with hand-checked example tasks. Calibration: brief-aware classifier 100% vs 78% legacy on the 27-row self-declared+race holdout; Landmark line shown to be a domain signal, not a type signal (negative result). No live schema file touched (tasks.json/archive.json read-only via snapshot; src/managent/main.zig untouched; model-task-metrics.jsonl untouched). Repro scripts committed under docs/evidence/T817-task-corpus/ (lib.py, classify.py, mine.py, calib.py, anomalies.py); T817_SNAPSHOT_DIR reproduces the committed corpus byte-for-byte."
+}
