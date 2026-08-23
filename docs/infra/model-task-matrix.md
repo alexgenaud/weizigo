@@ -34,17 +34,11 @@ Distinct short names are needed only when two models with confusable names run a
 
 Preferred length 3–5 characters.
 
-| short | canonical label today (2026-08-19) | serving tag where it differs |
-|---|---|---|
-| `opus` | `claude-opus-5` | — |
-| `fable` | `claude-fable-5` | — |
-| `sonnet` | `claude-sonnet-5` | — |
-| `dspro` | `deepseek-v4-pro` | — |
-| `flash` | `deepseek-v4-flash` | — |
-| `glm` | `glm-5.2` | `glm-5.2:cloud` |
-| `minimax` | `minimax-m3` | `minimax-m3:cloud` |
-| `kimi` | `kimi-k2.7` | `kimi-k2.7-code:cloud` |
-| `qwen` | `qwen3.8:27b-mlx` | local (MLX) |
+**The short-name → canonical mapping is the ONE table in
+`docs/infra/model-registry.md` §"Short names → canonical" — this file holds no
+copy** (the copy that lived here under the 2026-08-19 header had already
+diverged from the registry: `flash` vs the registry's `dsflash`, and no
+`haiku`/`oxalpha` rows; deleted T800, 2026-08-23).
 
 ## 1. The task types this project actually dispatches
 
