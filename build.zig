@@ -334,6 +334,25 @@ pub fn build(b: *std.Build) void {
     runner_host_guard_regression.cwd = b.path(".");
     test_step.dependOn(&runner_host_guard_regression.step);
 
+    // ── resident-aware memory-budget gate controls (T713, test-first) ────
+    // The runner's guard (T362/T711) protects the panic floor; the DISPATCH
+    // side is still missing: when the resident MLX/Ollama model server is
+    // present, the dispatcher (bin/subagent — the launch chokepoint) must
+    // know the reduced memory budget and size concurrent memory-heavy lanes
+    // accordingly, instead of launching a local-model lane the host cannot
+    // take and letting the guard kill a running lane (fratricide).
+    // Controls: cloud-API lanes (deepseek/claude/pi/:cloud tags) dispatch
+    // freely under qwen-resident pressure (null); a local-model lane is
+    // REFUSED with the list-wait directive (seeded); admitted when the
+    // budget fits, with the reduced budget reported (null); no tenant ⇒
+    // inactive; unmeasurable ⇒ inert; exact-threshold boundary; the
+    // recorded override escape; :cloud classification; bare override flag
+    // refuses.  All fixtures inject the reading/tenant — the floor is never
+    // tested by exhausting the host.
+    const subagent_resident_gate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-subagent-resident-gate.sh" });
+    subagent_resident_gate_regression.cwd = b.path(".");
+    test_step.dependOn(&subagent_resident_gate_regression.step);
+
     // ── startup-liveness controls (T586) ────────────────────────────
     // The nonce-stall failure mode: a dispatched pi/deepseek worker
     // produced ZERO stdout/stderr for its whole run (its activity goes only
@@ -785,6 +804,20 @@ pub fn build(b: *std.Build) void {
     const directive_id_uniqueness_regression = b.addSystemCommand(&.{ "sh", "tools/regression-directive-id-uniqueness.sh" });
     directive_id_uniqueness_regression.cwd = b.path(".");
     test_step.dependOn(&directive_id_uniqueness_regression.step);
+
+    // ── T770: task-ID mint vs archive controls ──────────────────────
+    // `add --auto` minted `T{sys_next_id}` from a counter in tasks.json — a
+    // DIFFERENT file from archive.json — so four rows retired minutes after
+    // registration (T761–T763, T765) were followed by a re-mint of T765 over
+    // the archived T765 (2026-08-23).  A retired id is a reference forever.
+    // Fix: mint from max(next_id, live-max+1, archive-max+1) + a backstop
+    // refusing to register an id already in tasks.json OR archive.json.
+    // Controls: null sequential mints unchanged · retire a top row + stale
+    // counter → the mint exceeds the retired id · explicit add of a retired
+    // id → refused naming the archive.  Scratch store/archive only.
+    const task_id_archive_regression = b.addSystemCommand(&.{ "sh", "tools/regression-task-id-archive.sh" });
+    task_id_archive_regression.cwd = b.path(".");
+    test_step.dependOn(&task_id_archive_regression.step);
 
     // T496: fleet-keeper loop + cooldown flag controls (scratch store + scratch
     // repo). Fires oldest-eligible until the cap, cools down on a flag, and

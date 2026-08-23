@@ -18,6 +18,16 @@
                          the cooldown is ENFORCED here (T677/D040) — a
                          gate only in bin/dispatch is advisory, and the
                          probe lane went around it tonight.
+  --override-memory-gate=<reason>
+                         bypass the T713 resident-aware memory gate for THIS
+                         launch only, with the operator's reason REQUIRED
+                         (printed loudly, nothing recorded — the per-launch
+                         human decision, the --allow-unisolated spirit).
+                         The gate refuses a LOCAL-model lane (provider
+                         ollama, non-:cloud tag) when a resident model
+                         server is detected and the host reports less than
+                         lane-cost + margin MB available; list-wait is the
+                         intended behaviour — killing a running lane is not.
 
   test-only flags (T411 — the regression uses them; production dispatches never do):
   --test-root=<dir>    resolve the repo from <dir> instead of the script location
@@ -178,6 +188,220 @@ PI_TAG_TO_CANONICAL = {
     "stealth/ox-alpha": "ox-alpha",
 }
 
+# ── resident-aware memory gate (T713) ─────────────────────────────────
+# The resident MLX/Ollama model server (`ollama runner --mlx-engine`, the
+# qwen 27b MLX engine, ~15–20 GB RSS) is a NAMED tenant OUTSIDE every runner
+# process group that reduces the memory budget the fleet may spend.  The
+# runner's host guard (T362/T711) already stops reading the tenant as an
+# emergency; what this gate adds is the DISPATCH side: when the model server
+# is resident, the dispatcher knows the reduced budget (host total minus the
+# tenant) and refuses to launch a memory-heavy lane that the host cannot
+# physically take — instead of launching it and letting the runner's guard
+# kill a running lane when pressure lands (fratricide, T712's job to
+# coordinate the response).  Operator intent (T713): list-wait is acceptable
+# (the row stays dispatchable, nothing is killed), killing a running lane is
+# not.  Cloud-API lanes (deepseek / claude / pi-openrouter / `:cloud` ollama
+# tags) keep a small local RSS and dispatch freely — the gate never applies.
+#
+# Decision rule (active gate, memory-heavy lane only):
+#   admit iff available_memory >= lane_cost + margin
+# where available_memory is the system-wide reading — which ALREADY reflects
+# the tenant's footprint (its RSS is anonymous/wired, not reclaimable), so
+# the tenant is what makes the budget reduced and the gate tight.  The
+# T711 "available-to-the-fleet = available + tenant" arithmetic is NOT
+# applied here: that was for the guard's panic-floor comparison (the tenant
+# cancels out of it); a NEW lane cannot reclaim the tenant's RSS, so adding
+# it back would let two 16 GB lanes onto a host that fits one.  In-flight
+# lanes are charged implicitly — each resident lane lowers the next reading.
+#
+# Reading is unavailable ⇒ gate inert (cannot measure = cannot refuse, the
+# runner guard's stance).  An explicit override (--override-memory-gate=
+# <reason>, the --allow-unisolated spirit) launches anyway, loudly.
+#
+# Test hooks (the same inject-don't-exhaust family as tools/runner's
+# WEIZIGO_HOST_MEM_AVAIL_MB / WEIZIGO_HOST_TENANT_RESERVATION_MB):
+#   WEIZIGO_HOST_MEM_AVAIL_MB   inject the available-memory reading (MB)
+#   WEIZIGO_HOST_TENANT_RESERVATION_MB  declare the resident tenant (MB);
+#                               when set, no auto-detection runs (the test
+#                               owns the whole scenario — same rule as the
+#                               runner); 0 = explicitly no tenant
+#   WEIZIGO_HOST_TOTAL_MB       inject total physical memory (MB)
+#   WEIZIGO_HOST_MEM_UNAVAIL=1  force the reading to None (inert path)
+#   WEIZIGO_LANE_COST_MB        the charge of one memory-heavy lane (MB)
+
+MEMORY_GATE_MARGIN_MB = 2048             # safety margin above a lane's charge
+LOCAL_LANE_COST_DEFAULT_MB = 16384       # one 27b MLX model (~15–20 GB)
+
+
+def _host_total_mb():
+    """Total physical memory in MB, or None.  WEIZIGO_HOST_TOTAL_MB injects
+    the reading (mirror of tools/runner's WEIZIGO_HOST_MEM_AVAIL_MB hook).
+    macOS: `sysctl -n hw.memsize`; Linux: /proc/meminfo MemTotal kB."""
+    injected = os.environ.get("WEIZIGO_HOST_TOTAL_MB")
+    if injected is not None:
+        try:
+            return int(injected)
+        except ValueError:
+            pass  # fall through to the real reading
+    if sys.platform == 'linux' and os.path.isdir('/proc'):
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        return int(line.split()[1]) // 1024
+        except (OSError, ValueError, IndexError):
+            return None
+        return None
+    try:
+        out = subprocess.run(
+            ["sysctl", "-n", "hw.memsize"],
+            capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode == 0 and out.stdout.strip():
+            return int(out.stdout.strip()) // (1024 * 1024)
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+def _host_avail_mb():
+    """System-wide available memory in MB, or None.  WEIZIGO_HOST_MEM_AVAIL_MB
+    injects the reading (MB, verbatim — the same hook tools/runner uses, so
+    the T714 fixture vocabulary applies); WEIZIGO_HOST_MEM_UNAVAIL=1 forces
+    None (the gate's inert path).  macOS: vm_stat reclaimable page classes
+    (free + inactive + purgeable + speculative) × page size; Linux:
+    /proc/meminfo MemAvailable kB."""
+    if os.environ.get("WEIZIGO_HOST_MEM_UNAVAIL") == "1":
+        return None
+    injected = os.environ.get("WEIZIGO_HOST_MEM_AVAIL_MB")
+    if injected is not None:
+        try:
+            return int(injected)
+        except ValueError:
+            pass  # fall through to the real reading
+    if sys.platform == 'linux' and os.path.isdir('/proc'):
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemAvailable:"):
+                        return int(line.split()[1]) // 1024
+        except (OSError, ValueError, IndexError):
+            return None
+        return None
+    try:
+        out = subprocess.run(
+            ["vm_stat"], capture_output=True, text=True, timeout=2.0,
+        )
+        if out.returncode != 0:
+            return None
+        page = 4096
+        classes = {"Pages free:": 0, "Pages inactive:": 0,
+                  "Pages purgeable:": 0, "Pages speculative:": 0}
+        for line in out.stdout.splitlines():
+            ls = line.strip()
+            if "page size of" in ls:
+                m = re.search(r'page size of (\d+)', ls)
+                if m:
+                    page = int(m.group(1))
+                continue
+            for key in classes:
+                if ls.startswith(key):
+                    # "Pages free:  832602." -> strip the trailing dot
+                    tail = ls[len(key):].strip().rstrip('.')
+                    try:
+                        classes[key] = int(tail)
+                    except ValueError:
+                        pass
+        return (sum(classes.values()) * page) // (1024 * 1024)
+    except (FileNotFoundError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return None
+
+
+def _resident_tenant_mb():
+    """The resident model server footprint in MB (0 = none).  Mirror of
+    tools/runner._declared_tenant_reservation_bytes, in MB:
+      1. WEIZIGO_HOST_TENANT_RESERVATION_MB — declared reservation, verbatim
+         (including 0 = explicitly no tenant);
+      2. when the available reading is INJECTED, no auto-detection runs —
+         the test owns the whole scenario, a tenant must be declared;
+      3. otherwise: the summed RSS of every process whose command carries
+         `ollama runner --mlx-engine` (the resident MLX engine — the
+         multi-GB holder).  No match ⇒ 0."""
+    injected = os.environ.get("WEIZIGO_HOST_TENANT_RESERVATION_MB")
+    if injected is not None:
+        try:
+            return int(injected)
+        except ValueError:
+            return 0
+    if os.environ.get("WEIZIGO_HOST_MEM_AVAIL_MB") is not None:
+        return 0
+    try:
+        out = subprocess.run(
+            ["ps", "-axo", "pid=,rss=,command="],
+            capture_output=True, text=True, timeout=2.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return 0
+    if out.returncode != 0:
+        return 0
+    total = 0
+    for line in out.stdout.splitlines():
+        if "ollama runner --mlx-engine" not in line:
+            continue
+        parts = line.split(None, 2)
+        if len(parts) < 2:
+            continue
+        try:
+            total += int(parts[1]) // 1024   # ps RSS is in kB
+        except ValueError:
+            continue
+    return total
+
+
+def _lane_is_memory_heavy(provider, raw_model):
+    """A lane is memory-heavy when it loads a big LOCAL model: provider
+    ollama with a non-`:cloud` tag.  Cloud-API lanes (deepseek, claude,
+    pi/openrouter) and `:cloud` ollama tags keep a small local RSS — they
+    dispatch freely, the gate never applies to them."""
+    if provider != "ollama":
+        return False
+    if raw_model and ":cloud" in raw_model:
+        return False
+    return True
+
+
+def _memory_gate_verdict(provider, raw_model, tenant_mb):
+    """→ (admit, reason).  Cloud-API lanes always admit.  A memory-heavy
+    lane is admitted only while a resident tenant is present AND the host
+    has at least lane_cost + margin MB genuinely available; no tenant ⇒ no
+    reduced budget ⇒ gate inactive; reading unavailable ⇒ gate inert."""
+    if not _lane_is_memory_heavy(provider, raw_model):
+        return True, None
+    if tenant_mb <= 0:
+        return True, None
+    avail = _host_avail_mb()
+    if avail is None:
+        return True, None
+    try:
+        cost = int(os.environ.get("WEIZIGO_LANE_COST_MB")
+                   or LOCAL_LANE_COST_DEFAULT_MB)
+    except ValueError:
+        cost = LOCAL_LANE_COST_DEFAULT_MB
+    margin = MEMORY_GATE_MARGIN_MB
+    if avail >= cost + margin:
+        return True, None
+    return False, (
+        f"memory budget cannot take another memory-heavy lane (T713): host "
+        f"reports {avail} MB available and the model server is resident "
+        f"(tenant ~{tenant_mb} MB); a local model lane costs "
+        f"~{cost} MB (+ {margin} MB margin).  Launching it now would push "
+        f"the host toward OOM — where the runner's host guard would have to "
+        f"kill a running lane (fratricide).  List-wait: leave the row "
+        f"dispatchable and re-dispatch when a lane finishes; idle is "
+        f"acceptable, killing a running lane is not (operator intent)."
+    )
+
 
 def _pi_session_path(task_id):
     """Per-lane pi session file for the token meter (T662).
@@ -297,6 +521,44 @@ def main(argv):
         model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
         if model is None:
             model = re.sub(r":cloud$", "", raw_model)
+
+    # ── resident-aware memory gate (T713) ────────────────────────────────
+    # When the model server is resident, the dispatcher knows the reduced
+    # memory budget (host total − tenant) and refuses a memory-heavy lane
+    # the host cannot take — list-wait, never a kill.  Cloud-API lanes
+    # (deepseek / claude / pi / :cloud ollama tags) dispatch freely; the
+    # gate only ever applies to local-model lanes (provider ollama, local
+    # tag).  This is the launch chokepoint — every lane, dispatch or hand,
+    # passes through here (the T677/D040 principle), so a gate only in
+    # bin/dispatch would be advisory.  A dry-run reveals the refusal the
+    # same way a launch would.
+    if _lane_is_memory_heavy(provider, raw_model):
+        tenant = _resident_tenant_mb()
+        total = _host_total_mb()
+        if tenant > 0 and total is not None:
+            print(f"[subagent] T713: model server resident (tenant {tenant} MB) — "
+                  f"fleet budget reduced to {total - tenant} MB "
+                  f"(total {total} MB)", file=sys.stderr)
+        elif total is not None:
+            print(f"[subagent] T713: memory-heavy lane ({raw_model}) — no resident "
+                  f"model server detected; host total {total} MB", file=sys.stderr)
+        override = flags.get("override-memory-gate")
+        if override is True:   # bare flag, no value — parse_argv yields True
+            sys.exit("subagent: --override-memory-gate requires a reason: "
+                     "--override-memory-gate=<reason> (T713).\n"
+                     "  The flag exists for 'I have checked the host myself; "
+                     "proceed', not for convenience.")
+        admit, mem_reason = _memory_gate_verdict(provider, raw_model, tenant)
+        if not admit:
+            override = (flags.get("override-memory-gate") or "").strip()
+            if override:
+                print(f"subagent: WARNING — memory gate OVERRIDDEN for this launch "
+                      f"by operator reason {override!r} (T713); the host is tight "
+                      f"and the lane may compete for memory", file=sys.stderr)
+            else:
+                sys.exit("subagent: REFUSED — " + mem_reason + "\n"
+                         "  If you have checked the host yourself, launch with a "
+                         "recorded reason: --override-memory-gate=<reason> (T713).\n")
 
     # ── provider-window gate (T628 + T677): the real launch chokepoint ──
     # bin/dispatch gates too, but subagent is where every lane actually
