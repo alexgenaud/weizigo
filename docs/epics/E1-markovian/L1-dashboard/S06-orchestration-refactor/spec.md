@@ -516,11 +516,16 @@ each step committing before the next touches the store (commit → deploy → sm
 6. **Provider seam** (the one-registry-entry onboarding, measured against T732) — last, the
    acceptance demo.
 
-**ORC-PLAN-4 (regression scripts — counted disposition).** 80 `tools/regression-*.sh` at `HEAD`.
+**ORC-PLAN-4 (regression scripts — counted disposition).** 81 `tools/regression-*.sh` at `HEAD`.
 Dispositions: **ABSORB** (coverage re-expressed as `managent` Zig tests, shell script retired at
 phase close), **REWIRE** (script updated to the new mechanism; subject survives), **SURVIVE**
 (out of scope, untouched), **RETIRE** (mechanism deleted, no replacement owed — count is **0**,
 stated so nothing is silently dropped). The table is complete: 19 + 16 + 45 + 0 = **80**.
+
+**Amendment (T801).** `regression-canonicalizer-parity.sh` landed after the `8c00704` pin (T801,
+one canonicalizer): **SURVIVE** — it is the new standing parity control over the model
+canonicalizer, out of the S06 orchestration scope. Live count 80 → **81**; the table above is
+unchanged (the 80 it enumerates are all still accounted).
 
 **Amendment (T802, T778 finding 2) — re-pinned to `8c00704`, and the count is now an
 instrument.** Rev 1's 75 was **correct at its own pin**: `git ls-tree a1415fe` returns exactly
@@ -580,7 +585,8 @@ git-commit-mine-hook, process-ownership, pilot-gate, orcha-acceptance, precommit
 acceptance.sh` survives as the bar itself (it is the P5 gate, not a thing under test).
 
 **ORC-PLAN-5 (silent truncation is a defect — now mechanized).** The disposition table's counts
-sum to **80**, the `ls tools/regression-*.sh | wc -l` at `8c00704`. If a later phase retires a
+sum to **80**, the `ls tools/regression-*.sh | wc -l` at `8c00704`; the T801 addition brings the
+live count to **81** (see the ORC-PLAN-4 amendment). If a later phase retires a
 script not listed here, the plan is amended; a script left off the table is a spec defect, not a
 reader's problem. **Amended T802:** that sentence is now enforced by
 `tests/unit/test_s06_conformance.py::TestDispositionCount`, which fails the moment the declared

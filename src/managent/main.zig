@@ -239,22 +239,56 @@ fn printCanonicalModels(w: Writers) void {
     w.diag("\n", .{});
 }
 
-/// Strip Ollama's :cloud tag suffix and any -code variant before comparing
-/// against the canonical set.  The raw dispatch tag (e.g. kimi-k2.7-code:cloud)
-/// is accepted as input convenience; the stored value is always canonical.
+/// Serving tag → canonical label map — the ONLY place the non-`:cloud`
+/// serving-tag divergences live (T801: one canonicalizer, not four).  A
+/// serving tag on the left never reaches a record; the stored value is
+/// always the canonical label on the right.  `managent models --tags`
+/// exports this table + the `:cloud` strip so the Python readers
+/// (token-capture, model-profiles, runner) RESOLVE the transform from this
+/// one source instead of reimplementing it and drifting.
+const serving_tag_map = [_]struct { serving: []const u8, canonical: []const u8 }{
+    .{ .serving = "kimi-k2.7-code", .canonical = "kimi-k2.7" },
+    .{ .serving = "stealth/ox-alpha", .canonical = "ox-alpha" },
+};
+
+/// The generic serving-tag suffix stripped before the map is applied.
+const serving_tag_strip_suffix = ":cloud";
+
+/// Strip Ollama's :cloud tag suffix and any serving-tag divergence before
+/// comparing against the canonical set.  The raw dispatch tag (e.g.
+/// kimi-k2.7-code:cloud) is accepted as input convenience; the stored value
+/// is always canonical.  This is the single transform; the rejection of an
+/// unrecognized tag lives at the boundary (`managent canonicalize` / the
+/// Python readers), never as a silent pass-through in a reader.
 fn canonicalizeModelTag(raw: []const u8) []const u8 {
-    // Strip :cloud suffix first
+    // Strip the :cloud suffix first
     var s = raw;
-    if (std.mem.endsWith(u8, s, ":cloud")) {
-        s = s[0 .. s.len - ":cloud".len];
+    if (std.mem.endsWith(u8, s, serving_tag_strip_suffix)) {
+        s = s[0 .. s.len - serving_tag_strip_suffix.len];
     }
-    // Map -code variant → canonical (kimi-k2.7-code → kimi-k2.7)
-    if (std.mem.eql(u8, s, "kimi-k2.7-code")) return "kimi-k2.7";
-    // Map the stealth serving tag → canonical label (T732).  The serving
-    // tag stealth/ox-alpha never reaches the ledger; the stored value is
-    // always ox-alpha.
-    if (std.mem.eql(u8, s, "stealth/ox-alpha")) return "ox-alpha";
+    for (serving_tag_map) |m| {
+        if (std.mem.eql(u8, s, m.serving)) return m.canonical;
+    }
     return s;
+}
+
+test "canonicalizeModelTag: serving tags and :cloud strip map to canonical" {
+    const cases = [_][2][]const u8{
+        .{ "glm-5.2:cloud", "glm-5.2" },
+        .{ "minimax-m3:cloud", "minimax-m3" },
+        .{ "kimi-k2.7-code", "kimi-k2.7" },
+        .{ "kimi-k2.7-code:cloud", "kimi-k2.7" },
+        .{ "stealth/ox-alpha", "ox-alpha" },
+    };
+    for (cases) |c| {
+        try std.testing.expectEqualStrings(c[1], canonicalizeModelTag(c[0]));
+    }
+    // null control: every canonical label maps to itself
+    for (canonical_models) |m| {
+        try std.testing.expectEqualStrings(m, canonicalizeModelTag(m));
+    }
+    // an unrecognized tag is NOT canonical — the boundary rejects it
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("kimi-k2-thinking:cloud")));
 }
 
 // ── T635: mechanized model assignment (ruling 33) ──────────────────────────
@@ -1123,6 +1157,15 @@ pub fn main(init: std.process.Init.Minimal) !void {
     // — callable from any directory.  Safe with no store at all.
     if (args.len >= 2 and std.mem.eql(u8, args[1], "models")) {
         try cmdModels(w, args);
+        return;
+    }
+
+    // T801: `canonicalize` is the strict boundary form of the same pure
+    // static transform `models` exposes — resolve a raw dispatch tag to its
+    // canonical label, rejecting (exit 1) an unrecognized tag instead of
+    // passing it through.  Pure static like `models`: no repo root, no store.
+    if (args.len >= 2 and std.mem.eql(u8, args[1], "canonicalize")) {
+        try cmdCanonicalize(w, args);
         return;
     }
 
@@ -6854,7 +6897,18 @@ fn cmdWhoami(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u8)
 // with no store at all (MANAGENT_STORE may point at a nonexistent path).
 fn cmdModels(w: Writers, args: [][]const u8) !void {
     const use_json = hasFlag(args, "--json");
-    if (use_json) {
+    const use_tags = hasFlag(args, "--tags");
+    if (use_tags) {
+        // T801: `models --tags` is the full canonicalizer export — canonical
+        // list + the :cloud strip suffix + the serving-tag map — as one JSON
+        // object.  This is the surface the Python readers cache so the
+        // transform is RESOLVED from this single source, never reimplemented.
+        if (!use_json) {
+            w.diag("usage: managent models --tags --json\n", .{});
+            std.process.exit(2);
+        }
+        try cmdModelsTagsJson(w);
+    } else if (use_json) {
         // One JSON array, canonical order, machine-readable.  Labels carry
         // only [a-z0-9.:-] but go through writeJsonString for the project's
         // own discipline (every JSON string is escaped, no raw quotes).
@@ -6874,6 +6928,58 @@ fn cmdModels(w: Writers, args: [][]const u8) !void {
             w.data("{s}\n", .{m});
         }
     }
+}
+
+/// `managent models --tags --json`: one JSON object carrying everything a
+/// reader needs to apply the canonicalizer exactly as this binary does.
+fn cmdModelsTagsJson(w: Writers) !void {
+    var buf: std.ArrayList(u8) = .empty;
+    defer buf.deinit(alloc);
+    try buf.append(alloc, '{');
+    try writeJsonString(&buf, "canonical_models");
+    try buf.append(alloc, ':');
+    try buf.append(alloc, '[');
+    for (canonical_models, 0..) |m, i| {
+        if (i > 0) try buf.append(alloc, ',');
+        try writeJsonString(&buf, m);
+    }
+    try buf.append(alloc, ']');
+    try buf.append(alloc, ',');
+    try writeJsonString(&buf, "strip_suffix");
+    try buf.append(alloc, ':');
+    try writeJsonString(&buf, serving_tag_strip_suffix);
+    try buf.append(alloc, ',');
+    try writeJsonString(&buf, "serving_tags");
+    try buf.append(alloc, ':');
+    try buf.append(alloc, '{');
+    for (serving_tag_map, 0..) |m, i| {
+        if (i > 0) try buf.append(alloc, ',');
+        try writeJsonString(&buf, m.serving);
+        try buf.append(alloc, ':');
+        try writeJsonString(&buf, m.canonical);
+    }
+    try buf.append(alloc, '}');
+    try buf.append(alloc, '}');
+    try buf.append(alloc, '\n');
+    w.data("{s}", .{buf.items});
+}
+
+/// `managent canonicalize <tag>`: the strict boundary — resolve a raw
+/// dispatch tag to its canonical label, or reject it (exit 1) so "unknown
+/// label" and "canonical label" are never the same value (T801).
+fn cmdCanonicalize(w: Writers, args: [][]const u8) !void {
+    if (args.len < 3) {
+        w.diag("usage: managent canonicalize <tag>\n", .{});
+        std.process.exit(2);
+    }
+    const raw = args[2];
+    const canon = canonicalizeModelTag(raw);
+    if (!isCanonicalModel(canon)) {
+        w.diag("error: '{s}' is not a recognized model tag (canonicalized to '{s}')\n", .{ raw, canon });
+        printCanonicalModels(w);
+        std.process.exit(1);
+    }
+    w.data("{s}\n", .{canon});
 }
 
 // ── T635: mechanized model assignment verb ─────────────────────────────────

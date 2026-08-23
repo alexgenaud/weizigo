@@ -60,9 +60,11 @@ Derived for the grand-race ledger schema (§6: tokens_in / tokens_out):
 Prices are deliberately NOT surfaced: the tokens-now-prices-later doctrine
 (docs/infra/bakeoff.md) records the measured quantity, never a dollar figure.
 
-Model tags are canonicalized exactly as `tools/model-profiles.py` does (the
-same transform managent applies at registration): strip `:cloud`,
-`kimi-k2.7-code` -> `kimi-k2.7`, `stealth/ox-alpha` -> `ox-alpha`.
+Model tags are canonicalized by RESOLVING the single transform
+(src/managent/main.zig canonicalizeModelTag via tools/model_tags.py) — one
+canonicalizer, not four (T801): strip `:cloud`, `kimi-k2.7-code` ->
+`kimi-k2.7`, `stealth/ox-alpha` -> `ox-alpha`; an unrecognized non-empty tag
+is rejected, never passed through unchanged.
 
 Task: T521 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-20
 """
@@ -73,34 +75,20 @@ import os
 import re
 import sys
 
-# Canonical labels mirror src/managent/main.zig canonical_models[]; the tag
-# transform is the same one managent applies at registration time.
-CANONICAL_MODELS = [
-    "claude-opus-5",
-    "claude-sonnet-5",
-    "claude-fable-5",
-    "claude-haiku-4-5-20251001",
-    "deepseek-v4-pro",
-    "deepseek-v4-flash",
-    "glm-5.2",
-    "minimax-m3",
-    "kimi-k2.7",
-    "qwen3.8:27b-mlx",
-    "ox-alpha",
-]
+# T801: the serving-tag -> canonical transform now lives in ONE place
+# (src/managent/main.zig canonicalizeModelTag) and is RESOLVED here via
+# tools/model_tags.py (which shells out to `managent models --tags --json`,
+# cached) — never reimplemented.  model_tags.py sits beside this file, so
+# make this directory importable under every load mechanism (the runner's
+# spec_from_file_location, tests/unit/_load.py, a bare python3 run).
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import model_tags as _mt  # noqa: E402
+from model_tags import UnknownModelTag  # noqa: E402
 
 # Usage keys summed per assistant turn.  A key missing from a turn counts 0.
 TOKEN_KEYS = ["input", "output", "cache_read", "cache_write", "reasoning", "total"]
-
-# Serving tag -> canonical label, table-driven from docs/infra/model-registry.md
-# (§Serving tags + §Short names).  The generic `:cloud` strip is code; every
-# other serving-tag divergence is ONE row here (T794).  tests/unit/
-# test_token_capture.py asserts parity against src/managent/main.zig
-# canonicalizeModelTag and against the registry text itself.
-SERVING_TAG_MAP = {
-    "kimi-k2.7-code": "kimi-k2.7",
-    "stealth/ox-alpha": "ox-alpha",
-}
 
 # claude envelope (snake_case, v2.1.237 ground truth) -> internal keys.
 CLAUDE_USAGE_KEYS = {
@@ -109,6 +97,22 @@ CLAUDE_USAGE_KEYS = {
     "cache_read": "cache_read_input_tokens",
     "cache_write": "cache_creation_input_tokens",
 }
+
+
+def __getattr__(name):
+    # T801: CANONICAL_MODELS / SERVING_TAG_MAP survive only as the READ
+    # surface older consumers and the unit tests reach through.  They are
+    # resolved from the single source on first access and then cached as
+    # module globals; the transform itself is model_tags.canon_tag below.
+    if name == "CANONICAL_MODELS":
+        val = _mt.canonical_models()
+        globals()["CANONICAL_MODELS"] = val
+        return val
+    if name == "SERVING_TAG_MAP":
+        val = _mt.serving_tag_map()
+        globals()["SERVING_TAG_MAP"] = val
+        return val
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
 def _empty_meta():
@@ -124,25 +128,17 @@ def _empty_meta():
 
 
 def canon_tag(tag):
-    """The same :cloud strip / -code / stealth map managent applies at
-    registration (src/managent/main.zig canonicalizeModelTag).
+    """The serving-tag -> canonical transform, RESOLVED from the single source
+    (src/managent/main.zig canonicalizeModelTag via `managent models --tags`)
+    — a thin reader, not a second copy (T801).
 
-    T746: `stealth/ox-alpha` is a SERVING TAG and must never reach a record
-    (the T276 rule).  Before this map existed the ledger accepted three rows
-    spelling it the serving way, and every per-canonical-label aggregation
-    dropped ox-alpha silently instead of loudly.  The arms are table-driven
-    from docs/infra/model-registry.md (SERVING_TAG_MAP, T794); the parity
-    control is tests/unit/test_token_capture.py (Python list + arm table
-    asserted against the Zig source and the registry text).  Note: the
-    docstring here cited tools/regression-token-capture-canon.sh as the
-    parity control until T794 — no such file exists on disk; a parity claim
-    without a control that runs is exactly how the three serving-tag rows
-    slipped through.
+    STRICT boundary: `stealth/ox-alpha` -> `ox-alpha` and
+    `kimi-k2.7-code:cloud` -> `kimi-k2.7` exactly as managent does; an
+    unrecognized non-empty tag raises UnknownModelTag instead of being passed
+    through unchanged (pass-through is how a serving tag reached the ledger,
+    T746/T276).  None / '' / whitespace resolve to '' (no model).
     """
-    t = (tag or "").strip()
-    if t.endswith(":cloud"):
-        t = t[:-len(":cloud")]
-    return SERVING_TAG_MAP.get(t, t)
+    return _mt.canon_tag(tag)
 
 
 def slug(cwd):
@@ -507,6 +503,9 @@ def parse_session(path):
         "tokens": _usage_zero(),
         "model_turns": {},   # canonical model -> turn count
         "bad_lines": 0,
+        # T801: turns whose model tag is not a canonical label are PRESENT
+        # and labeled (never silently attributed, never a fake label).
+        "noncanonical_turns": 0,
         # T662: the resumable handle (the session header's id), so the
         # scan path can name a session file the way the lane records do.
         "session_id": None,
@@ -539,7 +538,15 @@ def parse_session(path):
                     first_user = _first_user_text([line])
                 elif m.get("role") == "assistant":
                     rec["turns"] += 1
-                    model = canon_tag(m.get("model") or "")
+                    try:
+                        model = canon_tag(m.get("model") or "")
+                    except UnknownModelTag:
+                        # T801: an unrecognized tag is not a model label —
+                        # the turn's TOKENS still count (the meter is not
+                        # attribution), but the turn is not attributed to a
+                        # model and the count records it loudly.
+                        model = None
+                        rec["noncanonical_turns"] += 1
                     if not rec["provider"] and m.get("provider"):
                         rec["provider"] = m.get("provider")
                     if model:
@@ -582,6 +589,8 @@ def scan_sessions(sessions_dir, since=None, task=None, model=None):
     if task:
         sessions = [s for s in sessions if s.get("task") == task]
     if model:
+        # T801: the --model filter arg is a boundary — an unknown label is
+        # rejected loudly (a clean CLI error), never silently passed through.
         want = canon_tag(model)
         sessions = [s for s in sessions if (s.get("model") or "") == want]
     tasks = {}
@@ -692,8 +701,23 @@ def merge_models(session_models, ledger_entries):
     ledger_by_model = {}
     missing = {}
     for e in ledger_entries:
-        label = canon_tag(e.get("model") or "")
+        raw_model = e.get("model") or ""
+        try:
+            label = canon_tag(raw_model)
+        except UnknownModelTag:
+            # T801: an unrecognized model tag is present and labeled, never
+            # silently attributed to a fake canonical label.
+            label = None
         if _ledger_reading(e):
+            if label is None:
+                tid = e.get("task") or "unknown"
+                missing[tid] = {
+                    "model": raw_model,
+                    "provider": e.get("provider"),
+                    "ts": e.get("ts"),
+                    "missing_reason": "unrecognized model tag %r" % raw_model,
+                }
+                continue
             a = ledger_by_model.setdefault(label, _empty_agg())
             a["sessions"] += 1
             a["turns"] += 0
@@ -706,7 +730,7 @@ def merge_models(session_models, ledger_entries):
         if not _ledger_reading(e):
             tid = e.get("task") or "unknown"
             missing[tid] = {
-                "model": label or e.get("model"),
+                "model": label if label is not None else raw_model,
                 "provider": e.get("provider"),
                 "ts": e.get("ts"),
                 "missing_reason": e.get("missing_reason") or "no reason recorded",
@@ -759,6 +783,15 @@ def main(argv):
                     help="only sessions started / records stamped on/after YYYY-MM-DD (inclusive)")
     args = ap.parse_args(argv)
 
+    # T801: the --model filter is a boundary — reject an unknown label with
+    # a clean CLI error before scanning, never a pass-through.
+    if args.model:
+        try:
+            canon_tag(args.model)
+        except UnknownModelTag as exc:
+            print("error: %s" % exc, file=sys.stderr)
+            return 2
+
     cwd = args.cwd or os.getcwd()
     sessions_dir = args.sessions or default_sessions_dir(cwd)
 
@@ -772,7 +805,6 @@ def main(argv):
     for e in ledger_entries:
         if not _ledger_reading(e):
             continue
-        label = canon_tag(e.get("model") or "")
         tid = e.get("task")
         if tid and tid in tasks:
             t = tasks[tid]

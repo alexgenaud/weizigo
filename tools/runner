@@ -127,6 +127,14 @@ from pathlib import Path
 # import resolves; the module is stdlib-only.
 import directive_policy
 
+# T801: the serving-tag -> canonical transform lives in ONE place
+# (src/managent/main.zig canonicalizeModelTag) and is RESOLVED here via
+# tools/model_tags.py (shells out to `managent models --tags --json`, cached)
+# — never reimplemented.  model_tags.py sits beside this file; tools/ is on
+# sys.path[0] when the runner runs as a script, and tests/unit/test_runner.py
+# adds it, so the bare import resolves.
+import model_tags as mt
+
 
 # ── brief / prompt telemetry (T520, 2026-08-20) ────────────────────────
 #
@@ -461,16 +469,32 @@ def _run_record_path(task_identity, repo_root):
     return os.path.join(repo_root, "untracked", "runs", _sanitize_identity(task_identity) + ".json")
 
 
-def _model_from_argv(argv):
-    """The model label from the dispatch command's --model flag, or None.
+def _model_from_argv(argv, canonicalizer=None):
+    """The CANONICAL model label from the dispatch command's --model flag, or None.
 
-    Every run record carries an explicit `model` field (T650) so attempts
-    are distinguishable at a glance; the label is the literal --model value
-    the dispatcher launched with, parsed here once at launch.  The full
-    dispatch remains in `command`."""
+    T801: the raw `--model` value (possibly a serving tag like
+    `stealth/ox-alpha` or `kimi-k2.7-code:cloud`) is canonicalized at write
+    time — the raw tag stays in `command` as provenance; `model` holds the
+    canonical label.  An unrecognized non-empty tag is rejected (None + a
+    stderr warning), never stored as if it were canonical (pass-through is
+    how a serving tag reached run records before T801).
+
+    `canonicalizer` is the unit-test seam: a rules dict (from
+    model_tags.normalize_rules) applied in-process so the test stays hermetic
+    (no fork).  Production callers omit it and resolve via managent, cached.
+    """
     for i, a in enumerate(argv):
         if a == "--model" and i + 1 < len(argv):
-            return argv[i + 1]
+            raw = argv[i + 1]
+            try:
+                if canonicalizer is not None:
+                    return mt.apply_rules(raw, canonicalizer)
+                return mt.canon_tag(raw)
+            except mt.UnknownModelTag:
+                print(f"[runner] WARNING: unrecognized --model tag {raw!r}; "
+                      "run record `model` left null (raw preserved in `command`)",
+                      file=sys.stderr)
+                return None
     return None
 
 

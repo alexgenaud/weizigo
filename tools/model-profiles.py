@@ -133,9 +133,11 @@ battery-heavy->correctness, orchestration-seat->scope_discipline; a null
 dominant dimension falls back to correctness), ties by diversity (more
 distinct types with data), then by the least data, then lexicographic label.
 
-Canonical model labels mirror src/managent/main.zig canonical_models[]; the
-log-tag canonicalization (strip :cloud, kimi-k2.7-code -> kimi-k2.7) is the
-same transform managent applies at registration time.
+Canonical model labels and the log-tag canonicalization (strip :cloud,
+kimi-k2.7-code -> kimi-k2.7, stealth/ox-alpha -> ox-alpha) are RESOLVED from
+src/managent/main.zig canonicalizeModelTag via tools/model_tags.py — one
+canonicalizer, not four (T801); an unrecognized tag is rejected, never
+passed through unchanged.
 
 Task: T503 (first half) · T524 (8×8 extension) · T525 (epoch grouping) ·
 Role: worker · Model: deepseek-v4-pro (T503) / deepseek-v4-flash (T524,
@@ -148,18 +150,15 @@ import re
 import subprocess
 import sys
 
-CANONICAL_MODELS = [
-    "claude-opus-5",
-    "claude-sonnet-5",
-    "claude-fable-5",
-    "claude-haiku-4-5-20251001",
-    "deepseek-v4-pro",
-    "deepseek-v4-flash",
-    "glm-5.2",
-    "minimax-m3",
-    "kimi-k2.7",
-    "qwen3.8:27b-mlx",
-]
+# T801: the serving-tag -> canonical transform now lives in ONE place
+# (src/managent/main.zig canonicalizeModelTag) and is RESOLVED here via
+# tools/model_tags.py (shells out to `managent models --tags --json`,
+# cached) — never reimplemented.  model_tags.py sits beside this file.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import model_tags as _mt  # noqa: E402
+from model_tags import UnknownModelTag  # noqa: E402
 
 # ── epoch boundaries (T525) ──────────────────────────────────────────────
 # Recorded in docs/infra/model-registry.md §Epoch rules (canonical fact
@@ -350,13 +349,11 @@ SCOPE_INCIDENT_MARKERS = [
 
 
 def canon_tag(tag):
-    """The same :cloud strip / -code map managent applies at registration."""
-    t = tag.strip()
-    if t.endswith(":cloud"):
-        t = t[:-len(":cloud")]
-    if t == "kimi-k2.7-code":
-        t = "kimi-k2.7"
-    return t
+    """The serving-tag -> canonical transform, RESOLVED from the single source
+    (managent) — a thin reader, not a second copy (T801).  STRICT: an
+    unrecognized non-empty tag raises UnknownModelTag instead of passing
+    through unchanged."""
+    return _mt.canon_tag(tag)
 
 
 # ── epoch bucketing (T525) ───────────────────────────────────────────────
@@ -481,11 +478,18 @@ def parse_dispatch_verify(text):
     return out
 
 
-def scan_logs(logdir):
+def scan_logs(logdir, canon=None):
     """Return {(task, model): [kill_reasons]} from `exit 124` lines in
     untracked/log/t*.log, attributed to the model named in the segment's argv
     and the task named in its `task identity` line.  A model with no log, or a
-    log with no `--model`, yields no efficiency data (the suite/bakeoff logs)."""
+    log with no `--model`, yields no efficiency data (the suite/bakeoff logs).
+
+    `canon` is the canonicalizer rules dict (from model_tags); None resolves
+    it from the single source.  An unrecognized `--model` is skipped (the
+    kill is present but unattributed) — never passed through as if it were a
+    canonical label (T801)."""
+    if canon is None:
+        canon = _mt.load_canonicalizer()
     kills = {}
     try:
         names = sorted(os.listdir(logdir))
@@ -504,7 +508,12 @@ def scan_logs(logdir):
             for line in fh:
                 if line.startswith("[runner] argv"):
                     m = re.search(r"--model\s+([\w.:-]+)", line)
-                    cur_model = canon_tag(m.group(1)) if m else None
+                    cur_model = None
+                    if m:
+                        try:
+                            cur_model = _mt.apply_rules(m.group(1), canon)
+                        except UnknownModelTag:
+                            cur_model = None
                     cur_task = None
                 m = re.search(r"task identity:\s+(T\d+)", line)
                 if m:
@@ -625,7 +634,7 @@ def grade_independence(task):
     return 1 if any(m in blob for m in INDEPENDENCE_MARKERS) else 0
 
 
-def build_profiles(store, perf_text, logs_dir, c7, root, no_git, bounds=None):
+def build_profiles(store, perf_text, logs_dir, c7, root, no_git, bounds=None, canon=None):
     """Compute per-model, per-epoch dimension profiles and the type-count map.
 
     Returns (profiles, type_counts, task_type, census):
@@ -652,7 +661,7 @@ def build_profiles(store, perf_text, logs_dir, c7, root, no_git, bounds=None):
              if isinstance(v, dict) and k != "_sys" and not k.startswith("_")}
     task_dates = {tid: _task_date(t) for tid, t in tasks.items()}
     dispatch = parse_dispatch_verify(perf_text)
-    kills = scan_logs(logs_dir)
+    kills = scan_logs(logs_dir, canon=canon)
 
     # T629 / Ruling 32: the census.  A ledger row is CENSORED when its
     # verification record carries killed_by != none — the runner's own
@@ -1064,6 +1073,10 @@ def main(argv):
                     help="JSON file mapping model label -> [boundary dates]; "
                          "defaults to the built-in EPOCH_BOUNDARIES table "
                          "(model-registry.md §Epoch rules, T525)")
+    ap.add_argument("--canonicalizer-json", default=None,
+                    help="JSON file with {canonical_models, strip_suffix, serving_tags} "
+                         "— injects the canonicalizer (fixture seam, T801); "
+                         "default resolves it from `managent models --tags --json`")
     ap.add_argument("--no-git", action="store_true",
                     help="skip the git-committed deliverable check")
     args = ap.parse_args(argv)
@@ -1093,8 +1106,23 @@ def main(argv):
     if args.epochs:
         bounds = read_json(args.epochs) or {}
 
+    # T801: canonicalizer — resolve from the single source by default; a
+    # fixture injects its own via --canonicalizer-json (like --epochs).
+    canon = None
+    if args.canonicalizer_json:
+        data = read_json(args.canonicalizer_json)
+        if data is None:
+            print("error: cannot read canonicalizer file %s" % args.canonicalizer_json,
+                  file=sys.stderr)
+            return 2
+        try:
+            canon = _mt.normalize_rules(data)
+        except UnknownModelTag as exc:
+            print("error: %s" % exc, file=sys.stderr)
+            return 2
+
     profiles, type_counts, task_type, census = build_profiles(
-        store, perf_text, logs_dir, c7, root, args.no_git, bounds)
+        store, perf_text, logs_dir, c7, root, args.no_git, bounds, canon)
 
     if args.select:
         if args.candidates:

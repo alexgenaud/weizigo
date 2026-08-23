@@ -72,6 +72,32 @@ printf 'untracked/\n' > .gitignore
 git add README.md .gitignore
 git commit -qm base
 
+# T801: the canonicalizer is INJECTED via WEIZIGO_CANONICALIZER_JSON so the
+# runner and the token-capture CLI resolve the single transform from a fixture
+# file (hermetic — no `managent models` fork, no managent build) instead of
+# resolving a managent binary that does not exist in this scratch repo.  The
+# synthetic model `alpha` joins the real canonical set so its turn attributes
+# exactly as before; beta/gamma included for parity with the model-profiles
+# fixture.
+CANON="$WORK/canonicalizer.json"
+python3 - "$CANON" <<'PYEOF'
+import json, sys
+json.dump({
+    "canonical_models": [
+        "alpha", "beta", "gamma",
+        "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
+        "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
+        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+    ],
+    "strip_suffix": ":cloud",
+    "serving_tags": {
+        "kimi-k2.7-code": "kimi-k2.7",
+        "stealth/ox-alpha": "ox-alpha",
+    },
+}, open(sys.argv[1], "w"))
+PYEOF
+export WEIZIGO_CANONICALIZER_JSON="$CANON"
+
 echo "=== regression-token-capture (T521) ==="
 
 if ! test -f "$TOOL"; then

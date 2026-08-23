@@ -10,7 +10,9 @@ the suite stays green while the defect stays visible.
 
 Red arms (recorded defects, owned by other rows — not this row's failures):
   * test_select_host_guard_victim_kills_nothing_when_no_member_covers_shortfall  — owner T785 (S08)
-  * test_model_from_argv_canonicalizes_serving_tag                               — owner T751
+
+T801 closed the former `test_model_from_argv_canonicalizes_serving_tag` red arm
+(owner T751): _model_from_argv now canonicalizes a serving tag at write time.
 
 Stdlib only: unittest, tempfile, no network, no subprocess, no writes outside
 a tempfile directory.
@@ -277,27 +279,59 @@ class TestTokenCapture(unittest.TestCase):
 # ── model label (priority 3) ──────────────────────────────────────────────
 
 class TestModelFromArgv(unittest.TestCase):
+    # T801: _model_from_argv canonicalizes at write time by resolving the
+    # single source (managent).  The unit test stays hermetic (no fork) by
+    # injecting the canonicalizer rules; the parity control that exercises
+    # the real managent verb is tools/regression-canonicalizer-parity.sh.
+    def _canon(self):
+        from model_tags import normalize_rules
+        return normalize_rules({
+            "canonical_models": [
+                "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
+                "claude-haiku-4-5-20251001", "deepseek-v4-pro",
+                "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7",
+                "qwen3.8:27b-mlx", "ox-alpha",
+            ],
+            "strip_suffix": ":cloud",
+            "serving_tags": {
+                "kimi-k2.7-code": "kimi-k2.7",
+                "stealth/ox-alpha": "ox-alpha",
+            },
+        })
+
     def test_model_from_argv_returns_flag_value(self):
         # SHOULD: an already-canonical label passes through unchanged.
         self.assertEqual(
-            RUNNER._model_from_argv(["pi", "--model", "deepseek-v4-pro"]),
+            RUNNER._model_from_argv(["pi", "--model", "deepseek-v4-pro"],
+                                    canonicalizer=self._canon()),
             "deepseek-v4-pro",
         )
 
     def test_model_from_argv_none_when_absent(self):
         # SHOULD: no --model flag -> None.
-        self.assertIsNone(RUNNER._model_from_argv(["pi"]))
+        self.assertIsNone(RUNNER._model_from_argv(["pi"], canonicalizer=self._canon()))
 
-    @unittest.expectedFailure
     def test_model_from_argv_canonicalizes_serving_tag(self):
-        # SHOULD (owner: T751): a serving tag never reaches a record;
-        # canonicalize stealth/ox-alpha -> ox-alpha (mirror of
-        # src/managent/main.zig canonicalizeModelTag / token-capture.canon_tag).
-        # Current behaviour: returns the literal --model value.
+        # SHOULD (T801, closes T751): a serving tag never reaches a record;
+        # canonicalize stealth/ox-alpha -> ox-alpha and kimi-code -> kimi.
         self.assertEqual(
-            RUNNER._model_from_argv(["pi", "--model", "stealth/ox-alpha"]),
+            RUNNER._model_from_argv(["pi", "--model", "stealth/ox-alpha"],
+                                    canonicalizer=self._canon()),
             "ox-alpha",
         )
+        self.assertEqual(
+            RUNNER._model_from_argv(["ollama", "launch", "pi",
+                                     "--model", "kimi-k2.7-code:cloud"],
+                                    canonicalizer=self._canon()),
+            "kimi-k2.7",
+        )
+
+    def test_model_from_argv_rejects_unknown_tag(self):
+        # SHOULD (T801): an unrecognized tag is rejected (None), never passed
+        # through as if it were a canonical label.
+        self.assertIsNone(
+            RUNNER._model_from_argv(["pi", "--model", "bogus-model"],
+                                    canonicalizer=self._canon()))
 
 
 # ── liveness fuse (priority 4) — states measurement, never a cause ────────

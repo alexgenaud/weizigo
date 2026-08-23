@@ -199,6 +199,26 @@ with open(os.path.join(work, "untracked", "log", "t5.log"), "w") as f:
     f.write("[runner] argv = ollama launch pi --model beta:cloud -y -- -p 'fixture'\n")
     f.write("[runner] task identity: T5 (source: MANAGENT_TASK_ID)\n")
     f.write("[runner] exit 124 (RSS cap 4096 MB exceeded) in 350.9 s\n")
+
+# T801: the canonicalizer is INJECTED (--canonicalizer-json) so the fixture
+# stays hermetic (no `managent models` fork) while the synthetic models
+# alpha/beta/gamma resolve — the tool's canonicalizer is now a thin reader of
+# the single source, not a second copy.  beta:cloud -> beta must resolve here.
+canon = {
+    "canonical_models": [
+        "alpha", "beta", "gamma",
+        "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
+        "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
+        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+    ],
+    "strip_suffix": ":cloud",
+    "serving_tags": {
+        "kimi-k2.7-code": "kimi-k2.7",
+        "stealth/ox-alpha": "ox-alpha",
+    },
+}
+with open(os.path.join(work, "canonicalizer.json"), "w") as f:
+    json.dump(canon, f)
 print("fixture seeded at", work)
 PYEOF
 
@@ -206,17 +226,19 @@ STORE="$WORK/docs/infra/managent/tasks.json"
 PERF="$WORK/model-perf.md"
 LOGS="$WORK/untracked/log"
 C7="$WORK/c7.json"
+CANON="$WORK/canonicalizer.json"
 
 run_json() {
     "$TOOL" --json --no-git --root "$WORK" --store "$STORE" \
-        --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" 2>/dev/null
+        --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" \
+        --canonicalizer-json "$CANON" 2>/dev/null
 }
 
 # ── (a) exploration-first: 0-data model is chosen ─────────────────────────
 echo ""
 echo "  1. exploration: alpha (0 battery tasks) chosen over beta (1 battery task)"
 OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
-      --logs "$LOGS" --c7 "$C7" --select battery-heavy --candidates alpha,beta 2>/dev/null)
+      --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" --select battery-heavy --candidates alpha,beta 2>/dev/null)
 if [ "$OUT" = "alpha" ]; then
     echo "    PASS: --select battery-heavy named alpha (no data beats data)"
 else
@@ -224,7 +246,7 @@ else
     FAIL=1
 fi
 OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
-      --logs "$LOGS" --c7 "$C7" --select orchestration-seat --candidates alpha,beta 2>/dev/null)
+      --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" --select orchestration-seat --candidates alpha,beta 2>/dev/null)
 if [ "$OUT" = "alpha" ]; then
     echo "    PASS: --select orchestration-seat named alpha (0 data beats beta's 1)"
 else
@@ -235,7 +257,7 @@ fi
 # ── (b) profile decides when all candidates have data ─────────────────────
 echo "  2. profile: both have spec/design data; beta (correctness 2.0) beats alpha (1.67)"
 OUT=$("$TOOL" --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" \
-      --logs "$LOGS" --c7 "$C7" --select spec/design --candidates alpha,beta 2>/dev/null)
+      --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" --select spec/design --candidates alpha,beta 2>/dev/null)
 if [ "$OUT" = "beta" ]; then
     echo "    PASS: --select spec/design named beta (highest dominant-dimension avg)"
 else
@@ -432,7 +454,7 @@ git add docs/T8-out.txt && git commit -qm "T8 deliverable committed"
 
 printf '' > "$GITWORK/noperf.md"
 GJSON=$("$TOOL" --json --root "$GITWORK" --store "$GITWORK/docs/infra/managent/tasks.json" \
-        --model-perf "$GITWORK/noperf.md" --logs "$GITWORK/untracked/log" --c7 "$GITWORK/c7.json" 2>/dev/null)
+        --model-perf "$GITWORK/noperf.md" --logs "$GITWORK/untracked/log" --c7 "$GITWORK/c7.json" --canonicalizer-json "$CANON" 2>/dev/null)
 python3 - "$GJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
@@ -480,8 +502,8 @@ if [ $? -ne 0 ]; then FAIL=1; fi
 # tool's own --table render, pasted verbatim.  T524: the render carries the
 # 8 D027 dimensions, the 8-type data column and the role->dimension map.
 echo "  8. --table: 8-dim columns; cells equal the JSON; role map present; deterministic; stamp"
-TABLE1=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" 2>/dev/null)
-TABLE2=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" 2>/dev/null)
+TABLE1=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" 2>/dev/null)
+TABLE2=$("$TOOL" --table --no-git --root "$WORK" --store "$STORE" --model-perf "$PERF" --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" 2>/dev/null)
 if [ "$TABLE1" = "$TABLE2" ]; then
     echo "    PASS: --table deterministic across two runs"
 else
@@ -545,21 +567,21 @@ if [ $? -ne 0 ]; then FAIL=1; fi
 echo "  9. --check-doc: fresh=0, perturbed cell=1, missing table=2"
 FRESH_DOC="$WORK/fresh.md"
 { cat "$PERF"; echo ""; echo "$TABLE1"; } > "$FRESH_DOC"
-if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$FRESH_DOC" --logs "$LOGS" --c7 "$C7" >/dev/null 2>&1; then
+if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$FRESH_DOC" --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" >/dev/null 2>&1; then
     echo "    PASS: fresh doc reports FRESH (exit 0)"
 else
     echo "    FAIL: fresh doc should exit 0"; FAIL=1
 fi
 STALE_DOC="$WORK/stale.md"
 sed 's/1.67 (n=6)/9.99 (n=6)/' "$FRESH_DOC" > "$STALE_DOC"
-if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$STALE_DOC" --logs "$LOGS" --c7 "$C7" >/dev/null 2>&1; then
+if "$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$STALE_DOC" --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" >/dev/null 2>&1; then
     echo "    FAIL: perturbed doc should exit non-zero (STALE)"; FAIL=1
 else
     echo "    PASS: perturbed doc reports STALE (exit 1)"
 fi
 NOTBL_DOC="$WORK/notbl.md"
 cat "$PERF" > "$NOTBL_DOC"
-"$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$NOTBL_DOC" --logs "$LOGS" --c7 "$C7" >/dev/null 2>&1
+"$TOOL" --check-doc --no-git --root "$WORK" --store "$STORE" --model-perf "$NOTBL_DOC" --logs "$LOGS" --c7 "$C7" --canonicalizer-json "$CANON" >/dev/null 2>&1
 rc=$?
 if [ "$rc" -eq 2 ]; then
     echo "    PASS: doc without a table exits 2"
@@ -615,7 +637,7 @@ CSTORE="$CWORK/docs/infra/managent/tasks.json"
 CPERF="$CWORK/model-perf.md"
 CLOGS="$CWORK/untracked/log"
 CC7="$CWORK/c7.json"
-CJSON=$("$TOOL" --json --no-git --root "$CWORK" --store "$CSTORE" --model-perf "$CPERF" --logs "$CLOGS" --c7 "$CC7" 2>/dev/null)
+CJSON=$("$TOOL" --json --no-git --root "$CWORK" --store "$CSTORE" --model-perf "$CPERF" --logs "$CLOGS" --c7 "$CC7" --canonicalizer-json "$CANON" 2>/dev/null)
 python3 - "$CJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
@@ -698,7 +720,7 @@ ESTORE="$EWORK/docs/infra/managent/tasks.json"
 EPERF="$EWORK/model-perf.md"
 ELOGS="$EWORK/untracked/log"
 EC7="$EWORK/c7.json"
-EJSON=$("$TOOL" --json --no-git --root "$EWORK" --store "$ESTORE" --model-perf "$EPERF" --logs "$ELOGS" --c7 "$EC7" 2>/dev/null)
+EJSON=$("$TOOL" --json --no-git --root "$EWORK" --store "$ESTORE" --model-perf "$EPERF" --logs "$ELOGS" --c7 "$EC7" --canonicalizer-json "$CANON" 2>/dev/null)
 python3 - "$EJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])
@@ -790,7 +812,7 @@ MC7="$MWORK/c7.json"
 # T111) -> profile decides on the dominant dimension (spec/design ->
 # correctness): deepseek's pass (2.0) beats alpha's pwf (1.0).
 OUT=$("$TOOL" --no-git --root "$MWORK" --store "$MSTORE" --model-perf "$MPERF" \
-      --logs "$MLOGS" --c7 "$MC7" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
+      --logs "$MLOGS" --c7 "$MC7" --canonicalizer-json "$CANON" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
 if [ "$OUT" = "deepseek-v4-pro" ]; then
     echo "    PASS: with new-epoch data on the type, profile decides (correctness 2.0 > 1.0)"
 else
@@ -808,7 +830,7 @@ json.dump(store, open(os.path.join(work, "docs", "infra", "managent", "tasks.jso
 print("T112 removed")
 PYEOF
 OUT=$("$TOOL" --no-git --root "$MWORK" --store "$MSTORE" --model-perf "$MPERF" \
-      --logs "$MLOGS" --c7 "$MC7" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
+      --logs "$MLOGS" --c7 "$MC7" --canonicalizer-json "$CANON" --select spec/design --candidates deepseek-v4-pro,alpha 2>/dev/null)
 if [ "$OUT" = "deepseek-v4-pro" ]; then
     echo "    PASS: exploration-first named deepseek-v4-pro (0 NEW-epoch spec data beats alpha's 1)"
 else
@@ -849,7 +871,7 @@ NLOGS="$NWORK/untracked/log"
 NC7="$NWORK/c7.json"
 NEPOCHS="$NWORK/epochs.json"
 NJSON=$("$TOOL" --json --no-git --root "$NWORK" --store "$NSTORE" --model-perf "$NPERF" \
-        --logs "$NLOGS" --c7 "$NC7" --epochs "$NEPOCHS" 2>/dev/null)
+        --logs "$NLOGS" --c7 "$NC7" --canonicalizer-json "$CANON" --epochs "$NEPOCHS" 2>/dev/null)
 python3 - "$NJSON" <<'PYEOF'
 import json, sys
 d = json.loads(sys.argv[1])

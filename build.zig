@@ -659,6 +659,19 @@ pub fn build(b: *std.Build) void {
     model_profiles_regression.cwd = b.path(".");
     test_step.dependOn(&model_profiles_regression.step);
 
+    // ── T801: one canonicalizer, four implementations ───────────────
+    // The serving-tag -> canonical transform used to be implemented ×4 and
+    // drifted (token-capture lacked the stealth mapping; the runner did not
+    // canonicalize).  Now the transform lives in src/managent/main.zig and
+    // the three Python readers resolve it via tools/model_tags.py.  This
+    // parity control asserts, for every registry tag, that all four
+    // implementations agree (canonical maps to itself; a serving tag maps to
+    // its canonical; an unrecognized tag is REJECTED loudly), plus a seeded
+    // fixture arm.  The parity arm is RED against HEAD and GREEN after T801.
+    const canonicalizer_parity_regression = b.addSystemCommand(&.{ "sh", "tools/regression-canonicalizer-parity.sh" });
+    canonicalizer_parity_regression.cwd = b.path(".");
+    test_step.dependOn(&canonicalizer_parity_regression.step);
+
     // ── T637: complementarity-reduction controls ──────────────────
     // tools/complementarity.py reduces race artifacts to the standing
     // complementarity record (per-lane unique-catch rates, the pairwise
