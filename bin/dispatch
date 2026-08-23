@@ -11,7 +11,8 @@ Usage:
             to one (glm-5.2:cloud, kimi-k2.7-code, kimi-k2.7:cloud,
             minimax-m3:cloud, qwen3.8:27b-mlx:cloud; dspro/dsflash for the
             deepseek pair; claude-fable-5 / claude-opus-5 / claude-sonnet-5 /
-            claude-haiku-4-5-20251001 for the claude pair).  claude labels
+            claude-haiku-4-5-20251001 for the claude pair; stealth/ox-alpha
+            (→ ox-alpha) for the pi/openrouter pair).  claude labels
             route to bin/subagent's claude provider, which launches a
             headless `claude -p` session in the Claude Code harness — never
             through the Anthropic API from here (T494; the prohibition is
@@ -105,6 +106,9 @@ MODELS = {
     "claude-opus-5":             ("claude", ["--model", "claude-opus-5"]),
     "claude-sonnet-5":           ("claude", ["--model", "claude-sonnet-5"]),
     "claude-haiku-4-5-20251001": ("claude", ["--model", "claude-haiku-4-5-20251001"]),
+    # T732: pi harness, openrouter backend.  The serving tag is
+    # stealth/ox-alpha (never the ledger); the canonical label is ox-alpha.
+    "ox-alpha":                  ("pi", ["--model", "stealth/ox-alpha"]),
 }
 
 # Input-convenience aliases (same shape managent accepts).
@@ -122,6 +126,9 @@ def canonicalize_model(raw: str) -> str:
         s = s[: -len(":cloud")]
     if s == "kimi-k2.7-code":
         return "kimi-k2.7"
+    # T732: stealth serving tag → canonical label, matching managent.
+    if s == "stealth/ox-alpha":
+        return "ox-alpha"
     return s
 
 

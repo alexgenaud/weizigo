@@ -218,6 +218,7 @@ const canonical_models = [_][]const u8{
     "minimax-m3",
     "kimi-k2.7",
     "qwen3.8:27b-mlx",
+    "ox-alpha",
 };
 
 fn isCanonicalModel(s: []const u8) bool {
@@ -249,6 +250,10 @@ fn canonicalizeModelTag(raw: []const u8) []const u8 {
     }
     // Map -code variant → canonical (kimi-k2.7-code → kimi-k2.7)
     if (std.mem.eql(u8, s, "kimi-k2.7-code")) return "kimi-k2.7";
+    // Map the stealth serving tag → canonical label (T732).  The serving
+    // tag stealth/ox-alpha never reaches the ledger; the stored value is
+    // always ox-alpha.
+    if (std.mem.eql(u8, s, "stealth/ox-alpha")) return "ox-alpha";
     return s;
 }
 
@@ -296,6 +301,10 @@ const model_families = [_]ModelFamily{
     .{ .model = "minimax-m3", .family = "ollama-cloud" },
     .{ .model = "kimi-k2.7", .family = "ollama-cloud" },
     .{ .model = "qwen3.8:27b-mlx", .family = "local" },
+    // T732: ox-alpha — stealth model, family UNKNOWN (identity sealed pending
+    // reveal).  Its own family keeps it out of the auto-draw roster; re-keyed
+    // to the real family on reveal.
+    .{ .model = "ox-alpha", .family = "ox-alpha" },
 };
 
 // family → appetite, mirroring measurement-methodology.md §1 (2026-08-22).
@@ -307,6 +316,9 @@ const family_appetite = [_]FamilyAppetite{
     .{ .family = "claude-fable", .appetite = .reserved },
     .{ .family = "deepseek", .appetite = .spend },
     .{ .family = "local", .appetite = .probe },
+    // T732: RESERVED — never one-off/general, never auto-drawn; only the
+    // operator's explicit stealth-test dispatch.
+    .{ .family = "ox-alpha", .appetite = .reserved },
 };
 
 fn familyOf(model: []const u8) ?[]const u8 {

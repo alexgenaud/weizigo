@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Dispatch a worker.  bin/subagent --provider <deepseek|ollama> <T-ID|path.md> [--model <tag>] [--wall=N] [--rss-cap-mb=N] [--dry-run]
+"""Dispatch a worker.  bin/subagent --provider <deepseek|ollama|claude|pi> <T-ID|path.md> [--model <tag>] [--wall=N] [--rss-cap-mb=N] [--dry-run]
 
   --provider deepseek    dispatch via DeepSeek (requires DEEPSEEK_API_KEY)
   --provider ollama      dispatch via Ollama (requires --model <tag>)
+  --provider pi          dispatch via the pi harness, openrouter backend (requires --model <serving tag>)
   --model <tag>          Ollama model tag, e.g. glm-5.2:cloud (ollama only)
   --wall=N               wall-clock guard, default 1800s
   --rss-cap-mb=N         RSS cap in MB, default 4096 (deepseek only)
@@ -137,7 +138,7 @@ DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
 
 # ── provider configuration ─────────────────────────────────────────────────
-PROVIDERS = {"deepseek", "ollama", "claude"}
+PROVIDERS = {"deepseek", "ollama", "claude", "pi"}
 
 # DeepSeek model map (flags → canonical labels)
 DS_MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
@@ -168,6 +169,13 @@ OLLAMA_TAG_TO_CANONICAL = {
     "kimi-k2.7-code:cloud": "kimi-k2.7",
     "qwen3.8:27b-mlx": "qwen3.8:27b-mlx",
     "qwen3.8:27b-mlx:cloud": "qwen3.8:27b-mlx",
+}
+
+# pi (openrouter) serving tag → canonical label mapping (T732).  The serving
+# tag stealth/ox-alpha never reaches the ledger; the stored label is always
+# ox-alpha (src/managent/main.zig canonical_models[]).
+PI_TAG_TO_CANONICAL = {
+    "stealth/ox-alpha": "ox-alpha",
 }
 
 
@@ -227,7 +235,7 @@ def main(argv):
 
     # C2.1: --provider is REQUIRED
     if not provider:
-        sys.exit("subagent: missing --provider (deepseek|ollama)\n" + __doc__)
+        sys.exit("subagent: missing --provider (deepseek|ollama|claude|pi)\n" + __doc__)
     if provider not in PROVIDERS:
         sys.exit(f"subagent: unknown provider '{provider}' — must be one of "
                  f"{', '.join(sorted(PROVIDERS))}\n")
@@ -273,6 +281,16 @@ def main(argv):
             sys.exit(f"subagent: '{raw_model}' is not a canonical claude label.\n"
                      f"  canonical: {', '.join(sorted(CLAUDE_MODELS))}\n")
         model = raw_model
+    elif provider == "pi":
+        # T732: pi harness, openrouter backend.  --model is the SERVING tag
+        # (stealth/ox-alpha); model is the canonical label (ox-alpha) so the
+        # serving tag never reaches the ledger.
+        if not raw_model:
+            sys.exit("subagent: for --provider pi, --model <serving tag> is required\n")
+        model = PI_TAG_TO_CANONICAL.get(raw_model)
+        if model is None:
+            sys.exit(f"subagent: '{raw_model}' is not a known pi serving tag.\n"
+                     f"  known: {', '.join(sorted(PI_TAG_TO_CANONICAL))}\n")
     else:  # ollama
         if not raw_model:
             sys.exit("subagent: for --provider ollama, --model <tag> is required\n")
@@ -428,6 +446,16 @@ def main(argv):
                "claude", "-p", prompt, "--model", model,
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,
                "--output-format", "json"]
+    elif provider == "pi":
+        # T732: headless pi against the openrouter backend.  The serving tag
+        # (raw_model = stealth/ox-alpha) goes to pi's --model; the canonical
+        # label (model = ox-alpha) is what verification/ledger sees.  Shape
+        # is the operator-verified form
+        # (`pi --provider openrouter --model stealth/ox-alpha -p "<prompt>"`),
+        # wrapped in tools/runner for the wall guard.
+        cmd = ["tools/runner", "--max-wall", wall, "--",
+               "pi", "--provider", "openrouter", "--model", raw_model,
+               "-p", prompt]
     else:  # ollama
         # T662: --session <per-lane path> goes to the INNER pi (after the
         # `--` ollama's separator), so the ollama lane's session JSONL is

@@ -8,13 +8,14 @@ claims.
 ## Canonical labels (single source: `bin/managent models`)
 
 `managent models` is the T317 single source for the canonical label list
-(`src/managent/main.zig` `canonical_models`). As of 2026-08-21:
+(`src/managent/main.zig` `canonical_models`). As of 2026-08-23:
 
 ```
 claude-opus-5 · claude-sonnet-5 · claude-fable-5 · claude-haiku-4-5-20251001
 deepseek-v4-pro · deepseek-v4-flash
 glm-5.2 · minimax-m3 · kimi-k2.7
 qwen3.8:27b-mlx
+ox-alpha
 ```
 
 **Rule (T276, 2026-08-02, human ruling):** model spellings in records use the canonical
@@ -54,10 +55,22 @@ From the serving-tag probe (claude-opus-5/orcha), one `ollama run <tag> "say rea
 | `kimi-k2.7-code:cloud` | answers | **the kimi tag today** (both tags map to canonical `kimi-k2.7`) |
 | `kimi-k2-thinking:cloud` | `retired at 2026-06-16` (vendor) | dead |
 | `qwen3.8:27b-mlx` | local, 18 GB MLX | the local qwen tag (`qwen3.8` in the pi/Ollama path) |
+| `stealth/ox-alpha` | answers (operator-verified headless, 2026-08-23) | the ox-alpha tag — serving tag only, never stored (canonical `ox-alpha`) |
 
 `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working kimi
 invocation. Claude lanes need `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1` (authorized per
 grand-race.md §2).
+
+## Stealth model — ox-alpha (T732, 2026-08-23)
+
+- **label:** `ox-alpha` · **family:** UNKNOWN (identity sealed) · **provider:** openrouter ·
+  **harness:** pi (headless `pi --provider openrouter --model stealth/ox-alpha -p …`)
+- **serving tag:** `stealth/ox-alpha` — a serving tag only; it never reaches the ledger
+  (records store the canonical label `ox-alpha`).
+- **appetite:** RESERVED — never auto-drawn; only the operator's explicit stealth-test dispatch.
+- **epoch note:** identity sealed; on reveal, relabel and re-key statistics via an in-place
+  epoch-boundary note (the model-perf format convention). Same name across two epochs is
+  suspicious, not disproven — the label is an epoch-dependent pointer until the reveal.
 
 ## Epoch rules (measurement-methodology.md §2; grand-race.md §2)
 
