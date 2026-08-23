@@ -1,0 +1,156 @@
+{
+  "task_id": "T812",
+  "date": "2026-08-23",
+  "grader": "claude-haiku-4-5-20251001",
+  "grading_round": "RACE-X: grade three concurrent audits of S06 spec rev 2",
+  "per_item": [
+    {
+      "finding_class": "Armed count overcounting",
+      "how_many_caught_it": 3,
+      "entrants": ["T807", "T808", "T809"],
+      "my_ruling": "7 ids have actual test arms on disk; 15 others are planned controls in §9's C1-C14 table, not implemented. Honest count: 7 of 31, not 22 of 31.",
+      "grading_notes": "All three entrants identified this defect. T807 and T809 both said '7 on disk, 15 claimed', T808 said 'honest count 12' (counting some T813 arms as well). All correct in substance; difference is T808 included newer T813 arms in its count. T807 and T809 more precisely distinguished 'on disk' from 'planned'."
+    },
+    {
+      "finding_class": "Interleave ruling missing + module survival window undefined",
+      "how_many_caught_it": 3,
+      "entrants": ["T807 as F6", "T808 as F4", "T809 as F3"],
+      "my_ruling": "The operator's binding interleave ruling (roadmap §7: ordinary work between passes) is absent from the spec. ORC-PLAN-3 step 1 absorbs policy modules while their consumers (bin/dispatch, bin/subagent, tools/runner) are rewired only at step 5, creating undispatchability hazard if modules are retired at step 1's phase close.",
+      "grading_notes": "All three correctly identified this as a hazard. T808 most clearly connected it to pass-order and module survival. T809 integrated it well with the five-doors issue. Severity: MAJOR (impacts fleet operation between passes), correctly weighted by all three."
+    },
+    {
+      "finding_class": "One-door rule / five dispatch routes",
+      "how_many_caught_it": 2,
+      "entrants": ["T807 as F5", "T809 as F2"],
+      "my_ruling": "The spec never enumerates the five dispatch routes (bin/dispatch, subagent-direct, runner→provider, suggest, paste-prompt) or specifies their disposition. The consolidated 'five doors become one' deliverable has no normative id and no route/behavior spec.",
+      "grading_notes": "T807 found this as a missing specification (medium). T809 articulated it better as a missing normative id: 'Add ORC-DOOR-1' with enumeration and runner behavior spec. T809's framing is stronger — it directly points to what's needed (a normative id with five-route census + runner behavior + disposition for each route). T808 didn't catch this explicitly (subsumed into F4 with the interleave issue). Severity: MAJOR for BOTH, because this is a ratified sprint deliverable with no spec enforcement. T809 graded it MAJOR; T807 graded it MEDIUM. T809's severity is correct."
+    },
+    {
+      "finding_class": "ORC-POL-5 worked example missing fourth cooldown mechanism",
+      "how_many_caught_it": 1,
+      "entrants": ["T807"],
+      "my_ruling": "CORRECT and load-bearing. ORC-POL-5 (the 'full file' schema example that pass 1 builders will follow) lists 7 cooldown entries but omits the fourth mechanism (untracked/fleet-keeper.cooldown) that ORC-POL-4/ORC-GATE-2 require be merged into the schema. A builder following the worked example literally re-creates the omission that caused the 73-hour idle the amendment exists to end.",
+      "grading_notes": "T807's UNIQUE FINDING. This is the most architecturally critical finding in the race: it's a self-contradiction in the spec (amendment says merge this; worked example omits it). The RED arm test_merge_list_names_every_cooldown_mechanism_that_exists checks the prose but doesn't check the schema, so the arm is incomplete. Severity: MAJOR, correctly weighted by T807. The other two entrants (T808, T809) did not catch this, which is a genuine gap in their audits — they checked the amendment prose but didn't verify the worked example against it."
+    },
+    {
+      "finding_class": "watch-fleet.sh line count wrong at pin",
+      "how_many_caught_it": 2,
+      "entrants": ["T808", "T809"],
+      "my_ruling": "CORRECT. watch-fleet.sh is 286 lines at a1415fe, not 304. The 304 count is from 402922f (5 minutes after the pin). This cascades: 3479 total lines should be 3461; '+129 growth' should be '+147'. Direction unchanged but numbers wrong at the spec's declared citation pin.",
+      "grading_notes": "T808 and T809 both found this; T807 did not. Minor severity (the argument direction is unaffected and strengthened), but important for numerical accuracy. Both T808 and T809 correctly traced the error back to the wrong commit. T809 added that all other first-column and second-column counts reproduce exactly. Severity: correctly weighted as MEDIUM or MINOR by both."
+    },
+    {
+      "finding_class": "POL-13 claimed armed without an arm",
+      "how_many_caught_it": 1,
+      "entrants": ["T808"],
+      "my_ruling": "CORRECT and load-bearing. T813's amendment claims POL-13 is armed by test_cooldown_carries_reason_end_and_scope, but that arm tests scope/reason/end existence in the source code (ORC-POL-11/12), not POL-13's defining requirement: 'a cooldown is legible or it does not exist. Every cooldown renders on the dashboard as one row.' No test asserts dashboard rendering/legibility. Severity: MAJOR.",
+      "grading_notes": "T808's UNIQUE FINDING (among the three entrants). This is load-bearing like the ORC-POL-5 finding: an id is claimed armed whose arm doesn't test what the id says. Only found by T808. T807 and T809 did not check whether each listed arm actually tests what the id claims (they focused on whether arms exist, not whether they test the right thing). This is a subtle verification step that T808 performed and the others didn't."
+    },
+    {
+      "finding_class": "Other minor/medium findings",
+      "how_many_caught_it": "varies",
+      "entrants": ["per below"],
+      "my_ruling": "T807 F2 (stale §0: 5 tools vs 6), T807 F7 (main.zig:313 citation stale), T808 F5 (ORC-POL-4 xref wrong section), T808 F6 (census line citations drift), T808 F7/F8 (pane pid/ticks, §14 preamble count stale), T809 F5/F6/F7 (directives.jsonl non-empty, buildability guesses, supporting-material defects)",
+      "grading_notes": "Good secondary findings. T807 caught the stale citation (main.zig:313 should be 347-356). T808 caught the wrong section reference. T809 provided a detailed list of 7 buildability guesses needed (named-condition signals, post-lapse semantics, glm/minimax/kimi double-encoding, family-setting schema, validation strictness, override-record shape, reader-block mapping). T809's approach is more systematic on pass-1 buildability; T807 and T808 touched on it but less completely."
+    }
+  ],
+  "per_entrant": [
+    {
+      "entrant": "T807 (deepseek-v4-pro)",
+      "verdict": "FAIL-FOUND",
+      "findings_count": 8,
+      "by_severity": {"major": 2, "medium": 4, "minor": 2},
+      "arm_recall": "2/3",
+      "arm_recall_explanation": "Found 2 of 3 major arm-accounting defects in my ruling: (1) armed count overcounting (FOUND), (2) ORC-POL-5 worked example missing cooldown (FOUND), (3) POL-13 has no arm (NOT FOUND). T807 did not verify that each claimed arm tests what its id says.",
+      "false_flags": 0,
+      "flags_total": 8,
+      "fabricated_citations": 0,
+      "unique_catch": [
+        "ORC-POL-5 worked example missing fourth cooldown (MAJOR) — this is the most architecturally critical unique finding; a builder following the spec literally re-creates the incident"
+      ],
+      "severity_discipline": "Good. 2 major (armed count, worked-example omission), 4 medium (§0 stale, key-space unknowns, one-door rule, interleave), 2 minor (citation, POL-6). The one-door finding was graded MEDIUM when it merits MAJOR (it's a missing normative id for a ratified deliverable), but overall calibration is solid.",
+      "honest_unknown": "Stated 'exhaustive' verification with no sampling on the armed-count check (enumerated all 31 ids). Did not state uncertainty on any findings; claimed all were verified. Some findings (e.g., one-door rule and interleave) are absence-proofs (searching for missing text) where absence-proving by grep is valid but stated confidence could be caveated.",
+      "metrics_supplied": true,
+      "metrics_detail": "task_type: audit (✓), task_scope: {files_read: 15, lines_read: 3400, writes: 0, scope_class: repo-wide} (✓), capabilities: well described (✓), claims_load_bearing: 5 (✓ reasonable), verified/unverified: 8/0 (✓), fabricated_citations: 0 (✓), sample_size: exhaustive (✓)"
+    },
+    {
+      "entrant": "T808 (deepseek-v4-flash)",
+      "verdict": "Not explicitly stated; effectively verdict is building is not possible as-written",
+      "findings_count": 8,
+      "by_severity": {"major": 4, "medium": 4, "minor": 0},
+      "arm_recall": "2/3 (or 3/3 if accepting their '12 on disk' count)",
+      "arm_recall_explanation": "Found 2 of 3 major defects clearly: (1) armed count (found, with T813 arms included → 12 on disk count), (2) POL-13 arm claim without arm test (FOUND — unique), (3) worked-example omission (NOT FOUND). Counts 28→12 instead of 28→7 because they included some T813 arms.",
+      "false_flags": 0,
+      "flags_total": 8,
+      "fabricated_citations": 0,
+      "unique_catch": [
+        "POL-13 claimed armed with no arm (MAJOR) — correct finding; the arm tests POL-11/12 not POL-13's requirement"
+      ],
+      "severity_discipline": "Over-weighted on majors. 4 major (armed count, POL-13, watch-fleet line count, interleave+module survival), 4 medium (wrong xref, citation drift, pane values, §14 preamble). The watch-fleet line-count issue is real but MEDIUM not MAJOR (the growth direction is unaffected). The interleave+module-survival issue is MAJOR but bundled with watch-fleet degrades the clarity. Better would be 2-3 major, not 4.",
+      "honest_unknown": "Very good. Explicitly noted rev drift (file at HEAD is rev 3, brief asked for rev 2). Stated 'both revs audited' and tracked which findings apply to which rev. Sample size stated as 'exhaustive' with good evidence of that work. Did not waffle; every claim was direct.",
+      "metrics_supplied": false,
+      "metrics_detail": "task_type: audit (stated inline), task_scope: {files_read: 14, lines_read: ~4800, writes: 0, scope_class: subsystem} (✓ stated inline), capabilities: described (✓), claims_load_bearing: 3 (✓ stated inline), verified/unverified: 8/0 (✓ stated), fabricated_citations: 0 (✓), sample_size: exhaustive (✓). Metrics not in the JSON schema, all stated in the notes field instead. Different format but complete."
+    },
+    {
+      "entrant": "T809 (ox-alpha)",
+      "verdict": "RATIFIABLE-WITH-AMENDMENTS",
+      "findings_count": 7,
+      "by_severity": {"major": 2, "medium": 2, "minor": 3},
+      "arm_recall": "2/3",
+      "arm_recall_explanation": "Found 2 of 3 major arm-accounting defects: (1) armed count overcounting (FOUND, honest count 7/31), (2) five-doors missing normative id (FOUND — unique articulation), (3) POL-13 arm issue (NOT FOUND, but they didn't audit rev 3). T809 audited rev 2 (before T813); they could not have found POL-13.",
+      "false_flags": 0,
+      "flags_total": 7,
+      "fabricated_citations": 0,
+      "unique_catch": [
+        "Five dispatch routes should be enumerated as a normative id (ORC-DOOR-1) with disposition and runner behavior spec (MAJOR) — well-articulated as what the spec lacks, not just what it says"
+      ],
+      "severity_discipline": "Best among the three. 2 major (armed count, five-doors as missing id), 2 medium (interleave+module, watch-fleet), 3 minor (directives non-empty, buildability guesses, supporting-material defects). Balanced, correct. The five-doors finding is less obviously MAJOR than the other two entrants' unique findings (ORC-POL-5 omission, POL-13 non-arm), but correctly identified as load-bearing because it's a missing id for a ratified deliverable. Minor issues are truly minor (directives.jsonl being non-empty is pedantic; supporting-material defects are about related documents, not the spec itself).",
+      "honest_unknown": "Excellent. Explicitly stated 'Directed to check' vs assumption-based inference. Included a 'what verifies cleanly' section detailing what they verified (appetite tables, cooldown mechanism, §7c rulings, all commit hashes, T732 baseline, absorb evidence, watch-fleet disjointness, test suite). Very honest about finding 7(i) title refusal census: stated it 'does not reproduce under either natural filter' and offered both readings of the filter rather than claiming one is right. This kind of honest uncertainty is exactly what the brief valued.",
+      "metrics_supplied": true,
+      "metrics_detail": "task_type: audit (✓), task_scope: {files_read: 14, lines_read: 4200, writes: 0, scope_class: few-files} (✓), capabilities: well described (✓), claims_load_bearing: 3 (✓), verified/unverified: 7/0 (✓), fabricated_citations: 0 with assurance statement (✓), sample_size: exhaustive for 35 load-bearing checks, lists them explicitly (✓)"
+    }
+  ],
+  "ranking": [
+    {
+      "rank": 1,
+      "entrant": "T809 (ox-alpha)",
+      "reason": "Best overall analysis. Correct verdict (RATIFIABLE-WITH-AMENDMENTS shows clearer judgment than FAIL-FOUND for a spec with major but patchable defects). Found the five-doors issue as a missing id, articulated it crisply. Included honest unknowns and 'what verifies cleanly' section. Best severity discipline (no inflation). Metrics supplied. Did NOT find the POL-13 issue or ORC-POL-5 omission, but audited rev 2 (both are rev 3 issues) — not a fault."
+    },
+    {
+      "rank": 2,
+      "entrant": "T807 (deepseek-v4-pro)",
+      "reason": "Found the most critical unique issue (ORC-POL-5 worked-example omission is a self-contradiction that will re-create the incident). Good severity discipline. Metrics supplied. Clear write-up. Missed the POL-13 issue (not checked whether claimed arms test what they claim). Missed watch-fleet line count. Graded one-door rule as MEDIUM when it merits MAJOR."
+    },
+    {
+      "rank": 3,
+      "entrant": "T808 (deepseek-v4-flash)",
+      "reason": "Found the POL-13 unique issue (correct and load-bearing). Explicitly noted rev drift (file is rev 3, brief asked rev 2). Very thorough verification. Did NOT find ORC-POL-5 omission or five-doors as missing id. Over-weighted severity: 4 major when should be 2-3. Metrics supplied via notes field (different format but complete). Verdict not explicitly stated."
+    }
+  ],
+  "bet_on_order": {
+    "summary": "All three entrants are high-quality. The race is close. If betting on landing the fewest amendments before pass 1 can start: T809 (correct verdict, doesn't overstate what's wrong). If betting on finding the single most critical issue for a builder to know: T807 (the ORC-POL-5 omission will silently re-create an incident). If betting on sheer thoroughness and artifact work: T808 (verified every commit hash, caught POL-13's non-arm test).",
+    "would_bet_on_T809": "For a spec amendment round. They found what's genuinely wrong, no more, no less, and proposed clean dispositions. The verdict is most useful for the next step.",
+    "would_bet_on_T807": "For a builder running pass 1. The ORC-POL-5 finding is the most concretely dangerous — it's a literal trap in the schema example that a competent worker will step into.",
+    "would_not_bet_on": "Not strictly — T808 is also strong. But would pair T809's verdict-clarity with T807's ORC-POL-5 finding and T808's POL-13 issue for a complete picture."
+  },
+  "no_entrant_found": [
+    "Both appetite tables' disagreement on family names (fable vs claude-fable; ollama vs ollama-cloud) and its impact on pass 1 buildability. All three found this issue; none of the three uniquely surfaced it. T807 graded it medium; T809 subsumed it into the medium buildability guesses. All correct to find it; none was blind to it."
+  ],
+  "pairwise_agreement": {
+    "T807_vs_T808": "Both found armed count, interleave, watch-fleet. Disagree on severity (T808 calls watch-fleet MAJOR, T807 MEDIUM). T807 unique: ORC-POL-5. T808 unique: POL-13. They cover all the majors between them.",
+    "T807_vs_T809": "Both found armed count, interleave, one-door/five-doors (similar finding, different articulation). Disagree on severity of one-door (T809 MAJOR, T807 MEDIUM). T807 unique: ORC-POL-5. T809 unique: five-doors as missing id. T809 found watch-fleet, T807 didn't.",
+    "T808_vs_T809": "Both found armed count, interleave, watch-fleet. T808 found POL-13 (unique). T809 found five-doors as missing id (unique). No direct disagreement on shared findings. T808 calls interleave+module-survival MAJOR; T809 splits it as interleave (MAJOR) and one-door (MAJOR) separately. Same substance, different carving."
+  },
+  "metrics_supplied": {
+    "T807": "✓ All required fields present and well-documented",
+    "T808": "✓ All required fields present but in notes field, not schema fields (different format, equally complete)",
+    "T809": "✓ All required fields present in measurement object, well-documented"
+  },
+  "blind_honesty": {
+    "summary": "How influential was seeing the model label before scoring?",
+    "T807": "Did not report. Format does not include explicit blind-honesty self-report.",
+    "T808": "Did not report. Format does not include explicit blind-honesty self-report. But did explicitly note rev drift, which is very honest.",
+    "T809": "Did not report explicit blind-honesty statement either. However, the 'what verifies cleanly' section and honest-unknown detail on finding 7(i) (multiple filter interpretations, claiming neither is certain) suggests careful, not tribal, work."
+  },
+  "notes": "T812 — grading three concurrent blind audits of S06 spec rev 2, three-way race. All three are high-quality, independent audits with zero fabricated citations and strong verification work. The three entrants found 7-8 major or medium findings each; together they found all substantive defects in my ruling and uncovered three additional load-bearing issues (ORC-POL-5 omission, POL-13 non-arm, five-doors missing id). Verdict split: T807 says FAIL-FOUND, T809 says RATIFIABLE-WITH-AMENDMENTS. T809's verdict is more useful (correct framing) but T807's ORC-POL-5 finding is the most dangerous for builders. No entrant was blind to the main issues; they differed in emphasis and articulation. T808 over-weighted severity on majors. All three supplied required metrics. Inbox polled at claim and before close: empty both times, no directives. Read-only: no source modified, only findings files written."
+}
