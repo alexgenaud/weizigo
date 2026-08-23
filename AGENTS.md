@@ -126,11 +126,11 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
   the task (or commit) is two of whatever it is. The detail goes in the body / the findings
   file, never in the title.
 - `bin/managent` is the queue: `add` / `dispatch` / `claim` / `done` / `reopen`
-  / `purge` / `set` / `next` / `status` / `show`. The human dispatches; the
-  agent claims; the Orchestrator owns the kanban end-to-end (D-8) and may
-  dispatch/claim/done on a worker's behalf, attributing with `--agent <worker>`.
-  Schema in `docs/infra/managent/spec.md`; role protocol in
-  `docs/infra/roles/ORCHESTRATOR.md`.
+  / `purge` / `set` / `next` / `status` / `show`. Any seat may register and
+  dispatch unless its brief says otherwise; a seat acting on a worker's behalf
+  attributes with `--agent <worker>`. The permission ruling lives in ONE place:
+  `docs/infra/delegation/ROLES.md` §"Dispatching, claiming, and the kanban".
+  Schema in `docs/infra/managent/spec.md`.
 - **stdout = data, stderr = diagnostics.** Use `util.out(...)` for parseable/filterable
   output and `util.note(...)` / `util.warn(...)` for diagnostics. Reference:
   `src/gtp.zig:691,1056`, helper in `src/util.zig`. Regression check:

@@ -70,6 +70,22 @@ whether it is committed — T272 closed `pass` on 2026-08-02 with every delivera
 untracked. T278 owns the fix; until it lands, verify with `git status` yourself before
 accepting a close.
 
+## Naming and citing — a brief's references must resolve
+
+**Cite committed paths.** A brief may cite only what exists in git; if the
+source is a conversation or session memory, commit a seed/findings file first,
+then cite that. (Extends the close gate — "a deliverable that is not committed
+is not a deliverable" — to authoring time. The negative case: a 2026-08-23
+brief cited "the 2026-08-23 audit" that lived only in a conversation, and the
+worker reconstructed the referent from three indirect sources.)
+
+**One defect per name.** When a brief names a defect, disambiguate ID-scheme
+collisions from semantic collisions — they are different defects even when the
+same IDs appear in both. Worked example: "the D041/D042 binary-tag repurposing"
+conflated (a) directive-ID duplication (D041/D042 minted twice) with (b)
+landmark IDs reused as binary L1/L2 area tags on rows (the T683/T684 backfill).
+A worker handed the conflated name fixed one and believed it fixed both.
+
 ## Principles
 
 **Falsifiability.** Name the result that would falsify the claim. If none would,

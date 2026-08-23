@@ -46,7 +46,7 @@ each in `docs/infra/roles/`:
 |---|---|---|
 | **Dabir** | counsel to the human: holds his intent and the agreed overview | `roles/DABIR.md` |
 | **Auditor** | verifies, rules, says when work should stop. Many, each given a scope | `roles/AUDITOR.md` |
-| **Orchestrator** | the queue and the stores. **Exactly one, ever** | `roles/ORCHESTRATOR.md` |
+| **Orchestrator** | keeps the queue honest — a hygiene seat, not a gate (ruling 2026-08-23, §Dispatching below) | `roles/ORCHESTRATOR.md` |
 
 The boundary that matters: the auditor never owns the queue, and the counsel never
 executes. Both collapses have already cost this project time.
@@ -86,7 +86,7 @@ Analysis parallelises for free; mutation does not.
 analysis agents can feed one serial queue. If the queue is the bottleneck, batch
 related recommendations into a single mutation — do not parallelise the queue.
 
-**Every task is registered in `bin/managent`**, and the human dispatches only from
+**Every task is registered in `bin/managent`**, and dispatches come only from
 its dispatchable set. The kanban already expresses both kinds, verified against
 `src/managent/main.zig`:
 
@@ -108,31 +108,40 @@ a different mechanism from parallel width.
 
 ## Dispatching, claiming, and the kanban
 
-The Orchestrator owns the kanban end-to-end: it records dispatches on the
-human's behalf, records claims when a worker has started but not claimed, and
-marks `done` when a worker has finished but not updated the kanban.
-**The kanban is the bug when it disagrees with reality.** (The prior
-"Orchestrator does not claim on the agent's behalf" rule was rescinded
-2026-07-29 by D-8.)
+**Who may dispatch (operator ruling, 2026-08-23 — this is the one home; other
+docs point here, none restate it).** Any seat may register and dispatch unless
+its brief says otherwise: author the brief file first, then one `bin/managent`
+registration, then `bin/dispatch` when ready. Paste-prompts are only for
+interactive-console targets — sessions the human must launch because no running
+console owns them. `bin/managent` and the automated dispatcher keep sprints,
+tasks, and races conflict-free (`holds=` serialization, `needs=` edges); there
+is no single-active-orchestrator gate. A **queue cool-down** is the rare,
+scoped, expiring exception for a wide refactorization: it halts the automated
+dispatch loop only — deliberate seat dispatches named as exceptions continue.
+
+Any seat keeps the kanban honest: record a dispatch, record a claim when a
+worker has started but not claimed, mark `done` when a worker has finished but
+not updated the kanban.
+**The kanban is the bug when it disagrees with reality.**
 
 ```
-human/orchestrator  →  managent dispatch <id> --to <agent> [--note <text>]  # queueing
-worker/orchestrator →  managent claim <id> --agent <name>                   # start
-worker              →  managent done <id>                                   # completion
+any seat →  managent dispatch <id> --to <agent> [--note <text>]  # queueing
+worker   →  managent claim <id> --agent <name>                   # start
+worker   →  managent done <id>                                   # completion
 ```
 
 `dispatched_to` records *who the human wanted*; `agent` records *who did the
 work*. They may differ — dispatched to X, done by Y when X was busy, failed, or
-not available; any agent can claim any `dispatchable` task. **When the
-Orchestrator claims on a worker's behalf, it uses the worker's name in
+not available; any agent can claim any `dispatchable` task. **When a seat
+claims on a worker's behalf, it uses the worker's name in
 `--agent`, never its own** — the `agent` field feeds the performance ledger and
 must attribute the work to the worker.
 
 The normal path is worker self-claim (`managent claim` / `managent next`); a
-dispatched task sitting unclaimed is a hygiene gap the Orchestrator resolves
+dispatched task sitting unclaimed is a hygiene gap any seat resolves
 (nudge the worker, or record the claim), not a boundary to preserve. The
-Orchestrator's standing job is to keep the `dispatchable` set non-empty and
-honest: **empty dispatchable is a bug** (the human has nothing to dispatch
+standing job is to keep the `dispatchable` set non-empty and
+honest: **empty dispatchable is a bug** (there is nothing to dispatch
 to), and a `dispatchable` task with no in-flight work is standing-tier feed.
 The command details are in `docs/infra/managent/spec.md`.
 
