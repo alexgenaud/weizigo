@@ -10,11 +10,11 @@ Status: ✅ proven · ⬜ untested · 🟡 in progress · ❌ falsified · ⛔ i
 ⬜ᴵᴺᴴ inherited (not re-reproven at 4×4)
 
 This file was rewritten on 2026-07-26 (GLM-5.2, task T16) to address the eight
-critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
+critical findings of the T07 audit (the hypotheses file was swept from `untracked/` scratch; the eight itemised findings are gone — recorded in `docs/evidence/README.md`). Each fix is tagged
 `[T07-N]` so a fresh auditor can verify the changes.
 
 > **⚠ T07 BASIS UNVERIFIABLE (2026-07-29, evidence-integrity sweep).**
-> `untracked/T07-audit-hypotheses.md` is gone from disk (CLAIMS.md §7).
+> The T07 audit hypotheses file is gone from disk (swept from `untracked/`; recorded in CLAIMS.md §7).
 > The eight findings that motivated this rewrite cannot be re-examined.
 > The `[T07-N]` tags in this file cite an audit whose primary source is lost.
 > This is recorded debt; the rewrite itself may be correct, but its basis
@@ -386,7 +386,7 @@ critical findings of `untracked/T07-audit-hypotheses.md`. Each fix is tagged
 3. **No solution** — C2-bounded ❌: even the core is history-dependent; the
    table concept collapses until a different representation is built.
 
-`[T07-5]` **C2-bounded is falsified at 3×2 (T13, 2026-07-26).** The decision is settled: option 3 (no real-game solution) is the verdict; the honest 4×4 deliverable is a **fresh-start score table + CLAIMED `[L,H]` bracket** (B05, `untracked/B05-glm.md`), not a real-game oracle. A 4×4 C2-probe (T19) or C3 run, if performed, is characterisation, not a deliverable input.
+`[T07-5]` **C2-bounded is falsified at 3×2 (T13, 2026-07-26).** The decision is settled: option 3 (no real-game solution) is the verdict; the honest 4×4 deliverable is a **fresh-start score table + CLAIMED `[L,H]` bracket** (B05 — the reframe scope, swept from `untracked/` scratch and recorded in `docs/evidence/README.md`), not a real-game oracle. A 4×4 C2-probe (T19) or C3 run, if performed, is characterisation, not a deliverable input.
 
 ## Experiment plan — parallel wave structure `[T07-8]`
 

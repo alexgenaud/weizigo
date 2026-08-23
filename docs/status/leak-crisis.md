@@ -100,8 +100,7 @@ B1 (Minimax `RETRO_B1_LOFIX` probe, plus Kimi independent audit) on
 - **Knaster–Tarski applies**: monotone-from-`−N` iteration IS the least
   fixpoint. Canonical is least. → (b) ruled out.
 
-Audit details: `untracked/T02-minimax.md` (results) and
-`untracked/T02-audit-kimi.md` (Kimi audit convicting the (a′) variation).
+Audit details: the B1 least-fixpoint results (method survives at `docs/evidence/b1-least-fixpoint/b1-spec.md`) and the Kimi audit convicting the (a′) variation (two-line paraphrase above; the audit file was swept from `untracked/` scratch).
 
 ## T13 findings (2026-07-26)
 
@@ -144,7 +143,7 @@ Open questions:
 
 ## Next (requires user decision)
 
-> **Reframed by B05 (`untracked/B05-glm.md` subtask 2):** fresh-start exact
+> **Reframed by B05 (reframe scope, subtask 2 — swept from `untracked/` scratch, recorded in `docs/evidence/README.md`):** fresh-start exact
 > score oracle + CLAIMED `[L,H]` bracket, explicit non-promise re real-game
 > PSK. Pending user sign-off on UD-1/UD-2/UD-3 (see B05 subtask 2).
 
@@ -178,7 +177,7 @@ Open questions:
 
 - E1/E2/E3 full narrative + the bug-fix history: git commits (the
   "epistemic reset" series; 2026-07-25).
-- B1 results: `untracked/T02-minimax.md`; Kimi audit: `untracked/T02-audit-kimi.md`.
+- B1 results: `docs/evidence/b1-least-fixpoint/b1-spec.md`; Kimi audit: two-line paraphrase above (file swept from `untracked/` scratch).
 - C2-probe design: `untracked/plan4x4-master.md` (B5/C2), `../epistemic/boards/4x4/EPISTEMIC.md`.
 - Names propagation: `../epistemic/names.md`.
 - Per-claim status: `../epistemic/boards/4x4/EPISTEMIC.md` (4×4 is the focus;

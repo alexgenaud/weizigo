@@ -1,7 +1,7 @@
 # C2 falsified at 3×2
 
 **Date:** 2026-07-26  
-**Source:** T13 C2-pilot-3×2 (original: `untracked/T13-minimax.md`, lost; re-implemented at `docs/evidence/T13/`)  
+**Source:** T13 C2-pilot-3×2 (original raw output swept from `untracked/` scratch; re-implemented at `docs/evidence/T13/`)  
 **Status:** PROVEN FALSE-AS-SCOPED
 
 > **✓ RECOVERED (T110, 2026-07-30).** The probe was independently
@@ -10,8 +10,8 @@
 > between the two implementations. This banner replaces the "CANNOT
 > REPRODUCE" warning placed here 2026-07-29 (evidence-integrity sweep);
 > the warning is now stale. The register row's banner was removed by T124.
-> The original source (`untracked/c2pilot_3x2.zig`) and raw output
-> (`untracked/T13-minimax.md`) remain lost — the re-implementation is
+> The original probe source and raw output remain lost (swept from
+> `untracked/` scratch) — the re-implementation is
 > independent evidence, not a recovery — but the experiment is now fully
 > re-executable from committed code. T128 triage §1–2
 > (`docs/evidence/GLOBAL.CLAIMLINT/dangling-triage-2026-07-31.md`).
@@ -30,7 +30,7 @@ score.
 
 ## Method
 
-Standalone probe `untracked/c2pilot_3x2.zig`:
+Standalone probe (original swept from `untracked/` scratch; recovered as `docs/evidence/T13/t13_probe.py`):
 
 1. Build the 3×2 L/H retrograde tables (`Retro(3,2).seed/converge/finalize`).
 2. Identify all L==H slots: 540 slots (30 settled + 189 B ko-sensitive + 189 W
@@ -136,14 +136,14 @@ the table is:
 ## Reproduction
 
 ```
-zig build-exe -O ReleaseSafe --dep retro -Mmain=untracked/c2pilot_3x2.zig -Mretro=src/retro.zig -femit-bin=/tmp/c2pilot_3x2
+zig build-exe -O ReleaseSafe --dep retro -Mmain=docs/evidence/T13/zig_t13_replay.zig -Mretro=src/retro.zig -femit-bin=/tmp/c2pilot_3x2
 /tmp/c2pilot_3x2
 ```
 
 ## Files
 
-- Probe: `untracked/c2pilot_3x2.zig` (original swept; recovered as
-  `docs/evidence/T13/t13_probe.py`, `docs/evidence/T13/zig_t13_replay.zig`)
-- Task record: `untracked/T13-minimax.md` (original swept; raw output
-  recovered under `docs/evidence/T13/`)
+- Probe: original swept from `untracked/` scratch; recovered as
+  `docs/evidence/T13/t13_probe.py`, `docs/evidence/T13/zig_t13_replay.zig`
+- Task record: original raw output swept from `untracked/` scratch;
+  recovered under `docs/evidence/T13/`
 - Durable finding: `docs/research/c2-falsification-3x2.md` (this file)

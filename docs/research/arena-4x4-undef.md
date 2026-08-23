@@ -8,7 +8,7 @@ was manufactured by the arena's own unguarded `v0` reads, not (only) a play
 defect. This note records both and the honest interpretation.
 
 > **Recovery note (Boss, 2026-07-27):** B43's S4 was specified to append its
-> re-measure section to `untracked/B39-arena4x4.md`. B43 and B44 (cleanup)
+> re-measure section to the B39 arena bundle in `untracked/` scratch. B43 and B44 (cleanup)
 > were dispatched in parallel; B44's S3 deleted `B39-arena4x4.md` as a
 > folded-done bundle, colliding with B43's S4 write. The appended note was
 > lost. The data below was recovered verbatim from the B43 bundle
@@ -92,7 +92,7 @@ summary number is byte-identical to pre-fix; only the column label changed
 
 ## Lesson (process, Boss dispatch)
 
-Dispatching B43 (writes its S4 to `untracked/B39-arena4x4.md`) and B44
+Dispatching B43 (writes its S4 to the B39 arena bundle in `untracked/` scratch) and B44
 (deletes folded-done `untracked/` bundles) in parallel was NOT fully
 parallel-safe: both operated on the `untracked/` scratch namespace, and
 B44's deletion swept B43's S4 target. Two fixes for future parallel

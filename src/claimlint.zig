@@ -238,7 +238,14 @@ const NARRATIVE_FILES = [_][]const u8{
 // grafting an orphan child onto the synthetic FALSE parent so the check still
 // exercises a FALSE ancestor. `GLOBAL.C3` stays live in the real register, so
 // the FALSE-ancestor concept the fixture exercises is still real.
-const CAL_DANGLING = "untracked/c2pilot_3x2.zig"; // must be reported by C2
+/// C2's known-bad calibration is synthetic (T814, 2026-08-23): the real-data
+/// fixture (`untracked/c2pilot_3x2.zig`) left the register when C2 reached zero
+/// — a calibration case that disappears when the register improves is not a
+/// calibration case (the same lesson C1a and C5 already learned). A
+/// definitely-missing evidence path must be reported by the C2a scan; a real
+/// path must stay silent.
+const CAL_C2_MISSING = "docs/evidence/calibration/C2-definitely-missing.zig";
+const CAL_C2_PRESENT = "AGENTS.md:1";
 const CAL_CLEAN = "GLOBAL.ADR0003-AREA"; // PROVEN, real evidence, must be silent
 const CAL_NEG_OK = "GLOBAL.REFRAME"; // carries `n:` to a FALSE parent — must be SILENT
 /// C5's known-bad lives in the synthetic register, not in the data. The first
@@ -1057,6 +1064,16 @@ fn globCandidates(gpa: Allocator, paths: []const []const u8, tok: []const u8) !s
 /// (with `/`) that do not resolve.
 fn deadLiteralsIn(gpa: Allocator, io: Io, idx: *Index, doc: []const u8) !usize {
     const body = Io.Dir.cwd().readFileAlloc(io, doc, gpa, .unlimited) catch return 0;
+    return deadLiteralsInText(gpa, idx, body);
+}
+
+/// The dead-literal counter over an in-memory body — the C2b exact rule
+/// (path-shaped tokens with `/` that do not resolve). Split out of
+/// `deadLiteralsIn` so the C12 WALL calibration can feed a synthetic body
+/// (T814: the real audit's dead literals were repaired by the C2 → 0 sweep,
+/// and a real-data arm that disappears when the data improves is not a
+/// calibration case).
+fn deadLiteralsInText(gpa: Allocator, idx: *Index, body: []const u8) !usize {
     var n: usize = 0;
     var toks: std.ArrayList([]const u8) = .empty;
     defer toks.deinit(gpa);
@@ -1300,6 +1317,127 @@ fn volatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(Volati
                 try hits.append(gpa, .{ .token = tok, .file = p, .line = lineno, .class = cls });
             }
         }
+    }
+}
+
+// ── C10 new-citation ratchet (T814) ────────────────────────────────────────
+//
+// The 1,377 existing volatile citations are a report (grandfathered). A NEW
+// volatile citation — one added on a line of the staged diff — fails the run.
+// New-vs-existing is decided mechanically by `git diff --cached`: only `+`
+// lines are NEW, unchanged lines are EXISTING and never appear, so no human
+// judgement call happens at commit time. The pre-commit hook stages before it
+// invokes claimlint, so the staged diff is exactly this commit's additions.
+
+/// One newly-added volatile citation (T814): a volatile FILE path cited in the
+/// staged version of a prose document but absent from that document's HEAD
+/// version. `token` and `file` are owned (dup'd).
+const NewVolatileHit = struct {
+    token: []const u8,
+    file: []const u8,
+    class: VolatileClass,
+};
+
+/// `git diff --cached --name-only` stdout, or empty when git is unavailable or
+/// nothing is staged. Caller owns the returned slice.
+fn gitStagedNames(gpa: Allocator, io: Io) []const u8 {
+    const result = std.process.run(gpa, io, .{
+        .argv = &.{ "git", "diff", "--cached", "--name-only" },
+    }) catch return &.{};
+    gpa.free(result.stderr);
+    return result.stdout;
+}
+
+/// `git show HEAD:<path>` stdout, or empty when the path is new in the index
+/// or git is unavailable. Caller owns the returned slice.
+fn gitShowHead(gpa: Allocator, io: Io, path: []const u8) []const u8 {
+    const spec = std.fmt.allocPrint(gpa, "HEAD:{s}", .{path}) catch return &.{};
+    defer gpa.free(spec);
+    const result = std.process.run(gpa, io, .{
+        .argv = &.{ "git", "show", spec },
+    }) catch return &.{};
+    gpa.free(result.stderr);
+    return result.stdout;
+}
+
+/// Collect the DISTINCT volatile FILE tokens cited in `body` (pathTokens +
+/// volatileClassOf). pathTokens means only path-shaped tokens with a known
+/// extension count — a bare directory mention (`untracked/`, `/tmp/`) or a
+/// glob fragment is prose, not a citation (the same shape rule C2 uses).
+/// Tokens are dup'd into `out`.
+fn volatileFileTokens(gpa: Allocator, idx: *Index, body: []const u8, out: *std.ArrayList([]const u8)) !void {
+    var toks: std.ArrayList([]const u8) = .empty;
+    defer toks.deinit(gpa);
+    try pathTokens(gpa, body, &toks);
+    for (toks.items) |tok| {
+        if ((try volatileClassOf(idx, tok)) == null) continue;
+        var dup = false;
+        for (out.items) |t| {
+            if (std.mem.eql(u8, t, tok)) {
+                dup = true;
+                break;
+            }
+        }
+        if (dup) continue;
+        try out.append(gpa, try gpa.dupe(u8, tok));
+    }
+}
+
+/// The C10 new-citation ratchet. For every prose document staged in the index
+/// (`docs/*.md` + `AGENTS.md`), a volatile FILE citation is NEW iff it appears
+/// in the staged version but not in the HEAD version of that same document.
+/// New-vs-existing is therefore mechanical and per-file — editing a line that
+/// already carried the citation does not re-flag it, and the existing volatile
+/// citations (present in HEAD) are grandfathered. The pre-commit hook stages
+/// before invoking claimlint, so the staged set is this commit's files.
+fn newVolatileScan(gpa: Allocator, io: Io, idx: *Index, hits: *std.ArrayList(NewVolatileHit)) !void {
+    const names = gitStagedNames(gpa, io);
+    defer gpa.free(names);
+    var lit = std.mem.splitScalar(u8, names, '\n');
+    while (lit.next()) |f| {
+        if (f.len == 0) continue;
+        if (!(std.mem.eql(u8, f, "AGENTS.md") or
+            (std.mem.startsWith(u8, f, "docs/") and endsWith(f, ".md")))) continue;
+        const new_body = Io.Dir.cwd().readFileAlloc(io, f, gpa, .unlimited) catch continue;
+        defer gpa.free(new_body);
+        const old_body = gitShowHead(gpa, io, f);
+        defer gpa.free(old_body);
+        try newVolatileInDoc(gpa, idx, old_body, new_body, f, hits);
+    }
+}
+
+/// The pure per-document comparison behind the ratchet: volatile FILE tokens
+/// in `new_body` that are NOT in `old_body` are NEW. Unit-testable without git
+/// (the test feeds synthetic old/new bodies); `newVolatileScan` wires it to the
+/// staged vs HEAD content of each prose document.
+fn newVolatileInDoc(gpa: Allocator, idx: *Index, old_body: []const u8, new_body: []const u8, file: []const u8, hits: *std.ArrayList(NewVolatileHit)) !void {
+    var old_toks: std.ArrayList([]const u8) = .empty;
+    defer {
+        for (old_toks.items) |t| gpa.free(t);
+        old_toks.deinit(gpa);
+    }
+    try volatileFileTokens(gpa, idx, old_body, &old_toks);
+    var new_toks: std.ArrayList([]const u8) = .empty;
+    defer {
+        for (new_toks.items) |t| gpa.free(t);
+        new_toks.deinit(gpa);
+    }
+    try volatileFileTokens(gpa, idx, new_body, &new_toks);
+    for (new_toks.items) |tok| {
+        var existing = false;
+        for (old_toks.items) |o| {
+            if (std.mem.eql(u8, o, tok)) {
+                existing = true;
+                break;
+            }
+        }
+        if (existing) continue;
+        const cls = (try volatileClassOf(idx, tok)) orelse continue;
+        try hits.append(gpa, .{
+            .token = try gpa.dupe(u8, tok),
+            .file = try gpa.dupe(u8, file),
+            .class = cls,
+        });
     }
 }
 
@@ -2231,6 +2369,20 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
         checkName("C10"), c10_hits.items.len, c10_tmp, c10_priv, c10_abs, c10_untracked,
     });
 
+    // ── C10 new-citation ratchet (T814) ────────────────────────────────
+    var c10_new: std.ArrayList(NewVolatileHit) = .empty;
+    defer c10_new.deinit(gpa);
+    try newVolatileScan(gpa, io, &idx, &c10_new);
+    util.out("\n== C10-NEW {s}  NEWLY-ADDED VOLATILE CITATIONS (fails the run) ==\n", .{checkName("C10")});
+    util.out("Only citations ADDED in the staged diff are new — the {d} existing\n", .{c10_hits.items.len});
+    util.out("volatile citations above are grandfathered (reported, not failed).\n", .{});
+    util.out("New-vs-existing is mechanical: `git diff --cached` `+` lines.\n\n", .{});
+    for (c10_new.items) |h| {
+        util.out("  C10-NEW {s}  {s}   (at {s})\n", .{ checkName("C10"), h.token, h.file });
+    }
+    if (c10_new.items.len == 0) util.out("  (none)\n", .{});
+    util.out("\n  C10-NEW {s} total: {d}\n", .{ checkName("C10"), c10_new.items.len });
+
     // ── C11 tier-A audit enforcement ─────────────────────────────────────
     util.out("\n== C11 {s}  TIER-A AUDIT ENFORCEMENT (fails the run) ==\n", .{checkName("C11")});
     util.out("The audit policy (D2, 2026-08-19) makes every tier-A row — a claim status\n", .{});
@@ -2559,11 +2711,27 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     if (!synth_c1a_ok) cal_ok = false;
 
     var cal_dangling_hit = false;
-    for (missing.items) |m| {
-        if (std.mem.eql(u8, m.path, CAL_DANGLING)) cal_dangling_hit = true;
+    {
+        // C2a known-bad: a definitely-missing evidence path must be reported.
+        const syn_evidence = try std.fmt.allocPrint(gpa, "`{s}`", .{CAL_C2_MISSING});
+        defer gpa.free(syn_evidence);
+        var spans: std.ArrayList([]const u8) = .empty;
+        defer spans.deinit(gpa);
+        try cr.backtickSpans(gpa, syn_evidence, &spans);
+        for (spans.items) |sp| {
+            var toks: std.ArrayList([]const u8) = .empty;
+            defer toks.deinit(gpa);
+            try pathTokens(gpa, sp, &toks);
+            for (toks.items) |t| {
+                if (try idx.resolve(t) != null) continue;
+                if (std.mem.eql(u8, t, CAL_C2_MISSING)) cal_dangling_hit = true;
+            }
+        }
+        // C2a known-good: a real evidence path must resolve (stay silent).
+        if ((try idx.resolve(CAL_C2_PRESENT)) == null) cal_dangling_hit = false;
     }
-    util.out("  known-bad 2 (C2 {s}): `{s}` must be reported … {s}\n", .{
-        checkName("C2"), CAL_DANGLING, if (cal_dangling_hit) "CAUGHT" else "MISSED",
+    util.out("  known-bad 2 (C2 {s}, synthetic): `{s}` must be reported and `{s}` silent … {s}\n", .{
+        checkName("C2"), CAL_C2_MISSING, CAL_C2_PRESENT, if (cal_dangling_hit) "CAUGHT" else "MISSED",
     });
     if (!cal_dangling_hit) cal_ok = false;
 
@@ -3103,18 +3271,19 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
             m_dstar == 5 and m_nocross == 0 and m_neg == 3 and
             bold_ok and board_ok and literal_ok;
         // D037 seeded fixture — the WALL. The H1-MARKOV glob, re-pointed to
-        // the audit it should have named, exposes the audit's dead literal
+        // the audit it should have named, exposed the audit's dead literal
         // paths (/tmp/audit_2b3_bias.py, /tmp/audit_2b3_independent.py) —
-        // exactly the C2 11→13 movement T663's re-point produces. C12 must
-        // estimate that hidden debt behind the dead glob (2 at 2026-08-22;
-        // asserted >= 1 so a future C2 repair of the audit doc does not
-        // silently re-base the fixture), and must find NO candidate for
-        // placeholder patterns (T38x) or volatile /tmp globs.
+        // exactly the C2 11→13 movement T663's re-point produced. T814
+        // (2026-08-23) repaired those literals (C2 → 0), so the dead-count
+        // half now reads a synthetic body via deadLiteralsInText; the glob
+        // still resolves to exactly one candidate. C12 must find NO candidate
+        // for placeholder patterns (T38x) or volatile /tmp globs.
         const debt_seed = try hiddenDebtOf(gpa, io, &idx, "docs/audits/2b-3-audit-*.md");
         const debt_unknown = try hiddenDebtOf(gpa, io, &idx, "findings/T38x-*.json");
         const debt_tmp = try hiddenDebtOf(gpa, io, &idx, "/tmp/weizigo/t416/out/*.json");
-        const debt_ok = debt_seed.cands == 1 and debt_seed.dead >= 1 and
-            debt_unknown.cands == 0 and debt_tmp.cands == 0;
+        const debt_synth = try deadLiteralsInText(gpa, &idx, "the re-pointed glob exposes `/tmp/audit_2b3_bias.py`");
+        const debt_ok = debt_seed.cands == 1 and
+            debt_unknown.cands == 0 and debt_tmp.cands == 0 and debt_synth >= 1;
         synth_c12_ok = saw_dead and saw_clean and saw_ambig and !saw_clean_as_flagged and m_ok and debt_ok;
     }
     util.out("  known-bad 14 (C12 {s}, synthetic): a glob matching nothing\n", .{checkName("C12")});
@@ -3243,7 +3412,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("\n== SUMMARY ==\n", .{});
     util.out("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
     util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)   [C1a {s} / C1b {s}]\n", .{ c1_count, alarms.items.len, checkName("C1a"), checkName("C1b") });
-    util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]\n", .{ c2_total, checkName("C2") });
+    util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]\n", .{ c2_total + c10_new.items.len, checkName("C2") });
     util.out("  C3 PROVEN w/o committed evid. {d}   (debt list — hook-gated at the floor in claimlint-floor.json)   [{s}]\n", .{ tierB.items.len + tierC.items.len, checkName("C3") });
     util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)   [{s}]\n", .{ dangling.count(), unref, checkName("C4") });
     util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)   [{s}]\n", .{ c5, checkName("C5") });
@@ -3254,6 +3423,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("  C8 mutation-adequacy violations {d}   (report only, does not fail yet)   [{s}]\n", .{ c8_violations, checkName("C8") });
     util.out("  C9 tree-mapping violations      {d}   (FAILS)   [{s}]\n", .{ c9_fail, checkName("C9") });
     util.out("  C10 volatile evidence paths     {d}   (report only — does not fail, yet)   [{s}]\n", .{ c10_hits.items.len, checkName("C10") });
+    util.out("  C10-NEW volatile citations      {d}   (FAILS — new citations only)   [{s}]\n", .{ c10_new.items.len, checkName("C10") });
     util.out("  C11 unaudited tier-A rows      {d}   (FAILS)   [{s}]\n", .{ c11_results.unaudited, checkName("C11") });
     util.out("  C12 dead / ambiguous globs     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c12_dead, c12_ambig, checkName("C12") });
     util.out("  C13 unclassified / bespoke     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c13_unclassified, c13_cov.bespoke.items.len, checkName("C13") });
@@ -3262,7 +3432,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
     if (!cal_ok) std.process.exit(2);
-    if (shouldFailRun(c1_count, alarms.items.len, c2_total, c6, c7, c7_results.nonconforming, c9_fail, c11_results.unaudited)) std.process.exit(1);
+    if (shouldFailRun(c1_count, alarms.items.len, c2_total + c10_new.items.len, c6, c7, c7_results.nonconforming, c9_fail, c11_results.unaudited)) std.process.exit(1);
     std.process.exit(0);
 }
 
@@ -5201,4 +5371,81 @@ test "T710 C7 scope: an empty scope matches nothing (the commit stages no findin
     const scope = [_][]const u8{};
     try std.testing.expect(!findingsScopeContains(&scope, "T710-a.json"));
     try std.testing.expect(!findingsScopeContains(&scope, ""));
+}
+
+// ── C10-NEW new-citation ratchet unit tests (T814) ─────────────────────────
+// Red-first arms for the gate: a NEW volatile citation (on an added `+` line
+// of the staged diff, in a prose doc) must be caught; an EXISTING citation
+// (unchanged, so absent from the diff) must not. They exercise the same
+// `newVolatileScan` the verify run calls.
+
+fn testIndex(gpa: Allocator) Index {
+    return .{
+        .gpa = gpa,
+        .paths = .empty,
+        .exact = std.StringHashMap(void).init(gpa),
+        .cache = std.StringHashMap(?[]const u8).init(gpa),
+    };
+}
+
+test "C10-NEW: a new volatile FILE citation is caught" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    var hits: std.ArrayList(NewVolatileHit) = .empty;
+    defer {
+        for (hits.items) |h| {
+            gpa.free(h.token);
+            gpa.free(h.file);
+        }
+        hits.deinit(gpa);
+    }
+    try newVolatileInDoc(gpa, &idx, "", "the run log is at `/tmp/nope.log`", "docs/foo.md", &hits);
+    try std.testing.expectEqual(@as(usize, 1), hits.items.len);
+    try std.testing.expectEqualStrings("/tmp/nope.log", hits.items[0].token);
+    try std.testing.expectEqualStrings("docs/foo.md", hits.items[0].file);
+}
+
+test "C10-NEW: an existing volatile citation is grandfathered (not new)" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    // The null control: a citation present in BOTH old and new is not new —
+    // even when the surrounding line was edited (the T814 loss-inventory case,
+    // where the token stayed put while its disposition cell changed).
+    var hits: std.ArrayList(NewVolatileHit) = .empty;
+    defer {
+        for (hits.items) |h| {
+            gpa.free(h.token);
+            gpa.free(h.file);
+        }
+        hits.deinit(gpa);
+    }
+    try newVolatileInDoc(gpa, &idx, "`untracked/c2pilot_3x2.zig` was the fixture", "`untracked/c2pilot_3x2.zig` was the fixture (T814 re-based)", "docs/evidence/README.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
+}
+
+test "C10-NEW: a bare directory mention is not a citation" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    // `untracked/` and `/tmp/` are prose about where scratch lives, not
+    // file citations — pathTokens requires a known extension, so these stay
+    // silent (a gate that cries wolf on directory prose gets switched off).
+    var hits: std.ArrayList(NewVolatileHit) = .empty;
+    defer {
+        for (hits.items) |h| {
+            gpa.free(h.token);
+            gpa.free(h.file);
+        }
+        hits.deinit(gpa);
+    }
+    try newVolatileInDoc(gpa, &idx, "", "swept from `untracked/` scratch and written under `/tmp/`", "docs/status/leak-crisis.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
 }

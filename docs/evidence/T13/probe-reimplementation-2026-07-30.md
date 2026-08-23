@@ -37,8 +37,7 @@ falsification survives with the ADR-0006 eye-prune switched off** (§7), so
 
 ## 1. What was asked, and what was actually available
 
-`untracked/c2pilot_3x2.zig` (the probe) and `untracked/T13-minimax.md` (the raw
-output) were swept with `untracked/` and are not in git. What survives is
+The probe source and its raw output were swept with `untracked/` scratch and are not in git. What survives is
 `docs/research/c2-falsification-3x2.md`: the claim, a six-step method, a
 measurement table, a ban-set-size distribution, and all twelve contradiction
 lines with their colex histories. `PROGRESS.md` §3.1 and the `3x2.T13` row of
@@ -224,8 +223,8 @@ Every value equals the 2026-07-26 record **and** the Python of §4. And
 a direct diff of the other half:
 
 ```
-$ /tmp/dump3x2 2>/tmp/zig-tables.txt
-$ python3 docs/evidence/T13/diff_zig_tables.py /tmp/zig-tables.txt
+$ /tmp/dump3x2 2>docs/evidence/T13/zig-tables.txt
+$ python3 docs/evidence/T13/diff_zig_tables.py docs/evidence/T13/zig-tables.txt
 zig header: # legal=489 settled=30 kob=189 kow=189 sweeps=6
 python    : legal=489 settled=30 kob=189 kow=189 sweeps=6
 rows compared: 489   cell values compared: 5868
@@ -491,7 +490,7 @@ Per `docs/infra/roles/ORCHESTRATOR.md` §Boundaries, `EVIDENCE-INTEGRITY` holds 
 and the Auditor owns claim semantics. This file edits nothing. Recommended:
 
 - **`3x2.T13` — drop the `⚠ CANNOT REPRODUCE` banner.** It is no longer true.
-  Replace with: *"Probe source lost (`untracked/c2pilot_3x2.zig`); independently
+  Replace with: *"Probe source lost (swept from `untracked/` scratch); independently
   re-implemented 2026-07-30 (`docs/evidence/T13/probe-reimplementation-2026-07-30.md`,
   `docs/evidence/T13/t13_probe.py`). All 12 recorded contradiction lines
   re-execute exactly; all census numbers match."* Status stays **PROVEN
@@ -520,10 +519,9 @@ and the Auditor owns claim semantics. This file edits nothing. Recommended:
   the probe was rewritten, not recovered. Do not let this file be read as
   overturning it.
 - **`docs/evidence/README.md`** — the "T13, specifically" note and the
-  `untracked/c2pilot_3x2.zig` row of the lost-file table should point here, and
-  the dead `zig build-exe -Mmain=untracked/c2pilot_3x2.zig` reproduction block
-  at `c2-falsification-3x2.md:143-146` should be replaced with the Python
-  invocation in §10.
+  C2-probe-source row of the lost-file table should point here, and the
+  reproduction block at `c2-falsification-3x2.md:138-141` should name the
+  recovered `docs/evidence/T13/zig_t13_replay.zig` (done by T814, 2026-08-23).
 - **`docs/infra/dispatch/ADR0006-FALSIFY.md`** — strike T13 from the list of
   ground-truth searches contaminated if ADR-0006 is wrong (§7). The rest of
   that list stands.
@@ -549,24 +547,20 @@ and the Auditor owns claim semantics. This file edits nothing. Recommended:
 - Run `bin/weizigo-claimlint` after every edit — **and read the next paragraph
   first.**
 
-**A trap in the claimlint edit.** Two of the eleven C2 dangling-evidence paths
-the linter currently reports are T13's (`untracked/T13-minimax.md`,
-`untracked/c2pilot_3x2.zig`), and repointing the `3x2.T13` row at this
-directory clears both. But `untracked/c2pilot_3x2.zig` is also claimlint's
-**known-bad 2 calibration case** — the live register row is what makes that
-check catch anything:
+**A trap in the claimlint edit (resolved by T814, 2026-08-23).** The two T13
+paths this directory replaces (the probe source and its raw output, swept from
+`untracked/` scratch) were claimlint's **known-bad 2 calibration case** — the
+live register row was what made that check catch anything:
 
 ```
-known-bad 2 (C2): `untracked/c2pilot_3x2.zig` must be reported … CAUGHT
+known-bad 2 (C2): the dangling C2 fixture must be reported … CAUGHT
 ```
 
-Remove the citation and the calibration silently loses a failing case, which is
-precisely what `GLOBAL.CALIB-LESSON` ("a checker with no failing case proves
-nothing") exists to prevent. Whoever makes the register edit must repoint
-known-bad 2 at another genuinely-dangling path in the same commit, or convert
-it to a synthetic fixture like known-bad 3/4. This is the kind of coupling that
-turns a documentation fix into a silent regression in the tool that guards the
-documentation.
+T814 brought C2 to zero and, in the same commit, re-based known-bad 2 onto a
+synthetic fixture (a definitely-missing evidence path), exactly as known-bad
+3/4 already were. Removing the citation without re-basing the calibration
+would have silently cost a failing case — precisely what `GLOBAL.CALIB-LESSON`
+("a checker with no failing case proves nothing") exists to prevent.
 
 ### What this does and does not license
 
@@ -598,7 +592,7 @@ its results are T118's to report.
 
 - Claims supported: `3x2.T13`, and by inheritance `GLOBAL.C2`
 - Durable predecessor: `docs/research/c2-falsification-3x2.md`
-- Lost originals: `untracked/c2pilot_3x2.zig`, `untracked/T13-minimax.md`
+- Lost originals: the probe source and raw output, swept from `untracked/` scratch
 
 ### Reproduction
 
@@ -624,8 +618,8 @@ tools/runner -- zig build-exe -O ReleaseFast --dep retro \
 tools/runner -- zig build-exe -O ReleaseFast --dep retro \
   -Mmain=docs/evidence/T13/zig_dump_3x2.zig -Mretro=src/retro.zig \
   -femit-bin=/tmp/dump3x2
-/tmp/dump3x2 2>/tmp/zig-tables.txt
-python3 docs/evidence/T13/diff_zig_tables.py /tmp/zig-tables.txt
+/tmp/dump3x2 2>docs/evidence/T13/zig-tables.txt
+python3 docs/evidence/T13/diff_zig_tables.py docs/evidence/T13/zig-tables.txt
 ```
 
 No build step, no dependencies beyond the Python 3 standard library, and

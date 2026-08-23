@@ -214,9 +214,9 @@ terminal `B./.B` → **+4**.
 `L=+4 H=+4 V=+4`, exact FRT `+4`, shared-buffer emulation `+0`.
 Children: `pass`→+0, `place 2`→+0, `place 3`→+4.
 
-Per-state checkpoints were written to `/tmp/audit-2x2-mismatch.log` as each
-state was verified; the file is preserved as
-`docs/audits/2026-07-30-audit-2x2-mismatch.stdout`.
+Per-state checkpoints were written to `docs/audits/2026-07-30-audit-2x2-mismatch.stdout` as each
+state was verified (the original per-state checkpoint log lived in `/tmp/` and is gone; the
+stdout file below is the committed preservation).
 
 ## 5. Collateral: the `1-ko shape` anchor is a wrong expected value
 
@@ -328,7 +328,7 @@ tractable. That is beyond this audit's scope.
 - `docs/audits/2026-07-30-audit-2x2-mismatch.md` — this file
 - `docs/audits/2026-07-30-audit-2x2-mismatch.py` — independent Python verifier
 - `docs/audits/2026-07-30-audit-2x2-mismatch.stdout` — Python run output
-  (also the per-state checkpoint log, `/tmp/audit-2x2-mismatch.log`)
+  (also the per-state checkpoint log, preserved as `docs/audits/2026-07-30-audit-2x2-mismatch.stdout`)
 - `src/audit_2x2_mismatch.zig` — three-evaluator comparison in Zig
 - `docs/audits/2026-07-30-audit-2x2-mismatch-zig.stdout` — Zig run output
 

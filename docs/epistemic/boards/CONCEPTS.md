@@ -100,8 +100,7 @@ monotonicity theorem is supplied. The Boss will reject any such inference.
 This is **C2-general**, not C2-bounded. T13 (2026-07-26) falsified
 C2-bounded at 3×2, so the worry is no longer hypothetical for the
 deliverable: the table's single-score region is *not* history-independent
-under reachable PSK histories. The fresh-start reframe (B05,
-`untracked/B05-glm.md`) accepts this as a permanent property of the table,
+under reachable PSK histories. The fresh-start reframe (B05 — the reframe scope, swept from `untracked/` scratch and recorded in `docs/evidence/README.md`) accepts this as a permanent property of the table,
 not a bug to fix. C2-general remains a separate research question.
 
 ## Finisher/engine (F)
