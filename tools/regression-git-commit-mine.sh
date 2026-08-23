@@ -298,6 +298,33 @@ else
     FAIL=1
 fi
 
+# ── T739 arm: tracked file under an ignored directory ────────────────────
+# The T739 deliverable untracked/watch-fleet.sh is TRACKED but lives under the
+# gitignored untracked/ dir. Apple Git 2.50.1 exits 1 from `git add <path>`
+# whenever the pathspec lies under an ignored directory — even for a tracked
+# file it stages correctly — so the wrapper's rc check refused the commit
+# ("a named path is missing or ignored"). No commit touched untracked/ between
+# T547 (17:36) and T739, so the breakage went unexercised. Red: REFUSED.
+# Green: the commit contains exactly the named path.
+echo " 15. tracked file under an ignored directory stages and commits"
+mkdir -p untracked
+printf 'untracked/\n' > .gitignore
+git add .gitignore && git commit -qm ignore
+echo base > untracked/watch-fleet.sh
+git add -f untracked/watch-fleet.sh
+git commit -qm seed
+echo v2 > untracked/watch-fleet.sh
+printf '<!--managent set=B deliverables=untracked/watch-fleet.sh-->\n' > T739-arm-bundle.md
+OUT=$("$WRAP" --bundle T739-arm-bundle.md untracked/watch-fleet.sh -m "T739 arm" 2>&1)
+RC=$?
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && [ "$IN_COMMIT" = "untracked/watch-fleet.sh" ]; then
+    echo "    PASS: commit contains exactly untracked/watch-fleet.sh"
+else
+    echo "    FAIL: RC=$RC, commit: $IN_COMMIT"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 echo ""
 if [ "$FAIL" -eq 0 ]; then
     echo "=== regression-git-commit-mine: ALL CONTROLS PASSED ==="

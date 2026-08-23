@@ -352,7 +352,19 @@ for p in "${PATHS[@]}"; do
     fi
     NAMES_REL+=("$p")
 done
-git add -- "${NAMES_ABS[@]}" 2>/dev/null || {
+# -f (T739): Apple Git 2.50.1 exits 1 from `git add <path>` whenever the
+# pathspec lies under an ignored directory — even for a TRACKED file it stages
+# correctly — so the plain add refused every commit naming e.g.
+# untracked/watch-fleet.sh (tracked, under the ignored untracked/ dir; T738
+# committed the same file before the git update). -f is safe here: the wrapper
+# only ever adds paths the caller explicitly named, the scope/holds checks
+# still apply, and a genuinely MISSING path still fails the add (pathspec did
+# not match any files, rc 128), so the typo guard is intact. The one behavior
+# change: an explicitly named, genuinely-ignored NEW file is staged instead of
+# refused — the four wrapper guarantees (named paths only, staged-set
+# verification, path-limited commit, commit-content verification) are all
+# ignore-rule-independent.
+git add -f -- "${NAMES_ABS[@]}" 2>/dev/null || {
     echo "git-commit-mine: REFUSED — git add failed; a named path is missing or ignored." >&2
     exit 2
 }
