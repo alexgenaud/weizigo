@@ -1,0 +1,9 @@
+{
+  "task_id": "T820",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "audited_by": null,
+  "claims": [],
+  "new_rows": [],
+  "notes": "Blind third-pass corpus miner (method v1, deterministic, chunked/resumable). Derived task_type (D027's 8), task_scope (size + XS/S/M/L/XL class), and a 12-word capability vocabulary for all 578 tasks in union(tasks.json, archive.json) minus the structural keys _sys/--bundle. Output: docs/infra/task-corpus-c/chunk-00..11.jsonl (578 rows, method:1), manifest.json (sha256 per chunk, resume-verified), notes.md (method, vocabulary+examples, ranked anomalies A1-A8, UNKNOWN counts), and derive.py (the re-runnable method). UNKNOWN per field: task_type 12, scope class 24, capabilities empty 127. Blindness: did NOT read task-corpus.jsonl/.md, task-corpus-b/, findings/T817-* or T818-*; did not consult tools/model-profiles.py; keyword rules are my own. Top anomalies: 92 pre-kanban tasks (T14-T202) have briefs on disk but no JSON rows; 24 corpus tasks have no brief (18 abandoned, 6 unwritten dispatchable); 4 bundle fields point into /tmp. Inbox loop run at checkpoints; zero pending directives. No register claims proposed or changed by this data-mining task. COMMIT STATUS: deliverables are complete and clean on disk (0 new volatile citations, 0 unabsorbed), but the git commit is BLOCKED by the shared index's in-flight state — T814's and T818's staged files (98 staged total) trip the pre-commit C2/C10-NEW gate (35 new volatile citations) and the fast-tier c7-json check (T818's 2 unabsorbed claims make `c7 --json` exit non-zero). My files are left STAGED (in my held dir docs/infra/task-corpus-c, no other row holds it) and commit cleanly once the index clears. Gate-scoping gap worth noting: the pre-commit C2/C10-NEW ratchet is not scoped to a path-limited commit's paths (unlike C7, fixed by T710), so one task's in-flight staged files block unrelated tasks' commits."
+}
