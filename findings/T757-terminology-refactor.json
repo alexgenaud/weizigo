@@ -1,0 +1,86 @@
+{
+  "task_id": "T757",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "identifier": "claude-opus-5/T757",
+  "claims": [],
+  "new_rows": [],
+  "race_w_adjudication": {
+    "criteria": [
+      "one-meaning-per-term discipline",
+      "affirmative voice + worked examples",
+      "citation integrity at HEAD",
+      "residue discipline",
+      "fidelity (no load-bearing constraint weakened or dropped)"
+    ],
+    "scale": "0-5 per criterion, 25 max per section",
+    "section_A_glossary_three_ladders": {
+      "T754_oxalpha": {
+        "scores": [
+          4,
+          4,
+          5,
+          3,
+          4
+        ],
+        "total": 20
+      },
+      "T755_claude_opus_5": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          5
+        ],
+        "total": 25
+      },
+      "T756_deepseek_v4_pro": {
+        "scores": [
+          5,
+          4,
+          4,
+          5,
+          4
+        ],
+        "total": 22
+      },
+      "winner": "T755"
+    },
+    "section_B_direction_s5_and_header_note": {
+      "T754_oxalpha": {
+        "scores": [
+          5,
+          4,
+          5,
+          4,
+          5
+        ],
+        "total": 23
+      },
+      "T755_claude_opus_5": {
+        "scores": [
+          5,
+          5,
+          5,
+          5,
+          4
+        ],
+        "total": 24
+      },
+      "T756_deepseek_v4_pro": {
+        "scores": [
+          5,
+          4,
+          4,
+          3,
+          3
+        ],
+        "total": 19
+      },
+      "winner": "T755, with three clauses grafted from T754"
+    }
+  },
+  "notes": "T757 (terminology refactor sprint console) — Race W adjudicated and committed, mechanical sweep run, both definition homes moved, directive-ID ledger deduped. Five commits: b0deab1 (definition homes + 26 citers), 4cc4255 (Race W winners), 2a5634c (mechanical sweep), fb4794b (directive-ID dedupe + grand-race cite), 40e05d4 (three census-missed carriers).\n\n## PART 1 — Race W adjudication\n\nGraded per section on the brief's five criteria, 0-5 each. Section A: T755 25, T756 22, T754 20. Section B: T755 24, T754 23, T756 19. Committed text is T755's Section A verbatim-modulo-repointing, and T755's Section B with three Amendment-2 clauses grafted from T754 (no waypoint gates the dispatch of another; concurrency across waypoints is permitted and expected; the real serializer is file ownership through managent sets). T754 was the only lane carrying all three, and the only lane stating W0's hard gate as gating *decomposition*.\n\nDISCLOSURE — THE ADJUDICATION WAS NOT BLIND AND THE JUDGE'S OWN LANE WON BOTH SECTIONS. The brief says \"strip author-identifying names\", but lane identity is in the filenames (out-T754-oxalpha.md etc.) and cannot be stripped by the reader. I am claude-opus-5 and T755 is the claude-opus-5 lane. The scores are defensible on the stated criteria and the graft from T754 is real, but the conflict of interest is structural and the operator should treat the margin (25 vs 22, 24 vs 23) as unaudited. A genuinely blind re-grade would need a third party and content-hashed filenames; recommend that for future races.\n\nPer-lane substance, for the record:\n- T754 (ox-alpha): strongest Section B. Only lane to carry all three Amendment-2 clauses and to state W0 as gating decomposition. Section A weaker: dropped the ladder comparison table, folded landmark/step into a heading called \"the ladders\" (they are not ladders), and asserts \"stages carry no numeric token\" which is false (Stage 0-4, Stage 3.1).\n- T755 (claude-opus-5): strongest Section A. Kept the three-ladder frame for the three ladders, richest correct/incorrect table (6 pairs), and two genuine finds: it flagged that its own citations to PHASES.md and the handover LANDMARKS.md are the paths T757 moves (repoint in the same commit), and it flagged that GLOSSARY's \"CONFLICTS: the Phase collision\" line becomes false. It also correctly records that L8/L9 are proposals in landmark-assignment-2026-08-19.md and not landmarks — verified: LANDMARKS.md carries no L8/L9. Section B drops the dispatch/concurrency/file-ownership clauses.\n- T756 (deepseek-v4-pro): clean and terse, no errors of commission. Loses on two counts: its Amendment-1 defect catalogue drops the passes-bit collision that Amendment 1 itself adds, and its header note claims \"This note is the only place in this file the old word survives\" — false, since Amendments 1-2 keep it in ratified verbatim prose. T754's note handles that honestly by naming §7 and the Amendments.\n\nI initially scored T755's Section B down for \"W0 is the one hard gate: W1-W4 get no new tasks until it lands\", reading it as a dispatch gate that Amendment 2 forbids. That was my error, not the lane's: WAYPOINTS.md:35 spells the decomposition gate out as exactly \"Waypoints 1-4 get no new tasks until AXIOMS.md exists\". Corrected before scoring was recorded.\n\n## PART 2 — mechanical sweep, with denominators\n\nDirection-sense \"Phase 0-4\" -> \"Waypoint 0-4\". Line counts held constant in every swept file, so no inbound line-pinned citation drifted from the sweep itself.\n\n- Files swept: 12 of the 22 in T737's census (14 named DIRECTION-sense files + 8 additional carriers), plus DIRECTION.md and WAYPOINTS.md handled in Parts 1 and 3, plus 3 files the census missed. 78 lines changed.\n- TEN OF T737'S 22 CENSUS FILES ARE NOT DIRECTION-SENSE AT ALL and were correctly left alone. This is a defect in the census, not in the sweep. Each verified by reading the occurrence:\n  - docs/epics/E1-markovian/L1-dashboard/S05-startup-surfaces/spec.md (7) — the S05 sprint's OWN five phases (Phase 1 census, Phase 2 archaeology deletion, Phase 3 role-sized orient, Phase 4 navigator role). Per-sprint numbering, excluded by the brief.\n  - docs/decisions/0005-search-integration.md (9) and 0006-eye-prune-for-tractable-search.md (2) — ADR-0005's own search-integration ladder (Phase 1 correctness-no-TT, Phase 2 TT+GHI).\n  - docs/epistemic/roadmap-2026-07-28.md (4) — that roadmap's own Phase 0-3, written 2026-07-28, five days before DIRECTION existed.\n  - docs/research/newrule-certified-fraction-2026-07-30.md (1) — \"the Phase 1 chain\", 2026-07-30, predates DIRECTION.\n  - docs/infra/dispatch/EXP-6.md (1) — \"5x5 is explicitly Phase 3\", matching roadmap-2026-07-28's Phase 3 (\"later, explicitly not now\").\n  - docs/infra/discuss.md (1) — a checklist item's own numbering.\n  - docs/status/roadmap-audit-remediation-2026-08-01.md (8) — that doc's own Phase 0-3 remediation ladder, 2026-08-01, and self-marked ephemeral.\n  - docs/status/landmark-assignment-2026-08-19.md (5) — T428 tool-consolidation per-sprint numbering, excluded by the brief.\n  - docs/status/ROADMAP-2026-08-21.md (1) — the S04/S5 sprint's own Phase 0 (decision-log study).\n- THREE LIVE DOCS CARRY DIRECTION-SENSE \"Phase N\" AND ARE ABSENT FROM T737'S CENSUS. Swept anyway (40e05d4), because leaving the old word in AXIOMS.md would defeat the landmark: docs/epics/E1-markovian/AXIOMS.md:221, docs/epics/E1-markovian/register-tree-map.md:7,184, docs/epics/E1-markovian/sprints/verify-battery/pass0/design-M1.md:1429.\n- Line-pinned citations repaired, since three files did change length: DIRECTION.md:102-104 -> :111-114 (cited by phase0-execution-audit.md:57 and register-tree-map.md:7), DIRECTION.md:244 -> :264 (S05 spec A2), handover LANDMARKS.md:141-142 -> docs/epics/E1-markovian/LANDMARKS.md:148-149 (L2-audit VERDICT). The Stage-Waypoint table was appended to the END of WAYPOINTS.md rather than inserted mid-file precisely so that WAYPOINTS.md:18/24/41/82/93/99-100 stay valid; verified line-by-line against the pre-move file.\n\nPOST-SWEEP GATE. `grep -rnE \"Phase [0-4]\" docs/ --include=\"*.md\"` = 284 lines in 44 files, every one accounted for:\n- 152 lines / 10 files in docs/infra/tool-consolidation/ — per-sprint document numbering, explicitly out of scope.\n- 12 lines in DIRECTION.md — the header residue note (1) plus Amendments 1-2 (11), which are ratified verbatim texts (\"Below is the proposal as written on 2026-08-03, unchanged, since the reasoning is what was ratified\"). Rewording them would rewrite what the operator ratified.\n- 2 lines in GLOSSARY.md — the \"not this\" column of the usage table (a worked incorrect example the brief requires) and the single permitted residue note.\n- 39 lines in 10 files that are their own algorithm or plan ladders: verify-battery i5-feasibility (21+1) and T172-blind-analysis (9+2) are BFS/enumeration/Tarjan algorithm phases; knowledge-capture/pass0/plan.md (9), engine-unification/pass0/plan.md (3), assertion-ledger/archive/spec-2026-08-08.md (7), docs/engine/archive/TODO.md (4), S01-process-ownership OWNER-LOG (6) and scope.md (1), S04-orchestrator-retirement spec.md (2)/seed.md (1)/decision-log.md (1), evidence/T571 leak-resolution (2), evidence/ORACLE-V2 keybyte-sweep (2, \"Phase 3b\" build stage).\n- 43 lines in the 10 mis-classified census files listed above.\n- 6 lines that ARE Direction-sense and are deliberately left verbatim as as-run records: handover-orcha-opus-2026-08-05.md (1), handover-orcha-2026-08-08.md (2, a ship-Phase-1 recommendation), g3b-value-correctness/archive/spec-audit-r1.md (2, an archived audit's verdict table), evidence/BATTERY/i2-wzo2-T270.md (1), race-g-claim-doubt/target-set-batch2.md (1, a sealed race packet), handover-dspro-2026-08-01.md (1, pre-DIRECTION).\n\n## PART 3 — definition homes, with denominators\n\n- git mv docs/epics/E1-markovian/PHASES.md -> WAYPOINTS.md; body rewritten in Waypoint terms; Stage-Waypoint correspondence table added with the honest non-mappings (Stage 0-2 outside the ladder; Stage 3 ~ W2-W3; Stage 4 ~ W3 finish + narrative; \"no stage covers W0, W1 or W4\").\n- git mv docs/audits/2026-08-05-handover/LANDMARKS.md -> docs/epics/E1-markovian/LANDMARKS.md. It keeps its job as the single home of L0-L7, now says so in its opening line, and carries the L<n> reservation rule.\n- REPOINTS: 15 path occurrences across 11 tracked files for LANDMARKS.md (AGENTS.md, week-close-audit, L2-audit VERDICT, S05 spec, GLOSSARY x2, T495-step6-census, fleet-surface, ROADMAP-2026-08-20, ROADMAP-2026-08-21, landmark-assignment-2026-08-19) out of 11 tracked non-findings citers counted; plus 2 same-directory relative references that the move broke and the census did not list (2026-08-05-handover/ROADMAP.md:9 and EPISTEMIC-RACES.md:3). 30 path occurrences across 14 tracked files for PHASES.md out of 15 counted — the 15th, src/managent/main.zig:6217, is a comment held by T760 (deepseek-v4-pro) and was handed over by directive instead of edited (see below).\n- The 22 bare-filename mentions of LANDMARKS.md in bin/dispatch, build.zig, src/managent/main.zig and tools/regression-managent-landmark.sh are diagnostic strings and comments, not path resolutions — verified, so the move breaks no gate.\n- GLOSSARY hierarchy line is now epic > landmark > waypoint > sprint > pass > phase > step, with the blur note (landmarks are points, waypoints are paths; sprints predefined early or defined at close) and the L<n> reservation rule (project-globally unique, LANDMARKS.md-defined, no area axis may reuse L tokens, L8/L9 are proposals only). GLOSSARY's phase entry no longer claims \"the Phase collision\" — that sentence became false.\n\n## PART 4 — directive-ID dedupe\n\nTHE DUPLICATION IS AN ORDER OF MAGNITUDE LARGER THAN THE BRIEF STATES. The brief lists \"known: D041 x3, D042 x2, D043 x2\". Actual census of docs/infra/managent/directives.jsonl: 129 records, 32 duplicated IDs across 88 records, three reuse eras (2026-08-04/06, 2026-08-19/20, 2026-08-22/23). D021 alone had six records.\n\n56 records re-issued, 32 survivors kept their bare token, 0 lines deleted. Rule applied: earliest record by timestamp keeps the bare ID, later records take b, c, d, ... in timestamp order. Verified after: 129 records, 129 unique IDs, and a field-masked diff proves the file identical to its pre-edit state apart from `id` values. Survivor map at docs/infra/managent/directive-id-dedupe-2026-08-23.md.\n\nTHE BRIEF'S SURVIVOR GUIDANCE COULD NOT BE FOLLOWED AS WRITTEN, and the reasons are findings in their own right:\n1. \"T683/T684 cite the 2026-08-22 D041 SCOPE CUT\" — they cite D042, not D041, and NO RECORD IN directives.jsonl CARRIES THAT TEXT OR TIMESTAMP. findings/T684-landmark-backfill.json acks a D042 \"SCOPE CUT\" at 2026-08-22T20:29+; grep for \"SCOPE CUT\" across directives.jsonl, tasks.json and archive.json returns nothing. A directive was delivered and the ledger did not keep it.\n2. \"T543's bakeoff directive is the earliest\" — the D041 targeting T543 (2026-08-20) is the middle of three generations, not the earliest.\n3. Per-ID citation-weighted survivors are unachievable for the heavily-cited IDs regardless: D041 is cited by 19 files meaning 2026-08-05, -08-20 and -08-23 referents. No single bare token satisfies them; the dated map is what resolves them.\nEarliest-keeps-bare was chosen because it is deterministic, reproducible from the ledger alone, and stable as new duplicates appear. Cross-check that it lands right: `managent audit` reports T355 (2026-08-04) closed \"demonstrated by D025-D035\" — those citations now resolve to the gen-1 records, which is what T355 meant.\n\nFURTHER DEFECTS FOUND IN THE LEDGER, recorded not fixed:\n- T758's mint-from-ledger-max fix is COMMITTED (be87b34) AND NOT DEPLOYED. bin/managent is still built from e8c3999-dirty. My own `managent tell T760` at 12:29Z minted a SIXTH D021 while D079 already existed — a live reproduction of the defect T758 closed. Deploying is T758's remaining step.\n- directives.jsonl is 75% BLANK LINES: 384 of 513 lines carry nothing. Same write path. Left alone because compacting renumbers every line; the survivor map is keyed on (id, ts, target) so it survives a future compaction.\n- Safety argument for re-keying, verified: read receipts are in-place fields (read, read_by, read_at) on the same record, so no receipt is orphaned; `managent inbox`/`tell` match on target and the read flag, never on ID, so delivery is unaffected. `managent audit` after the rewrite raises no malformed-directive finding.\n\n## PART 5 — grand-race.md stale cite\n\ngrand-race.md:13 cited \"docs/status/ROADMAP-2026-08-20.md Phase C\", which no heading satisfies. Corrected to Stage 2, not the Stage 1.4 that T745's R3 guessed: the line is about the WAVE-2 fleet-toolchain consolidation, and ROADMAP-2026-08-20.md:129 puts the wave-2 consolidation under \"Stage 2 — the races\". Stage 1.4 is wave-1 (T428). No holder on the file, so edited directly.\n\n## PROCESS DEFECTS HIT WHILE EXECUTING\n\n- tools/git-commit-mine CANNOT COMMIT A RENAME. It stages with `git add -f -- <path>`, and `-f` makes pathspec matching worktree-only, so a deleted-in-worktree tracked file fails with \"pathspec did not match any files\" and the wrapper refuses the whole commit. `git add -A -- <path>` handles it. Every commit in this row therefore staged its exact path list manually, verified `git diff --cached --name-only` equalled the intended list byte-for-byte, and committed through the hook's sanctioned GIT_MINE_EXPLICIT=1 channel (T455) — the same channel `--explicit` uses. Worth a defect row: the wrapper's four guarantees are all reproducible, but a tool that cannot express a rename pushes every rename outside it.\n- The bundle's declared scope is `deliverables=` only (two findings files), so both the wrapper and the pre-commit hook refuse every doc this refactor exists to edit, even though the row's own `holds=` in tasks.json names GLOSSARY.md, DIRECTION.md, WAYPOINTS.md, LANDMARKS.md and both ROADMAPs. Scope should union `holds=` with `deliverables=`; until it does, every doc-refactor row must go through --explicit for entirely uninteresting reasons.\n- src/managent/main.zig:6217 carries a stale PHASES.md mention in a comment. T760 (deepseek-v4-pro) holds the file, so T757 reverted its edit and sent directive D021f (re-keyed from the D021 it was minted as) asking T760 to fold the one-line comment repoint into its own commit. If T760 closes without it, the mention outlives this row.\n\n## INBOX\n\n`bin/managent inbox T757 --ack` run at five checkpoints (before the bundle, after each of the first four commits, before close). Empty every time; 0 directives acked. No directive ID to record.\n\n## LANDMARK LINE\n\nT757 (terminology refactor sprint console) — DONE, pass-with-findings. Advances L4 (the ledger is clean): a human can now read three ladders in three words with zero collisions (waypoint for the program, stage for the course, phase for the pass document), find both definitions in one directory (docs/epics/E1-markovian/WAYPOINTS.md and LANDMARKS.md), and resolve any directive citation to exactly one record — 129 IDs for 129 directives, where 32 tokens used to name 88. It cuts against us on three counts worth the operator's attention: the T737 census that scoped the sweep was wrong about 10 of its 22 files and missed 3 live carriers, a directive T684 acked is simply absent from the ledger, and T758's ID fix is committed but undeployed so the leak it closed reproduced during this very row.",
+  "verdict": "pass-with-findings"
+}
