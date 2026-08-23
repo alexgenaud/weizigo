@@ -1,0 +1,104 @@
+{
+  "task_id": "T797",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "arm_count": 10,
+  "labels": {"OUTCOME": 6, "SCAFFOLD": 3, "PINNED-DEFECT": 1},
+  "summary": "Built tests/roundtrip/ — the dispatch→run→verify→close lifecycle exercised end to end on the --test-worker/--test-root seam, no provider, no cost, 70.6 s total wall (measured 2026-08-23). 10 arms: 8 GREEN on first run, 2 RED recorded defects with owners (empty-deliverables= PINNED-DEFECT owner T793, matching the unit tier's TestVerifyDispatchEmptyDeliverables; silent-but-working OUTCOME owner T785/T773, the T735 class). The tier is the consolidation net for S06 ORC-PLAN-3: every OUTCOME arm is written without naming a script, every SCAFFOLD arm carries the ORC-PLAN-3 step it dies with (all three die with step 5, dispatch/subagent rewire). Runnability: python3 tests/roundtrip/test_dispatch_lifecycle.py, deterministic, scratch-isolated (MANAGENT_STORE/WEIZIGO_MODEL_PERF/WEIZIGO_DISPATCH_HEALS all point at /tmp/weizigo scratch; zero T80xx leaks in the live store; zero scratch dirs left behind).",
+  "scenarios": [
+    {
+      "scenario": "happy path: dispatch → stub works → row closes pass → verification passes",
+      "arm": "test_happy_path_dispatch_roundtrip_closes_and_passes",
+      "label": "OUTCOME",
+      "first_run_colour": "GREEN",
+      "owner": null,
+      "via": "bin/dispatch (nohup detach, poll store to done, deliverable on disk)"
+    },
+    {
+      "scenario": "exit 0 without reading the bundle → fails on the nonce (2026-08-23 ox-alpha double-catch)",
+      "arm": "test_exit_zero_without_work_fails_nonce",
+      "label": "OUTCOME",
+      "first_run_colour": "GREEN",
+      "owner": null,
+      "via": "bin/subagent, synchronous; asserts rc≠0, 'FAIL nonce', row untouched"
+    },
+    {
+      "scenario": "declared deliverables absent → fails on deliverables",
+      "arm": "test_declared_deliverable_absent_fails_verification",
+      "label": "OUTCOME",
+      "first_run_colour": "GREEN",
+      "owner": null,
+      "via": "sabotage model — write+commit+close then delete. The done gate (T278) refuses an uncommitted/missing deliverable, so a close with the file never present cannot happen; sabotage is the only honest route to the deliverables failure."
+    },
+    {
+      "scenario": "row still in_progress after the worker exits → fails, for both exit 0 and non-zero",
+      "arm": "test_open_row_after_worker_exit_fails_either_exit_code",
+      "label": "OUTCOME",
+      "first_run_colour": "GREEN",
+      "owner": null,
+      "via": "rc=0 (kimi: claimed-then-abandoned, fails, NOT auto-healed) and rc=1 (died worker: fails AND heals back to dispatchable — no zombie; the heal is today's mechanism, the no-zombie state is the OUTCOME)"
+    },
+    {
+      "scenario": "empty deliverables= → reports unverifiable, never pass",
+      "arm": "test_empty_deliverables_reports_unverifiable_never_pass",
+      "label": "PINNED-DEFECT",
+      "first_run_colour": "RED (recorded, not failing the suite: @unittest.expectedFailure)",
+      "owner": "T793 (same SHOULD as tests/unit TestVerifyDispatchEmptyDeliverables — the two tiers agree)",
+      "via": "bundle declares `<!--managent set=A deliverables=-->`; honest full close; today verification PASSES (the defect)"
+    },
+    {
+      "scenario": "silent-but-working lane → not killed as dead (T735 case)",
+      "arm": "test_silent_but_working_lane_is_not_failed",
+      "label": "OUTCOME",
+      "first_run_colour": "RED (recorded, not failing the suite: @unittest.expectedFailure)",
+      "owner": "T785/T773",
+      "via": "full work (claim, write+commit deliverable, close pass), zero stdout. At the round-trip seam the runner's liveness fuse is not present (--test-worker bypasses tools/runner), so the round-trip manifestation is the verifier's nonce-echo check failing a fully-worked silent lane. SHOULD: work fully verified is evidence of a working lane; stdout silence alone must not fail it."
+    },
+    {
+      "scenario": "extra OUTCOME beyond the brief's minimum: fail-found with the work done verifies PASS",
+      "arm": "test_fail_found_with_work_done_passes",
+      "label": "OUTCOME",
+      "first_run_colour": "GREEN",
+      "owner": null,
+      "via": "STUB_VERDICT=fail-found; asserts rc=0, 'verification PASSED', 'fail-found' in the summary (believe the work, not the text, T411)"
+    }
+  ],
+  "recorded_defects": [
+    {
+      "arm": "test_empty_deliverables_reports_unverifiable_never_pass",
+      "colour": "RED (recorded, not failing the suite: @unittest.expectedFailure)",
+      "owner": "T793",
+      "should": "a T-id row closed as success with an EMPTY deliverables= declaration reports UNVERIFIABLE, never PASS — the deliverables arm silently disables itself when the declaration is empty, and a PASS resting on the nonce alone is exactly the self-report the verifier refuses to trust",
+      "current": "the round-trip path returns rc=0 'worker reported success; side effects verified — verification PASSED' (bin/subagent → verify_dispatch with deliverables=[] on a done+success row). Twin of the unit tier's TestVerifyDispatchEmptyDeliverables (also @unittest.expectedFailure), so the two tiers agree.",
+      "fix_notes": "Deferred deliberately, exactly as the unit tier recorded: a correct fix changes the pinned verifier's pass/fail contract (T631) and collides with tools/regression-runner-brief-telemetry.sh arm E. Needs its own row. When it lands, this arm goes green and the expectedFailure flags an unexpected success — update the test then."
+    },
+    {
+      "arm": "test_silent_but_working_lane_is_not_failed",
+      "colour": "RED (recorded, not failing the suite: @unittest.expectedFailure)",
+      "owner": "T785/T773",
+      "should": "a lane that completes every declared side effect but emits no stdout must not be recorded as failed-as-dead. The T735 case: 40 turns, 19,060 output tokens across 600 s, recorded 'produced no output since launch (bundle never read?)'. At the round-trip seam the round-trip manifestation is the nonce-echo check failing a fully-worked silent lane (the runner fuse itself is not in the --test-worker path).",
+      "current": "verification fails rc=2 'worker reported success; verification FAILED: nonce echo missing' on a silent stub that claimed, wrote+committed the deliverable and closed the row pass.",
+      "fix_notes": "Owned by the fleet-guard-reliability sprint (T785 spec; T773's acceptance has the fuse-level twin arms: a lane emitting no stdout while its session file grows must survive). The verification-level SHOULD — work fully verified (row closed, deliverable committed) is evidence of a working lane — is the round-trip expression the sprint should decide on (e.g. nonce required only when the side effects are NOT otherwise verified). When fixed, this arm goes green."
+    }
+  ],
+  "scaffold_disposal": "All three SCAFFOLD arms die with ORC-PLAN-3 step 5 (dispatch/subagent rewire): (S1) test_dispatch_data_line_and_log_convention pins bin/dispatch's one data line `dispatched T<id> → <canon> (<provider>) · pid <pid> · untracked/log/t<id>.log`, the log landing convention, and the `[verify] verification PASSED` summary; (S2) test_test_seam_flags_accepted_by_both_front_doors pins the --test-root=/--test-worker= seam spelling on both front doors; (S3) test_nonce_prompt_contract_reaches_the_worker pins the two verbatim nonce prompt lines (VERIFY-NONCE: … / Begin your final reply with exactly the line: …). When step 5 re-spells any of those interfaces, delete the corresponding arm in the same commit — the OUTCOME arms carry the behaviour forward. No SCAFFOLD arm dies with steps 1–4 or 6: steps 1–3 (policy reader, arbiter, dashboard) and 6 (provider seam) have no surface in this tier, and step 4 (registration flow) is the surviving regression-managent-* suites' domain.",
+  "wall": {
+    "total_seconds": 70.6,
+    "measured": "2026-08-23, python3 tests/roundtrip/test_dispatch_lifecycle.py, full suite",
+    "cost_driver": "T390 claim-to-done gate: a closing stub must sleep >10 s between claim and done (the honest path the fleet actually runs; the fleet stubs sleep 11 s). Six of ten arms close a row.",
+    "closing_arms_seconds": {"happy_path": 11.8, "dispatch_data_line": 11.8, "empty_deliverables": 11.4, "silent_but_working": 11.3, "deliverables_absent": 11.4, "fail_found": 11.4},
+    "non_closing_arms_seconds": {"exit_zero_no_work": 0.3, "open_row_both_exit_codes": 0.5, "seam_flags": 0.3, "nonce_contract": 0.3},
+    "note": "69 of the 70.6 s is the six closing arms. If the T390 window ever gains a test override, the tier's wall drops to ~2 s with no arm changes."
+  },
+  "seam_usage": "The seam (--test-worker / --test-root) was 96% unused before this row: only 3 of 75 tools/regression-*.sh arms use it (regression-dispatch.sh, regression-dispatch-verification.sh, regression-directive-kill.sh). This tier adds 10 more consumers and is now the seam's main customer.",
+  "deliberate_choices": [
+    "WEIZIGO_DISPATCH_VERIFY_UNPINNED=1 is set: bin/subagent pins tools/dispatch_verify.py to HEAD (T631) to protect LIVE dispatches from a mid-edit verifier; this tier is not a live dispatch — it is the consolidation net, whose job is to catch in-flight edits — so it tests the working tree. Documented in the README.",
+    "Failure arms run through bin/subagent synchronously (deterministic exit code = the verification verdict); the happy path and the dispatch-interface arm run through bin/dispatch (the real front door: nohup detach, log convention, data line).",
+    "The deliverable-absent arm uses the sabotage model (close then delete) because the done gate (T278) refuses to close with an uncommitted/missing deliverable — a close with the file never present cannot reach verification.",
+    "Recorded defects use @unittest.expectedFailure (the tests/unit convention) so the tier exits 0 while the run summary counts them separately and lists them."
+  ],
+  "isolation": "Scratch-only: MANAGENT_STORE, WEIZIGO_MODEL_PERF and WEIZIGO_DISPATCH_HEALS point at /tmp/weizigo/t797-rt-* scratch; claimlint symlinked into the scratch repo; WEIZIGO_AGENT_DEPTH unset (stale worker-run depth stamps would trip the cap control). Post-run check: zero T80xx rows in the live kanban store, zero scratch dirs left behind.",
+  "notes": "No directives received (inbox polled with --ack at each checkpoint; 0 acked). No audited_by: this file proposes no claim-status changes, so claimlint C11 does not require an auditor. First-run colours were recorded on the first full run (2026-08-23); the run was repeated once to confirm stability (identical results, 70.6 s)."
+}
