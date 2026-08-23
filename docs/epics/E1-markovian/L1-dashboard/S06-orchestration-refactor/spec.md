@@ -28,13 +28,11 @@ registry entry instead of four files.
 with its document's rev/pin where load-bearing. A citation that no longer resolves at `a1415fe`
 is a spec defect, not a reader's problem.
 
-**Naming note (flag, not a ruling — operator owns the number).** The deliverable path uses the
-sprint number `S05`, which already names the `S05-startup-surfaces` sprint (T583, `orient
---role`). The two are distinct sprints with a one-way relationship (this sprint's ruling 7 builds
-on `orient`; it does not re-spec it). Recommendation: renumber this sprint `S06` (or fold
-`startup-surfaces` under it as a lane) at ratification; the path is left as specified so the
-`managent done` deliverable check holds. This is a naming decision, recorded here rather than
-made silently.
+**Naming (RESOLVED — operator ratified 2026-08-23).** This sprint is **S06**; the directory
+was renamed from `S05-orchestration-refactor` the same day (`S05-startup-surfaces` keeps S05 —
+the two are distinct sprints with a one-way relationship: this sprint's ruling 7 builds on
+`orient`, it does not re-spec it). Pre-rename citations of the old path in closed-row bundles
+are historical records, not defects.
 
 ---
 
@@ -177,13 +175,15 @@ down *right now*) stays in the store/run-records, never in the policy file — t
     "failure_trip": {"count": 3, "owner": "T536", "reason": "consecutive pre-claim deaths bench a model", "expiry": null},
     "stale_directive_hours": {"hours": 24, "owner": "T625", "reason": "unacked unconditional pause older than this is reported stale", "expiry": null}
   },
-  "window_budgets": [
-    {"family": "claude", "tokens": 35000000, "window_s": 18000, "owner": "T736", "reason": "measured ~38M/5h, 35M keeps margin", "expiry": null},
-    {"family": "deepseek", "tokens": null, "window_s": null, "owner": "operator", "reason": "no five-hour limit (§7c.25); meter still counts for the record", "expiry": null}
-  ],
   "pause_default": {"max_seconds": 18000, "owner": "operator", "reason": "ruling 2: 5-hour default maximum unless explicitly longer", "expiry": null}
 }
 ```
+
+**Amendment 2026-08-23 (T766).** The `window_budgets` block (shown above at lines 180–183 in the
+seed) is **retired**. Operator ruling: the predictive token-budget meter is removed; regulation
+collapses to APPETITE (steering) + COOLDOWN (reactive). The T736 calibration (35M, 5h) is
+superseded — marked with an epoch-boundary note in docs/infra/model-perf.md (project convention),
+never deleted.
 
 **ORC-POL-6 (dial -1 = RESERVED, not an appetite value).** `oxalpha` carries `-1` because
 RESERVED is a §7c.12 "should" fact (identity sealed, operator-only stealth-test), not a "can"
@@ -194,12 +194,11 @@ dial reads as an off-by-one bug. The worked example uses `-1` to match the curre
 `FLEET_APPETITE` surface; design may switch to the string form without re-ratification.)
 
 **ORC-POL-7 (env vars are overrides, and overrides are recorded).** The existing knobs
-(`FLEET_MODEL_ALLOW/DENY`, `FLEET_APPETITE`, `FLEET_FAMILY_CAP`, `WEIZIGO_WINDOW_BUDGET_*`,
-`WEIZIGO_DIRECTIVE_STALE_HOURS`) keep working **as overrides of a file entry**, and an override
-is appended to `untracked/fleet-window-overrides.jsonl` with the reason it was needed (the T677
-override-recording precedent, generalized). A knob with no corresponding file entry is refused
-with "add it to the policy file or it is not a knob" — the D036/T736 silent-default class dies
-here.
+(`FLEET_MODEL_ALLOW/DENY`, `FLEET_APPETITE`, `FLEET_FAMILY_CAP`, `WEIZIGO_DIRECTIVE_STALE_HOURS`)
+keep working **as overrides of a file entry**, and an override is appended to
+`untracked/fleet-window-overrides.jsonl` with the reason it was needed (the T677 override-recording
+precedent, generalized). A knob with no corresponding file entry is refused with "add it to the
+policy file or it is not a knob" — the D036 silent-default class dies here. (T766: `WEIZIGO_WINDOW_BUDGET_*` knobs retired.)
 
 ---
 

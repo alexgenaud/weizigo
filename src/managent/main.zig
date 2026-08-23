@@ -316,9 +316,10 @@ const family_appetite = [_]FamilyAppetite{
     .{ .family = "claude-fable", .appetite = .reserved },
     .{ .family = "deepseek", .appetite = .spend },
     .{ .family = "local", .appetite = .probe },
-    // T732: RESERVED — never one-off/general, never auto-drawn; only the
-    // operator's explicit stealth-test dispatch.
-    .{ .family = "ox-alpha", .appetite = .reserved },
+    // Operator ruling 2026-08-23 (supersedes T732's RESERVED): ox-alpha is
+    // free while the blind test runs — draw and compare it at every
+    // reasonable opportunity; never penalize it on speed (throttling observed).
+    .{ .family = "ox-alpha", .appetite = .spend },
 };
 
 fn familyOf(model: []const u8) ?[]const u8 {
