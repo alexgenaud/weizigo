@@ -89,7 +89,7 @@ where it is certain.
 - `epistemic/GLOSSARY.md` — terms; project-invented shorthand marked `[project term]`.
 - `AGENTS.md` (repo root) — agent behavior rules and foreclosures.
 
-Status markers (carry over from the legacy `engine/TODO.md`): `[ ]` todo · `[~]` in
+Status markers (carry over from the archived `docs/engine/archive/TODO.md`): `[ ]` todo · `[~]` in
 progress · `[x]` done · `[-]` dropped.
 
 ## Related

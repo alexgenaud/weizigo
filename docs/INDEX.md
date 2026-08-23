@@ -69,7 +69,7 @@ file a bug.
 
 ## What does each module / engine file do?
 
-→ `docs/engine/ARCHITECTURE.md` — module map, ~6,200 lines of Zig across 16 modules
+→ `docs/engine/ARCHITECTURE.md` — module map (107 files, ~106k lines, 2026-08-23)
 
 ## How do I write a task for another agent?
 
@@ -216,7 +216,7 @@ at its top stating its status. **Do not rely on these for current truth.**
 | file | status | replacement |
 |---|---|---|
 | `docs/AGENTS.md` | stray fragment, removed (T508, 2026-08-20) | `AGENTS.md` (repo root) |
-| `docs/engine/TODO.md` | SUPERSEDED | `docs/epistemic/PROGRESS.md` + `docs/epistemic/boards/4x4/EPISTEMIC.md` |
+| `docs/engine/archive/TODO.md` | SUPERSEDED (archived, T704) | `docs/epistemic/PROGRESS.md` + `docs/epistemic/boards/4x4/EPISTEMIC.md` |
 | `docs/infra/agents/workflow.md` | RETIRED 2026-07-28 | `AGENTS.md` + `docs/infra/delegation/DELEGATOR.md` |
 | `docs/infra/agents/boss-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATOR.md` |
 | `docs/infra/agents/worker-role.md` | RETIRED 2026-07-28 | `docs/infra/delegation/DELEGATEE.md` |
@@ -246,7 +246,7 @@ the same question, one is listed here as the authority.
 | question | authoritative file | NOT (why) |
 |---|---|---|
 | what the project is and its rules | `AGENTS.md` (root) | `docs/AGENTS.md` (stray fragment) |
-| the living specification | `docs/epistemic/PROGRESS.md` | `docs/engine/TODO.md` (superseded) |
+| the living specification | `docs/epistemic/PROGRESS.md` | `docs/engine/archive/TODO.md` (superseded, archived) |
 | every claim's status | `docs/epistemic/CLAIMS.md` | per-goban EPISTEMIC files (may lag) |
 | how to dispatch | `docs/infra/dispatch/README.md` | `docs/infra/delegation.md` (retired) |
 | how to execute a task | `docs/infra/delegation/DELEGATEE.md` | `docs/infra/agents/worker-role.md` (retired) |

@@ -461,6 +461,30 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
   `[GLOBAL.ADR0006-PRED:PROVEN]` `[GLOBAL.ADR0006-LEMMAS:PROVEN]`
   `[GLOBAL.ADR0006-TEST:PROVEN]`.
 
+### 7.6 Legacy engine backlog — absorbed from the engine TODO (T704, 2026-08-23)
+
+The legacy engine TODO (self-declared SUPERSEDED, 17 KB) was archived to
+`docs/engine/archive/TODO.md`. Its open items were triaged; the bulk is DONE
+or superseded by the ADR-0009 retrograde engine and the ADR-0020 loopy-game
+fixpoint build `[GLOBAL.ADR0020-VERIFY-PASS:CLAIMED]`. Triage:
+
+- **Superseded, no action** (history only): the forward-search scaling track
+  (line-length/recursion-depth bounding, `collision_size`/`seq_table_size`
+  sizing, `measure.zig` re-runs, per-node redundant-recompute, geometry/flood
+  consolidation) — superseded by retrograde value iteration; the 5×5
+  density-fold projections — foreclosed until a working representation is
+  demonstrated at 4×4 (ADR-0012 carries its own erratum).
+- **Retired as moot**: index-0 sentinel (lived in the deleted `minimax.zig`);
+  Kishimoto–Müller dependency-set caching (the L/H fixpoint handles ko
+  structurally); captured-stone / Japanese-scoring tracking (path-dependent
+  and out of scope under area scoring `[GLOBAL.ADR0003-AREA:PROVEN]`).
+- **Still-live long-tail ideas (unscheduled — recorded as prose, not kanban
+  rows)**: (a) the goal-bounded query engine + WHY explanations
+  (`docs/research/query-engine-and-explanations.md`); (b) provable dominance
+  prunes beyond the eye-prune (super-Benson) `[GLOBAL.ADR0006-EYE:CLAIMED]`;
+  (c) an endgame database of settled terminals; (d) gzip/entropy coding of the
+  score column.
+
 ---
 
 ## 8. What it means
