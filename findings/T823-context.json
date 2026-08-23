@@ -1,0 +1,84 @@
+{
+ "task_id": "T823",
+ "date": "2026-08-24",
+ "model": "claude-opus-5",
+ "identifier": "claude-opus-5/T823",
+ "type": "context-dump",
+ "claims": [],
+ "new_rows": [],
+ "what_was_read": [
+  "bin/managent orient (worker preamble, 78 lines)",
+  "untracked/T823-dashboard-truth.md (the bundle)",
+  "findings/README.md (schema)",
+  "untracked/watch-fleet.sh (all 349 lines, pre-change)",
+  "tools/regression-watch-fleet.sh (all 847 lines, pre-change: arms A-M)",
+  "docs/infra/suite-truth.md :55-70 (shell-regression 1, the arm F record)",
+  "docs/infra/model-registry.md :1-40 (canonical labels + the ONE short-name table)",
+  "untracked/tokens/tokens.jsonl (1435 lines, joined per task)",
+  "docs/infra/managent/tasks.json (claimed/done/agent for the rate arithmetic check)",
+  "untracked/T771-orchestration-oversight-seat.md :1-4 (the live holder fixture)",
+  "findings/T804-footer-gap.json, findings/T789-*.json (findings shape and the reserve lineage)",
+  "tools/fleet-keeper.sh :635-650 (precedent: read the store, status --json omits fields)",
+  "build.zig :559-567, tools/regression-git-commit-mine.sh :302-322 (the deliverables are tracked)"
+ ],
+ "what_was_run": [
+  "bin/managent claim T823 --agent claude-opus-5",
+  "bin/managent inbox T823 --ack (mid-task and at close: 0 directives both times)",
+  "tools/regression-watch-fleet.sh — BASELINE before any edit (arm F alone red, 77s)",
+  "tools/regression-watch-fleet.sh — RED after writing arms O/P and re-pinning K/N",
+  "tools/regression-watch-fleet.sh — GREEN after the implementation (15/16, arm F alone red)",
+  "sh -n untracked/watch-fleet.sh; bash -n tools/regression-watch-fleet.sh",
+  "FLEET_LINES=24/40/60 FLEET_COLS=140 sh untracked/watch-fleet.sh (live store: 22/38/58 lines)",
+  "echo 1:20.93 | awk -F: '{print $NF}' -> 20.93; echo 1:02:03 | awk -F: '{print $NF}' -> 03",
+  "WATCH_FLEET_SOURCE=1 . ./untracked/watch-fleet.sh then rate_of on the three measured readings",
+  "python3 join of tokens.jsonl against tasks.json (the pre-claim-reading census: 483/137/346/452)",
+  "tools/git-commit-mine (REFUSED: 65 foreign staged paths, T818's corpus-b) — index restored to its pre-T823 state, not unstaged and not --explicit",
+  "tools/regression-watch-fleet.sh — re-verified after another console's stash/pop round trip: 15/16, arm F alone red, identical"
+ ],
+ "measurements": {
+  "old_cpu_column_1h20m93": "20.93 (minutes silently dropped)",
+  "old_cpu_column_1h02m03s": "03 (62 minutes of CPU shown as three)",
+  "cpu_utilisation_of_api_workers": {
+   "T817": "6.9%",
+   "T801": "9.7%",
+   "T808": "8.1%"
+  },
+  "rate_of_pins": {
+   "T817 dsflash 127683/1232": "103.6/s",
+   "T801 dspro 157457/2162": "72.8/s",
+   "T808 dsflash 407129/3400": "119.7/s",
+   "missing reading": "UNKNOWN",
+   "reading but zero elapsed": "UNKNOWN",
+   "outlier 12000/1": "12000/s (8 chars, never truncated)"
+  },
+  "exact_fill_new_pin": "40-row terminal, 20 DONE + 20 OPEN -> 17+18 = 35 rows, 38-line one-shot frame (T804: 16+17=33/38; T799: 34/39; T739: 32/37)",
+  "exact_fill_heights": {
+   "24": "22 lines",
+   "40": "38 lines",
+   "60": "58 lines"
+  },
+  "more_lines_in_any_frame": 0,
+  "live_T771_row_post_fix": "  T771  L1  console   00:37  opus     orchestration oversight seat (fable)",
+  "live_progress_rates": "every in-flight row renders UNKNOWN (no in-flight task has a meter reading)",
+  "meter_join_census": {
+   "tasks_with_any_reading": 483,
+   "surviving_the_claim_guard": 137,
+   "only_pre_claim_readings": 346,
+   "individual_readings_dropped": 452
+  },
+  "suite": "16 arms, 15 PASS, 1 FAIL (arm F, pre-existing); baseline before any edit identical"
+ },
+ "arms": {
+  "O": "rate column — unit-pins rate_of on the three measured readings + the width-safe formatting; frame-pins a reading -> labelled rate, a null-usage record -> UNKNOWN, a pre-claim reading -> UNKNOWN (and 99999 must not leak anywhere in the frame); re-asserts the elapsed column and no colon-duration",
+  "P": "holder column — brief says fable, store says claude-opus-5 -> renders opus; no agent -> '-'; the brief-derived description survives on the row; the T591 times column is still at cols 23-28",
+  "K": "re-pinned 16+17=33 -> 17+18=35 rows in the same 38-line frame, plus no '(more' line",
+  "N": "the (more) accounting inverted to its absence at 24/40/60 x two mixes, plus the freed row becoming a DONE data row (18+17 for both a truncated and an exactly-fitting section)"
+ },
+ "not_done": [
+  "arm F: left red per the brief (report, do not fix, do not hide) — and its red has moved from what suite-truth.md records; see the findings file",
+  "the holder column was not added to DONE rows (a DONE row asserts no holder); PROGRESS keeps its argv-derived model, which is ground truth for a live process",
+  "the meter's ts-vs-claimed staleness proxy is a display-side heuristic; the real fix (run identity in tokens.jsonl) belongs to the token-meter row, T751 territory",
+  "the commit itself: blocked by a foreign staged index; all four deliverables are complete in the working tree, uncommitted"
+ ],
+ "notes": "Context dump for T823 (findings/README.md schema file is findings/T823-dashboard-truth.json). Display layer only; no register change proposed, so claims and new_rows are empty by design."
+}

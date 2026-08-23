@@ -15,8 +15,11 @@
 #      reopened (WATCH_FLEET_HEAL=1) with an assertion recording why.
 #   D. heal does NOT fire wrongly: live process, fresh claim, and a
 #      non-in_progress row are all left alone, with no assertion written.
-#   K. T804: data-rich frame fills the screen — 33 rows shown, frame 38.
-#   N. T804: exact fill at 24/40/60 x two section mixes; (more) accounting.
+#   K. T823: data-rich frame fills the screen — 35 rows shown, frame 38.
+#   N. T823: exact fill at 24/40/60 x two section mixes; no (more) line.
+#   O. T823: rate column = output tokens per wall second; UNKNOWN, never 0,
+#      never a reading older than the current claim.
+#   P. T823: holder column comes from the store's `agent`, not the brief text.
 #   L. T799/T804: footer is the terminal's last line — one blank above it,
 #      nothing below (cleanup's exit newline only); cursor hidden, restored on q.
 #   M. T799: cursor restored on the ^C trap path (exit 130).
@@ -557,11 +560,15 @@ rm -rf "$WORKJ"
 # footer's leading blank (the operator's "missing blank between OPEN rows and
 # footer") and fixed the (more)-reserve/print mismatch, so one line moved from
 # a data row to the separator: 16+17=33 rows (38-line one-shot frame;
-# interactive = 40 exactly, footer on the last line, blank above it). Red
-# against the pre-T804 live file: 17+17=34 rows, 39 lines. One-shot piped
+# interactive = 40 exactly, footer on the last line, blank above it). T823
+# deletes the "(more: N)" line AND its reserve (operator: "I do not think we
+# need the '(more: 187)' line, which would give us a row or two more to fill
+# with task data rows"), so the two rows the reserve spent on "(more)" become
+# data rows: 17+18=35 shown, the SAME 38-line one-shot frame. Red against the
+# pre-T823 live file: 16+17=33 rows plus two "(more)" lines. One-shot piped
 # output must also stay escape-free — the T799 hide/restore are tty-guarded so
 # a pipe stays clean for the line-anchored arms above.
-echo "  K. data-rich frame fills the screen — 33 rows shown, frame 38 (live file)"
+echo "  K. data-rich frame fills the screen — 35 rows shown, frame 38 (live file)"
 WORKK=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
 mkdir -p "$WORKK/bin" "$WORKK/untracked" "$WORKK/docs/infra/managent"
 ln -s "$MG" "$WORKK/bin/managent"
@@ -589,8 +596,9 @@ k_fail=0
 K_DONE=$(printf '%s\n' "$FRAME_K" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
 K_OPEN=$(printf '%s\n' "$FRAME_K" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
 K_LINES=$(printf '%s\n' "$FRAME_K" | wc -l | tr -d ' ')
-[ "$K_DONE" = "16" ] && [ "$K_OPEN" = "17" ] || {
-    echo "    FAIL: want 16 DONE + 17 OPEN rows shown (T804 pin, 33 total), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
+[ "$K_DONE" = "17" ] && [ "$K_OPEN" = "18" ] || {
+    echo "    FAIL: want 17 DONE + 18 OPEN rows shown (T823 pin, 35 total), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
+printf '%s\n' "$FRAME_K" | grep -q '(more' && { echo "    FAIL: '(more' line still printed (T823 removed it)"; k_fail=1; }
 [ "$K_LINES" = "38" ] || {
     echo "    FAIL: data-rich one-shot frame should be 38 lines (interactive +blank+footer = 40 exactly), got $K_LINES"; k_fail=1; }
 [ "$K_LINES" -le "40" ] || { echo "    FAIL: frame $K_LINES lines overflows the 40-row terminal"; k_fail=1; }
@@ -612,12 +620,14 @@ rm -rf "$WORKK"
 # (the blank the operator saw at the bottom). One-shot frames omit the
 # interactive-only blank-above-footer + footer, so exact fill is FLEET_LINES
 # - 2 lines there (interactive = FLEET_LINES exactly). Asserted at three
-# heights x two section mixes, plus the "(more)" accounting: a truncated
-# section prints exactly one "(more)", a section given enough slots prints
-# none, and neither case changes the total line count. Red against the
-# pre-T804 live file: one-shot frames a line short at 24/40 (39 of 40 at 40),
-# 14 short at 60 where the MAX_ROWS=20 cap bit.
-echo "  N. exact fill at 24/40/60 x two mixes; (more) accounting (live file)"
+# heights x two section mixes. T823 deletes the "(more: N)" line and its
+# reserve together (T804 had already found the two disagreeing), so the
+# accounting sub-cases invert: NO frame prints a "(more)" line at any height
+# or mix, and the rows the reserve used to spend on it are data rows — a
+# truncated section and an exactly-fitting section now render the same shape
+# (18 DONE + 17 OPEN at height 40, either way). Red against the pre-T823 live
+# file: 2 "(more)" lines at every height and mix, 17 DONE rows where 18 fit.
+echo "  N. exact fill at 24/40/60 x two mixes; no (more) line (live file)"
 WORKN=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
 mkdir -p "$WORKN/bin" "$WORKN/untracked" "$WORKN/docs/infra/managent" \
          "$WORKN/untracked/bakeoff/fake/fresh-lane"
@@ -662,7 +672,7 @@ for H in 24 40 60; do
     NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
     NM=$(printf '%s\n' "$FR" | grep -c 'more:')
     [ "$NL" = "$((H - 2))" ] || { echo "    FAIL: all-five mix at height $H: want $((H-2)) lines (exact fill minus the interactive-only blank+footer), got $NL"; n_fail=1; }
-    [ "$NM" = "2" ] || { echo "    FAIL: all-five mix at height $H: want exactly 2 (more) lines (DONE+OPEN truncated), got $NM"; n_fail=1; }
+    [ "$NM" = "0" ] || { echo "    FAIL: all-five mix at height $H: the (more) line is gone (T823), want 0, got $NM"; n_fail=1; }
 done
 kill "$PN1" 2>/dev/null; wait "$PN1" 2>/dev/null
 rm -rf "$WORKN/untracked/bakeoff"
@@ -685,13 +695,12 @@ for H in 24 40 60; do
     NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
     NM=$(printf '%s\n' "$FR" | grep -c 'more:')
     [ "$NL" = "$((H - 2))" ] || { echo "    FAIL: DONE+OPEN mix at height $H: want $((H-2)) lines (exact fill minus blank+footer), got $NL"; n_fail=1; }
-    [ "$NM" = "2" ] || { echo "    FAIL: DONE+OPEN mix at height $H: want 2 (more) lines, got $NM"; n_fail=1; }
+    [ "$NM" = "0" ] || { echo "    FAIL: DONE+OPEN mix at height $H: the (more) line is gone (T823), want 0, got $NM"; n_fail=1; }
 done
-# (more) accounting at height 40: a section given fewer slots than its rows
-# prints exactly one "(more)"; a section given enough slots prints none —
-# and the total line count is the same either way: each "(more)" replaces
-# one data row, never adds one (18 DONE rows shown vs 17 rows + "(more: 23)"
-# is the same 18 lines; both frames = FLEET_LINES - 2).
+# The row given back to data (T823), at height 40: a section with more rows
+# than slots and a section with exactly enough slots render the SAME shape —
+# 18 DONE + 17 OPEN, no "(more)" line in either. Pre-T823 the truncated case
+# spent one of those 18 lines on "(more: 23)" and showed 17 rows.
 python3 - "$STORE_N" "$WORKN" <<'PYN'
 import json,sys
 store,wk=sys.argv[1],sys.argv[2]
@@ -706,9 +715,12 @@ json.dump(d,open(store,"w"))
 PYN
 FR=$(frame_n 40)
 NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
-NM=$(printf '%s\n' "$FR" | grep -c 'more:')
+NM=$(printf '%s\n' "$FR" | grep -c 'more')
+ND=$(printf '%s\n' "$FR" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
+NO=$(printf '%s\n' "$FR" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
 [ "$NL" = "38" ] || { echo "    FAIL: 40 DONE + 17 OPEN at height 40: want 38 lines, got $NL"; n_fail=1; }
-[ "$NM" = "1" ] || { echo "    FAIL: 40 DONE + 17 OPEN: want exactly 1 (more) (only DONE truncated), got $NM"; n_fail=1; }
+[ "$NM" = "0" ] || { echo "    FAIL: 40 DONE + 17 OPEN: no '(more' text anywhere (T823), got $NM line(s)"; n_fail=1; }
+[ "$ND" = "18" ] && [ "$NO" = "17" ] || { echo "    FAIL: 40 DONE + 17 OPEN: the freed (more) row must become a DONE data row — want 18+17, got ${ND}+${NO}"; n_fail=1; }
 python3 - "$STORE_N" "$WORKN" <<'PYN'
 import json,sys
 store,wk=sys.argv[1],sys.argv[2]
@@ -723,11 +735,192 @@ json.dump(d,open(store,"w"))
 PYN
 FR=$(frame_n 40)
 NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
-NM=$(printf '%s\n' "$FR" | grep -c 'more:')
-[ "$NL" = "38" ] || { echo "    FAIL: 18 DONE + 17 OPEN at height 40: want 38 lines (18 rows + 17 rows fill the same as 17 + (more) + 17), got $NL"; n_fail=1; }
-[ "$NM" = "0" ] || { echo "    FAIL: 18 DONE + 17 OPEN: want 0 (more) lines (both sections given enough slots), got $NM"; n_fail=1; }
+NM=$(printf '%s\n' "$FR" | grep -c 'more')
+ND=$(printf '%s\n' "$FR" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
+NO=$(printf '%s\n' "$FR" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
+[ "$NL" = "38" ] || { echo "    FAIL: 18 DONE + 17 OPEN at height 40: want 38 lines, got $NL"; n_fail=1; }
+[ "$NM" = "0" ] || { echo "    FAIL: 18 DONE + 17 OPEN: no '(more' text anywhere, got $NM line(s)"; n_fail=1; }
+[ "$ND" = "18" ] && [ "$NO" = "17" ] || { echo "    FAIL: 18 DONE + 17 OPEN: want 18+17 rows shown, got ${ND}+${NO}"; n_fail=1; }
 if [ "$n_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKN"
+
+# ── Arm O: T823 — rate column (output tokens per wall second) ───────────
+# The fifth PROGRESS column was `ps -o time= | awk -F: '{print $NF}'`, which
+# keeps only the LAST colon-separated field of cumulative CPU time: a real
+# 1:20.93 rendered as 20.93, so 80.9 s displayed as 20.9 and two rows were not
+# comparable at all. And a correct CPU number would still be the wrong metric —
+# these are API-driven workers whose measured CPU utilisation is 6.9% (T817),
+# 9.7% (T801), 8.1% (T808): local CPU tracks how a model chose to search, not
+# how much work it did. T823 replaces it with output tokens per wall second,
+# the rate we actually have (untracked/tokens/tokens.jsonl `tokens_out`, over
+# `ps` elapsed). Two halves:
+#   unit  — rate_of(tokens_out, elapsed) is exposed under the WATCH_FLEET_SOURCE
+#           guard (as nap_for_age is) so the arithmetic is pinned exactly, on
+#           the three live readings the operator measured.
+#   frame — a task WITH a reading renders a labelled rate; a task whose meter
+#           wrote no usage renders UNKNOWN (never 0); a task whose only reading
+#           predates its current claim renders UNKNOWN (never a stale value —
+#           that reading belongs to a previous run of the same id).
+# Red against the pre-T823 live file: rate_of undefined, and the column shows
+# a bare CPU number with no label and no UNKNOWN.
+echo "  O. rate column = output tokens/wall second; UNKNOWN never 0, never stale (live file)"
+o_fail=0
+if [ ! -f "$LIVE" ]; then
+    echo "    FAIL: live file not found at $LIVE"; o_fail=1
+else
+    WATCH_FLEET_SOURCE=1 . "$LIVE" 2>/dev/null
+    ocheck() {  # $1=expected  $2=actual  $3=label
+        if [ "$1" != "$2" ]; then echo "    FAIL $3: expected '$1' got '$2'"; o_fail=1; fi
+    }
+    if ! command -v rate_of >/dev/null 2>&1; then
+        echo "    FAIL rate_of: undefined (live file not patched)"; o_fail=1
+    else
+        # the three readings measured 2026-08-23 (tokens_out / claimed->done seconds)
+        ocheck "103.6/s" "$(rate_of 127683 1232)" "rate_of dsflash T817 127683/1232"
+        ocheck "72.8/s"  "$(rate_of 157457 2162)" "rate_of dspro   T801 157457/2162"
+        ocheck "119.7/s" "$(rate_of 407129 3400)" "rate_of dsflash T808 407129/3400"
+        # missing reading -> UNKNOWN, and specifically NOT 0
+        ocheck "UNKNOWN" "$(rate_of '' 100)"      "rate_of '' 100 (no reading)"
+        ocheck "UNKNOWN" "$(rate_of 12000 0)"     "rate_of 12000 0 (no elapsed yet)"
+        ocheck "UNKNOWN" "$(rate_of 12000 '')"    "rate_of 12000 '' (no elapsed)"
+        case "$(rate_of '' 100)" in *0*) echo "    FAIL rate_of: a missing reading must never render a 0"; o_fail=1;; esac
+        # a number is never truncated to fit the 8-char column (the defect this
+        # column replaced was exactly a silently-dropped digit group): one
+        # decimal below 1000/s, none at or above, so any plausible rate fits.
+        ocheck "999.0/s" "$(rate_of 999 1)"       "rate_of 999 1 (below 1000: one decimal)"
+        ocheck "1000/s"  "$(rate_of 1000 1)"      "rate_of 1000 1 (at 1000: no decimal)"
+        ocheck "12000/s" "$(rate_of 12000 1)"     "rate_of 12000 1 (outlier still fits 8)"
+        for probe in "$(rate_of 999 1)" "$(rate_of 1000 1)" "$(rate_of 12000 1)" "$(rate_of 127683 1232)" UNKNOWN; do
+            [ "${#probe}" -le 8 ] || { echo "    FAIL rate_of: '$probe' is ${#probe} chars, overflows the 8-char column"; o_fail=1; }
+        done
+    fi
+fi
+WORKO=$(mktemp -d /private/tmp/weizigo/wf-rate-XXXXXX)
+mkdir -p "$WORKO/bin" "$WORKO/untracked/tokens" "$WORKO/docs/infra/managent"
+ln -s "$MG" "$WORKO/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKO/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKO" init -q
+git -C "$WORKO" config user.email t823@test
+git -C "$WORKO" config user.name T823
+STORE_O="$WORKO/docs/infra/managent/tasks.json"
+LIVE_COPY_O="$WORKO/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY_O" 2>/dev/null
+recO() {  # $1=id $2=claimed
+    printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1" "$2"
+}
+for id in T950 T951 T952; do
+    printf '<!--managent -->\n# %s — rate fixture\n\n**Landmark:** L1 (the dashboard tells the truth)\n' "$id" > "$WORKO/untracked/$id-bundle.md"
+done
+printf '{\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
+    "$(recO T950 2026-08-23T10:00:00Z)" "$(recO T951 2026-08-23T10:00:00Z)" "$(recO T952 2026-08-23T10:00:00Z)" > "$STORE_O"
+# T950: a reading inside the current claim -> a rate.
+# T951: the meter wrote but carried no usage (tokens_out null) -> UNKNOWN.
+# T952: the only reading predates the claim (previous run of the same id) -> UNKNOWN.
+cat > "$WORKO/untracked/tokens/tokens.jsonl" <<'JSONL'
+{"task":"T950","tokens_out":300,"tokens_in":50,"ts":"2026-08-23T10:20:00Z","model":"deepseek-v4-flash","rc":0}
+{"task":"T951","tokens_out":null,"tokens_in":null,"ts":"2026-08-23T10:20:00Z","missing_reason":"no structured usage in process output (pi/ollama lane)","rc":0}
+{"task":"T952","tokens_out":99999,"tokens_in":50,"ts":"2026-08-22T09:00:00Z","model":"deepseek-v4-flash","rc":0}
+JSONL
+for id in T950 T951 T952; do
+    bash -c "cd '$WORKO' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/$id-bundle.md' sleep 90" &
+    eval "PO_$id=\$!"
+done
+sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+FRAME_O=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_O" FLEET_COLS=200 sh "$LIVE_COPY_O" </dev/null 2>/dev/null)
+kill $PO_T950 $PO_T951 $PO_T952 2>/dev/null; wait $PO_T950 $PO_T951 $PO_T952 2>/dev/null
+orate() {  # $1 = task id -> the rate field of its PROGRESS row
+    # by FIELD, not by column slice: a slice would hide an overflowing value,
+    # which is the class of defect this column replaced. Alignment (the rate
+    # starts at column 30) is asserted separately below.
+    printf '%s\n' "$FRAME_O" | awk -v t="  $1 " 'index($0,t)==1 {print $5; exit}'
+}
+for id in T950 T951 T952; do
+    printf '%s\n' "$FRAME_O" | grep -q "^  $id " || { echo "    FAIL: $id missing from PROGRESS"; o_fail=1; }
+done
+# T950 has a reading: a labelled rate (ends in /s), not blank, not UNKNOWN, not 0
+case "$(orate T950)" in
+    UNKNOWN|'') echo "    FAIL: T950 has a token reading — rate column should show a rate, got '$(orate T950)'"; o_fail=1;;
+    *[0-9]/s)   ;;
+    *)          echo "    FAIL: T950 rate column must be a labelled rate ('NNN.N/s'), got '$(orate T950)'"; o_fail=1;;
+esac
+[ "$(orate T951)" = "UNKNOWN" ] || { echo "    FAIL: T951 (meter wrote no usage) must render UNKNOWN, got '$(orate T951)'"; o_fail=1; }
+[ "$(orate T952)" = "UNKNOWN" ] || { echo "    FAIL: T952 (reading predates the claim) must render UNKNOWN, never the stale 99999 rate, got '$(orate T952)'"; o_fail=1; }
+# the stale reading must not leak anywhere in the frame
+printf '%s\n' "$FRAME_O" | grep -q '99999' && { echo "    FAIL: the pre-claim reading (99999) leaked into the frame"; o_fail=1; }
+# alignment: the rate starts at column 30, where the CPU column used to
+for id in T950 T951 T952; do
+    row=$(printf '%s\n' "$FRAME_O" | grep "^  $id " | head -1)
+    [ "$(printf '%s' "$row" | cut -c29-30 | sed 's/^ //')" = "$(printf '%s' "$(orate "$id")" | cut -c1)" ] \
+        || { echo "    FAIL: $id rate column does not start at col 30: '$row'"; o_fail=1; }
+done
+# the elapsed column (T591 alignment, cols 23-28) still holds a duration, and
+# no PROGRESS row carries a colon-duration
+PROG_O=$(printf '%s\n' "$FRAME_O" | sed -n '/^PROGRESS/,$p')
+printf '%s' "$(printf '%s\n' "$PROG_O" | grep '^  T950 ' | head -1)" | cut -c23-28 | grep -q '[0-9]' \
+    || { echo "    FAIL: elapsed column (23-28) lost its duration"; o_fail=1; }
+printf '%s\n' "$PROG_O" | grep '^  T95' | grep -q ':' && { echo "    FAIL: PROGRESS row contains a colon-duration"; o_fail=1; }
+if [ "$o_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKO"
+
+# ── Arm P: T823 — the holder comes from the store, not the brief ─────────
+# T771 renders as "orchestration oversight seat (fable)" while its `agent`
+# field says claude-opus-5: the seat was handed over and the brief was written
+# for the previous holder. desc() derives its text from the brief body, which
+# is stale by design — a display asserting something the store contradicts.
+# T823 adds a holder column sourced from the task's `agent` field (short-named
+# through the ONE registry table, T739) and keeps the brief-derived text for
+# WHAT the task is. The column goes AFTER the times column so the T591
+# alignment contract (every row type carries HH:MM at cols 23-28, arm H) is
+# untouched. Fixtures mirror T771: a brief naming fable, a store saying
+# claude-opus-5. Red against the pre-T823 live file: no holder anywhere, the
+# only who-text in the row is the brief's "(fable)".
+echo "  P. holder column comes from the store's agent, not the brief text (live file)"
+WORKP=$(mktemp -d /private/tmp/weizigo/wf-holder-XXXXXX)
+mkdir -p "$WORKP/bin" "$WORKP/untracked" "$WORKP/docs/infra/managent"
+ln -s "$MG" "$WORKP/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKP/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKP" init -q
+git -C "$WORKP" config user.email t823@test
+git -C "$WORKP" config user.name T823
+STORE_P="$WORKP/docs/infra/managent/tasks.json"
+CONCSTATE_P="$WORKP/concerns.tsv"
+LIVE_COPY_P="$WORKP/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY_P" 2>/dev/null
+# T940: the T771 shape — brief says fable, store says claude-opus-5.
+# T941: no agent in the store -> the holder must not be invented.
+printf '<!--managent -->\n# T940 — orchestration oversight seat (fable)\n\nBody.\n' > "$WORKP/untracked/T940-oversight-seat.md"
+printf '<!--managent -->\n# T941 — holderless row\n\nBody.\n' > "$WORKP/untracked/T941-bundle.md"
+recP() {  # $1=id $2=agent (JSON value: quoted label or null)
+    printf '"%s":{"status":"in_progress","agent":%s,"model":%s,"bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-23T12:58:30Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$2" "$2" "$1"
+}
+printf '{\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
+    "$(recP T940 '"claude-opus-5"')" "$(recP T941 null)" > "$STORE_P"
+# both rows are claimed with NO live process -> CONCERNS; pin first-seen so the
+# times column is deterministic (as arm H does)
+EPOCH_P=$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-01-01 00:00:00" +%s 2>/dev/null)
+[ -z "$EPOCH_P" ] && EPOCH_P=$(python3 -c "import time;print(int(time.mktime(time.strptime('2026-01-01 00:00:00','%Y-%m-%d %H:%M:%S'))))")
+printf 'T940\t%s\nT941\t%s\n' "$EPOCH_P" "$EPOCH_P" > "$CONCSTATE_P"
+FRAME_P=$(env -u WATCH_FLEET_SOURCE FLEET_CONC_STATE="$CONCSTATE_P" MANAGENT_STORE="$STORE_P" \
+    FLEET_COLS=200 sh "$LIVE_COPY_P" </dev/null 2>/dev/null)
+p_fail=0
+CONC_P=$(printf '%s\n' "$FRAME_P" | sed -n '/^CONCERNS/,$p')
+prow940=$(printf '%s\n' "$CONC_P" | grep '^  T940 ' | head -1)
+prow941=$(printf '%s\n' "$CONC_P" | grep '^  T941 ' | head -1)
+[ -n "$prow940" ] || { echo "    FAIL: T940 missing from CONCERNS"; p_fail=1; }
+[ -n "$prow941" ] || { echo "    FAIL: T941 missing from CONCERNS"; p_fail=1; }
+hold940=$(printf '%s' "$prow940" | cut -c30-37 | tr -d ' ')
+hold941=$(printf '%s' "$prow941" | cut -c30-37 | tr -d ' ')
+[ "$hold940" = "opus" ] || { echo "    FAIL: T940 holder must be the store's agent short-named ('opus'), got '$hold940' in: '$prow940'"; p_fail=1; }
+[ "$hold941" = "-" ]    || { echo "    FAIL: T941 has no agent — holder must render '-', not an invented one, got '$hold941'"; p_fail=1; }
+# the brief-derived description survives (what the task is), and the stale
+# who-text is no longer the only who on the row
+printf '%s' "$prow940" | grep -q 'oversight seat (fable)' \
+    || { echo "    FAIL: brief-derived description lost from the T940 row: '$prow940'"; p_fail=1; }
+# T591 alignment: the times column is still at 23-28 (the holder went after it)
+[ "$(printf '%s' "$prow940" | cut -c23-28)" = "00:00 " ] \
+    || { echo "    FAIL: times column moved — cols 23-28 of the T940 row are '$(printf '%s' "$prow940" | cut -c23-28)', want '00:00 '"; p_fail=1; }
+if [ "$p_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKP"
 
 # ── Arm L: T799/T804 — footer is last line; one blank above; cursor hide/restore ──
 # Operator ruling 2026-08-23: "Missing blank between OPEN rows and footer. But

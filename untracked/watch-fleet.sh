@@ -8,12 +8,18 @@
 # Layout: PROGRESS, CONCERNS (current) and RECENT (resolved/killed) always show every row.
 # DONE and OPEN show at least MIN_ROWS each (when they have that much data), expand into
 # whatever height is left, and never exceed MAX_ROWS. T738: no banner header, and a
-# section with zero rows prints NOTHING — no heading, no "(none)".
+# section with zero rows prints NOTHING — no heading, no "(none)". T823: no "(more: N)"
+# line either — the operator does not want it and the row is worth more as task data, so
+# a truncated section simply shows fewer rows (its reserve is gone with its output).
+# Columns (T823): PROGRESS is task, landmark, model-from-argv, elapsed, RATE (output
+# tokens per wall second — not CPU); CONCERNS is task, landmark, label, first-seen,
+# HOLDER (the store's `agent`, never the brief's text), description.
 # MAX_ROWS raised 20 -> 200 (T804): with exact fill the 50/50 split already bounds
 # each flexible section at ~ROWS/2, so the cap only guards a pathological store
 # (thousands of DONE rows on a giant terminal) — and a 20 cap left terminals
 # taller than ~45 rows unfilled, the same blank-at-the-bottom family this file
-# keeps fixing (T739 spare, T799 blank, T804 reserve/print mismatch).
+# keeps fixing (T739 spare, T799 blank, T804 reserve/print mismatch, T823
+# "(more)" reserve deleted with its line).
 MAX_ROWS=200
 MIN_ROWS=4
 # Refresh escalates: every 10 s for the first minute, every minute for the first hour, hourly after.
@@ -30,6 +36,25 @@ nap_for_age() {  # $1 = seconds since schedule start -> 10 | 60 | 3600
     else                        echo 3600; fi; }
 reset_schedule() {  # restart the escalation: START := now
     START=$(date +%s); }
+# Output tokens per wall second (T823) — the fifth PROGRESS column. It replaced
+# `ps -o time= | awk -F: '{print $NF}'`, which kept only the LAST colon-separated
+# field of cumulative CPU time: a real 1:20.93 rendered as 20.93, so 80.9 s
+# displayed as 20.9 and two rows were not comparable. A correct CPU number would
+# still be the wrong metric — these are API-driven workers whose measured CPU
+# utilisation is 6.9% (T817), 9.7% (T801), 8.1% (T808), so ~92% of elapsed is
+# spent waiting on the provider and local CPU tracks how a model chose to search,
+# not how much work it did. Output tokens per wall second is the rate we do have.
+# Missing reading or no elapsed yet -> UNKNOWN: never 0 (a 0 asserts the worker
+# produced nothing) and never a stale value (see the meter join below).
+# The "/s" suffix is the label: this column is a RATE, and nobody can read
+# 103.6/s as CPU seconds. One decimal below 1000/s (real rates are 60-150),
+# none at or above, so any plausible value fits the 8-char slot — a number is
+# never truncated to fit a column, which is the exact defect this replaced.
+rate_of() {  # $1 = tokens_out ('' = no reading)  $2 = elapsed wall seconds -> "N.N/s" | UNKNOWN
+    case "${1:-x}" in ''|*[!0-9]*) echo UNKNOWN; return ;; esac
+    case "${2:-x}" in ''|*[!0-9]*) echo UNKNOWN; return ;; esac
+    [ "$2" -gt 0 ] || { echo UNKNOWN; return; }
+    awk -v n="$1" -v s="$2" 'BEGIN{r=n/s; printf (r<1000 ? "%.1f/s" : "%.0f/s"), r}'; }
 if [ "${WATCH_FLEET_SOURCE:-0}" = "1" ]; then
     return 2>/dev/null || exit 0
 fi
@@ -77,14 +102,27 @@ desc() { d=$(awk -F'\t' -v t="$1" '$1==t{print $2}' untracked/task-desc.tsv 2>/d
          [ -z "$d" ] && [ -n "$b" ] && d=$(basename "$b" .md | sed "s/^$1-//;s/-/ /g")
          [ -z "$d" ] && d="(no brief on disk)"
          printf '%s' "$d" | tr -s ' \t' ' ' | sed 's/ *$//'; }
+# The HOLDER is the store's `agent`, never the brief's text (T823): T771
+# rendered as "orchestration oversight seat (fable)" while its agent field said
+# claude-opus-5 — the seat was handed over and the brief was written for the
+# previous holder. desc() is stale by design (it describes WHAT the task is);
+# the WHO can only come from the store. Rendered through mdl() so it is a short
+# name from the one registry table; no agent -> "-", never an invented one.
+holder() { a=$(awk -F'\t' -v t="$1" '$1==t{print $2; exit}' "$T.agent" 2>/dev/null)
+           [ -z "$a" ] && { printf '%s' '-'; return; }
+           mdl "$a"; }
 lm()   { grep -ho 'L[0-9]' untracked/"$1"-*.md 2>/dev/null | head -1; }
 ctag() { awk -F'\t' -v k="$1" '$1==k{print $2; exit}' untracked/concern-tags.tsv 2>/dev/null; }
 fit()  { cut -c1-"$COLS"; }                      # every row trimmed to the terminal width
-show() { # $1 file  $2 slots — print up to $2 rows, then "(more)" if any remain
+show() { # $1 file  $2 slots — print up to $2 rows; T823: no "(more: N)" trailer
+    # The operator's ruling: "(more: 187)" cost a row and told him nothing he
+    # wanted. The line AND its reserve are gone together — T804 had already
+    # found the reservation and the print condition disagreeing, so deleting
+    # one without the other is how that family of blank-at-the-bottom bugs
+    # recurs. A truncated section now just shows fewer rows.
     tot=$(grep -c . "$1" 2>/dev/null); [ -z "$tot" ] && tot=0
     [ "$tot" = 0 ] && { printf ' (none)\n'; return; }
-    printf '\n'; head -n "$2" "$1"
-    [ "$tot" -gt "$2" ] && printf '  (more: %s)\n' "$((tot - $2))"; }
+    printf '\n'; head -n "$2" "$1"; }
 
 ONESHOT=0; [ -t 1 ] || ONESHOT=1        # piped or redirected: draw once, exit, hand the shell back
 [ -t 1 ] && printf '\033[?25l'          # T799: hide the cursor while the watcher runs; cleanup restores it (the tput civis sequence)
@@ -99,10 +137,48 @@ import json,sys
 auth={r['id']:r for r in json.load(open(sys.argv[1])) if isinstance(r,dict) and 'id' in r}
 try: raw=json.load(open(sys.argv[2]))
 except Exception: raw={}
-for k,r in auth.items(): r['done']=(raw.get(k) or {}).get('done','')
+# `managent status --json` carries neither `agent` nor `claimed`; both come
+# from the store (T823 needs agent for the holder column and claimed to date
+# the meter's readings).
+for k,r in auth.items():
+    src=raw.get(k) or {}
+    r['done']=src.get('done','')
+    r['agent']=src.get('agent') or ''
+    r['claimed']=src.get('claimed') or ''
 json.dump(auth,open(1,'w'))
 PYX
     bin/managent liveness 2>/dev/null > "$T.liveness" || : > "$T.liveness"
+    # Meter join (T823): task -> its latest output-token reading, and task ->
+    # its holder. A reading written BEFORE the task's current claim belongs to
+    # a previous run of the same id, so it is dropped rather than divided by
+    # this run's elapsed — that is the "never a stale value" half of the rule;
+    # the "never 0" half is rate_of's. A task with no surviving reading simply
+    # has no row here and renders UNKNOWN.
+    python3 - "$T.json" untracked/tokens/tokens.jsonl "$T.agent" > "$T.tok" <<'PYT'
+import json,sys
+try: store=json.load(open(sys.argv[1]))
+except Exception: store={}
+best={}
+try: fh=open(sys.argv[2])
+except Exception: fh=[]
+for line in fh:
+    line=line.strip()
+    if not line: continue
+    try: r=json.loads(line)
+    except Exception: continue
+    t=r.get('task'); n=r.get('tokens_out'); ts=r.get('ts') or ''
+    if not t or n is None: continue
+    claimed=(store.get(t) or {}).get('claimed') or ''
+    if claimed and ts and ts < claimed: continue      # a previous run of this id
+    prev=best.get(t)
+    if prev is None or ts >= prev[0]: best[t]=(ts,n)
+with open(sys.argv[3],'w') as f:
+    for t,v in store.items():
+        a=(v or {}).get('agent') or ''
+        if a: f.write('%s\t%s\n' % (t,a))
+for t,(ts,n) in best.items():
+    print('%s\t%s' % (t,n))
+PYT
 
     : > "$T.prog"; : > "$T.conc"; : > "$T.recent"; : > "$T.done"; : > "$T.open"
 
@@ -135,9 +211,10 @@ PYX
              else if(NF==3) print $1*3600+$2*60+$3;
              else if(NF==2) print $1*60+$2; else print 0}')
         case "$esec" in ''|*[!0-9]*) esec=0 ;; esac
-        printf '%010d\t  %-5s %-3s %-8s  %-6s %-6s %s\n' "$esec" "$t" "$(lm "$t")" \
+        printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
-            "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" "$(ps -o time= -p $p|tr -d ' '|awk -F: '{print $NF}')" \
+            "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
+            "$(rate_of "$(awk -F'\t' -v k="$t" '$1==k{print $2; exit}' "$T.tok" 2>/dev/null)" "$esec")" \
             "$(desc "$t")" >> "$T.prog.raw"
     done
     rm -f "$T.prog.ids"
@@ -182,7 +259,7 @@ print('\n'.join(out))
 PY
     while IFS=$(printf '\t') read -r t lbl tm; do
         [ -z "$t" ] && continue
-        printf '  %-5s %-3s %-8s  %-6s %s\n' "$t" "$(lm "$t")" "$lbl" "$tm" "$(desc "$t")" | fit >> "$T.conc"
+        printf '  %-5s %-3s %-8s  %-6s %-8s %s\n' "$t" "$(lm "$t")" "$lbl" "$tm" "$(holder "$t")" "$(desc "$t")" | fit >> "$T.conc"
     done < "$T.conc.rows"
     for f in untracked/bakeoff/*/*/out.md; do
         [ -f "$f" ] && [ ! -s "$f" ] || continue
@@ -258,57 +335,41 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
     for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
-    # T739/T799/T804: reserve exactly what the frame prints — k headings +
-    # (k-1) separators, 1 blank above the footer (T804, restored: the footer
-    # is a separator from the data), the 1-line footer, and one "(more)" per
-    # flexible section the slot split ACTUALLY truncates. T799 dropped the
-    # footer's leading blank and trailing newline, so T739's "+1 spare" is
-    # gone: it existed to park the trailing-newline cursor row, which no
-    # longer exists. The footer is now the terminal's last line and needs no
-    # spare to stay on screen (arm K pins 33 rows / 38 one-shot lines vs
-    # T799's 34/39 and T739's 32/37).
-    # T804 fixes the reserve/print mismatch: the old reserve charged a
-    # "(more)" row when nd/no > MIN_ROWS, but show() prints "(more)" on
-    # tot > slots — a section given enough slots to show every row was
-    # charged a line it never printed, and the frame came up a line short
-    # (the blank the operator saw at the bottom). The split depends on the
-    # reserve and the reserve on the split, so resolve it explicitly: split
-    # with no "(more)" reserved, then add one "(more)" row per section the
-    # split actually truncates, and re-settle until stable. The loop cannot
-    # diverge: each added "(more)" costs one slot, so truncation can only
-    # spread, never shrink — at most 2 passes (DONE, OPEN). Every slot is
-    # also handed to a section that can use it (a loop, not one pass per
-    # section: a single pass can leave the first section over-allocated
-    # again), and each section is floored at MIN_ROWS but never above what
-    # it holds. Invariant, pinned by arm N at three heights and two section
-    # mixes: printed lines == ROWS exactly for data-rich frames.
+    # T739/T799/T804/T823: reserve exactly what the frame prints — k headings
+    # + (k-1) separators, 1 blank above the footer (T804, restored: the footer
+    # is a separator from the data) and the 1-line footer. Nothing else: T823
+    # deleted the "(more: N)" line, so there is no "(more)" row to reserve
+    # either. T799 dropped the footer's leading blank and trailing newline, so
+    # T739's "+1 spare" is gone: it existed to park the trailing-newline
+    # cursor row, which no longer exists. The footer is the terminal's last
+    # line and needs no spare to stay on screen (arm K pins 35 rows / 38
+    # one-shot lines vs T804's 33/38, T799's 34/39, T739's 32/37).
+    # Every version of this bug has been the same bug: a reserve constant that
+    # no longer matched what the frame prints. T804's instance was a reserve
+    # that charged a "(more)" row when nd/no > MIN_ROWS while show() printed
+    # it on tot > slots, which needed a settle loop to resolve (the split
+    # depended on the reserve and the reserve on the split). With the line
+    # gone that circularity is gone with it: the reserve is a constant, the
+    # split is one pass, and each section is floored at MIN_ROWS but never
+    # given more than it holds. Invariant, pinned by arm N at three heights
+    # and two section mixes: printed lines == ROWS exactly for data-rich
+    # frames.
     k=$(( (np>0) + (nc>0) + (nr>0) + (nd>0) + (no>0) ))
     base=$(( 2*k - 1 + 2 ))                 # headings+seps, blank above footer, footer
     capd=$nd; capo=$no
     [ "$capd" -gt "$MAX_ROWS" ] && capd=$MAX_ROWS
     [ "$capo" -gt "$MAX_ROWS" ] && capo=$MAX_ROWS
-    more=0
-    pass=0
-    while :; do
-        avail=$(( ROWS - base - more - np - nc - nr ))
-        [ "$avail" -lt 0 ] && avail=0
-        ds=0; os=0
-        [ "$capd" -ge "$MIN_ROWS" ] && ds=$MIN_ROWS   # floors: MIN_ROWS each,
-        [ "$capo" -ge "$MIN_ROWS" ] && os=$MIN_ROWS   # never more than the section holds
-        rem=$(( avail - ds - os )); [ "$rem" -lt 0 ] && rem=0
-        ds=$(( ds + rem / 2 )); os=$(( os + rem - rem / 2 ))
-        [ "$ds" -gt "$capd" ] && { os=$(( os + ds - capd )); ds=$capd; }
-        [ "$os" -gt "$capo" ] && { ds=$(( ds + os - capo )); os=$capo; }
-        [ "$ds" -gt "$capd" ] && ds=$capd   # both over: excess is unprintable data, let it go
-        [ "$os" -gt "$capo" ] && os=$capo
-        newmore=0
-        [ "$nd" -gt "$ds" ] && newmore=$(( newmore + 1 ))
-        [ "$no" -gt "$os" ] && newmore=$(( newmore + 1 ))
-        [ "$newmore" = "$more" ] && break
-        more=$newmore
-        pass=$(( pass + 1 ))
-        [ "$pass" -gt 4 ] && break
-    done
+    avail=$(( ROWS - base - np - nc - nr ))
+    [ "$avail" -lt 0 ] && avail=0
+    ds=0; os=0
+    [ "$capd" -ge "$MIN_ROWS" ] && ds=$MIN_ROWS   # floors: MIN_ROWS each,
+    [ "$capo" -ge "$MIN_ROWS" ] && os=$MIN_ROWS   # never more than the section holds
+    rem=$(( avail - ds - os )); [ "$rem" -lt 0 ] && rem=0
+    ds=$(( ds + rem / 2 )); os=$(( os + rem - rem / 2 ))
+    [ "$ds" -gt "$capd" ] && { os=$(( os + ds - capd )); ds=$capd; }
+    [ "$os" -gt "$capo" ] && { ds=$(( ds + os - capo )); os=$capo; }
+    [ "$ds" -gt "$capd" ] && ds=$capd   # both over: excess is unprintable data, let it go
+    [ "$os" -gt "$capo" ] && os=$capo
 
     # T738: clear only on a real terminal — in one-shot/pipe mode the ESC
     # sequence would land on the same line as the first heading and break
