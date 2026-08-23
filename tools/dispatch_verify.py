@@ -718,7 +718,13 @@ def _run_record_path(root, task_id):
 # A genuine wall/RSS/host kill matches neither (D048's standing warning:
 # the fix must not become a laundry for real failures).
 _DIRECTIVE_KILL_RX = re.compile(r"^directive (D\d+) ([A-Z]+)", re.I)
-_DIRECTIVE_LOG_RX = re.compile(r"exit 124 \(directive(?::\s*([a-z]+))?", re.I)
+# T630: anchored to the runner's own [runner] prefix — the log fallback must
+# match ONLY a harness-produced line (a launch refusal has no worker content),
+# never worker-quoted prose.  The module's own T625 comment cites the shape
+# `[runner] exit 124 (directive: ...)` verbatim; the unanchored form matched
+# that comment when a worker read this module into its log (the self-reference
+# hazard, arm 28), so the anchor is load-bearing.
+_DIRECTIVE_LOG_RX = re.compile(r"^\[runner\] exit 124 \(directive(?::\s*([a-z]+))?", re.I | re.M)
 
 
 def directive_kill_reason(root, task_id):
@@ -728,9 +734,10 @@ def directive_kill_reason(root, task_id):
     Evidence order: the run record first (kill_class or the killed string
     naming the directive), then the worker log (pre-T625 launch refusals,
     which wrote no run record — the log line is all that exists).  The
-    log fallback is conservative: the exact launch-refusal signature must
-    match, and a run that started at all has a run record, so a stray old
-    line in an accumulated log cannot reclassify a wall-kill (which always
+    log fallback is conservative: the exact launch-refusal signature — a
+    `[runner]`-prefixed line (harness-produced, never worker content; T630) —
+    must match, and a run that started at all has a run record, so a stray
+    old line in an accumulated log cannot reclassify a wall-kill (which always
     writes a record)."""
     if not root or not task_id or not re.fullmatch(r"T\d+", task_id):
         return None

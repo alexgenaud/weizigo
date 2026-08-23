@@ -1192,10 +1192,10 @@ else
 fi
 # static guard: the committed module must never contain an emission shape
 # at line start, or the fixture above would fire on a future edit.
-if grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error' \
+if grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error|^\[runner\] exit 124 \(directive' \
       "$WORK/tools/dispatch_verify.py" >/dev/null 2>&1; then
-    echo "    FAIL: dispatch_verify.py contains a refusal emission shape at line start (self-reference guard)"
-    grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error' \
+    echo "    FAIL: dispatch_verify.py contains a refusal/directive emission shape at line start (self-reference guard)"
+    grep -nE '^[0-9]{3}: \{|^Error: [0-9]{3} Too Many Requests|^\[runner\] tokens: no reading.*claude api error|^\[runner\] exit 124 \(directive' \
         "$WORK/tools/dispatch_verify.py" | sed 's/^/    | /'
     FAIL=1
 else
