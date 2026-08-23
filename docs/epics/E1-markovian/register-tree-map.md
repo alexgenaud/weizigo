@@ -4,7 +4,7 @@ Task: T305 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-03
 
 ## What this is
 
-The deferred Phase 0 deliverable (DIRECTION §5, `DIRECTION.md:111-114`; AXIOMS.md §6;
+The deferred Waypoint 0 deliverable (DIRECTION §5, `DIRECTION.md:111-114`; AXIOMS.md §6;
 the T271 brief): every row of `docs/epistemic/CLAIMS.md` mapped onto the requirement
 tree of AXIOMS.md §3. Rows that map nowhere are **proposed-retired** — dispositions, not
 deletions; the human rules on retirements (this file proposes). Tree nodes with no row
@@ -181,7 +181,7 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `GLOBAL.B1-AUDIT` | Z-CONVERGE-MONO | re-converge check is not a least-ness witness |
 | `GLOBAL.B1-MULTIFIX` | Z-CONVERGE-MONO | multi-fixpointedness measurement |
 | `GLOBAL.BATTERY-GAPS` | Z-AUDIT | battery coverage gaps across six nodes (G1 Z-R-STATE, G2 Z-STATE-REACH, G3 Z-STATE-KEY, G4 Z-TABLE-ROUNDTRIP, G5 Z-CONVERGE-SEED, G6 Z-CONVERGE-MONO) |
-| `GLOBAL.BATTERY-PASS1-ACCEPTANCE` | Z-AUDIT | Phase 1 acceptance criteria re-based on Amendment 1 |
+| `GLOBAL.BATTERY-PASS1-ACCEPTANCE` | Z-AUDIT | Waypoint 1 acceptance criteria re-based on Amendment 1 |
 | `GLOBAL.BRUTE-ALIASING` | Z-AUDIT | checker defect invalidated brute-force corroboration — audit-instrument doctrine |
 | `GLOBAL.C1` | Z | definition of fresh-start correctness — the theorem's core definition |
 | `GLOBAL.C2` | Z-NONCLAIMS | NC1: single-score history-independence FALSE-AS-SCOPED at 3x2 |

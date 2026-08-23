@@ -1426,7 +1426,7 @@ before the first invariant). After all invariants complete, the final HWM is
 recorded as the invocation-level `rss_hwm_after_mb` in the trailer record
 (§3.4).
 
-The battery should also **predict** its I5 allocation before Phase 3 (per
+The battery should also **predict** its I5 allocation before Waypoint 3 (per
 `i5-feasibility.md` §5.2) and refuse to start if the prediction exceeds the
 **measured available headroom** (VmHWM subtracted from the 4 GB runner cap),
 not a compile-time constant. The prediction is reported in the I5 result's

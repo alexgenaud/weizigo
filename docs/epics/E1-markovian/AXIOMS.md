@@ -218,7 +218,7 @@ goban size.
 - **Z-STATE-KEY:** Producer and consumer compute identical keys.
   T267 (key-agreement invariant) — **closed 2026-08-02 20:43Z** (`pass`): the
   test half wires `differential.zig` into `zig build test`; the production
-  `koAfterCapture`/`stateKey` is T273's kernel extraction (Phase 2).
+  `koAfterCapture`/`stateKey` is T273's kernel extraction (Waypoint 2).
   - [F]: a (board, side, ko, passes) where the solver's key ≠ the consumer's
     key. The family: T178 (colex vs rank), T193 (passes bit), T265 (ko key).
 
