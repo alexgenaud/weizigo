@@ -54,8 +54,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PACKETS = os.path.join(ROOT, "untracked", "race-aspects", "packets")
 MANIFEST = os.path.join(PACKETS, "MANIFEST.md")
 SHA256SUMS = os.path.join(ROOT, "artifacts", "SHA256SUMS")
-SEALS = os.path.join(ROOT, "docs", "infra", "races", "grand-race-p0-fixtures.sha256")
-ROSTER = os.path.join(ROOT, "docs", "infra", "races", "roster-2026-08-20b.txt")
+SEALS = os.path.join(ROOT, "docs", "epics", "E1-markovian", "L1-dashboard",
+                    "S02-model-delegation", "grand-race-p0-fixtures.sha256")
+ROSTER = os.path.join(ROOT, "docs", "epics", "E1-markovian", "L1-dashboard",
+                     "S02-model-delegation", "roster-2026-08-20b.txt")
 
 ASPECTS = ["aspect-triage", "aspect-verdict", "aspect-inbox",
            "aspect-crash", "aspect-dispatch"]
