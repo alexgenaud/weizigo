@@ -1,0 +1,59 @@
+{
+  "task_id": "T784",
+  "date": "2026-08-23",
+  "model": "claude-sonnet-5",
+  "claims": [],
+  "consensus": "split",
+  "escalate": true,
+  "unblind_mapping": {
+    "lane-1": "T756 (deepseek-v4-pro)",
+    "lane-2": "T754 (ox-alpha)",
+    "lane-3": "T755 (claude-opus-5)"
+  },
+  "panel": {
+    "judges": ["T780/claude-sonnet-5", "T781/deepseek-v4-flash", "T782/ox-alpha", "T783/qwen3.8:27b-mlx"]
+  },
+  "section_A": {
+    "target": "docs/infra/GLOSSARY.md 'The three ladders'",
+    "per_judge_totals": {
+      "T780": {"lane-1": 15, "lane-2": 15, "lane-3": 23},
+      "T781": {"lane-1": 22, "lane-2": 20, "lane-3": 22},
+      "T782": {"lane-1": 20, "lane-2": 21, "lane-3": 22},
+      "T783": {"lane-1": 16, "lane-2": 19, "lane-3": 22}
+    },
+    "per_judge_winner": {
+      "T780": "lane-3 (T755)",
+      "T781": "TIE lane-1 = lane-3 (22 = 22; T756 = T755) — judge's own stated ranking field names lane-3 alone, but its scored totals show a dead heat with lane-1; treated as a tie per the totals, not the unexplained ranking label",
+      "T782": "lane-3 (T755)",
+      "T783": "lane-3 (T755)"
+    },
+    "agreement": "3 of 4 judges (T780, T782, T783) give lane-3 (T755) a clean, undisputed win. T781 alone reports a first-place tie between lane-1 (T756) and lane-3 (T755) in its own numbers. Ties count as non-unanimous per the brief — Section A is therefore NOT unanimous, despite the strong lean toward T755.",
+    "consensus": "split",
+    "vs_T757_original": "T757 (non-blind self-grade) had T755 winning Section A 25-22-20. The blind panel leans the same way (T755 favored 3/4, tied-for-first in the 4th) — directionally confirmed but not unanimous."
+  },
+  "section_B": {
+    "target": "DIRECTION.md §5 + header residue note",
+    "per_judge_totals": {
+      "T780": {"lane-1": 14, "lane-2": 21, "lane-3": 24},
+      "T781": {"lane-1": 23, "lane-2": 25, "lane-3": 24},
+      "T782": {"lane-1": 22, "lane-2": 22, "lane-3": 23},
+      "T783": {"lane-1": 15, "lane-2": 24, "lane-3": 23}
+    },
+    "per_judge_winner": {
+      "T780": "lane-3 (T755)",
+      "T781": "lane-2 (T754)",
+      "T782": "lane-3 (T755) — lane-1/lane-2 tied for 2nd at 22, no ambiguity about the winner",
+      "T783": "lane-2 (T754)"
+    },
+    "agreement": "Exact 2-2 split: T780 and T782 name lane-3 (T755); T781 and T783 name lane-2 (T754). The decisive per-judge factor is whether the judge weighted T754's explicit Amendment-2 clauses (dispatch/concurrency/file-ownership serializer, W0-gates-decomposition) as load-bearing enough to outweigh T755's stronger citation/residue hygiene.",
+    "consensus": "split",
+    "vs_T757_original": "T757 (non-blind self-grade, judge = claude-opus-5 = author of the winning lane T755) had T755 winning Section B 24-23 over T754, with three Amendment-2 clauses grafted in from T754 at commit time. T757 itself flagged this as an unaudited conflict of interest. The blind panel does NOT confirm that self-graded verdict: it splits evenly between T755 and T754, meaning T757's disclosed conflict-of-interest concern for Section B was warranted — an independent panel does not unanimously back the self-grading judge's own lane."
+  },
+  "overall": {
+    "consensus": "split",
+    "escalate": true,
+    "note": "Per the operator's standing instruction, a split section means the operator convenes a fresh panel of his own choosing; no attempt is made here to break either tie or resolve the 2-2 disagreement."
+  },
+  "notes": "T784 — unblinds and synthesizes the four-judge blind rejudge of Race W (T780-T783) using the sealed mapping (lane-1=T756/deepseek-v4-pro, lane-2=T754/ox-alpha, lane-3=T755/claude-opus-5). Section A: 3/4 judges give T755 a clean win; T781 alone scores a first-place tie between T756 and T755 (22=22) despite its own ranking field naming T755 alone — ties count as non-unanimous per the brief, so Section A is SPLIT, though directionally leaning T755. Section B: exact 2-2 split between T755 (T780, T782) and T754 (T781, T783) — no lean either way. ANY split section forces escalate:true; both sections are split, so the whole race escalates to the operator's own fresh panel per race-protocol v2. Compared to the original T757 non-blind self-grade (T755 won both, judge was T755's own author claude-opus-5, disclosed as an unaudited conflict of interest): Section A is directionally confirmed by the blind panel; Section B is NOT confirmed — the blind panel's even split is itself evidence the disclosed conflict of interest mattered. Inbox polled via `bin/managent inbox T784 --ack` at claim time: empty, 0 directives, none to record.",
+  "milestone": "Race W's ledger entry does NOT get an audited verdict from this row — both sections are split (Section A: 3-1-with-a-tie toward T755; Section B: exact 2-2 between T755 and T754), so per race-protocol v2 seed §4 the entry stays `unaudited` pending the operator's own fresh panel. This cuts against T757's non-blind self-grade specifically on Section B, whose disclosed conflict-of-interest concern the blind panel's even split now substantiates rather than dispels."
+}
