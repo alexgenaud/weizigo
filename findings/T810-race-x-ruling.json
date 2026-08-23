@@ -1,0 +1,242 @@
+{
+  "task_id": "T810",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "audited_by": "claude-opus-5/T810",
+  "artifact": "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md rev 2",
+  "subject_pin": "abcb1a7 (last commit carrying rev 2); disk facts checked at d79726c (HEAD when T807/T809 wrote), spec-declared pins a1415fe and 8c00704 checked where the spec names them",
+  "sealed": "written before any entrant findings file was opened; not edited afterwards",
+  "verdict": "RATIFIABLE-WITH-AMENDMENTS — the shape is not in question and the load-bearing evidence verifies, but the armed count is overstated by construction, one operator-ratified pass-5 requirement has no home in the document, and step 1 as written can leave the fleet undispatchable",
+  "verdict_counts": {"major": 5, "medium": 6, "minor": 3, "total": 14},
+  "task_type": "audit",
+  "task_scope": {"files_read": 23, "lines_read": 4900, "writes": 0, "read_only": true, "scope_class": "subsystem"},
+  "capabilities": [
+    "long-document coherence (803-line spec, 43 ids, two amendment layers)",
+    "citation verification across git pins (pin drift is the dominant failure mode here)",
+    "counting arms across files and distinguishing 'a control is specified' from 'a control exists'",
+    "reading an instrument adversarially — what would make this arm go green for the wrong reason",
+    "reconstructing historical store/log state to test a 'live data' claim"
+  ],
+  "claims_load_bearing": 14,
+  "verified": 14,
+  "unverified": 0,
+  "fabricated_citations": 0,
+  "fabricated_citations_assurance": "every path:line in this file was re-read at the pin named beside it (git show <pin>:<path> | sed -n), and every count was recomputed by command rather than quoted from the spec",
+  "flags_total": 14,
+  "sample_size": "exhaustive on: normative-id enumeration (43 ids, 31 in sec1-7), the arm file (24 arms run), the regression-script disposition tables (81 live names vs 80 enumerated), the six ORC-GOAL-2 line counts at both pins, the ORC-DASH-4 pane's five sections. Sampled: the spec's non-arm prose citations (7 of ~20 checked); the keeper log (3 targeted greps, not a line-by-line replay)",
+
+  "per_item": [
+    {
+      "id": "R1",
+      "severity": "major",
+      "question": "1 (unarmed requirements)",
+      "citation": "docs/.../S06-orchestration-refactor/spec.md:609-617 (rev 2, abcb1a7)",
+      "spec_says": "\"Armed count at 8c00704: 22 of 31. The 15 in the flips column below (ARB-1, ARB-2, ARB-3, DASH-2, DASH-3, DASH-5, PAUSE-1, PAUSE-2, POL-2, POL-7, PROV-1, REG-1, REG-2, REG-3, REG-4) plus 7 armed by T802\"",
+      "should_say": "7 of 31 armed; the 15 in the flips column are controls SPECIFIED in the C1-C14 table and owed in P3, exactly like the 9 the spec calls unarmed",
+      "finding": "The flips column of the C1-C14 table is a plan, not an inventory. C1-C14 are described in the same section as work P3 will do (ORC-CTRL-2: 'Controls are written before implementation (P3 precedes P4)'), and no such control exists on disk. The 15 ids are credited as armed on the strength of a table row describing a control nobody has written. The arithmetic is internally consistent (15 + 7 + 9 = 31, and the 15 distinct ids in the flips column are exactly the 15 named) but the predicate 'armed' is false for 15 of the 22.",
+      "how_verified": "git grep -l -E 'ORC-(POL|PAUSE|DASH|ARB|REG|GATE|PROV|ORIENT|GOAL)-[0-9]' d79726c -- tools/ tests/ src/ bin/  ->  exactly one file, tests/unit/test_s06_conformance.py. Ran that file against the rev-2 tree (git archive d79726c): 24 tests, 5 expected failures, OK, 0.023s. Its arms name 7 ids (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4, ARB-4) and none of the 15.",
+      "would_refute": "an arm anywhere in the tree whose subject is one of the 15 without naming its ORC id (I matched by id string, which is a name search, not a semantic one), or a regression-*.sh the spec credits as an arm for one of them",
+      "severity_reason": "the spec's own rule is 'an id with no control is not a requirement, it is a wish'; this is the same overclaim T778 finding 1 raised against rev 1, restated with a bigger number"
+    },
+    {
+      "id": "R2",
+      "severity": "major",
+      "question": "1 (an arm that does not test what its id says)",
+      "citation": "tests/unit/test_s06_conformance.py:251-262 and :295-305 (d79726c)",
+      "spec_says": "spec.md:609-617 credits POL-4, GATE-2, DASH-1 and DASH-4 as armed by T802",
+      "should_say": "POL-4/GATE-2 and DASH-1/DASH-4 are held by instruments that cannot observe the mechanism they name",
+      "finding": "test_merge_list_names_every_cooldown_mechanism_that_exists asserts that 'fleet-keeper.cooldown' appears inside re.search(r'\\*\\*ORC-POL-4.*?\\n\\n', spec) — a regex over the spec's OWN paragraph. Its green condition is a prose edit, not step 1's build, so it is not a control over the merged cooldown machine at all. Worse, it is stale by construction: rev 2 DID amend the merge to include the fourth cooldown (spec.md:173-193), but in the paragraph AFTER the id, outside the regex's reach — so the arm is still red while the amendment it demands has landed, and section 14 row 9 claims that discharge. Separately, test_managent_renders_the_five_specified_sections asserts five lowercase substrings ('keeper','pauses','window','benched','queue') appear anywhere in src/managent/main.zig (12,780 lines) — 'keeper' (4), 'window' (6) and 'queue' (4) already occur, so the arm is two comments away from green with no pane built.",
+      "how_verified": "read both arm bodies; ran the file against the rev-2 tree (both still expectedFailure); grep -ci each substring in git show d79726c:src/managent/main.zig; confirmed the regex terminates at the first blank line so it spans spec.md:167-171 only",
+      "would_refute": "a second arm for POL-4/GATE-2 or DASH-1/DASH-4 whose subject is the mechanism (a scratch-store cooldown-state test, or a managent dashboard-verb test)",
+      "severity_reason": "these are 4 of the only 7 ids with any arm at all; with R1 the honest count is 3 ids (POL-1, POL-3, ARB-4) held by an on-subject instrument"
+    },
+    {
+      "id": "R3",
+      "severity": "major",
+      "question": "4 (the one-door rule)",
+      "citation": "spec.md:503-517 (ORC-PLAN-3 step 5) vs docs/status/roadmap-2026-08-23.md:266 and :300-303",
+      "spec_says": "step 5 is \"Dispatch/subagent rewire (read the policy file + registry; gate logic moves to managent) — fifth, the consumers\"; the only occurrence of the word 'door' in the whole spec is 'one-door-per-pass order' at spec.md:94, an unrelated metaphor about migration order",
+      "should_say": "an id that names bin/dispatch as the single door, enumerates the five routes measured by the census, states the disposition of each (calls the gated function vs dies), states what tools/runner does when an execution arrives by another route, and carries an arm",
+      "finding": "The operator's ratified pass-5 content is absent from the spec. The roadmap census measures the defect ('dispatch an execution | 5 - bin/dispatch, subagent direct, runner->provider, suggest, paste-prompt' with '159 of 364 executions skipped bin/subagent') and the ratification names it ('dispatch rewire (five doors become one)'). rev 2 has no route inventory, no one-door id, no section-11 traceability row, and no arm. ORC-GOAL-3 additionally rules tools/runner out of rewrite scope while runner->provider is one of the five routes, so the one requirement that touches the biggest measured loss lands in the one file the spec has excluded.",
+      "how_verified": "grep -n -i -E 'one door|only door|door|route' on the rev-2 spec (1 hit, spec.md:94) and on docs/status/orchestration-refactor-seed-2026-08-23.md (0 hits); read roadmap sections 6-7 in full",
+      "would_refute": "a route disposition in the seed or in STATUS.md that the spec inherits by reference",
+      "severity_reason": "major but chronologically fair: the ruling is timestamped 2026-08-23 evening (commit 52ce511, 22:26) and rev 2's last content pin is 8c00704 (21:31), so this is an amendment owed, not an authoring error. It is still major because a pass cannot be built from a requirement that is not in the document."
+    },
+    {
+      "id": "R4",
+      "severity": "major",
+      "question": "3 (would the absorb decisions still work if carried out literally) and 5 (does any pass leave the fleet undispatchable)",
+      "citation": "spec.md:506-508 (step 1) and spec.md:514-515 (step 5); bin/dispatch:86-87, bin/subagent:70, tools/runner:128 (d79726c)",
+      "spec_says": "step 1 \"Policy file + managent policy reader (absorbs window_policy.py, directive_policy.py, the cooldown half of fleet-keeper.sh) — first, because every later step reads it\"; step 5 rewires dispatch/subagent",
+      "should_say": "step 1 adds the reader and leaves both Python modules in place; they are deleted only after step 5 has rewired every importer, and the arm for step 1 asserts that bin/dispatch, bin/subagent and tools/runner still import successfully",
+      "finding": "The spec never states when an absorbed file is removed, and the only place it defines ABSORB (ORC-PLAN-4, for regression scripts) says 'shell script retired at phase close'. Under that reading step 1 retires window_policy.py and directive_policy.py four steps before their consumers are rewired. The imports are unguarded and module-level in all three consumers, so the first missing module makes every dispatch path fail at import — the fleet becomes undispatchable, and the operator's interleaved-smoke ruling cannot be satisfied by definition, because the smoke work has no door.",
+      "how_verified": "grep -n -B3 -A3 '^import window_policy|^import directive_policy' on bin/dispatch, bin/subagent, tools/runner at d79726c: bare module-level imports after sys.path.insert, no try/except, no lazy call site",
+      "would_refute": "a sentence in the spec or seed sequencing deletion after step 5, or evidence the imports are optional",
+      "severity_reason": "the failure mode is fleet-wide and silent until the next dispatch; it is exactly the question the brief asks (would it still work if carried out literally)"
+    },
+    {
+      "id": "R5",
+      "severity": "major",
+      "question": "6 (contradictions and stale citations) and 1 (an id whose control forbids what the id's own example does)",
+      "citation": "spec.md:340-341 (the ORC-DASH-4 worked pane, queue row)",
+      "spec_says": "marked with the live-data bullet: \"queue in_progress 3 (T724 T733 T739) - dispatchable 21 - blocked 0\", under the heading \"Rendered against the live store at a1415fe (live values marked live)\"",
+      "should_say": "either the store's actual state at a1415fe (in_progress 3: T527, T700, T723; dispatchable 26; blocked 1) or an explicit illustrative marker like the one the pause row already carries",
+      "finding": "The queue row is invented. At a1415fe the rows T733 and T739 DO NOT EXIST in docs/infra/managent/tasks.json at all, and T724 exists with status 'dispatchable'. dispatchable was 26 (20 set A + 5 set H + 1 set S), not 21; blocked was 1 (T715), not 0. No revision of tasks.json in the 40 commits I scanned ever had {T724, T733, T739} in_progress simultaneously, so this is not pin drift. This is the QA-023 defect ORC-DASH-5 and control C6 exist to refuse ('a dashboard that invents a figure'), committed inside the worked example of the id that owns the rule. Discriminating evidence that this is one bad row rather than a sloppy pane: the same pane's benched claim verifies exactly (untracked/fleet-keeper.attempts.json: T544, deepseek-v4-flash, failures 6, backoff_until 1787251329 = 2026-08-20, long lapsed = clear).",
+      "how_verified": "git show a1415fe:docs/infra/managent/tasks.json, then per-key lookup of T724/T733/T739 and a status census; repeated the census over the last 40 revisions of tasks.json looking for the triple; read untracked/fleet-keeper.attempts.json for the benched row",
+      "would_refute": "an uncommitted intermediate store state at ~13:04 on 2026-08-23 in which those three rows were in_progress — impossible for T733/T739, which had not been minted at that pin",
+      "severity_reason": "a builder validating an implementation against the normative worked example would be validating against fiction, and C6 would refuse the pane the spec draws"
+    },
+    {
+      "id": "R6",
+      "severity": "medium",
+      "question": "6 (contradiction: an amendment that claims a correction that did not land)",
+      "citation": "spec.md:322-323 vs spec.md:352-358",
+      "spec_says": "ORC-DASH-4: \"The pane has exactly five sections - keeper liveness, pauses, window budget + appetite, benched models, and the queue head\"; the T802 amendment says the retired meter was removed from \"this pane's budget/5h column ..., this id's window_budgets data source, and ORC-ACC-1's third acceptance bar. All three are corrected above and below.\"",
+      "should_say": "the third section is 'appetite + cap', matching the rendered example (which prints 'appetite' with appetite and cap columns and no budget column) and ORC-ACC-1 bar 3 as amended",
+      "finding": "A fourth site was missed: the normative section-name list itself still names the retired window-budget meter. The spec's normative contract for the pane is explicitly 'the five section names and their data sources' (spec.md:344-345), so the one thing that is normative here is the thing left stale, while the illustrative column layout was fixed. tests/unit/test_s06_conformance.py:271 encodes the same stale name (SPECIFIED = ['keeper','pauses','window','benched','queue']), so the instrument would certify a pane that renders the deleted meter.",
+      "how_verified": "read spec.md:322-342 and :352-358 and :663-671 (ORC-ACC-1 bar 3 is corrected); read the arm's SPECIFIED constant",
+      "would_refute": "a reading of 'window budget + appetite' as a section title that no longer implies the meter — but ORC-DASH-5's data-source list has 'appetite <- policy file appetite + caps', with no window source, so the section name has no backing source at all",
+      "severity_reason": "medium not major: it is a name, and the amendment's intent is unambiguous elsewhere; it is not minor because the section names are the normative part and an arm encodes the error"
+    },
+    {
+      "id": "R7",
+      "severity": "medium",
+      "question": "1 (what 'armed' means)",
+      "citation": "spec.md:49-53 (section 0) vs spec.md:609-617",
+      "spec_says": "section 0: \"the test phase writes one seeded arm (flip) and one null arm (green) for EVERY normative id before the first live reading\"; section 9: 22 of 31 armed",
+      "should_say": "state the weaker predicate being counted ('has at least one arm') and report the section-0 predicate ('has a null control and a seeded control') separately, because they differ by an order of magnitude",
+      "finding": "Under the spec's own definition of armed, NO id in sections 1-7 is armed: the only null/seeded control pairs in the arm file belong to the file's own parser (TestParsersHaveSubjects) and to the disposition counter (TestDispositionCount.test_null_control..., test_seeded_control...), neither of which is a section 1-7 id. The 22/31 figure silently uses a second, weaker definition, and the standing project rule the spec quotes ('an instrument earns its first reading only after a null control and a seeded-defect control') is the stricter one.",
+      "how_verified": "enumerated all 24 arms and their classes; only two classes carry explicit null+seeded pairs, and both are instrument self-controls",
+      "would_refute": "reading section 0's sentence as a promise about P3's output rather than a definition of 'armed' — which is defensible, and is why this is medium: the defect is then that section 9 never says which predicate it counts",
+      "severity_reason": "a coverage number whose predicate is unstated cannot be audited, and this document's whole subject is coverage debt going silent"
+    },
+    {
+      "id": "R8",
+      "severity": "medium",
+      "question": "1 (the denominator)",
+      "citation": "spec.md:600-607 (ORC-CTRL-1) and spec.md:519-594 (ORC-PLAN-4/5)",
+      "spec_says": "31 normative ids; C1-C14 \"are not full coverage of sections 1-7\"",
+      "should_say": "state the exclusion rule (sections 8-10's PLAN/CTRL/ACC ids are excluded from the denominator) and either credit or disclaim the arms that exist for excluded ids",
+      "finding": "The document defines 43 ids; 31 is exactly the sections 1-7 subset (GOAL 4 + POL 7 + PAUSE 3 + DASH 5 + ARB 4 + REG 4 + GATE 2 + ORIENT 1 + PROV 1). The exclusion of the other 12 is never stated, and it is not harmless: ORC-PLAN-3 (the migration order) and ORC-ACC-1 (the acceptance bars) are as normative as anything in sections 1-7, while ORC-PLAN-4/ORC-PLAN-5 are the only ids in the document with a genuine null + seeded + live instrument (TestDispositionCount) and get no credit. The coverage figure is therefore neither a consistent sections 1-7 number nor a document number.",
+      "how_verified": "grep -o -E '\\*\\*ORC-[A-Z]+-[0-9]+' on the rev-2 spec, sorted unique: 43; counted the sections 1-7 subset by hand to 31; TestDispositionCount read and run",
+      "would_refute": "a sentence naming the exclusion, which I did not find",
+      "severity_reason": "medium: the number is defensible once explained, and it is never explained"
+    },
+    {
+      "id": "R9",
+      "severity": "medium",
+      "question": "2 (buildability of pass 1)",
+      "citation": "spec.md:120-280 (section 2, ORC-POL-1..7) with spec.md:722-741 (section 12)",
+      "spec_says": "step 1 builds the policy file and reader from section ORC-POL",
+      "should_say": "resolve, or hand step 1 a decision procedure for, the seven items below",
+      "finding": "A competent worker cannot build pass 1 from section 2 without guessing seven times. (a) DIAL VS WORD: ORC-POL-3 asserts a per-model 0-9 dial; section 12.3 makes dial-vs-categorical an open design choice; step 1 is the first BUILD step, so the parser's value domain is undecided at build time. (b) RESERVED: ORC-POL-6 is normative that 'the parser accepts exactly 0-9 plus a reserved sentinel; anything else is a parse error', while section 12.2 defers the sentinel's spelling as moot with no live consumer — the parser must accept a token whose encoding is deliberately unchosen. (c) FAMILY VOCABULARY: the worked file's caps use claude/fable/deepseek/ollama-cloud/local — 'fable' is the keeper's spelling (tools/fleet-keeper.sh:325) and 'ollama-cloud' is managent's (src/managent/main.zig:347), so the example is a third vocabulary that matches neither reader, and the pane renders a sixth set (claude, deepseek, ollama-cloud, local, ox-alpha, plus claude-fable). ORC-POL-1 says one file for all readers but never says whose family names the file uses. (d) MISSING ENTRY: the worked file has no ox-alpha cap and the pane renders its cap as a dash; a missing cap therefore means 'uncapped', which is precisely the unstated default ORC-POL-1 says cannot survive ('env vars never invent a default the file does not state'). ORC-POL-6 fixes this for appetite ('an unknown model resolves to a refusal') and says nothing for caps. (e) NAMED CONDITIONS: expiry values 'next-ollama-quota-refresh' and 'blind-test-reveal' are 'resolved by the arbiter' (ORC-POL-2), but the arbiter is step 2 and the reader is step 1, and no source of truth for either condition exists; nothing says whether an unresolvable condition fails open or closed. (f) ONE FACT, TWO DOORS: the ollama quota is encoded twice in the worked file — appetite dial 0 keyed by short name ('glm') and allow_deny.deny keyed by canonical label ('glm-5.2') — with no precedence rule, inside the artifact whose reason for existing is the census finding that a second door is where data is lost. (g) PARSE FAILURE SCOPE: 'refused at parse time' is not said to be entry-level or file-level, and dispatch's behaviour on a refused file (fail open or fail closed) is unstated, though the house precedent is fail-closed (tools/fleet-keeper.sh:399-408, unreadable dir means cooldown).",
+      "how_verified": "read section 2 and section 12 line by line; extracted both live appetite tables (tools/fleet-keeper.sh:325-326 DEFAULT_APPETITE, src/managent/main.zig:347-357 family_appetite at d79726c) and compared their key sets to the worked file's and the worked pane's",
+      "would_refute": "a design doc already resolving these — but ORC-PLAN-1 places design AFTER spec ratification, and section 12 explicitly leaves (a) and (b) open",
+      "severity_reason": "medium rather than major: none of the seven is a wrong statement, they are absences, and the sprint's own audit loop would surface them at design; (b) is closest to major because the two statements are in direct contradiction"
+    },
+    {
+      "id": "R10",
+      "severity": "medium",
+      "question": "6 (stale numbers)",
+      "citation": "spec.md:80-96 (ORC-GOAL-2 table, watch-fleet.sh row and the totals)",
+      "spec_says": "untracked/watch-fleet.sh: 304 lines at a1415fe, 311 at 8c00704; six files 3479 lines at a1415fe, 3608 at 8c00704; the delta is +129",
+      "should_say": "286 at a1415fe; total 3461; delta +147",
+      "finding": "The a1415fe figure is off by one commit. wc -l at a1415fe is 286; 304 first appears at 402922f, six minutes later (2026-08-23 13:10 vs the spec's own 13:04 for a1415fe). The other five rows are exact at BOTH pins and the 8c00704 total of 3608 is exact, so this is a single off-pin cell. It matters only because ORC-GOAL-2 tells the accept step to answer 'did we shrink it' against a pin taken at accept and 'never against 3479' — and 3479 is not a measurement of anything. The direction of the argument is unaffected and in fact strengthened: the surface grew by 147 lines in eight hours, not 129.",
+      "how_verified": "git show <pin>:<path> | wc -l for all six files at a1415fe and 8c00704; then walked the last 12 revisions of untracked/watch-fleet.sh printing wc -l each (286 at 3ce328e 12:32, 304 at 402922f 13:10, 311 at 68f54e1 21:28, 349 at a3bb5c5 22:07)",
+      "would_refute": "a different counting convention for that one row — but the same convention reproduces the other eleven cells exactly",
+      "severity_reason": "medium: the sprint's baseline total is the number the acceptance step is measured against"
+    },
+    {
+      "id": "R11",
+      "severity": "medium",
+      "question": "6 (the amendment log breaks its own stated rule)",
+      "citation": "spec.md:771-772 with rows at spec.md:782, :784, :785, :786",
+      "spec_says": "\"Every row names the id it changed and the arm that holds it. A row with no arm is a wish; that is section 0's rule and it applies to amendments as much as to requirements.\"",
+      "should_say": "either arm rows 3, 5, 6 and 7, or say plainly that four of the twelve amendments are unarmed and why documentary changes are exempt",
+      "finding": "Four of twelve rows carry no arm: row 3 '(documentary; no mechanism left to arm)', rows 5 and 6 a bare dash, row 7 '(owed: registration battery, P4.4)'. Row 3's exemption is also the one R6 shows to be incompletely applied, which is exactly what an arm would have caught. The rule is stated and broken in the same table.",
+      "how_verified": "read all twelve rows of section 14 at spec.md:778-796",
+      "would_refute": "an arm for those rows elsewhere in the tree; the git grep in R1 shows there is none",
+      "severity_reason": "medium: it is the document's own stated standard, and the exempt row is the one with a surviving defect"
+    },
+    {
+      "id": "R12",
+      "severity": "medium",
+      "question": "5 (interleaved smoke work)",
+      "citation": "spec.md:503-504 vs docs/status/roadmap-2026-08-23.md:311-318",
+      "spec_says": "\"each step committing before the next touches the store (commit -> deploy -> smoke)\"",
+      "should_say": "an id carrying the operator's ruling: after each pass, ordinary unrelated work dispatches through the changed mechanism; the rows used as smoke and their outcomes are recorded per pass; a pass whose smoke failed is not a passed pass",
+      "finding": "The spec accommodates the ruling only as the word 'smoke' inside a parenthesis. There is no id, no per-pass record requirement, no acceptance bar (ORC-ACC-1's three bars do not mention it), and no traceability row. The ruling postdates the rev (commit 52ce511, 22:26, vs pin 8c00704, 21:31), so this is an amendment owed. It compounds R4: the ruling requires real work to flow through the changed door between passes, and step 1 as written can remove the door.",
+      "how_verified": "grep for 'smoke' in the rev-2 spec (one hit, spec.md:504); read roadmap section 7's ruling in full; read ORC-ACC-1",
+      "would_refute": "an id I missed carrying the requirement",
+      "severity_reason": "medium: chronologically excusable, mechanically binding, and it interacts with a major"
+    },
+    {
+      "id": "R13",
+      "severity": "minor",
+      "question": "6 (internal contradiction)",
+      "citation": "spec.md:754 vs spec.md:39-43",
+      "spec_says": "section 12 'Pending operator numbers': \"the sprint number itself (section header naming note - S05 collision, recommend S06)\"; the header says \"Naming (RESOLVED - operator ratified 2026-08-23). This sprint is S06\"",
+      "should_say": "delete the pending line",
+      "finding": "The document lists as awaiting an operator number a question the same document records as ratified and already acted on (the directory is renamed).",
+      "how_verified": "read both passages; the directory path itself is S06-orchestration-refactor",
+      "would_refute": "nothing; it is a residue",
+      "severity_reason": "minor: no builder is misled for long"
+    },
+    {
+      "id": "R14",
+      "severity": "minor",
+      "question": "6 (stale self-description)",
+      "citation": "spec.md:485 (ORC-PLAN-1 phase table, P1 row)",
+      "spec_says": "\"P1 spec | this spec.md (rev 1) | ... | document review (fresh session)\"",
+      "should_say": "rev 2",
+      "finding": "The rev-2 document calls itself rev 1 in its own phase table.",
+      "how_verified": "read spec.md:483-489 against the header's rev-2 status line",
+      "would_refute": "nothing",
+      "severity_reason": "minor"
+    },
+    {
+      "id": "R15",
+      "severity": "minor",
+      "question": "6 (which pin governs a citation)",
+      "citation": "spec.md:34-37 vs spec.md:146 and the section 14 rows",
+      "spec_says": "\"Every file:line in this document is against HEAD at authoring time, commit a1415fe ... A citation that no longer resolves at a1415fe is a spec defect\"",
+      "should_say": "citations added by an amendment resolve at that amendment's pin, named per amendment",
+      "finding": "The universal-pin sentence is false for the T802 amendments, which are measured at 8c00704. It happens not to bite for the one line-pinned amendment citation I checked (src/managent/main.zig:313 is family_appetite at BOTH a1415fe and 8c00704 — and is already 347 by abcb1a7, the commit that carries rev 2), so today the rule is unfalsifiable rather than violated. The reader-facing consequence is that a citation cannot be checked without first guessing which pin governs it, and by the time a builder reads the document neither pin is HEAD.",
+      "how_verified": "resolved src/managent/main.zig:313 at a1415fe, 8c00704, abcb1a7 and d79726c (family_appetite, family_appetite, Appetite-enum close, Appetite-enum close); resolved tools/fleet-keeper.sh:325 (DEFAULT_APPETITE) at all four - stable",
+      "would_refute": "a per-amendment pin statement I overlooked",
+      "severity_reason": "minor and deliberately so: the class (pin drift) is one the spec itself names and mechanized for the script count; this is the un-mechanized remainder"
+    }
+  ],
+
+  "verified_sound": [
+    "81 tools/regression-*.sh live at the entrants' HEAD (d79726c) and at abcb1a7; 80 at 8c00704; 75 at a1415fe - every count in ORC-PLAN-4/5 checks out, including the 19+16+45+0=80 sum and the T801 80->81 amendment",
+    "the SURVIVE list's '19 remaining regression-managent-*' is exactly right: 21 managent scripts live, minus landmark and models in REWIRE, and the 19 names match the disk one for one",
+    "the fourth cooldown, in full: untracked/fleet-keeper.cooldown exists and is 0 bytes (so no owner/reason/expiry), tools/fleet-keeper.sh:399-408 cooldown_set() is os.listdir + basename membership with 'except OSError: return True' as a dead-man's switch, and COOLDOWN is global with no family or row scope",
+    "the incident numbers are exact, not rhetorical: keeper pid 99956 ppid 1 alive (etime 3d06h now); last dispatch is untracked/log/fleet-keeper.log:3514 '2026-08-20T18:25:26Z dispatched T554 -> claude-fable-5'; cooldown ticks run from line 3527 (18:28:59Z) and number exactly 8,747 up to the first 19:40Z line at 2026-08-23; ~73 h; 21 rows dispatchable. Caveat: 'consecutive' is loose - 26 non-tick lines are interleaved in that span, including a managent status rc=1 error at 2026-08-22T11:41:55Z",
+    "five of six ORC-GOAL-2 line counts are exact at both pins and the 8c00704 total 3608 is exact (see R10 for the sixth)",
+    "the two appetite tables disagree exactly as claimed, and both citations resolve at the spec's pins: tools/fleet-keeper.sh:325 DEFAULT_APPETITE has ollama SPEND and no ox-alpha row (family_of falls through to 'other'), src/managent/main.zig:313 at a1415fe/8c00704 is family_appetite with ollama-cloud OFF and ox-alpha SPEND",
+    "the header's T778 summary is exact: findings/T778-s06-spec-audit.json has verdict RATIFIABLE-WITH-AMENDMENTS and 8 findings, 4 major / 2 medium / 2 minor",
+    "section 14's arm counts are exact: 24 arms, 5 RED (expectedFailure), 19 GREEN, covering 7 ids, 0.023 s on my run (claimed 0.04 s)",
+    "the T732 onboarding baseline is honest: commit 5d6fe6f's own message says '4 files, 65+/5-, 1 rebuild + 1 deploy' and the stat is 5 files / 73 insertions - the difference is the 8-line findings file, which is not a code path",
+    "the absorb-vs-delete evidence for the two nearly-killed targets holds: window_policy is imported by bin/dispatch and bin/subagent, directive_policy by bin/dispatch, tools/runner and referenced by src/managent/main.zig; the keeper has no code caller (its three mentions in bin/dispatch, tools/dispatch_verify.py, tools/attribution-backfill.py are all comments) and its production shape is tools/weizigo.fleet-keeper.plist; untracked/watch-fleet.sh is human-invoked - and, contrary to what its path suggests, it IS a tracked file, so making it a thin wrapper keeps it diff-reviewed",
+    "the pane's benched row verifies against untracked/fleet-keeper.attempts.json (T544, deepseek-v4-flash, failures 6, backoff lapsed 2026-08-20)"
+  ],
+
+  "unresolved": [
+    {
+      "item": "ORC-DASH-4's claimlint line 'C1a=0 C1b=0 C2=13 C6=0 - lanes: 41 unregistered finding(s)'",
+      "checked": "the live floor (tools/hooks/claimlint-floor.json) and managent orient now report C2=0 and 41 unregistered findings; I did not rebuild claimlint at a1415fe to obtain that pin's C2",
+      "status": "the 41 matches today exactly; C2=13 neither confirmed nor refuted - not counted as a defect",
+      "sample_size": "1 of 1 claimlint claim, unresolved"
+    },
+    {
+      "item": "whether any of the 15 flips-column ids is armed by an existing regression-*.sh that does not name its ORC id",
+      "checked": "id-string search across bin/ tools/ src/ tests/ at d79726c",
+      "status": "name search only; a semantically equivalent unnamed arm would not have been found. R1's count is stated under that limit."
+    }
+  ],
+
+  "claims": [],
+  "new_rows": [],
+  "notes": "Ruling half of T810 (grade RACE-X). Written and sealed BEFORE any entrant findings file was opened, per the bundle's load-bearing order; not edited afterwards. Subject is spec.md rev 2 (abcb1a7); disk facts checked at d79726c, the HEAD when T807 and T809 committed. Arms were executed against an extracted rev-2 tree (git archive d79726c into /tmp) so that no repo state was touched; this task wrote only its two findings files. bin/managent inbox T810 --ack: empty at claim and at ruling close - no directives. Landmark: advances L1 (measurement integrity) - the grading key exists on disk and is reproducible by command."
+}

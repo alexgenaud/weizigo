@@ -1,0 +1,267 @@
+{
+  "task_id": "T810",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "audited_by": "claude-opus-5/T810",
+  "role": "grader (one of three) for RACE-X",
+  "graded": ["findings/T807-race-x-s06-audit.json", "findings/T808-race-x-s06-audit.json", "findings/T809-race-x-s06-audit.json"],
+  "ruling_file": "findings/T810-race-x-ruling.json",
+  "ruling_sealed_before_reading_entrants": true,
+
+  "round_integrity": {
+    "subject_was_not_identical": "T807 and T809 audited spec.md rev 2 (their commits land 22:36:49 and 22:41:49; HEAD for both was d79726c). T813 committed rev 3 at 23:11:21. T808's findings file was written 23:23 and committed 23:24:01, so its subject at HEAD was rev 3 — a different artifact, with 37 ids and a '28 of 37' armed claim instead of 31 and '22 of 31'. T808 detected this itself and declared it in a REV DRIFT NOTE, auditing both revs and citing rev 3.",
+    "consequence": "This is not a three-way race on one artifact; it is a two-way race on rev 2 plus one audit of rev 3. Two of T808's eight findings (POL-13 unarmed, section 14's stale arm preamble) exist only in rev 3 and cannot appear in the other two entrants' output at all. Every per-entrant number below is stated on the rev-2 key; T808's rev-3-only findings are counted separately and never against the other two.",
+    "who_is_at_fault": "nobody in the race. The dispatch let a spec revision land between entrants. The mechanism failure is that a race brief pinned its subject by REVISION NAME ('rev 2') and not by COMMIT, so the third entrant read a moving file and had to notice on its own.",
+    "verified_how": "git log --format='%h %ad %s' --date=iso; the three findings files' mtimes; rev-3 markers read at HEAD (spec.md:763 'Armed count: 28 of 37', spec.md:412 ORC-POL-13)"
+  },
+
+  "the_key_on_disk": {
+    "spec_claim": "22 of 31 normative ids armed; ORC-CTRL-1 enumerates the 9 unarmed",
+    "checked": "31 is the correct count of section 1-7 ids (43 ORC ids exist in the document; the other 12 are section 8-10's PLAN/CTRL/ACC). The arithmetic is internally consistent: 15 flips-column ids + 7 T802 ids + 9 enumerated = 31, and the 15 distinct ids in the C1-C14 flips column are exactly the 15 named.",
+    "verdict": "the count is FALSE. git grep for ORC-ids across bin/ tools/ src/ tests/ at d79726c returns exactly one file, tests/unit/test_s06_conformance.py. Run against an extracted rev-2 tree it is 24 arms / 5 RED / 19 GREEN, covering 7 ids (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4, ARB-4). The other 15 have no arm; their only existence is a row in the spec's own C1-C14 table, which ORC-CTRL-2 says P3 will write. Honest on-disk count: 7 of 31 — and by section 0's own definition of armed (a null control AND a seeded control per id) the count is 0 of 31, since the only null/seeded pairs in the file belong to its own parser and to TestDispositionCount.",
+    "arms_run": "git archive d79726c into /tmp, then python3 tests/unit/test_s06_conformance.py: Ran 24 tests, OK (expected failures=5), 0.023s. Nothing in the repo was touched."
+  },
+
+  "per_entrant": [
+    {
+      "entrant": "T807",
+      "subject_audited": "rev 2 (correct subject)",
+      "verdict_given": "FAIL-FOUND (not buildable as written)",
+      "flags_total": 8,
+      "false_flags": 0,
+      "false_flags_note": "all eight hold on disk. One (finding 7) holds only at the entrant's own HEAD: it calls src/managent/main.zig:313 a wrong citation because line 313 is the Appetite enum's closing brace there — true at 52ce511, but at BOTH pins the spec declares (a1415fe and 8c00704) line 313 IS the family_appetite table, and the spec's citation-pin rule explicitly makes a1415fe the resolving commit. So the flag holds as pin drift and its prescribed fix ('should say 347-356') is wrong at the declared pin. Counted as a true flag with a wrong diagnosis, not as a false flag.",
+      "fabricated_citations": 0,
+      "fabricated_citations_detail": "0 in the findings array — every path:line I opened resolved and said what was claimed (spec.md:60, :146, :205-248, :233-240, :252-270, :450-460, :504, :519, :609-613, :619-626, :630-645, :732-736, :795; main.zig:313 and :347-356; fleet-keeper.sh:325). Two off-by-one line references appear in the notes prose: 'window_policy.py imported at bin/dispatch:88' and 'directive_policy.py at bin/dispatch:87' — at the entrant's own HEAD these are 87 and 86. The underlying facts are true and the same numbers ARE correct at the 8c00704 pin, so this reads as a pin slip, not an invention. Two loose ranges also do not frame their target exactly (the ORC-GOAL-2 table is at spec.md:80-87, cited as 72-80; step 5 is at 514-515, cited as 513-514).",
+      "arm_recall": {
+        "num": 2,
+        "den": 5,
+        "denominator": "my ruling's five arm-accounting defects: R1 (22 counts 15 unwritten controls), R2 (four of the seven real arms cannot observe their subject), R7 (section 0's null+seeded definition is met by no id), R8 (the denominator silently excludes 12 ids and uncredits the two that ARE armed), R11 (section 14's 'a row with no arm is a wish' is broken by four of its twelve rows)",
+        "found": ["R1 — in full, and with the sharpest statement of the honest count of the three", "R2 — in part: finding 3 establishes that the ORC-POL-4 RED arm asserts only that the spec's own prose names the flag, which is R2's first half, though it is deployed to prove a schema omission rather than to disqualify the id as armed"],
+        "missed": ["R7 (quoted section 0's instrument rule as an argument but did not draw the 0-of-31 conclusion)", "R8", "R11"]
+      },
+      "unique_catch": {
+        "count": 4,
+        "items": [
+          "section 0 still says '5 named tools + 75 tools/regression-*.sh scripts at HEAD' (spec.md:60-63) while ORC-GOAL-2 says 'Six files' and ORC-PLAN-4 declares 81 at HEAD — two stale rev-1 numbers inside the paragraph that announces the surface is 'counted, not asserted'. VERIFIED: I re-read spec.md:60-63 and counted the ORC-GOAL-2 table (6 rows).",
+          "THE BEST SINGLE CATCH OF THE ROUND: ORC-POL-5's worked example — titled 'the full file', and the artifact pass 1 builds — has a seven-entry cooldowns block with NO entry for the fourth cooldown that ORC-POL-4's and ORC-GATE-2's amendments require be merged as 'a scoped, owned, expiring entry'. A builder who copies the worked example re-creates the exact omission behind the 3-day idle, and no arm looks at the worked example. VERIFIED: spec.md:233-241 read key by key (heal, dispatch, window_fallback, probe_window, bench_retry, failure_trip, stale_directive_hours); the RED arm's regex scope re-read and the suite re-run.",
+          "ORC-POL-6 keeps a normative id while the spec declares it moot with no live subject, though the same section applies the opposite reasoning to the four GOAL ids ('a goal that cannot be armed should not carry an id'). An internal-consistency argument rather than a disk fact, and correct as such.",
+          "the header still reads 'awaiting operator ratification' after roadmap section 7 ratified the shape and unblocked passes 1-6. PLAUSIBLE rather than CONFIRMED: the operator ratified the SHAPE, and whether that ratifies rev 2 the document is genuinely ambiguous."
+        ]
+      },
+      "severity_discipline": {
+        "verdict": "mostly calibrated, one clear deflation",
+        "deflations": ["finding 5 (the one-door rule has no home in the spec) is rated MEDIUM. This is the operator's ratified content for pass 5, backed by a measured loss of 159 of 364 executions, with no id, no route inventory, no arm and no traceability row. I rate it major and so does T809."],
+        "inflations": ["none. Rating the POL-5 cooldowns omission major is right — it is the one defect that propagates into built code."],
+        "note": "the FAIL-FOUND verdict is the most severe of the three on the same evidence base as T809's RATIFIABLE-WITH-AMENDMENTS. Defensible: 'not buildable as written' is literally what its findings 4/5/6 show. Verdict severity is not scored here; the per-finding severities are."
+      },
+      "honest_unknown": {
+        "count": 0,
+        "detail": "no finding says 'I could not verify this'. sample_size reads 'exhaustive — no check was sampled', an absolute claim that the pin slip in finding 7 and the two off-by-one references quietly falsify. Nothing is asserted as fact that turned out false, so this costs it accuracy points, not integrity points — but it is the weakest of the three on stated uncertainty."
+      },
+      "metrics_supplied": {
+        "task_type": true, "task_scope": true, "capabilities": true, "claims_load_bearing": true,
+        "verified": true, "unverified": true, "fabricated_citations": true, "flags_total": true, "sample_size": true,
+        "all_nine": true,
+        "form": "all nine as top-level machine-readable JSON fields — the only entrant for which a script could read every metric without parsing prose",
+        "quibble": "scope_class 'repo-wide' for 15 files / 3400 lines; 'subsystem' is the honest class"
+      }
+    },
+    {
+      "entrant": "T808",
+      "subject_audited": "rev 3 at HEAD 71e7c27 — NOT the graded subject; declared as such by the entrant",
+      "verdict_given": "none stated as a field; the milestone reads 'cuts AGAINST it ... cannot be built as written'",
+      "flags_total": 8,
+      "false_flags": 0,
+      "false_flags_note": "all eight hold. I re-derived every number: watch-fleet 286 at a1415fe and 304 at 402922f; the 3461/+147 correction; the imports at bin/dispatch 99/100 at a1415fe, 87/88 at 8c00704, 86/87 at HEAD (exact, all three); section 6 is Registration flow; the pane's pid 29107 against the document's own census pid 99956; POL-13 named in the test file only in the comment at line 347 with no assertion; section 14's preamble still declaring 24 arms while the file declares 31 (verified: 31 tests, 9 expected failures at HEAD).",
+      "fabricated_citations": 0,
+      "fabricated_citations_detail": "0 that misstate content. One line reference is wrong: the citation-pin rule is quoted as 'spec.md:20' / 'spec.md:20-22' and lives at spec.md:37-40 in rev 3 — the quoted sentence is real and the argument stands, only the anchor is off. Everything else resolves exactly (spec.md:90, :92, :202, :412, :483, :557, :604, :658, :660, :674, :763-767, :913, :942-943; test file :347; log line 3514).",
+      "arm_recall": {
+        "num": 2,
+        "den": 5,
+        "found": ["R1 — in full, and by the most rigorous method of the three: it grepped each of the 15 flips ids individually AND each C-control's seeded-defect marker phrase across the tree, which is what turns 'I did not find an arm' into 'there is no arm'", "R2 and R11 by class, on rev-3 ids rather than rev-2 ones: finding 2 is exactly R2's shape ('an id claimed armed whose arm does not test what the id says') applied to POL-13, and it also nails section 14's 'no id is added unarmed' as false, which is R11's rule"],
+        "missed": ["R2 and R11 as they apply to rev 2 (POL-4/GATE-2's prose-scoped arm; DASH-1/DASH-4's substring grep; the four armless rev-2 amendment rows)", "R7", "R8 — though it comes closest of the three, observing that the 9-unarmed enumeration 'is wrong in composition'"],
+        "note": "scored on the rev-2 key even though it audited rev 3. Its R1 finding transfers directly (the flips-column overcount is identical in both revs); its POL-13 and section-14-preamble findings do not exist in rev 2 and are credited under unique_catch, not here."
+      },
+      "unique_catch": {
+        "count": 5,
+        "items": [
+          "ORC-POL-4's parenthetical '(section 6 specifies the states.)' points at the Registration flow section; the cooldown states are in section 7's ORC-GATE-2, and section 12 defers the state set to design anyway. A builder following the pointer lands in the wrong section and finds nothing. VERIFIED at both revs.",
+          "the ORC-DASH-4 pane's keeper row shows 'lease pid 29107 · last tick 2s ago (interval 10s)' while the same document's census measures pid 99956 and the live log ticks every ~30s. VERIFIED: log lines 18:27:28 / 18:27:58 / 18:28:29 and 21:55:49 / 21:56:20 give a 30-31s cadence; the keeper has been pid 99956 since 2026-08-20.",
+          "the import-line citations resolve at 8c00704 but at NEITHER the spec's declared pin nor HEAD, with the exact numbers at all three pins — the most precise treatment of the pin question any entrant produced.",
+          "rev-3 only: ORC-POL-13 is claimed armed by T813 and has no arm; the two arms named for it assert POL-11/12's subject (scope/reason/end in window_policy.py text) and nothing about dashboard legibility. VERIFIED — grep for POL-13 in the test file returns only the comment at line 347.",
+          "rev-3 only: section 14's preamble still says '24 arms — 19 GREEN, 5 RED covering 7 ids' while the file it names declares 31 arms / 22 GREEN / 9 RED covering 13 ids. VERIFIED by reading both and running the file."
+        ],
+        "sixth_contribution_not_a_finding": "declaring the rev drift. It is the only entrant that could have detected it and the only one that did, and it did so without being asked — that is the round's most useful piece of metadata and it is why this grade file has a round_integrity section."
+      },
+      "severity_discipline": {
+        "verdict": "two miscalibrations, in opposite directions",
+        "inflations": ["finding 3 (watch-fleet 304 vs 286) is rated MAJOR while the finding's own text says 'the argument survives directionally'. A wrong number in a baseline the accept step is calibrated against is medium; T809 rates the identical defect medium."],
+        "deflations": ["finding 7 (the pane's pid and tick interval contradict the document's own census) is rated MINOR. It is the same class as the invented queue row nobody found: a worked example marked as live data that is not live data, inside the id whose control forbids exactly that."],
+        "correct": ["finding 4 major (interleave absent + step 1 can leave the fleet undispatchable) — the severity I give it too", "finding 1 major", "finding 2 major"]
+      },
+      "honest_unknown": {
+        "count": 3,
+        "detail": "the strongest disclosure in the round, and it is structural rather than decorative: (1) the REV DRIFT NOTE, which states the subject is not the brief's and that the discrepancy is itself part of two findings; (2) 'both revs audited ... citations given against the rev-3 file at HEAD unless noted'; (3) the growing tick count reported as growth ('8,985 ... grown from the 8,747 the census counted; still growing') rather than as a contradiction of the census. It also separates 'WHAT PASSES (verified, not findings)' from its findings."
+      },
+      "metrics_supplied": {
+        "task_type": true, "task_scope": true, "capabilities": true, "claims_load_bearing": true,
+        "verified": true, "unverified": true, "fabricated_citations": true, "flags_total": true, "sample_size": true,
+        "all_nine": true,
+        "form": "PROSE ONLY — every one of the nine is inside the notes string. There is no findings array, no verdict field, no verdict_counts, no task_scope object. A fleet metric that arrives as a sentence inside a blob is a metric the fleet cannot aggregate; this is the finding about the fleet the bundle asks for, and it lands here.",
+        "internal_inconsistency": "task_scope says 'files_read: 14' and then lists about twenty files"
+      }
+    },
+    {
+      "entrant": "T809",
+      "subject_audited": "rev 2 (correct subject), with every pin-sensitive claim re-derived at its own pin",
+      "verdict_given": "RATIFIABLE-WITH-AMENDMENTS",
+      "flags_total": 7,
+      "false_flags": 0,
+      "false_flags_note": "all seven hold, and every number I re-derived matched to the digit: 7 of 31 armed; the one-door absence; the import lines and their drift; watch-fleet 286/3461/+147 AND the per-file delta +25; directives.jsonl 131 records (my own json decode: 131 parsed, 0 unparsed); the seven pass-1 guesses; 226 REFUSED+title lines whose subject rows are 3 (T548 x203, T513 x22, T551 x1) not 6, and 452 lines naming the 40-char limit across 8 rows (my counts: 226 and 452, exact).",
+      "fabricated_citations": 0,
+      "fabricated_citations_detail": "0. I found no misanchored citation of any kind — the only entrant of which that is true. Spot-checked spec.md:416 (ORC-REG-2, the single 'suggest' occurrence, exact), spec.md:504 (commit-deploy-smoke, exact), fleet-keeper.sh:399-408, fleet-keeper.sh:325, main.zig at 8c00704, log line 3514, commit 402922f's time and content, 5d6fe6f's stat.",
+      "arm_recall": {
+        "num": 1,
+        "den": 5,
+        "found": ["R1 — in full, with the arms run and every arm's docstring and target regex read"],
+        "missed": ["R2 — it read every arm's target regex and did not report that four of the seven cannot observe their subject; having done the reading, this is the miss that costs it most", "R7 (invoked section 0's instrument rule in its refutation clause as the argument for the stricter reading, but did not conclude 0 of 31)", "R8", "R11"],
+        "note": "its R1 is the best-argued of the three: it states the refutation condition ('if project convention counts a ratified control-table row as an arm ... this downgrades to a wording fix — but the convention is nowhere stated') and prescribes a three-tier restatement rather than a single corrected number."
+      },
+      "unique_catch": {
+        "count": 5,
+        "items": [
+          "ORC-DASH-4's pane note 'directives.jsonl is empty at HEAD' is false — the file holds 131 records. VERIFIED independently: json.loads per line gives 131 parsed, 0 unparsed. The display consequence may still be right ('no live pauses'), which the entrant says; the stated reason is wrong.",
+          "the '226 title-limit refusals across 6 rows' that STATUS.md and T802 carry does not reproduce under either natural filter, and the entrant reports BOTH readings rather than picking one. VERIFIED: 226 REFUSED+title lines across 3 subject rows; 452 lines naming the 40-char limit across 8 rows. Both of its numbers are exact. This is a defect in the evidence base for ORC-GATE-1, found while checking someone else's citation.",
+          "post-lapse semantics: when an expiry condition lapses, is the entry ignored (and does the model then hit ORC-POL-6's unknown-model refusal?) or enforced stale? For oxalpha, 'blind-test-reveal' would silently convert dial 6 into a refusal. Nobody else asked what happens AFTER an expiry fires, and it is the sharpest of the twenty-odd buildability gaps the round produced.",
+          "ORC-POL-7's override record (untracked/fleet-window-overrides.jsonl) has no stated shape, checked against the existing file's free-form lines — there is no schema to inherit.",
+          "the reader-to-block mapping is unstated: whether bin/subagent enforces cooldowns pre-launch or only bin/dispatch does. A one-file-all-readers policy that never says which reader enforces which block."
+        ]
+      },
+      "severity_discipline": {
+        "verdict": "the best calibrated of the three, with two deflations",
+        "deflations": [
+          "finding 3 rates the undispatchability hazard MEDIUM (bundled with the interleave absence). A literal pass-1 close breaks every dispatch path for the duration of passes 2-5; T808 rates the same hazard major and I agree with T808.",
+          "finding 6 rates seven pass-1 guesses MINOR. At least two are direct contradictions rather than absences (ORC-POL-6 requires the parser to accept a reserved sentinel whose encoding section 12 deliberately leaves unchosen; the double-encoded ollama quota has no precedence rule), and the id-level consequence is that step 1 cannot start. Medium."
+        ],
+        "inflations": ["none"],
+        "correct": ["findings 1 and 2 major — the same two I rate major", "finding 4 medium — identical to my rating, for identical reasons", "findings 5 and 7 minor — correct; both are real and neither changes what a pass builds"]
+      },
+      "honest_unknown": {
+        "count": 4,
+        "detail": "the highest-integrity output of the round: (1) an eight-item 'what_verifies_cleanly' section, which is the null control for an audit and is the thing that makes its findings believable; (2) the refusal census reported 'under both natural readings rather than one'; (3) pin drift explicitly distinguished from authoring error and one drift explicitly attributed to its commit (T805, 346b5b2) and classed as 'correctly attributable pin drift, not an error' — the opposite call from T807 on the same class of fact, and the right one; (4) a fabricated_citations_assurance that describes a procedure ('no citation is quoted from a prior document without re-deriving it') rather than asserting a zero."
+      },
+      "metrics_supplied": {
+        "task_type": true, "task_scope": true, "capabilities": true, "claims_load_bearing": true,
+        "verified": true, "unverified": true, "fabricated_citations": true, "flags_total": true, "sample_size": true,
+        "all_nine": true,
+        "form": "all nine machine-readable, nested under a 'measurement' object, plus fabricated_citations_assurance, verify_nonce and inbox_directives fields the brief did not ask for",
+        "quibble": "scope_class 'few-files' for 14 files / 4200 lines / a 35-check citation sweep; 'subsystem' is the honest class — an understatement where T807 overstated"
+      }
+    }
+  ],
+
+  "no_entrant_found": {
+    "count": 5,
+    "headline": "All three found the armed-count overclaim. None of the three checked the worked pane against the store — and that is where the spec's only invented figure is.",
+    "items": [
+      {
+        "ruling_item": "R5",
+        "severity": "major",
+        "defect": "ORC-DASH-4's worked pane marks its queue row as LIVE data at a1415fe: 'in_progress 3 (T724 T733 T739) - dispatchable 21 - blocked 0'. At a1415fe the rows T733 and T739 DO NOT EXIST in tasks.json, T724 exists as 'dispatchable', dispatchable was 26 and blocked was 1. No revision of tasks.json in the last 40 commits ever had that triple in_progress, so it is not pin drift.",
+        "why_it_matters": "it is the QA-023 defect that ORC-DASH-5 and control C6 exist to refuse — 'a dashboard that invents a figure' — committed inside the worked example of the id that owns the rule, and it is the example a builder will validate against.",
+        "how_close_they_came": "remarkably close, from three directions and never at the row that names task ids. T808 caught the pane's keeper pid and tick interval; T809 caught the pane's directives.jsonl note; both proved the pane's live markers are unreliable. Neither then asked the next question about the row directly below. T807 did not examine the pane's data at all.",
+        "verified_how": "git show a1415fe:docs/infra/managent/tasks.json, per-key lookup of T724/T733/T739, status census, then the same census over the last 40 revisions of the file"
+      },
+      {
+        "ruling_item": "R6",
+        "severity": "medium",
+        "defect": "ORC-DASH-4 still names 'window budget + appetite' as one of its five NORMATIVE sections, though the T802 amendment states the retired meter was removed from all three of its sites and 'All three are corrected above and below'. The normative part of this id is explicitly 'the five section names and their data sources' — so the amendment fixed the illustrative column layout and left the normative name stale. The arm encodes the same stale name (SPECIFIED = keeper, pauses, WINDOW, benched, queue), so the instrument would certify a pane rendering the deleted meter.",
+        "how_close_they_came": "T807's finding 3 is the same failure mode ('an amendment applied in one section, not every section it governs') for a different id, and its finding 2 catches a different stale section-0 number. Nobody re-read the section-name list against the amendment's own claim."
+      },
+      {
+        "ruling_item": "R2 (second half)",
+        "severity": "major",
+        "defect": "the sole arm for DASH-1 and DASH-4 asserts that five lowercase substrings appear anywhere in a 12,780-line Zig file; three of the five ('keeper', 'window', 'queue') already occur, so the arm is two comments away from green with no pane built. And the sole arm for POL-4/GATE-2 greps the spec's own paragraph, so its green condition is a prose edit, not step 1's build — no build work can turn it green, though its label names step 1 as its owner.",
+        "how_close_they_came": "T807 established the POL-4 arm's prose-only scope and used it to prove a schema omission (a good finding) without drawing the disqualifying conclusion. Nobody read the DASH arm's assertion against the size of its haystack. T809 says it read every arm's target regex, which is the reading that would have produced this."
+      },
+      {
+        "ruling_item": "R8",
+        "severity": "medium",
+        "defect": "the denominator 31 silently excludes the 12 section 8-10 ids without stating the exclusion rule, while giving no credit for ORC-PLAN-4/ORC-PLAN-5 — the only two ids in the entire document with a genuine null control, seeded control and live check (TestDispositionCount). The coverage figure is therefore neither a consistent section 1-7 number nor a document number.",
+        "how_close_they_came": "T808 came closest, observing that the 9-unarmed enumeration 'is wrong in composition'. All three recounted 31 and accepted the denominator."
+      },
+      {
+        "ruling_item": "R13 and R14 (grouped — both are self-description residue)",
+        "severity": "minor",
+        "defect": "section 12 lists 'the sprint number itself (S05 collision, recommend S06)' as a pending operator number, which the header records as RESOLVED and ratified and the directory name already reflects; and ORC-PLAN-1's phase table calls its own artifact 'this spec.md (rev 1)' inside rev 2.",
+        "how_close_they_came": "T807 found the adjacent stale-header residue ('awaiting operator ratification'); nobody swept the document for the rest of its self-description."
+      }
+    ]
+  },
+
+  "pairwise_agreement": {
+    "method": "I grouped the round's output into 17 distinct verified defects and asked, per pair, how many they share against the union of the pair's sets. Counts, never percentages.",
+    "distinct_defects_in_the_round": 17,
+    "per_entrant_distinct": {"T807": 9, "T808": 9, "T809": 9},
+    "found_by_all_three": {
+      "count": 3,
+      "items": ["the armed count overstates what is on disk", "the operator's interleave ruling is absent from the spec", "the spec's file:line citations do not resolve at the pin it declares (T808 and T809 class it as pin drift; T807 as an error)"]
+    },
+    "T807_vs_T808": {"shared": 3, "union": 15, "shared_items": ["armed count", "interleave absent", "citation pin drift"]},
+    "T807_vs_T809": {"shared": 5, "union": 13, "shared_items": ["armed count", "one-door rule absent", "interleave absent", "pass-1 buildability guesses", "citation pin drift"]},
+    "T808_vs_T809": {"shared": 5, "union": 13, "shared_items": ["armed count", "interleave absent", "step 1 leaves the fleet undispatchable", "watch-fleet 304 vs 286 and the 3479 total", "citation pin drift"]},
+    "found_by_exactly_one": {
+      "count": 11,
+      "T807": ["section 0's 5-tools/75-scripts", "ORC-POL-5's cooldowns block omits the fourth cooldown", "POL-6 keeps an id while moot", "the stale awaiting-ratification header"],
+      "T808": ["ORC-POL-4's wrong section cross-reference", "the pane's keeper pid and tick interval", "rev-3 POL-13 unarmed", "rev-3 section-14 preamble stale"],
+      "T809": ["directives.jsonl is not empty", "the 226-across-6 refusal census does not reproduce", "post-lapse expiry semantics"]
+    },
+    "reading": "The single most informative number here is 3 of 17 found by all three, against 11 of 17 found by exactly one. Three competent auditors on one 800-line document overlapped on a fifth of what they collectively found. A single audit of this spec — at any of these three quality levels — would have missed roughly two thirds of the round's yield, and the union still missed the invented pane figure. That is an argument for parallel independent audit as the standing instrument for spec gates, not for picking a winner and dispatching one auditor next time.",
+    "caveat": "T808's set is not strictly comparable: two of its nine are rev-3-only, so its pairwise counts are depressed by the subject drift, not only by disagreement."
+  },
+
+  "ranking": [
+    {"rank": 1, "entrant": "T809", "reason": "seven findings, zero false flags, zero misanchored citations, every number I re-derived matched to the digit, and the only entrant to ship a null control for its own audit (the eight-item 'what verifies cleanly' list) and to report a contested count under both readings instead of picking one."},
+    {"rank": 2, "entrant": "T807", "reason": "produced the round's most build-consequential unique catch — pass 1's worked example omits the cooldown its own amendment mandates — and matched the armed-count major; ranked second rather than first because it deflated the ratified one-door requirement to medium, mis-diagnosed pin drift as a wrong citation, and claimed an exhaustive sweep with no stated uncertainty while carrying three loose anchors."},
+    {"rank": 3, "entrant": "T808", "reason": "third on the graded subject, and NOT for the quality of its work: it audited rev 3 because rev 3 was HEAD when it ran, so two of its eight findings cannot be scored on the rev-2 key. Its armed-count proof is the most rigorous of the three (id-by-id and marker-by-marker absence-proving), its pin arithmetic is the most precise, and its rev-drift declaration is the single most useful piece of metadata the round produced. Its own scoreable handicap is format: no findings array, no verdict field, and all nine required metrics buried in one prose blob."}
+  ],
+
+  "bet_on_order": {
+    "would_bet": [
+      "T809 over either other entrant on citation integrity and on calibration of severity — 0 anchor slips against 3 and 1, and its five severities match mine five for five where we overlap. I would bet real weight on this.",
+      "T807 over both on unique-catch value for the next build step: its ORC-POL-5 catch is the only finding in the round that would otherwise become defective code in pass 1.",
+      "T808 over both on absence-proving method. When the question is 'does this arm exist anywhere', its id-by-id plus marker-by-marker sweep is the technique I would copy, and it is what turns my own R1 from a search into a proof."
+    ],
+    "would_not_bet": [
+      "T807 vs T808 overall. On the graded subject T807 has more scoreable findings, but T808's subject was different through no fault of its own and its method is better. Any ordering of those two is an artifact of the dispatch, not a measurement of the models, and I decline to rank them against each other with confidence.",
+      "any of the three on 'would find the invented pane figure'. All three had the pane open, two of the three proved its live markers unreliable, and none checked the row that names task ids. On this axis the round is 0 for 3 and a ranking would imply a discrimination the evidence does not support.",
+      "any of the three on arm-quality reading (my R2). One found half of it, as a side effect of a different argument. Predicting who would catch 'this arm cannot observe its subject' from this round's evidence would be guessing.",
+      "the verdict labels against each other. FAIL-FOUND and RATIFIABLE-WITH-AMENDMENTS were reached on substantially overlapping evidence; the difference is a threshold convention nobody has written down, which is itself worth a row rather than a grade."
+    ]
+  },
+
+  "metrics_supplied_summary": {
+    "asked_for": ["task_type", "task_scope", "capabilities", "claims_load_bearing", "verified", "unverified", "fabricated_citations", "flags_total", "sample_size"],
+    "all_nine_present_in_substance": ["T807", "T808", "T809"],
+    "machine_readable": ["T807 (top-level fields)", "T809 (under a measurement object)"],
+    "prose_only": ["T808 — all nine inside the notes string, with no findings array and no verdict field either"],
+    "the_finding_about_the_fleet": "The fields arrived three different ways from three entrants answering a byte-identical brief: top-level, nested under 'measurement', and as sentences in a blob. The brief asked workers to 'record these fields' and never gave a shape, so nothing can aggregate this round without hand-parsing. Two further symptoms: scope_class is self-assessed with no rubric and came back 'repo-wide', 'subsystem' and 'few-files' for near-identical work (15/14/14 files, 3400/4800/4200 lines) — the three answers span the entire scale, so this dimension currently measures the labeller and not the task; and verified/unverified came back 8/0, 8/0 and 7/0, an all-verified sweep from every entrant, which makes the pair useless as a discriminator in its present form. The fix is a schema plus a rubric, in the fields T750/T786 are landing, not a reminder in the next brief.",
+    "additionally_absent_across_all_three": "the roadmap section 7 standing set also asks for canary_recall, false_flags/flags_total, unique_catch and controls_before_reading on measured tasks. Only flags_total came back; no entrant reported false_flags or unique_catch about itself, which is right — those are the grader's to compute — but nothing in the round records that division of labour, so the brief and the ruling set disagree about who owes which field."
+  },
+
+  "blind_honesty": {
+    "instruction": "score per item, never per entrant, and do not look at the model field before scoring",
+    "what_i_did": "I read all three entrant files through a filter that popped 'model', 'identifier' and 'audited_by' before printing, and I never printed those fields. I did not read them afterwards either — I have not, at the time of writing, seen which model wrote which file.",
+    "why_i_cannot_claim_a_clean_blind": [
+      "The blind is leaky by construction and the leak is upstream of me. bin/managent orient prints the recent git log at the start of every task, so before writing a single line of my ruling I had already read the commit subjects 'T808: audit S06 spec rev 3 — armed count overstated' and 'T809: rev2 evidence verifies; armed-count and five-doors majors'. That told me two entrants' headline findings, and told me one of them had a different subject, before I opened anything.",
+      "I therefore cannot rule out that my own ruling was primed. The two items in question are R1 (armed count) and R3 (one-door). Both are direct answers to questions 1 and 4 of the entrants' brief, which I read in full before ruling, and both are arithmetic I re-derived from disk rather than accepted — but 'I would have found it anyway' is exactly the claim a primed auditor makes, and it is not checkable. Weigh R1 and R3 in my ruling accordingly; R2, R5, R6, R8, R10 and R13-R15 were not previewed by any commit subject.",
+      "I scored per item and per axis, and the ranking was assembled last from the per-item results rather than chosen first — but I read each entrant's file end to end before scoring it, so a whole-document impression preceded my per-item marks for that entrant. Prose style is itself an identity signal and I formed impressions from it; I did not act on any guess and made none deliberately.",
+      "One asymmetry I should name because it cuts against my own ranking: I read T807 first, so it set my baseline for what a finding in this round looks like, and I read T808 knowing from its own header that its subject was wrong."
+    ],
+    "influence_belief": "I believe my per-item scoring was not influenced by model identity, because I never saw it. I do NOT believe this round was blind: the commit log broadcast two entrants' headlines to every grader before ruling. The protection that actually held here was the ordering — ruling first, sealed, then read — not the label redaction. If the next race wants a real blind, the fix is mechanical: entrant outputs land unattributed and uncommitted (or committed with a neutral subject) until every grader's ruling is sealed."
+  },
+
+  "claims": [],
+  "new_rows": [],
+  "notes": "T810 — grading round for RACE-X. Order was load-bearing and was followed: findings/T810-race-x-ruling.json was written and sealed before any entrant file was opened, and was not edited afterwards; nothing in it was revised in light of an entrant. Read-only throughout: the only files this task wrote are its two findings files. Arms were executed against an extracted copy of the rev-2 tree (git archive d79726c into /tmp) so no repo or store state was touched, and no git worktree was created. bin/managent inbox T810 --ack was polled at claim, after sealing the ruling, and before reporting done: empty every time, no directive IDs to record. Where an entrant changed my mind I reported it as a finding rather than editing the ruling: T807's finding 3 (the worked example omits the fourth cooldown) is a defect my ruling missed and I would now rate major; T808's finding 3 and T809's finding 4 independently reproduce my R10 to the digit, which raises my confidence in it; T809's finding 7 corrects a document I had not audited. Landmark: advances L1 (measurement integrity) — three entrants graded against a key that exists on disk and is reproducible by command, and the round's most useful number is that only 3 of its 17 verified defects were found by all three. It cuts against the fleet in two places: the race brief pinned its subject by revision name instead of by commit, so the third entrant audited a different artifact; and the nine metrics the fleet asked for came back in three incompatible shapes, so this round cannot be aggregated without hand-parsing."
+}
