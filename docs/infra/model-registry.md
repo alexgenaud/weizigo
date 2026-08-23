@@ -25,7 +25,7 @@ ways is the defect this rule exists to remove. Short names (`dsflash`, `dspro`, 
 are **presentation only** — valid in prose *now*, no version meaning; a record (kanban,
 ledger, findings) must write the canonical label **and the date**, never a short name alone.
 
-## Short names → canonical (operator rulings 2026-08-19 and 2026-08-23; model-task-matrix.md §0)
+## Short names → canonical (operator rulings 2026-08-19 and 2026-08-23)
 
 T739 (2026-08-23) renamed the flash short name `flash` → `dsflash` and added `oxalpha`; the
 canonical labels are unchanged. This table is the ONE short-name mapping — human surfaces

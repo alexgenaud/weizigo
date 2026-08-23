@@ -891,6 +891,43 @@ print("    PASS: built-in boundary table matches the recorded 2026-08-18 DeepSee
 PYEOF
 if [ $? -ne 0 ]; then FAIL=1; fi
 
+# ── (o) T800: ONE short-name table — no second copy anywhere ──────────────
+# Operator ruling 2026-08-23 (T800): the short-name → canonical mapping lives
+# in exactly one table, docs/infra/model-registry.md §"Short names →
+# canonical". The model-task-matrix.md §0 copy is deleted; this arm stops a
+# second table from recurring. The canonical-label set is DERIVED from the
+# registry's own table (second column of its short-name rows), so the arm
+# holds no second mapping; a markdown row of the shape
+# `| \`short\` | \`canonical\` | …` in any other file under docs/, tools/,
+# src/ or findings/ is a second table and fails. Red against the pre-T800
+# matrix copy (9 rows); green after. untracked/ is not scanned: it is
+# gitignored and transient (dispatch bundles), not a tracked surface.
+echo "  o. no second short-name table (docs/, tools/, src/, findings/)"
+o_fail=0
+short_labels=$(grep -E '^\| `[a-z][a-z0-9]*` \| `[^`]+`' "$ROOT/docs/infra/model-registry.md" \
+    | sed -E 's/^\| `[a-z][a-z0-9]*` \| `([^`]+)`.*/\1/')
+if [ -z "$short_labels" ]; then
+    echo "    FAIL: could not derive canonical labels from model-registry.md"
+    o_fail=1
+else
+    for label in $short_labels; do
+        hits=$(grep -rnE "^\| \`[a-z][a-z0-9]*\` \| \`$label\` \|" \
+            "$ROOT/docs" "$ROOT/tools" "$ROOT/src" "$ROOT/findings" \
+            --include='*.md' --include='*.zig' --include='*.sh' --include='*.py' 2>/dev/null \
+            | grep -v "^$ROOT/docs/infra/model-registry.md:" || true)
+        if [ -n "$hits" ]; then
+            echo "    FAIL: second short-name table row mapping to canonical \`$label\`:"
+            printf '%s\n' "$hits" | sed "s|^$ROOT/||" | sed 's/^/      /'
+            o_fail=1
+        fi
+    done
+fi
+if [ "$o_fail" = "0" ]; then
+    echo "    PASS: model-registry.md is the only short-name → canonical table"
+else
+    FAIL=1
+fi
+
 
 echo ""
 if [ "$FAIL" -eq 0 ]; then
