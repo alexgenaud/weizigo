@@ -323,6 +323,188 @@ regression "C6"  "$CURRENT_C6"  "$FLOOR_C6"
 regression "C9"  "$CURRENT_C9"  "$FLOOR_C9"
 regression "C7-nonconforming" "$CURRENT_C7NONCONF" "$FLOOR_C7NONCONF"
 
+# ── gate 3: fast test tier (T789, 2026-08-23) ─────────────────────────
+# The operator's tier ruling: pre-commit carries fast, deterministic,
+# host-insensitive checks only. Budget and measurements live HERE so the
+# file that implements the gate states them:
+#
+#   budget:   FAST_BUDGET_WALL_SECS=45 — a gate that takes minutes gets
+#             bypassed. The hook measures its own elapsed wall and WARNS
+#             loudly when it exceeds the budget (tests that passed must not
+#             block a commit just because the host is busy); the budget is
+#             the design-time cap on what may be added to the pool, and the
+#             warning is the runtime census of drift.
+#   per-script: PER_SCRIPT_WALL_SECS=60, enforced by tools/runner (the
+#             project's only reliable time backstop on macOS — no timeout(1)).
+#   measured 2026-08-23 under load (T789; upper bounds): smoke.sh 1s
+#             (T788) · claimlint-output 2s · c7-json 1s · c7-scope 1s ·
+#             promotion 1s · volatile 2s · orient 1s ·
+#             directive-id-uniqueness 1s · directive-integrity 1s ·
+#             managent-models 1s · managent-landmark 14s · suite-surfaces
+#             6s · canonicalizer-parity 1s → ~33s at load 6-8, ~15-25s
+#             on a quiet host.
+#   selection: a test with no declared coverage always runs (unknown
+#             coverage is not empty coverage); a test that declares
+#             coverage in the T790 module contract
+#             (docs/epics/E1-markovian/L1-dashboard/S09-module-test-contract/spec.md)
+#             runs when the staged diff touches a covered module. Selection
+#             is additive to the periodic full run, never a replacement —
+#             the nightly is what catches a selector bug.
+#   state-dependent checks are NOT here (T788): regression-argus-doctor
+#             (T442), regression-managent-integrity and
+#             regression-git-commit-mine (deploy-hygiene) live in the
+#             full-suite tier where their state is measured.
+#   bypass:   TEST_GATE_BYPASS=<reason> — loud, appended to
+#             untracked/log/precommit-test-gate-bypass.log; an EMPTY reason
+#             is refused. (git commit --no-verify cannot be intercepted from
+#             a pre-commit hook; the reasoned channel exists so the
+#             responsible path is available.)
+#   surface:  the nightly/scheduled suite verdict is printed on every
+#             commit (a red is visible without being asked), read from the
+#             result file suite-truth.sh --scheduled writes. Non-blocking:
+#             a red suite blocks a consolidation pass, not unrelated work.
+#
+# Task: T789 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-23
+
+TG_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo ".")"
+FAST_BUDGET_WALL_SECS="${TEST_GATE_BUDGET_SECS:-45}"
+PER_SCRIPT_WALL_SECS="${TEST_GATE_SCRIPT_WALL_SECS:-60}"
+INTERVAL_HOURS="${TEST_GATE_INTERVAL_HOURS:-26}"
+CONTRACT_PATH="${TEST_GATE_CONTRACT:-docs/epics/E1-markovian/L1-dashboard/S09-module-test-contract/spec.md}"
+RESULT_PATH="$TG_ROOT/untracked/test-gate/last-result.json"
+BYPASS_LOG="$TG_ROOT/untracked/log/precommit-test-gate-bypass.log"
+FAST_POOL="tools/smoke.sh
+tools/regression-claimlint-output.sh
+tools/regression-claimlint-c7-json.sh
+tools/regression-claimlint-c7-scope.sh
+tools/regression-claimlint-promotion.sh
+tools/regression-claimlint-volatile.sh
+tools/regression-orient.sh
+tools/regression-directive-id-uniqueness.sh
+tools/regression-directive-integrity.sh
+tools/regression-managent-models.sh
+tools/regression-managent-landmark.sh
+tools/regression-suite-surfaces.sh
+tools/regression-canonicalizer-parity.sh"
+
+TEST_GATE_PASS=1
+TEST_GATE_NOTE=""
+
+if [ "${TEST_GATE_BYPASS+x}" = "x" ]; then
+    if [ -z "$TEST_GATE_BYPASS" ]; then
+        echo "pre-commit: REFUSED — TEST_GATE_BYPASS is set but EMPTY; a bypass demands a reason."
+        echo "pre-commit:   Set TEST_GATE_BYPASS=<why you are skipping the fast tier> and commit again (the reason is recorded)."
+        exit 1
+    fi
+    mkdir -p "$(dirname "$BYPASS_LOG")" 2>/dev/null || true
+    BYPASS_HEAD=$(git rev-parse --short HEAD 2>/dev/null || echo "?")
+    printf '%s\n' "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] task=${MANAGENT_TASK_ID:-unlabelled} head=$BYPASS_HEAD reason=$TEST_GATE_BYPASS" >> "$BYPASS_LOG" 2>/dev/null || true
+    echo "pre-commit: TEST GATE BYPASSED — reason: $TEST_GATE_BYPASS (recorded in $BYPASS_LOG)"
+    TEST_GATE_PASS=1
+    TEST_GATE_NOTE="bypassed with recorded reason"
+else
+    # ── surface the nightly/scheduled suite verdict (non-blocking) ──
+    if [ -f "$TG_ROOT/tools/suite-truth.sh" ]; then
+        set +e
+        SURFACE_OUT=$(sh "$TG_ROOT/tools/suite-truth.sh" --read-result --result "$RESULT_PATH" --interval-hours "$INTERVAL_HOURS" 2>&1)
+        SURFACE_RC=$?
+        set -e
+        echo "pre-commit: $SURFACE_OUT"
+        if [ "$SURFACE_RC" -eq 1 ]; then
+            echo "pre-commit:   (full-suite gate RED — not blocking this commit; a red suite blocks a consolidation pass, not unrelated work, and the red is on record)"
+        fi
+    fi
+
+    # ── test-surface presence ──
+    if [ ! -f "$TG_ROOT/build.zig" ]; then
+        echo "pre-commit: test gate skipped — no build.zig (fixture/scratch environment; the claimlint + scope gates above still ran)"
+        TEST_GATE_PASS=1
+        TEST_GATE_NOTE="skipped (fixture env)"
+    elif [ ! -x "$TG_ROOT/tools/smoke.sh" ]; then
+        echo "pre-commit: REFUSED — tools/smoke.sh missing in a weizigo tree; the fast tier cannot run."
+        echo "pre-commit:   Restore it, or bypass deliberately with a recorded reason: TEST_GATE_BYPASS=<reason> git commit"
+        exit 1
+    elif ! command -v zig >/dev/null 2>&1; then
+        echo "pre-commit: REFUSED — zig not on PATH; the fast tier cannot run (same rule as the claimlint gate: a gate that cannot run is a gate that is not there)."
+        echo "pre-commit:   Bypass deliberately with a recorded reason: TEST_GATE_BYPASS=<reason> git commit"
+        exit 1
+    else
+        # ── change-based selection ──
+        case "$CONTRACT_PATH" in
+          /*) CONTRACT="$CONTRACT_PATH" ;;
+          *) CONTRACT="$TG_ROOT/$CONTRACT_PATH" ;;
+        esac
+        if [ -f "$CONTRACT" ]; then
+            echo "pre-commit: module contract present ($CONTRACT_PATH) — change-based selection active"
+        else
+            CONTRACT=""
+            echo "pre-commit: no module contract yet (T790 in progress) — no declared coverage, so the whole fast pool runs (unknown coverage is not empty coverage)"
+        fi
+        SELECTED=""
+        SKIPPED_BY_COVERAGE=""
+        while IFS= read -r script; do
+            [ -n "$script" ] || continue
+            run_it=1
+            if [ -n "$CONTRACT" ]; then
+                COVERAGE=$(grep -E "^test ${script} covers " "$CONTRACT" 2>/dev/null | sed -E "s|^test ${script} covers ||" | tr ' ' '\n' | grep -v '^$' || true)
+                if [ -n "$COVERAGE" ]; then
+                    run_it=0
+                    for mod in $COVERAGE; do
+                        if printf '%s\n' "$STAGED_PATHS" | grep -Fxq "$mod"; then run_it=1; break; fi
+                    done
+                    if [ "$run_it" -eq 0 ]; then
+                        SKIPPED_BY_COVERAGE="${SKIPPED_BY_COVERAGE}${script} "
+                        continue
+                    fi
+                fi
+            fi
+            SELECTED="${SELECTED}${script}
+"
+        done <<EOF
+$FAST_POOL
+EOF
+        if [ -n "$SKIPPED_BY_COVERAGE" ]; then
+            echo "pre-commit: skipped by declared coverage (no staged change touches a covered module): $SKIPPED_BY_COVERAGE"
+        fi
+        [ -n "$SELECTED" ] || SELECTED="$FAST_POOL"
+
+        # ── run the selection, guarded per-script ──
+        TG_START=$(date +%s)
+        while IFS= read -r script; do
+            [ -n "$script" ] || continue
+            set +e
+            SCRIPT_OUT=$("$TG_ROOT/tools/runner" --max-wall "$PER_SCRIPT_WALL_SECS" -- sh "$TG_ROOT/$script" 2>&1)
+            SCRIPT_RC=$?
+            set -e
+            if [ "$SCRIPT_RC" -eq 0 ]; then
+                echo "pre-commit:   PASS $script"
+            else
+                echo "pre-commit:   FAIL $script (exit $SCRIPT_RC):"
+                printf '%s\n' "$SCRIPT_OUT" | tail -15 | sed 's/^/pre-commit:       /'
+                TEST_GATE_PASS=0
+            fi
+        done <<EOF
+$SELECTED
+EOF
+        TG_ELAPSED=$(( $(date +%s) - TG_START ))
+        echo "pre-commit: fast tier elapsed ${TG_ELAPSED}s (budget ${FAST_BUDGET_WALL_SECS}s)"
+        if [ "$TG_ELAPSED" -gt "$FAST_BUDGET_WALL_SECS" ]; then
+            echo "pre-commit: WARNING — the fast tier took ${TG_ELAPSED}s, over the ${FAST_BUDGET_WALL_SECS}s budget (busy host? a pool script got slow?). Tests PASSED — the commit proceeds — but the overrun is on record; investigate before adding anything to the pool."
+        fi
+        if [ "$TEST_GATE_PASS" -eq 1 ]; then
+            TEST_GATE_NOTE="PASS (${TG_ELAPSED}s, budget ${FAST_BUDGET_WALL_SECS}s)"
+        else
+            echo "pre-commit: REFUSED — the fast test tier failed (above). Fix the failing check(s), or bypass deliberately with a recorded reason:"
+            echo "pre-commit:   TEST_GATE_BYPASS=<reason> git commit"
+            exit 1
+        fi
+    fi
+fi
+
 # ── all clear ──────────────────────────────────────────────────────────
-echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 C7-nonconforming=$CURRENT_C7NONCONF — ≤ floor, allowed"
+if [ "$TEST_GATE_PASS" -eq 1 ]; then
+    echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 C7-nonconforming=$CURRENT_C7NONCONF — ≤ floor, allowed · test gate: $TEST_GATE_NOTE"
+else
+    echo "pre-commit: claimlint C1a=$CURRENT_C1a C1b=$CURRENT_C1b C2=$CURRENT_C2 C3=$CURRENT_C3 C6=$CURRENT_C6 C9=$CURRENT_C9 C7-nonconforming=$CURRENT_C7NONCONF — ≤ floor, allowed · test gate: FAILED"
+fi
 exit 0
