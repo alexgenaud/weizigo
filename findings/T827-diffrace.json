@@ -1,0 +1,38 @@
+{
+  "task_id": "T827",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-flash",
+  "claims": [],
+  "new_rows": [],
+  "task_type": "implement",
+  "task_scope": {
+    "files_touched": ["tools/dispatch_verify.py"],
+    "lines_added": 62,
+    "lines_removed": 0,
+    "read_only": false,
+    "patch": "untracked/diffrace/T827.patch",
+    "base": "a015496",
+    "patch_applies": true,
+    "unit_suite": "387 tests, 0 failures, 12 recorded defects (identical to baseline)"
+  },
+  "capabilities": [
+    "trace the defect to the exact branch that swallowed it (the rc==0 open-row return fired before the deliverables check — T818's work was never even looked at)",
+    "read the existing graded-vocabulary contract (tests/unit TestVerifyDispatchGradedVocabulary + tools/model-profiles.py RECOVERABLE_FAIL) and design within it rather than against it",
+    "keep every green arm green: exit code 2, verified=fail, and the fail_check vocabulary are all pinned by arms; the distinction had to live in the classification without moving any pin",
+    "design a two-question verification (proof-of-reading vs proof-of-work) and route each failure into the right bucket: work present + protocol broken -> recoverable nonce; work absent -> unrecoverable row/deliverables",
+    "verify the patch mechanically: apply to a scratch clone at the pinned base, run the full unit suite, revert the shared working tree"
+  ],
+  "design_decision": "The distinction is carried by the CLASSIFICATION, not by the exit code.  A T-id row that never closed (status != done) with rc==0 is now split on proof-of-work BEFORE failing: when every declared deliverable exists (deliverables non-empty and dl_missing empty), the work happened, so the failure is protocol — the summary names WORK PRESENT, the perf fail_check is 'nonce' when the token was not echoed (recoverable, grade 1 under model-profiles RECOVERABLE_FAIL) instead of 'row' (unrecoverable, grade 0), and detail lines add a NOTE work present.  The kimi incident (deliverables missing, rc==0, row open) keeps fail=row verbatim.  The closed-row nonce-missing case (test_nonce_absent_fails) keeps rc=2 / verified=fail / fail=nonce but its summary now names WORK PRESENT so the outcome says the distinction in prose too.  Exit status stays 2 for every failure: the module's documented contract is 0/2, every fail arm pins rc==2, and a third code would ripple into bin/subagent's heal gate and any ==2 consumer; the ledger and the operator read the classification, which is where the distinction belongs.",
+  "arms_expected_to_change_colour": [
+    "unit: none green -> red (all 387 pass before and after; the two RED empty-deliverables arms stay RED by design — fixing them would flip @unittest.expectedFailure into unexpected successes, failing the suite, and the test comment itself records that fix collides with tools/regression-runner-brief-telemetry.sh arm E and needs its own row)",
+    "unit: no recorded-defect arm turns green (the empty-deliverables pair is a different defect, owned per its own comment; the roundtrip silent-lane SHOULD is owned by T785/T773 and its fix would break the unit arm test_nonce_absent_fails, so it is left alone and reported here)",
+    "behaviour: the T818 shape (row in_progress, rc 0, all deliverables present, nonce absent) changes from report=incomplete verified=fail fail=row (unrecoverable) to report=incomplete verified=fail fail=nonce (recoverable) with a WORK PRESENT summary — this is the wound the race brief names"
+  ],
+  "concerns": [
+    "Residual inconsistency: a row that never closed with work present AND the nonce echoed (an almost-impossible state — the worker did everything except `managent done`) keeps fail=row because the graded vocabulary has no recoverable reason for 'row open, work present, nonce present'.  Extending RECOVERABLE_FAIL is tools/model-profiles.py's scope, which this patch must not touch (patch touching anything else is disqualified); the summary still names WORK PRESENT so the outcome is not silent.",
+    "The rc!=0 open-row path is untouched: a worker that dies (rc 124) after writing all deliverables still records fail=row and heals.  The heal reopens the row, so the classification is transient there; the race brief's incident is the rc==0 case (T818 exited 0).",
+    "The empty-deliverables recorded defects (TestVerifyDispatchEmptyDeliverables) are NOT fixed: making an empty declaration 'unverifiable, never pass' would (a) flip two @unittest.expectedFailure arms into unexpected successes and fail the suite, and (b) collide with tools/regression-runner-brief-telemetry.sh arm E which asserts the PASS path with deliverables=[].  The race brief is about nonce-vs-no-work, and the test's own comment says that defect needs its own row.",
+    "findings_bad (malformed findings deliverable) is not consulted in the new open-row work-present branch: an open row whose deliverables exist but whose findings file does not parse is classified on nonce/row without naming the malformed findings.  The done-gate catches malformed findings at close in production; the open-row case is a corner outside the race's scope."
+  ],
+  "notes": "T827 — diff race: nonce vs no-work.  Entrant: deepseek-v4-flash/T827.  Design: proof-of-reading (nonce) and proof-of-work (deliverables) answer different questions; when proof-of-work holds, a missing token or an open row is a PROTOCOL failure (recoverable), never indistinguishable from a worker that produced nothing (unrecoverable fail=row / fail=deliverables).  Patch is a unified diff against a015496 touching only tools/dispatch_verify.py (62 insertions, 0 deletions); verified to apply cleanly (git apply --check on a scratch clone of a015496) and the full unit suite passes with it applied in both the live tree and the scratch clone; the shared working tree was reverted to pristine afterward.  The 12 recorded defects are byte-identical to baseline (including the two empty-deliverables arms, deliberately untouched).  What would prove the design wrong: a green unit arm failing under the patch (none did), or a live T818-shape dispatch recording fail=row while all declared deliverables exist (the scratch harness reproduced the old fail=row on the ORIGINAL file and fail=nonce + WORK PRESENT on the patched file)."
+}
