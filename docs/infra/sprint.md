@@ -102,7 +102,9 @@ project's real defects.
 
 ## Audit loop
 
-Two-round cap for document review. Residue routes — it never loops:
+Capped at three audits per phase (ruling 7c.21, `docs/status/orchestration-layer-spec.md` §7c —
+supersedes this file's earlier two-round cap): blockers are fixed in-phase and re-audited; a third
+red audit escalates the phase, which can no longer close itself. Residue routes — it never loops:
 
 | residue | route |
 |---|---|
