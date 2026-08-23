@@ -5,6 +5,12 @@ Status: **ratified by the human, 2026-08-02**, in discussion following `GRAND-AU
 This document records project direction. The roadmap that decomposes it into tasks is a
 follow-up deliverable and belongs to the next session's court.
 
+> **Terminology:** this document's five-step ladder is **Waypoint 0–4 (W0–W4)**. §5 below uses
+> that vocabulary in full; the pre-ruling prose of §7 and Amendments 1–2 still numbers the same
+> five steps `Phase 0–4`, and every such occurrence reads as a waypoint (rename ratified
+> 2026-08-23, `findings/T745-terminology.json` R1). This note is the only sanctioned residue of
+> the old word in this file.
+
 ---
 
 ## 1. The stance — doubt everything, reverify end-to-end
@@ -97,23 +103,37 @@ adjudicate: either an epic-01 bug (catalog it) or a kernel bug (the oracle earni
 Independent re-implementation plus differential comparison is the only mechanism that has ever
 found a real defect in this project; this makes it permanent.
 
-## 5. The plan — five phases, gates mechanized from day one
+## 5. The plan — five waypoints, gates mechanized from day one
 
-- **Phase 0 — theorem and axioms.** AXIOMS.md written; requirement tree derived top-down from
-  Z; old register rows mapped onto it; MIGOS/tie adjudicated. Deliverable: the theorem
-  statement and the tree of lemmas it needs.
-- **Phase 1 — acceptance battery before code.** The battery is built and **calibrated on
-  known-defective inputs first**: every historical defect (T178/T193/T265 key mismatches,
-  incompleteness, inversion violations, the stubbed battery) becomes a seeded known-bad
-  control. The current `0c3366f0` artifact is a certified-defective calibration input — the
-  battery must fail it; a battery that passes an artifact known to be broken is itself broken.
-- **Phase 2 — kernel extraction.** One function, one owner; ko and state-key first. All
+Five waypoints carry epic-01 from its axioms to the swap. Each names what must hold before the
+next is provable, not a month in which it happens.
+
+- **Waypoint 0 — theorem and axioms.** AXIOMS.md written; requirement tree derived top-down from
+  Z; old register rows mapped onto it; MIGOS/tie adjudicated. Deliverable: the theorem statement
+  and the tree of lemmas it needs. W0 is the one hard gate, and it gates *decomposition*:
+  W1–W4 get no new tasks until AXIOMS.md exists (`docs/epics/E1-markovian/WAYPOINTS.md`).
+- **Waypoint 1 — acceptance battery before code.** The battery is built and **calibrated on
+  synthetic defects first** — seeded from the historical defect catalogue (T178/T193/T265 key
+  mismatches, the passes-bit collision, inversion violations, the stubbed battery, incompleteness
+  as T261 described it). A check that cannot kill a seeded mutant is blind. The live `0c3366f0`
+  artifact is a **regression input**: it must not newly fail, and a new failure against it is a
+  finding to adjudicate rather than an expected result (Amendment 1).
+- **Waypoint 2 — kernel extraction.** One function, one owner; ko and state-key first. All
   harnesses wired into `zig build test`; nothing green that doesn't run.
-- **Phase 3 — A–Z reverification.** Ladder 2×2 → 3×2 → 3×3 (anchor reconciled honestly) →
-  4×4. Kernel vs fixtures differentially at every rung; every register row re-derived,
-  demoted, or retired against the requirement tree.
-- **Phase 4 — the swap.** Kernel becomes production; epic-01 legacy code frozen into its
+- **Waypoint 3 — A–Z reverification.** Ladder 2×2 → 3×2 → 3×3 (anchor reconciled honestly) → 4×4.
+  Kernel vs fixtures differentially at every rung; every register row re-derived, demoted, or
+  retired against the requirement tree.
+- **Waypoint 4 — the swap.** Kernel becomes production; epic-01 legacy code frozen into its
   fixture role; `src/` gains the engine/experiment boundary.
+
+**Waypoint order is dependency order, not calendar order** (Amendment 2). Beyond W0's
+decomposition gate, **no waypoint gates the dispatch of another**: concurrency across waypoints is
+permitted and expected, and the real serializer is file ownership — one writer per file, enforced
+through managent sets, never through the waypoint number. "Acceptance battery before code" and
+"calibrated on known-defective inputs first" bind **promotion, not dispatch**: code may be
+written, committed and deployed while its battery coverage is incomplete, and no claim about it is
+promoted past `CLAIMED` until the battery kills the mutants covering the function the claim is
+about (Amendment 2, edge 5).
 
 **Standing policy, from the audit's clearest lesson (prose rules rotted; coded rules held):**
 every gate in this plan is mechanized — a hook, a lint check, a battery run — from the day it
@@ -134,7 +154,7 @@ is declared. A rule that stays prose is a rule we have chosen to re-learn.
 Model allocation stays a runtime decision by the human (standing rule: briefs never name a
 model).
 
-## 7. Quality commitments (all phases)
+## 7. Quality commitments (all waypoints)
 
 DRY enforced by the kernel (one implementation per function); TDD for all new code; every
 instrument carries a null control and a seeded-defect control before its first reading counts;

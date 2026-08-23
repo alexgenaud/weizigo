@@ -54,7 +54,7 @@ refuted axiom text.
 ### F2. A Phase 0 deliverable was dropped, not deferred
 
 DIRECTION §5 lists "old register rows mapped onto it" as Phase 0 content
-(DIRECTION.md:102-104). AXIOMS.md §6 defers it ("mapping all 282 register rows onto
+(DIRECTION.md:111-114). AXIOMS.md §6 defers it ("mapping all 282 register rows onto
 the tree (follows in its own task)", AXIOMS.md:399-400); the T271 brief defers it the
 same way (`untracked/T271-axioms-and-theorem.md:63-64`). **That task was never
 registered** — no entry in tasks.json through T296, no brief, no commit delivers it

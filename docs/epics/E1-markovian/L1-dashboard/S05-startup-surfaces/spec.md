@@ -101,7 +101,7 @@ the mutation phase is a checklist, not a re-diagnosis:
 | item | fix |
 |---|---|
 | A1 | `DELEGATEE.md:83` — delete the `bin/ollama-subagent` reference; keep `bin/subagent` |
-| A2 | `DIRECTION.md:244` — re-pin the `AGENTS.md` citation to current lines (or add the commit pin the file lacks) |
+| A2 | `DIRECTION.md:264` — re-pin the `AGENTS.md` citation to current lines (or add the commit pin the file lacks) |
 | A3 | `sprint.md:132` + `manager-brief-template.md:22` — delete the "max 2 DeepSeek" cap; point at `ROLES.md` §Concurrency (2026-08-19 no-fleet-cap) |
 | A4 | `ORCHESTRATOR.md:5` — re-point the succession template away from the stale `docs/status/HANDOVER.md`; the correct target is decided in design (the recent `handover-*.md` examples are clean, census S8) |
 | A5 | `ARGUS.md:3` + `ORCHESTRATOR.md:13` — add `--mode doctor` to both invocation/cadence lines |

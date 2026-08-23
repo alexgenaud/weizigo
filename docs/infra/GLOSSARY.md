@@ -7,10 +7,22 @@ today). Companion to the epistemic vocabulary in `docs/epistemic/GLOSSARY.md` �
 about *process/workflow* terms; that one is about *engine/Go* terms. Where a term appears in both
 (e.g. "pass", "phase"), this file owns the process sense and flags the other.
 
-## The work hierarchy: epic > landmark > sprint > pass > phase
+## The work hierarchy: epic > landmark > waypoint > sprint > pass > phase > step
 
 The canonical path is `docs/epics/<epic>/<landmark>/S<n>-<slug>/pass<n>/<phase>.md` — a sprint
 lives under its PRIMARY landmark (`docs/status/refactor-migration-map.md:9-10`).
+
+The hierarchy is coarsest-to-finest, and two of its levels overlap on purpose: **landmarks are
+points** (observations a human verifies) while **waypoints are paths** (dependency-ordered work),
+so a landmark can sit inside a waypoint or straddle two. A sprint may be predefined early or
+defined only at its close; both are sprints (operator ruling R4, 2026-08-23,
+`findings/T745-terminology.json`).
+
+**`L<n>` is reserved project-globally for the landmark checkpoints defined in
+`docs/epics/E1-markovian/LANDMARKS.md`, and is unique there.** No other axis may mint an L token —
+in particular the retired fleet-versus-science binary area tags of the D041 era, whose residue
+survives only verbatim in as-run findings. `L0`–`L7` are landmarks; `L8` and `L9` are *proposals*
+in `docs/status/landmark-assignment-2026-08-19.md`, not landmarks until LANDMARKS.md carries them.
 
 - **epic** — an arena directory (`docs/epics/<epic>/`) holding spec, decisions and sprints,
   whose goal emerges from completed sprints and which is never delegated as a unit
@@ -36,43 +48,64 @@ lives under its PRIMARY landmark (`docs/status/refactor-migration-map.md:9-10`).
 - **phase** — one document within a pass: spec, research, scope/ACs, design, plan, build,
   verify, accept, integrate, plus audit loops (`docs/infra/sprint.md` passN/ file list;
   `docs/status/ROADMAP-2026-08-21.md` pass protocol).
-  CONFLICTS: **the Phase collision** — see "DIRECTION Phase 0–4" and "Course Stage 0–4" below.
+  CONFLICTS: none in the process vocabulary — the program ladder that used to share this word is
+  **waypoint** (see "The three ladders" below); in the engine, "phase" is not a reserved term.
 
-## The three ladders — the collision triangle
+## The three ladders — waypoint, stage, phase
 
-Three numbered step-ladders use overlapping words for their rungs. All three are live; the
-collisions are real and currently resolved only by context.
+Three ladders run here, one word each: **waypoints** order the program's work, **stages** narrate
+the operator's course, **phases** are the documents inside a pass. No two share a word, and none
+of the three numbers another.
 
 | ladder | word | numbering | defining doc |
 |---|---|---|---|
+| program ladder | **waypoint** 0–4 | 0 theorem and axioms · 1 acceptance battery before code · 2 kernel extraction · 3 A–Z reverification · 4 the swap | `docs/audits/2026-08-02-grand-audit/DIRECTION.md` §5 |
+| operator course | **stage** 0–4 | 0 handover · 1 L1-into-tooling · 2 the races · 3 the L2 foundation · 4 the clean story | `docs/status/ROADMAP-2026-08-20.md` |
 | pass-internal document | **phase** | spec, research, scope/ACs, design, plan, build, verify, accept, integrate + audit loops | `docs/infra/sprint.md` |
-| program ladder | **Phase** 0–4 | 0 axioms · 1 battery · 2 kernel · 3 A–Z reverification · 4 swap | `docs/audits/2026-08-02-grand-audit/DIRECTION.md` §5 |
-| operator course | **Stage** 0–4 | 0 handover · 1 L1-into-tooling · 2 races · 3 L2 foundation · 4 clean story | `docs/status/ROADMAP-2026-08-20.md` |
 
-- **DIRECTION Phase 0–4** — the ratified program ladder of the grand audit: Phase 0 theorem and
-  axioms, 1 acceptance battery before code, 2 kernel extraction, 3 A–Z reverification, 4 the
-  swap; phase order is dependency order, not calendar order (Amendment 2, ruled 2026-08-03)
-  (`docs/audits/2026-08-02-grand-audit/DIRECTION.md` §5 + Amendments; task mapping in
+- **waypoint** — one of the five dependency-ordered steps of the grand-audit program, W0–W4;
+  waypoint order is dependency order, not calendar order, and no waypoint gates the dispatch of
+  another (`docs/audits/2026-08-02-grand-audit/DIRECTION.md` §5 + Amendment 2; task mapping in
   `docs/epics/E1-markovian/WAYPOINTS.md`).
-  CONFLICTS: collides with pass-phase "phase" above. **T737 rename proposal (NOT executed —
-  follow-up row for the operator to ratify): "Program step 0–4".** The brief's other example,
-  "Rung 0–4", is NOT recommended: "rung" is already taken by the goban-size verification ladder
-  (Rung 1 = 2×2 … Rung 5 = 4×4, `docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/spec.md` §7)
-  and the knowledge-ladder rungs (K0 certified … K5 guess,
-  `docs/audits/2026-07-30-epistemic-tree-shake-fable.md`). "Program step" has zero existing
-  usage in docs/ or untracked/ — it is the clean candidate. Census (T737): 14 tracked files use
-  the DIRECTION sense; 59 tracked files contain "Phase N" (377 lines, senses mixed); 48
-  untracked briefs contain "Phase N" (131 lines). Full file lists in
-  `findings/T737-glossary.json`.
-- **Course Stage 0–4** — the operator-facing course ladder: Stage 0 Flash wraps up and hands
-  over, 1 L1: the orchestration job moves into tooling, 2 the races (inside the L1 arc), 3 the
-  L2 foundation, 4 the clean story (`docs/status/ROADMAP-2026-08-20.md` §§Stage 0–4; one-page
-  map: `docs/status/ROADMAP-2026-08-21.md`; handover: `docs/status/handover-orcha-incoming-2026-08-20.md`).
-  CONFLICTS: third ladder — completes the collision triangle with DIRECTION Phase and pass-phase
-  "phase". "Stage" is also reused *inside* the course for sub-steps ("race Stage 2a",
-  "Stage 3.1/3.2/3.4") and a stale reference to "Phase C" of the course exists in
-  `grand-race.md` §1 that no heading in `ROADMAP-2026-08-20.md` satisfies. 4 tracked files use
-  "Stage N" (24 lines).
+- **stage** — one arc of the operator's course, Stage 0–4, describing who is doing what and when,
+  and freely subdivided in place ("race Stage 2a", "Stage 3.1/3.2/3.4")
+  (`docs/status/ROADMAP-2026-08-20.md` §§Stage 0–4; one-page map `docs/status/ROADMAP-2026-08-21.md`).
+- **landmark** — a checkpoint the operator can verify without reading a task brief; defined in full
+  at its own entry above and in its home file (`docs/epics/E1-markovian/LANDMARKS.md`).
+- **phase** — one document within a pass, unchanged in sense: the build phase of pass0 is a phase
+  (`docs/infra/sprint.md` passN/ file list).
+- **step** — the finest grain, one numbered instruction inside a phase document; a step is never a
+  kanban row (`findings/T745-terminology.json` R4).
+
+### Stage ↔ waypoint: not one-to-one
+
+| Stage | waypoint territory |
+|---|---|
+| 0 — Flash wraps up and hands over | none — fleet arc, outside the ladder |
+| 1 — L1: the orchestration job moves into tooling | none — tooling arc, outside the ladder |
+| 2 — the races | none — measurement arc, outside the ladder |
+| 3 — the L2 foundation | ≈ W2–W3 territory |
+| 4 — the clean story | ≈ W3 finish, plus narrative that is no waypoint's work |
+
+Stages track time and people; waypoints track dependencies. Stages 0–2 sit outside the ladder
+entirely and **no stage covers W0, W1 or W4** — the overlay holds for two rows and nothing more,
+so never derive one ladder's position from the other's, and never write "Stage N = Waypoint M".
+The same table, kept with the task mapping, is in `docs/epics/E1-markovian/WAYPOINTS.md`.
+
+### Usage
+
+| write this | not this |
+|---|---|
+| Waypoint 3 gates promotion on mutation adequacy | Phase 3 gates promotion on mutation adequacy |
+| W1's battery is calibrated on synthetic defects | Stage 1's battery is calibrated on synthetic defects |
+| Stage 3 resumes the critical path | Waypoint 3 resumes the critical path |
+| the build phase of pass0 landed red→green | the build waypoint of pass0 landed red→green |
+| step 4 of the accept phase | task 4 of the accept phase |
+| `L4 (the ledger is clean)` | a bare `L4`, or `L2` meaning "a science row" |
+
+Documents sealed before 2026-08-23 number the program ladder `Phase 0–4`; read those as waypoints
+(rename ratified 2026-08-23, `findings/T745-terminology.json` R1). This is the only note in this
+file that carries the old word.
 
 ## Queue, surface, and roles
 
@@ -89,7 +122,8 @@ collisions are real and currently resolved only by context.
   the truth) · L2 (proven 4×4 values) · L3 (the new engine outplays the old one) · L4 (the
   ledger is clean); the map continues L5 (one rulebook) · L6 (small Go solved, certifiably) ·
   L7 (the 5×5 decision, costed) (`docs/epics/E1-markovian/LANDMARKS.md`).
-  CONFLICTS: see "landmark" (the M<n>→L<n> collision with the mutant IDs).
+  CONFLICTS: see "landmark" (the M<n>→L<n> collision with the mutant IDs) and the `L<n>`
+  reservation rule under "The work hierarchy".
 - **duty** — work that is always beneficial, never critical, and cannot exhaustively finish;
   identified by a stable UID (DCLAIM, DRPLAY, DARGUS, DFLEET), runs one chunk per invocation,
   always yields to a task, and a landmark may not be declared reached while any duty is overdue

@@ -4,7 +4,7 @@ Task: T305 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-03
 
 ## What this is
 
-The deferred Phase 0 deliverable (DIRECTION §5, `DIRECTION.md:102-104`; AXIOMS.md §6;
+The deferred Phase 0 deliverable (DIRECTION §5, `DIRECTION.md:111-114`; AXIOMS.md §6;
 the T271 brief): every row of `docs/epistemic/CLAIMS.md` mapped onto the requirement
 tree of AXIOMS.md §3. Rows that map nowhere are **proposed-retired** — dispositions, not
 deletions; the human rules on retirements (this file proposes). Tree nodes with no row
