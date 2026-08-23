@@ -21,11 +21,15 @@ ox-alpha
 **Rule (T276, 2026-08-02, human ruling):** model spellings in records use the canonical
 labels. The model part of worker identifiers spells the model exactly one way
 (`deepseek-v4-pro/2B-3-AUDIT`, never `DSPro/2B-3-AUDIT`). A record spelling a model four
-ways is the defect this rule exists to remove. Short names (`flash`, `dspro`, `opus`, …)
+ways is the defect this rule exists to remove. Short names (`dsflash`, `dspro`, `opus`, …)
 are **presentation only** — valid in prose *now*, no version meaning; a record (kanban,
 ledger, findings) must write the canonical label **and the date**, never a short name alone.
 
-## Short names → canonical (operator ruling, 2026-08-19; model-task-matrix.md §0)
+## Short names → canonical (operator rulings 2026-08-19 and 2026-08-23; model-task-matrix.md §0)
+
+T739 (2026-08-23) renamed the flash short name `flash` → `dsflash` and added `oxalpha`; the
+canonical labels are unchanged. This table is the ONE short-name mapping — human surfaces
+render through it and hold no second copy.
 
 | short | canonical label | serving tag where it differs |
 |---|---|---|
@@ -34,11 +38,12 @@ ledger, findings) must write the canonical label **and the date**, never a short
 | `sonnet` | `claude-sonnet-5` | — |
 | `haiku` | `claude-haiku-4-5-20251001` | — |
 | `dspro` | `deepseek-v4-pro` | — |
-| `flash` | `deepseek-v4-flash` | — |
+| `dsflash` | `deepseek-v4-flash` | — |
 | `glm` | `glm-5.2` | `glm-5.2:cloud` |
 | `minimax` | `minimax-m3` | `minimax-m3:cloud` |
 | `kimi` | `kimi-k2.7` | `kimi-k2.7-code:cloud` |
 | `qwen` | `qwen3.8:27b-mlx` | local (MLX) |
+| `oxalpha` | `ox-alpha` | `stealth/ox-alpha` |
 
 Distinct short names are needed only when two models with confusable names run at the
 same time.

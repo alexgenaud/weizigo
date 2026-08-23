@@ -241,6 +241,7 @@ echo "  F. watch-fleet bundle-path worker shown; script invocation hidden (live 
 WORK2=$(mktemp -d /private/tmp/weizigo/wf-live-XXXXXX)
 mkdir -p "$WORK2/bin" "$WORK2/untracked" "$WORK2/docs/infra/managent"
 ln -s "$MG" "$WORK2/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORK2/docs/infra/model-registry.md" 2>/dev/null
 STORE2="$WORK2/docs/infra/managent/tasks.json"
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE2"
 LIVE_COPY="$WORK2/untracked/watch-fleet-live.sh"
@@ -279,6 +280,7 @@ echo "  G. FLEET_COLS read per frame — wide row trims at 20, not at 200 (live 
 WORK3=$(mktemp -d /private/tmp/weizigo/wf-size-XXXXXX)
 mkdir -p "$WORK3/bin" "$WORK3/untracked" "$WORK3/docs/infra/managent"
 ln -s "$MG" "$WORK3/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORK3/docs/infra/model-registry.md" 2>/dev/null
 STORE3="$WORK3/docs/infra/managent/tasks.json"
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE3"
 LIVE_COPY3="$WORK3/untracked/watch-fleet-live.sh"
@@ -318,6 +320,7 @@ WORK4=$(mktemp -d /private/tmp/weizigo/wf-times-XXXXXX)
 mkdir -p "$WORK4/bin" "$WORK4/untracked" "$WORK4/docs/infra/managent" \
          "$WORK4/untracked/bakeoff/fake/fresh-lane" "$WORK4/untracked/bakeoff/fake/old-lane"
 ln -s "$MG" "$WORK4/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORK4/docs/infra/model-registry.md" 2>/dev/null
 # managent's findRepoRoot walks up from ITS cwd and hard-exits without a .git;
 # arms F/G never touch the store so they never hit this — arm H needs the store.
 git -C "$WORK4" init -q
@@ -377,11 +380,11 @@ while IFS= read -r pr; do
 done <<EOF
 $PROG_H
 EOF
-# the alias worker (--dsflash, no --model) must render model `flash`
+# the alias worker (--dsflash, no --model) must render model `dsflash` (T739 ruling 1)
 if [ -z "$prow" ]; then
     echo "    FAIL: T960 (--dsflash alias worker) missing from PROGRESS"; h_fail=1
-elif [ "$(printf '%s' "$prow" | cut -c13-20 | tr -d ' ')" != "flash" ]; then
-    echo "    FAIL: T960 model column should be 'flash', row: '$prow'"; h_fail=1
+elif [ "$(printf '%s' "$prow" | cut -c13-20 | tr -d ' ')" != "dsflash" ]; then
+    echo "    FAIL: T960 model column should be 'dsflash', row: '$prow'"; h_fail=1
 fi
 # each of the four row types carries a time at PROGRESS's elapsed column (23-28)
 DHM=$(python3 -c "import calendar,time;print(time.strftime('%H:%M',time.localtime(calendar.timegm(time.strptime('2026-01-02T03:04:05','%Y-%m-%dT%H:%M:%S')))))")
@@ -419,6 +422,7 @@ echo "  I. banner dropped; zero-row sections print nothing (live file)"
 WORKI=$(mktemp -d /private/tmp/weizigo/wf-trim-XXXXXX)
 mkdir -p "$WORKI/bin" "$WORKI/untracked" "$WORKI/docs/infra/managent"
 ln -s "$MG" "$WORKI/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKI/docs/infra/model-registry.md" 2>/dev/null
 git -C "$WORKI" init -q
 git -C "$WORKI" config user.email t738@test
 git -C "$WORKI" config user.name T738
@@ -467,6 +471,120 @@ if [ -n "$STRIP_I2" ]; then
 fi
 if [ "$i_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKI"
+
+# ── Arm J: T739 ruling 1 — short model names only, via the registry ─────
+# Operator ruling 2026-08-23: every human surface renders SHORT names only —
+# opus, sonnet, haiku, fable, dspro, dsflash, glm, minimax, kimi, qwen,
+# oxalpha. The mapping lives in ONE table (docs/infra/model-registry.md);
+# watch-fleet must render through it, holding no second mapping. A worker's
+# argv can carry the canonical label (--model deepseek-v4-flash), a serving
+# tag (--model glm-5.2:cloud / stealth/ox-alpha) or a startup alias
+# (--dsflash); every form renders its short name, and the model column never
+# shows a hyphen/colon/slash form. Red against the pre-T739 live file, which
+# rendered `flash` (not dsflash), leaked `stealth/ox-alpha` raw, and carried
+# its own hardcoded case.
+echo "  J. short model names only, via the registry table (live file)"
+WORKJ=$(mktemp -d /private/tmp/weizigo/wf-short-XXXXXX)
+mkdir -p "$WORKJ/bin" "$WORKJ/untracked" "$WORKJ/docs/infra/managent"
+ln -s "$MG" "$WORKJ/bin/managent"
+LIVE_COPYJ="$WORKJ/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPYJ" 2>/dev/null
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKJ/docs/infra/model-registry.md" 2>/dev/null
+STOREJ="$WORKJ/docs/infra/managent/tasks.json"
+printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STOREJ"
+# one brief per worker so desc() resolves; each argv carries a different model form
+for pair in "T980:canonical-flash" "T981:serving-glm" "T982:alias-flash" "T983:stealth-ox" "T984:canonical-sonnet"; do
+    id=${pair%%:*}; slug=${pair##*:}
+    printf '<!--managent -->\n# %s — %s\n\nBody.\n' "$id" "$slug" > "$WORKJ/untracked/$id-$slug.md"
+done
+bash -c "cd '$WORKJ' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/T980-canonical-flash.md' sleep 90" & PJ1=$!
+bash -c "cd '$WORKJ' && exec -a 'pi --provider ollama --model glm-5.2:cloud Follow untracked/T981-serving-glm.md' sleep 90" & PJ2=$!
+bash -c "cd '$WORKJ' && exec -a 'bin/subagent --provider deepseek --dsflash T982 Follow untracked/T982-alias-flash.md' sleep 90" & PJ3=$!
+bash -c "cd '$WORKJ' && exec -a 'pi --provider openrouter --model stealth/ox-alpha Follow untracked/T983-stealth-ox.md' sleep 90" & PJ4=$!
+bash -c "cd '$WORKJ' && exec -a 'pi --provider claude --model claude-sonnet-5 Follow untracked/T984-canonical-sonnet.md' sleep 90" & PJ5=$!
+sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+FRAME_J=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREJ" FLEET_COLS=200 sh "$LIVE_COPYJ" </dev/null 2>/dev/null)
+# no second mapping: retag glm in the REGISTRY COPY and capture a second frame
+# WHILE THE WORKERS ARE STILL ALIVE (a later frame would miss them); the frame
+# must follow the table, not a hardcoded case in watch-fleet.
+python3 - "$WORKJ/docs/infra/model-registry.md" <<'PYJ'
+import sys
+p=sys.argv[1]
+s=open(p).read()
+assert '| `glm` |' in s
+open(p,'w').write(s.replace('| `glm` |','| `GLM` |'))
+PYJ
+FRAME_J2=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREJ" FLEET_COLS=200 sh "$LIVE_COPYJ" </dev/null 2>/dev/null)
+kill "$PJ1" "$PJ2" "$PJ3" "$PJ4" "$PJ5" 2>/dev/null; wait "$PJ1" "$PJ2" "$PJ3" "$PJ4" "$PJ5" 2>/dev/null
+j_fail=0
+jm() {  # $1 = task id -> model column (cols 13-20) of its PROGRESS row
+    printf '%s' "$(printf '%s\n' "$FRAME_J" | grep "^  $1 " | head -1)" | cut -c13-20 | tr -d ' '
+}
+jm2() {  # same, for the retagged frame
+    printf '%s' "$(printf '%s\n' "$FRAME_J2" | grep "^  $1 " | head -1)" | cut -c13-20 | tr -d ' '
+}
+[ "$(jm T980)" = "dsflash" ]  || { echo "    FAIL: T980 canonical deepseek-v4-flash -> '$(jm T980)' want dsflash"; j_fail=1; }
+[ "$(jm T981)" = "glm" ]      || { echo "    FAIL: T981 serving glm-5.2:cloud -> '$(jm T981)' want glm"; j_fail=1; }
+[ "$(jm T982)" = "dsflash" ]  || { echo "    FAIL: T982 alias --dsflash -> '$(jm T982)' want dsflash"; j_fail=1; }
+[ "$(jm T983)" = "oxalpha" ]  || { echo "    FAIL: T983 serving stealth/ox-alpha -> '$(jm T983)' want oxalpha"; j_fail=1; }
+[ "$(jm T984)" = "sonnet" ]   || { echo "    FAIL: T984 canonical claude-sonnet-5 -> '$(jm T984)' want sonnet"; j_fail=1; }
+# every PROGRESS model column is short-name shaped: no hyphen, colon or slash
+while IFS= read -r pr; do
+    case "$pr" in
+        '  T98'*) mc=$(printf '%s' "$pr" | cut -c13-20 | tr -d ' ')
+               case "$mc" in *[-:/]*)
+                   echo "    FAIL: model column shows a canonical/serving form '$mc' in '$pr'"; j_fail=1;; esac;;
+    esac
+done <<EOF
+$(printf '%s\n' "$FRAME_J" | sed -n '/^PROGRESS/,/^CONCERNS/p')
+EOF
+[ "$(jm2 T981)" = "GLM" ] || { echo "    FAIL: registry retag glm->GLM not rendered ('$(jm2 T981)') — watch-fleet keeps a second mapping"; j_fail=1; }
+if [ "$j_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKJ"
+
+# ── Arm K: T739 ruling 2 — recovered vertical space becomes visible rows ─
+# Operator ruling 2026-08-23: T738 removed the banner and the empty sections
+# but the layout reserve kept the pre-T738 budget (2k+6), so a data-rich frame
+# left blank lines while DONE/OPEN still had rows to show. Red against the
+# pre-T739 live file: a 40-row terminal with 20 DONE + 20 OPEN rows shows
+# 15+15=30 data rows (35-line frame); green after: 16+16=32 rows (37-line
+# frame). NB one-shot frames exit before the footer (all arms parse them), so
+# the interactive frame would add the 2-line footer: 39 <= 40 with the spare.
+echo "  K. data-rich frame fills the screen — 32 rows shown, frame 37 (live file)"
+WORKK=$(mktemp -d /private/tmp/weizigo/wf-fill-XXXXXX)
+mkdir -p "$WORKK/bin" "$WORKK/untracked" "$WORKK/docs/infra/managent"
+ln -s "$MG" "$WORKK/bin/managent"
+git -C "$WORKK" init -q
+git -C "$WORKK" config user.email t739@test
+git -C "$WORKK" config user.name T739
+STOREK="$WORKK/docs/infra/managent/tasks.json"
+LIVE_COPYK="$WORKK/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPYK" 2>/dev/null
+# 20 DONE (T901..T920, done timestamps) + 20 dispatchable (T921..T940) rows
+python3 - "$STOREK" "$WORKK" <<'PYK'
+import json,sys
+store,wk=sys.argv[1],sys.argv[2]
+d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
+def rec(i,status,done):
+    t="T9%02d"%i
+    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\nBody.\n"%(t,i))
+    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
+for i in range(1,21):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)        # T901..T920 DONE
+for i in range(21,41): rec(i,"dispatchable",None)                      # T921..T940 OPEN
+json.dump(d,open(store,"w"))
+PYK
+FRAME_K=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREK" FLEET_LINES=40 FLEET_COLS=200 sh "$LIVE_COPYK" </dev/null 2>/dev/null)
+k_fail=0
+K_DONE=$(printf '%s\n' "$FRAME_K" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
+K_OPEN=$(printf '%s\n' "$FRAME_K" | sed -n '/^OPEN/,$p' | grep -c '^  T9')
+K_LINES=$(printf '%s\n' "$FRAME_K" | wc -l | tr -d ' ')
+[ "$K_DONE" = "16" ] && [ "$K_OPEN" = "16" ] || {
+    echo "    FAIL: want 16 DONE + 16 OPEN rows shown (recovered space = rows), got ${K_DONE}+${K_OPEN}"; k_fail=1; }
+[ "$K_LINES" = "37" ] || {
+    echo "    FAIL: data-rich one-shot frame should be 37 lines (interactive +footer = 39 <= 40), got $K_LINES"; k_fail=1; }
+[ "$K_LINES" -le "40" ] || { echo "    FAIL: frame $K_LINES lines overflows the 40-row terminal"; k_fail=1; }
+if [ "$k_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKK"
 
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="

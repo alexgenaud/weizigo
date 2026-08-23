@@ -43,10 +43,22 @@ trap 'cleanup; exit 143' TERM                  # kill quits, immediately
 trap 'cleanup; printf "\n"; exit 0'  HUP
 
 dur() { echo "$1" | awk -F: '{if(NF==3)printf"%dh%02d",$1,$2; else if(NF==2)printf"%d'\''%02d",$1,$2; else print $1}'; }
-mdl() { case "$1" in *opus*)echo opus;; *sonnet*)echo sonnet;; *haiku*)echo haiku;; *fable*)echo fable;;
-        *v4-pro*|*dspro*)echo dspro;; *v4-flash*|*dsflash*)echo flash;;
-        *glm*)echo glm;; *minimax*)echo minimax;; *kimi*)echo kimi;; *qwen*)echo qwen;; *gemma*)echo gemma;;
-        *)echo "${1%%:*}";; esac; }
+# Short model names (T739): the single mapping is the "Short names → canonical"
+# table in docs/infra/model-registry.md — watch-fleet holds no second mapping.
+# A worker's argv can carry the short name (the --dsflash startup alias), a
+# canonical label (--model deepseek-v4-flash) or a serving tag (--model
+# glm-5.2:cloud, stealth/ox-alpha); a model string matches a row when it
+# equals, prefixes, or is prefixed by the row's short/canonical/serving-tag.
+# Unknown models fall back to the pre-colon prefix (a rendering fallback, not
+# a map).
+mdl() { awk -F'|' -v m="$1" '
+        /^\| *`[a-zA-Z0-9]+` *\|/ {
+            short=$2; canon=$3; tag=$4
+            gsub(/[` ]/,"",short); gsub(/[` ]/,"",canon); gsub(/[` ]/,"",tag)
+            if (m != "" && (m == short || index(canon,m)==1 || index(m,canon)==1 \
+                || (tag != "" && tag != "—" && (index(tag,m)==1 || index(m,tag)==1)))) { print short; found=1; exit }
+        }
+        END { if (!found) { sub(/:.*/,"",m); print m } }' docs/infra/model-registry.md; }
 mflag() { # $1 = argv; model = the --model arg, else the --dsflash/--dspro startup alias (T591)
     m=$(echo "$1" | sed -n 's/.*--model \([^ ]*\).*/\1/p' | head -1)
     [ -n "$m" ] && { printf '%s' "$m"; return; }
@@ -237,12 +249,18 @@ print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
     for v in np nc nr nd no; do eval "[ -z \"\$$v\" ] && $v=0"; done
-    # T738: the banner is gone, so the fixed reserve is only the headings/blanks of the
-    # sections that will actually print (2k-1), up to 2 "(more)" lines, 1 footer, 1 spare
-    # so the footer never scrolls off — undercounting here is what pushed the title into
-    # scrollback. k=5 (all sections show) gives 2k+6 = 16, the pre-T738 constant.
+    # T739: reserve exactly what the frame prints — k headings + (k-1) separators,
+    # the 2-line footer, one "(more)" per flexible section that can exceed its
+    # MIN_ROWS floor, and 1 spare so the footer never scrolls off. The old 2k+6
+    # kept the pre-T738 banner budget (3 lines), so a data-rich frame left blank
+    # lines while DONE/OPEN still had rows to show; every line recovered here
+    # becomes a visible row (arm K pins 32 vs the old 30).
     k=$(( (np>0) + (nc>0) + (nr>0) + (nd>0) + (no>0) ))
-    avail=$(( ROWS - 2*k - 6 - np - nc - nr ))
+    reserve=$(( 2*k - 1 + 2 + 1 ))                 # headings+seps, footer, spare
+    [ "$nd" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # DONE "(more)"
+    [ "$no" -gt "$MIN_ROWS" ] && reserve=$(( reserve + 1 ))    # OPEN "(more)"
+    avail=$(( ROWS - reserve - np - nc - nr ))
+    [ "$avail" -lt 0 ] && avail=0
     ds=$(( avail / 2 )); os=$(( avail - ds ))
     [ "$ds" -gt "$nd" ] && { os=$(( os + ds - nd )); ds=$nd; }
     [ "$os" -gt "$no" ] && { ds=$(( ds + os - no )); os=$no; }
