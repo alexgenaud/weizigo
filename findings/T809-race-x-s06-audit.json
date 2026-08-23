@@ -1,0 +1,94 @@
+{
+  "task_id": "T809",
+  "date": "2026-08-23",
+  "model": "ox-alpha",
+  "identifier": "ox-alpha/T809",
+  "audited_by": "ox-alpha/T809",
+  "verify_nonce": "NONCE-09bac8950d4f2fd6",
+  "audit_target": {
+    "artifact": "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md",
+    "rev": "rev 2 (AMENDED, awaiting operator ratification)",
+    "author": "deepseek-v4-pro/T748, amended by claude-opus-5/T802",
+    "pins": "authoring pin a1415fe (13:04); amendment measurements pinned to 8c00704",
+    "audited_at": "HEAD past 8c00704 (52ce511); every pin-sensitive claim re-derived with git show at its own pin"
+  },
+  "verdict": "RATIFIABLE-WITH-AMENDMENTS",
+  "verdict_counts": { "major": 2, "medium": 2, "minor": 3, "total": 7 },
+  "measurement": {
+    "task_type": "audit",
+    "task_scope": { "files_read": 14, "lines_read": 4200, "writes": 0, "read_only": true, "scope_class": "few-files" },
+    "capabilities": "long-document coherence across an 804-line spec plus its amendment history and two prior audit records; citation verification against git pins (git show at exact SHAs, distinguishing authoring error from pin drift); counting test arms on disk and mapping them to spec ids; process/log forensics on a live keeper (pid, elapsed, log tick counts, refusal-line filters); absence-proving by exhaustive grep rather than sampling",
+    "claims_load_bearing": 3,
+    "verified": 7,
+    "unverified": 0,
+    "fabricated_citations": 0,
+    "fabricated_citations_assurance": "Every path:line in this file was produced by running sed/grep/git-show and reading the output; line numbers re-checked after each edit; commit hashes resolved with git log before citing; no citation is quoted from a prior document without re-deriving it (the two inherited numbers that failed re-derivation are reported as findings, not repeated)",
+    "flags_total": 7,
+    "sample_size": "Citation checks were exhaustive over the load-bearing set (~35 checks: all 10 cited commit hashes, all 6 §7c ruling refs used normatively, both appetite tables at their pins, all import-line cites, both regression-count claims, keeper-log claims, directives.jsonl emptiness, watch-fleet callers/sections, launchd state, roadmap §6 row count, seed ruling count) — not sampled; the only filter-dependent number (title refusals) is reported under both natural readings rather than one"
+  },
+  "findings": [
+    {
+      "n": 1,
+      "severity": "major",
+      "finding": "The armed count '22 of 31' overcounts what exists on disk: only 7 of 31 normative ids have any arm at HEAD. Verified by running tests/unit/test_s06_conformance.py (24 arms: OK, expected failures=5, 0.02s — all green-as-staged) and mapping its arms to ids: RED expectedFailure arms cover exactly ORC-POL-1, POL-3, POL-4/GATE-2 (one arm), DASH-1/DASH-4 (one arm), ARB-4 — 7 ids. The other 15 ids the spec counts as armed (ARB-1/2/3, DASH-2/3/5, PAUSE-1/2, POL-2/7, PROV-1, REG-1/2/3/4, via §9's C1–C14 flips column) exist only as prose rows describing controls to be written in P3 (ORC-CTRL-2 says so explicitly); repo-wide grep for ORC-* in *.py/*.sh/*.zig returns only the conformance file — no C-control is implemented anywhere. By this bundle's own rule ('an id claimed armed whose arm does not exist ... is a major'), 15 of the claimed 22 are specified, not armed. The 9-unarmed enumeration itself is correct (31 ids recounted in §1–§7 = 4+7+3+5+4+4+4; 22−7=15 planned + 7 on-disk leaves exactly GOAL-1..4, POL-5, POL-6, PAUSE-3, GATE-1, ORIENT-1 unarmed).",
+      "disposition": "Restate the count in three tiers: '7 armed on disk (test_s06_conformance.py), 15 specified in §9's core table and owed as batteries in P3, 9 unarmed and enumerated.' STATUS.md repeats 'armed count 22 of 31' and should carry the same correction. Refutation: if project convention counts a ratified control-table row as an arm until P3 writes it, this downgrades to a wording fix — but the convention is nowhere stated, and §0's own instrument rule ('earns its first reading only after a null control and a seeded-defect control') argues the stricter reading.",
+      "verified_how": "Ran the suite; read every arm's docstring and target regex; grepped the repo for any other implementation of the C-controls; recounted the 31 ids section by section; cross-checked the flips column id-by-id against the conformance file."
+    },
+    {
+      "n": 2,
+      "severity": "major",
+      "finding": "The sprint's headline consolidation — five dispatch doors become one — has no home in the spec. Roadmap §6 censused 'dispatch an execution | 5 ways' (bin/dispatch · subagent direct · runner→provider · suggest · paste-prompt) with the measured cost (159 of 364 executions skipped bin/subagent); roadmap §7 records the operator ratifying rev 2 with the parenthetical 'dispatch rewire (five doors become one)'. The spec itself never enumerates the five routes, assigns none of them a disposition, states nothing about what tools/runner does when an execution arrives by another route after pass 5, and contains no normative id requiring door collapse — grep for 'five doors', 'paste', 'another route', 'side door' returns nothing; `suggest` appears once, and only as a registration-parser call site (ORC-REG-2, spec.md:416). A literal builder executing pass 5 would rewire dispatch+subagent to read policy+registry while leaving three-plus doors open, satisfying every written id while consolidating away the exact number the sprint was ratified to fix.",
+      "disposition": "Add a normative id (e.g. ORC-DOOR-1) before pass 5 is minted: enumerate today's five routes, give each a disposition (route-through-bin/dispatch / refuse / retire), state tools/runner's behaviour for out-of-door arrivals (refuse, naming the one door — consistent with ORC-POL-6's unknown-model→refusal class), and arm it in §9. Refutation: any passage in the spec naming the five routes and each one's fate.",
+      "verified_how": "Full-text searches of the spec for door/route/suggest/paste vocabulary; cross-read roadmap §6 table and §7 ratification paragraph; confirmed ORC-GOAL-1's 'dispatches one command' is goal prose with no id-level requirement behind it."
+    },
+    {
+      "n": 3,
+      "severity": "medium",
+      "finding": "(a) The operator's binding interleave ruling (roadmap §7: ordinary unrelated work must flow through the changed mechanism between passes, per pass recorded) is not accommodated anywhere in the spec — 'smoke' appears once, only as 'commit → deploy → smoke' (spec.md:504), and the P1–P5 phase plan has no inter-pass smoke slot or recording duty; STATUS.md does not mention it either. (b) Adjacent undispatchability hazard: ORC-PLAN-3 step 1 'absorbs window_policy.py, directive_policy.py', which verifiably gate every dispatch today (import window_policy at bin/dispatch:87 [88 at the 8c00704 pin] and bin/subagent:70; import directive_policy at bin/dispatch:86 [87 at pin] and tools/runner:128), while their consumers are rewired only at step 5. ABSORB's retirement timing is defined for regression scripts ('shell script retired at phase close', ORC-PLAN-4) but never for the six migration targets themselves — nothing states the modules keep being imported until pass 5 lands. Read literally, step 1 can delete both files and leave the fleet undispatchable for the whole of passes 2–5, which would also make the interleave ruling unexecutable.",
+      "disposition": "One amendment sentence fixes both: absorbed modules are retired when their LAST importer is rewired (pass 5 close), not at their own pass's close; and each pass's completion condition includes the recorded smoke tasks per the roadmap §7 ruling.",
+      "verified_how": "Import lines read at HEAD and at the 8c00704 pin (drift of −1 attributed to T805's usage-text removal, 346b5b2); spec full-text searched for smoke/interleave/between-passes; ORC-PLAN-3 and ORC-PLAN-4 read for retirement timing."
+    },
+    {
+      "n": 4,
+      "severity": "medium",
+      "finding": "ORC-GOAL-2's first column mis-measures untracked/watch-fleet.sh at its own pin: 304 stated, 286 actual (`git show a1415fe:untracked/watch-fleet.sh | wc -l` = 286). 304 is the count at 402922f (T739, committed 13:10 — five minutes AFTER the a1415fe pin at 13:04:59), so the number was taken at the wrong commit. Both rolled-up figures inherit it: '3479 lines' at a1415fe is actually 3461, and the load-bearing growth claim '+129 in eight hours' is actually +147 (3608−3461); watch-fleet's per-file delta is +25 (286→311), not +7. The argument's direction is unaffected — indeed strengthened — but these are the numbers the accept question ('did we actually shrink it') is calibrated against, and STATUS.md/T802 repeat them. All five other first-column counts and all six second-column counts reproduce exactly at their pins (verified per file).",
+      "disposition": "Correct the watch-fleet row to 286 @a1415fe, the total to 3461, and the delta to +147, in the spec and in STATUS.md. Refutation: a measurement of watch-fleet.sh at a1415fe returning 304 — reproducible only if wc -l is not the counting convention, which nothing states.",
+      "verified_how": "git show at a1415fe, 402922f, 8c00704 and HEAD; git log --follow for the file's revision history; arithmetic re-added per column and for the delta."
+    },
+    {
+      "n": 5,
+      "severity": "minor",
+      "finding": "ORC-DASH-4's pane note 'directives.jsonl empty' is false: docs/infra/managent/directives.jsonl holds 131 records (all read:true; kinds amend/pause/resume/kill/question). No record currently enforces a pause, so the pane's display consequence may still be right, but the stated reason is wrong — and the path is given without its directory anywhere in §4.",
+      "disposition": "Reword to 'no live pauses — no un-discharged directive pauses in docs/infra/managent/directives.jsonl' or similar.",
+      "verified_how": "Parsed the file with a JSON decoder (131 records, schema keys id/target/directive/note/from/ts/read)."
+    },
+    {
+      "n": 6,
+      "severity": "minor",
+      "finding": "Pass 1 buildability (§ORC-POL alone): buildable, but a competent worker must guess at seven points. (a) Named-condition expiry resolution: no source of truth exists for 'next-ollama-quota-refresh' or 'blind-test-reveal' — who detects the condition, from what signal, is unstated; nothing today emits either event. (b) Post-lapse semantics: when an entry's expiry lapses, is the entry ignored (→ unknown model → refusal under ORC-POL-6's new rule?) or enforced stale? For oxalpha this means blind-test-reveal silently converts dial-6 into a refusal unless someone edits the file — possibly intended, nowhere stated. (c) glm/minimax/kimi are encoded twice (dial 0 AND model-level deny, same expiry string); precedence if they lapse differently is unstated. (d) 'family setting is bulk convenience' (ORC-POL-3) has no schema form — the worked example has no family appetite entry to copy. (e) Validation strictness unspecified: unknown fields refused or ignored; schema_version mismatch behaviour. (f) The override record appended to untracked/fleet-window-overrides.jsonl (ORC-POL-7) has no stated shape. (g) The reader↔block mapping is unstated — e.g. whether bin/subagent enforces cooldowns pre-launch or only bin/dispatch does.",
+      "disposition": "None require re-ratification; items (a)–(c) should be answered in the P2 design doc explicitly rather than by whichever choice the implementer reaches first. Refutation for (a): a passage naming the quota-refresh signal would remove guess (a).",
+      "verified_how": "Read §2 and §3 end-to-end against the worked example; grepped the repo for any existing quota-refresh/blind-test-reveal signal producer (none found); checked fleet-window-overrides.jsonl's existing format (free-form lines, no schema to inherit)."
+    },
+    {
+      "n": 7,
+      "severity": "minor",
+      "finding": "Supporting-material defects found while verifying the spec's evidence (none are in the spec itself). (i) STATUS.md and T802's '226 title-limit refusals across 6 rows' does not reproduce under either natural filter of untracked/log/fleet-keeper.log: lines matching REFUSED+title = 226 but across 3 rows (T513 ×22, T548 ×203, T551 ×1); all lines naming the 40-char limit = 452 across 8 rows (T11 ×22, T15 ×4, T16 ×76, T17 ×95, T18 ×29, T513 ×22, T548 ×203, T551 ×1). No 6-row subset sums to 226 under either reading. The claim's direction (a taste gate blocked real dispatches, repeatedly) survives — strengthened, actually. (ii) Import-line citations drifted post-pin (dispatch:88/87 → 86/87 via T805) — correctly attributable pin drift, not an error. (iii) The keeper-incident numbers DO reproduce exactly: pid 99956 alive (elapsed now 3d05h vs 3d04h measured), cooldown flag present (0 bytes, Aug 20), last dispatch 2026-08-20T18:25:26Z T554 → claude-fable-5 to the second, tick count grown consistently (8,954 now vs 8,747 claimed at 19:40Z), 21 dispatchable rows match live kanban output, plist present with no launchd job loaded.",
+      "disposition": "Correct the refusal census in STATUS.md (or state the exact filter that yields 226/6) before it becomes load-bearing for ORC-GATE-1.",
+      "verified_how": "grep with both filters over the keeper log; uniq -c per row; ps and launchctl for the process claims; cross-checked against orient's live dispatchable count."
+    }
+  ],
+  "what_verifies_cleanly": [
+    "Both appetite tables verified disagreeing exactly as amended: fleet-keeper.sh:325 DEFAULT_APPETITE (ollama SPEND, fable RESERVED, no ox-alpha → 'other' fallthrough) vs main.zig family_appetite at 8c00704 (ollama-cloud OFF, claude-fable RESERVED, ox-alpha spend) — same model, different family name, different appetite for the three ollama models.",
+    "cooldown_set() verified as described: os.listdir + basename membership, OSError → True dead-man's switch (tools/fleet-keeper.sh:399-408).",
+    "All four §7c rulings consumed normatively verified at their text: §7c.11 (dial 0–9 per MODEL — confirming T802's finding that it lives only in prose), §7c.12 (can/should), §7c.15 (lane_cap deepseek 6 / ollama-cloud 5 / claude 3 / fable 1 / local 1 — matches the caps worked example value-for-value), §7c.18 (kernel-attested identity Security Must, embedded in the runaway_streak ruling), §7c.21 (two-tier closure + audit cap), §7c.33 (fan-out 3).",
+    "All ten cited commits resolve with matching subjects/times (2ec4f93, cf7fc68, be87b34, e842dbf, 1b8baa0, e946739, b436c63, 11b69b8, 5d6fe6f, 402922f). Regression-script counts verified at all three pins: 75 @a1415fe, 80 @8c00704, 81 live — matching the spec's own drift table.",
+    "T732 baseline re-derived from git show 5d6fe6f --stat: 73+/5− across 5 files minus the 8-line self-referential findings record = 4 tracked files, 65+/5− — exactly as cited.",
+    "Absorb-vs-delete evidence all reproduces: both 'no-production-caller' targets verifiably gate every dispatch (imports above); watch-fleet.sh has no exec caller anywhere (human-invoked only); the seed doc carries exactly 8 rulings; roadmap §6 holds exactly 10 multi-way jobs (appetite absent — the 11th claim stands); D036 is a real 2026-08-20 deny-default ruling; model-registry.md is the one short-name table.",
+    "watch-fleet's five rendered sections (PROGRESS/CONCERNS/RECENT/DONE/OPEN) confirmed disjoint from ORC-DASH-4's five — T802's row-10 finding stands.",
+    "tests/unit/test_s06_conformance.py runs clean as staged (24 arms, OK, expected failures=5) and TestDispositionCount's live check passes against the true count of 81."
+  ],
+  "claims": [],
+  "new_rows": [],
+  "inbox_directives": "polled at claim and pre-close: empty both times; no directive IDs to record",
+  "notes": "T809 — RACE-X independent audit of S06 spec rev 2, one of three concurrent entrants (T807/T808/T809), written blind to the others. Read-only: no source, spec, or STATUS file touched. Landmark: advances L1 (hands-off orchestration) — cuts BOTH ways: rev 2's factual substrate verifies unusually cleanly (every incident number, both appetite tables, all §7c consumptions, all commit pins reproduce), which is rare and worth saying; but two majors stand between it and a build-safe ratification — the armed-count figure counts planned controls as existing arms (7 of 31 on disk, not 22), and the ratified 'five doors become one' deliverable has no normative id, no route enumeration, and no out-of-door behaviour for tools/runner, so a literal pass-5 could satisfy every written id while consolidating nothing. Milestone statement: advances L1 (hands-off orchestration) — the spec's evidence base now independently verifies, and the two amendments owed before pass 1 are named with their dispositions; what remains for L1 is ratification-with-amendments, then the six passes."
+}
