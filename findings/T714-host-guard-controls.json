@@ -1,0 +1,31 @@
+{
+  "task_id": "T714",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T714",
+  "claims": [],
+  "new_rows": [],
+  "audited_by": null,
+  "contract": {
+    "env": "WEIZIGO_HOST_TENANT_RESERVATION_MB",
+    "semantics": "Declared-tenant reservation in MB. When set, the runner adds it to the WEIZIGO_HOST_MEM_AVAIL_MB reading (available-to-the-fleet = available + reservation) before comparing against the danger floor; the host guard fires only when available-to-the-fleet < floor. Unset ⇒ production behaviour, byte-identical to today. Parallel to the existing WEIZIGO_HOST_MEM_AVAIL_MB injection hook — the floor is never tested by exhausting the host.",
+    "owner": "T711 (implemented to make T714's fixtures pass; this is the spec of record until T711's own spec amends it)"
+  },
+  "controls": {
+    "null": "Injected qwen-resident pressure (WEIZIGO_HOST_MEM_AVAIL_MB=100, floor pinned at 4096 via --host-mem-floor-mb) WITH a declared-tenant reservation (WEIZIGO_HOST_TENANT_RESERVATION_MB=8000) present: five concurrent guarded lanes must COMPLETE (exit 0 + completion marker, no 'host memory pressure').",
+    "seeded_defect": "A true runaway (bytearray(200*1024*1024) under --rss-cap-mb 50, --no-host-guard) must still DIE with exit 124, 'RSS cap 50 MB exceeded', and the run record's killed_by == 'rss' — the per-group RSS cap still enforces the 2026-07-29 panic floor."
+  },
+  "red_against_head": {
+    "command": "sh tools/regression-runner-host-guard.sh",
+    "exit_code": 1,
+    "null_control": "RED — 5/5 lanes exited 124 with 'host guard fired'. HEAD has no tenant subtraction, so the injected low reading (100 MB < 4096 MB floor) fires the T362 host guard on every lane, killing them before they complete. This is the expected pre-fix state.",
+    "seeded_defect": "GREEN — exit 124, 'RSS cap 50 MB exceeded', run record killed_by=rss. The per-group RSS cap still bites.",
+    "isolation": "PASS — no fixture heartbeat lines (T714HG) appended to the live untracked/heartbeat.jsonl during the run (T512/F3)."
+  },
+  "files": [
+    "tools/regression-runner-host-guard.sh (new — the controls, wired as test_step.dependOn)",
+    "build.zig (wired the regression into `zig build test`, after the T362 runner-guard block)",
+    "findings/T714-host-guard-controls.json (this file)"
+  ],
+  "notes": "T714 (controls before the fix, test-first) — advances L1 (dispatch tooling): the host guard's composition is now testable. WHAT SHIPPED: tools/regression-runner-host-guard.sh, two arms per the brief — (null) injected qwen-resident pressure with a declared-tenant reservation present, five concurrent guarded lanes must COMPLETE; (seeded-defect) a true runaway inside a lane's own process group still dies with killed_by=rss. The script fixes the CONTRACT T711 implements: WEIZIGO_HOST_TENANT_RESERVATION_MB (declared-tenant reservation in MB, added to the available-memory reading; available-to-the-fleet = available + reservation; fires only when that sum < floor). Fixtures never exhaust the host — the red reading is WEIZIGO_HOST_MEM_AVAIL_MB=100 and the floor is pinned with --host-mem-floor-mb 4096, both host-independent. SHOWN RED against HEAD: the null arm fails 5/5 (each guarded lane exit 124, 'host memory pressure') because HEAD has no tenant subtraction; the seeded-defect arm is GREEN (killed_by=rss in the run record) and the isolation check passes. WIRED into `zig build test` via a test_step.dependOn block in build.zig placed immediately after the T362 runner-guard regression; the null arm is EXPECTED-RED until T711 lands, which is the fleet-level test-first gate the blocked T711/T712/T713 turn green. One-writer note: build.zig is edited by T714; its only declared holders are T702 (done) and T531 (dispatchable, not in_progress), so no active holder collided. The live kanban and live untracked/ are never touched — scratch repo under /tmp/weizigo, MANAGENT_TASK_ID (env, not --task-id) names the fixture runs so no auto-claim fires, and the closing scan asserts no fixture heartbeat landed in the live heartbeat.jsonl (T512/F3). Inbox loop (T352): `bin/managent inbox T714 --ack` polled at start and before done — no directives received. No CLAIMS.md changes proposed (claims=[]); claimlint floor untouched."
+}

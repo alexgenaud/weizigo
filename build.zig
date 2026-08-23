@@ -316,6 +316,24 @@ pub fn build(b: *std.Build) void {
     runner_guard_regression.cwd = b.path(".");
     test_step.dependOn(&runner_guard_regression.step);
 
+    // ── declared-tenant host guard controls (T714, test-first) ────────
+    // T626/T700 kill chain: the T362 host guard reads system-wide available
+    // memory and, below the floor, SIGKILLs the largest member of its OWN
+    // group — but the resident MLX/Ollama model server is a named tenant
+    // OUTSIDE every group, so its ~15–20 GB makes the host read red and the
+    // kill lands on an innocent lane.  T711 teaches the guard to subtract a
+    // DECLARED TENANT reservation; this is the controls, written FIRST.
+    //   null control: injected qwen-resident pressure + declared-tenant
+    //     reservation — five concurrent guarded lanes must COMPLETE.  RED
+    //     against HEAD (no tenant subtraction); GREEN after T711.
+    //   seeded-defect: a true runaway still dies with killed_by=rss (the
+    //     per-group RSS cap still enforces the 2026-07-29 panic floor).
+    // The null-control arm is EXPECTED-RED until T711 lands — that red is
+    // the fleet-level test-first gate the blocked T711/T712/T713 turn green.
+    const runner_host_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-host-guard.sh" });
+    runner_host_guard_regression.cwd = b.path(".");
+    test_step.dependOn(&runner_host_guard_regression.step);
+
     // ── startup-liveness controls (T586) ────────────────────────────
     // The nonce-stall failure mode: a dispatched pi/deepseek worker
     // produced ZERO stdout/stderr for its whole run (its activity goes only
