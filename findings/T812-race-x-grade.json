@@ -1,8 +1,10 @@
 {
   "task_id": "T812",
   "date": "2026-08-23",
+  "model": "claude-haiku-4-5-20251001",
   "grader": "claude-haiku-4-5-20251001",
   "grading_round": "RACE-X: grade three concurrent audits of S06 spec rev 2",
+  "claims": [],
   "per_item": [
     {
       "finding_class": "Armed count overcounting",

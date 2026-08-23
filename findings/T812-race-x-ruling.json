@@ -1,8 +1,10 @@
 {
   "task_id": "T812",
   "date": "2026-08-23",
+  "model": "claude-haiku-4-5-20251001",
   "grader": "claude-haiku-4-5-20251001",
   "identifier": "claude-haiku-4-5-20251001/T812",
+  "claims": [],
   "per_item": [
     {
       "question_number": 1,
