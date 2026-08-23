@@ -1,0 +1,205 @@
+{
+  "task_id": "T749",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "identifier": "claude-opus-5/T749",
+  "landmark": "L2 (proven 4x4 values) — the Waypoint-3 decomposition; L1 (the dashboard tells the truth) carries the five-model comparison exhaust",
+  "claims": [],
+  "new_rows": [],
+  "deliverable": "docs/epics/E1-markovian/waypoint-3-decomposition.md — 19 registerable rows in 4 waves, PROPOSAL, registers nothing",
+  "synthesis": {
+    "trunk": "T740 (claude-opus-5) — chosen for the measured starting state with a printed command per number, per-row deliverables/holds/needs/acceptance/worked-example/size, the shard-per-tree-node disposition surface with C15 row-set equality, and a finish gate that ships its own seeded controls.",
+    "row_count_by_lane": {
+      "T742": 9,
+      "T741": 12,
+      "T744": 13,
+      "T743": 16,
+      "T740": 17,
+      "T749_merged": 19
+    },
+    "grafts_adopted": [
+      "T742 §0 — the two non-relitigable rulings (G3b discharged 2026-08-05; Track A discharged-by-provenance T472, because retro.zig writes only .wzo and never .wzo2, making 'Track A regen' a category error against the WZO2 artifact). Highest-value single contribution in the race: it deletes T743's largest row and one of T744's.",
+      "T743 — the per-family enumeration of actual register row IDs (what makes each Wave-2 row poppable with no discovery step); the T531 live-hold-set check (OPEN-9, only lane to run it); worker-day sizings (only lane to quantify); 'seeding provenance is the cheapest gap in the tree'; the findings-file-not-direct-write convention that makes Wave 2 concurrent.",
+      "T744 — the mechanical definition of 're-verified' (adopted verbatim as the preamble); the 4x3-not-in-the-theorem finding (became row W3-17); 'either verdict is a pass; silence is not' on the kill matrix; the poppable-rule articulation (ruling queued behind the bundle, not blocking the row); 'any counter that is impossibly clean is itself a finding'.",
+      "T741 — the measure/write split rationale (CLAIMS.md is the scarce resource because every absorption writes it — the argument FOR T740's shard design); family-batched retirement asks (8 family asks, not 116 row asks); the conservative default that any family unruled at gate time stays live, so nothing stalls; two verified staleness findings folded into W3-14.",
+      "T742 — gate-first instinct, adopted in modified form: C15 ships report-only in W3-01 and becomes failing only in W3-19, so the discipline lands without 231 TODO cells breaking the pre-commit hook on day one; the per-row disposition schema (instrument/evidence/null_control/seeded_control/auditor) grafted into the shard cell because gate condition 4 needs control paths machine-readable."
+    ],
+    "disagreements_escalated_not_resolved": [
+      "6.1 Where dispositions live: shard dir (T740) vs standalone JSON ledger (T742/T743) vs 12th CLAIMS.md column (T305 precedent). Recommend shards + T742's schema in the cell. Only W3-01's deliverable changes either way.",
+      "6.2 What goes first: gate (T742) vs kill matrix (T743/T744) vs recording surface (T740) vs inventory with the mutation row late (T741). Recommend surface -> currency -> gate-last, W3-00 ahead of all. T741 is mechanically right that edge 5 gates promotion not dispatch; W3-02 still goes early because a Wave-2 promotion taken on a stale matrix must be redone.",
+      "6.3 SHARPEST: whether 'no UNTESTED survives' is a finish condition (T742 rule R3) or whether NA:<named blocker> is a completed disposition (T740 W3-07). Incompatible. 21 rows are UNTESTED, several because the instrument does not exist. Recommend T740's; R3 would force either a large unbudgeted measurement programme or a dishonest status change, and DIRECTION asks for re-derived/demoted/retired, not proven. Mitigation: every NA: cell must name what would change it, and W3-18 surfaces the whole NA: set in one place.",
+      "6.4 Whether 4x3 is in the theorem. AXIOMS.md:20 names {2x2,3x2,3x3,4x4}; the register holds 14 4x3-scoped rows plus 6 multi-size scopes including it. Only T744 noticed; the other four silently treated 4x3 as a rung. Became W3-17; ruled on W3-18's sheet. Do NOT retire the rows.",
+      "6.5 Granularity 9..17 and the phantom --bundle row. All five lanes agreed the phantom closes and none proposed re-executing the audit. Recommend closing it as kanban hygiene outside Waypoint 3, preferably by landing T775's strict flag parsing so the class cannot recur."
+    ]
+  },
+  "new_findings_this_synthesis": [
+    {
+      "id": "F1",
+      "severity": "high",
+      "summary": "C8 — the gate guarding every promotion Waypoint 3 exists to make — is VACUOUS today and reads clean.",
+      "detail": "src/claimlint.zig counts a C8 violation only for claims at PROVEN (verified at :2982; its own calibration arm 9b asserts the CLAIMED silence deliberately). Every kernel claim is held at CLAIMED by Amendment-2 edge 5. So the run prints 'kernel-function claims in kill matrix: 3 / with at least one unkilled mutant: 3 / at PROVEN (violation): 0' and the SUMMARY line prints 'C8 mutation-adequacy violations 0'. C8 therefore reads 0 because Waypoint 3 has not run, not because the mutants are killed — and it will fire, on a matrix three lanes already know is stale, at the exact moment Waypoint 3 first tries to promote something.",
+      "evidence": "bin/weizigo-claimlint at HEAD 2ec4f93, C8 section and SUMMARY; src/claimlint.zig:2075-2127,2982; docs/epics/E1-markovian/sprints/verify-battery/pass1/kill-matrix.json (total_mutants 10, mutants_killed 3)",
+      "how_the_race_exposed_it": "T740 read the detail lines and reported 3. T741 read the summary line, reported 0, concluded the headline ratio was stale and mutation adequacy effectively closed — and therefore carries NO kill-matrix reconciliation row, alone among the five. Both readings are literally correct from the same run. The gap between them IS the defect. This is the CODE.BATTERY-STUBBED shape (a check that passes because it does not run) reappearing in the meta-layer.",
+      "disposition": "W3-02 acceptance now requires C8 to report the stale-matrix condition whether or not any claim is at PROVEN, plus a null control (restore the old JSON) and a seeded control (mark a killed mutant survived at PROVEN)."
+    },
+    {
+      "id": "F2",
+      "severity": "medium",
+      "summary": "A rescinded scope limit was absorbed into one register row and not its two siblings, and it cost a lane a whole proposed row.",
+      "detail": "T473 made I11 exhaustive at 4x4 (0/48,636,330 SMD1 slice records + 0/99,133,036 stored table entries, 69.5s wall, 558MB RSS, docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md). 4x4.C1 (CLAIMS.md:328) records the rescission explicitly. 4x4.FP1 (:304) and GLOBAL.H4 (:471) BOTH still carry the stale limit verbatim: 'I11 at 4x4 is a 50,000-state sample of 99,133,036 (0.05%)'. T744 read a sibling row and proposed W3-10 'Exhaustive I11 at 4x4' at size L — dead work, honestly derived from a live register sentence.",
+      "evidence": "docs/epistemic/CLAIMS.md:304,328,471; tasks.json T473 verdict note",
+      "disposition": "New row W3-05 (wp3-stale-scope-sweep, S) sweeps the rescinded limits and the register-tree-map 228-vs-231 prose drift, with a seeded control: re-insert one rescinded limit into a scratch register and the row's own grep must find it."
+    },
+    {
+      "id": "F3",
+      "severity": "medium",
+      "summary": "Four of five lanes claimed conflict-free holds against a hold set that T531 already owns.",
+      "detail": "T531 is in_progress (stalled, no verdict note) and declares holds on 20 paths including src/rules.zig, src/differential.zig, src/vb_closure.zig, src/vb_i11.zig, src/vb_graph.zig, src/vb_fixpoint.zig, src/vb_health.zig, src/verify_battery.zig, src/colex.zig and build.zig. T741 rows 3-4 hold differential.zig; T742 W3-1, T744 W3-03 and T740 W3-17 each wire build.zig. Only T743 (OPEN-9) checked, and it routed its new instruments to fresh src/w3_*.zig files to avoid the set — the right pattern, adopted for every new instrument in the merged row set.",
+      "evidence": "docs/infra/managent/tasks.json T531.holds; bin/managent orient (T531 [stalled])",
+      "disposition": "New row W3-00 (wp3-hold-release, XS) settles T531 before anything else dispatches. Conflict-free holds is a claim about the LIVE hold set, not about the proposal."
+    },
+    {
+      "id": "F4",
+      "severity": "low",
+      "summary": "The phantom --bundle row is a duplicate registration caused by flag parsing, not a lost audit.",
+      "detail": "The dispatchable row's task id is the literal string '--bundle' and its bundle field is untracked/T430-phase2-audit.md — BYTE-IDENTICAL to T433's own bundle field, and T433 is done (pass-with-findings, F-a..F-f, residual F3-F5 line-citation errors, delivered as docs/infra/tool-consolidation/02-scope-audit.md). Only untracked/T430-doctor-console-permanently-green.md and untracked/T433-phase2-audit.md exist on disk. All five lanes found the phantom and read it correctly; none identified the duplicate-of-T433 aetiology, which places it in the same defect family as T760 (--needs comma split) and the queued T775 (strict flag parsing). T747 independently flagged it as needing retire/purge.",
+      "evidence": "docs/infra/managent/tasks.json ['--bundle'] and ['T433']; ls untracked/T43*; findings/T747-landmark-gate.json notes",
+      "disposition": "Kanban hygiene outside Waypoint 3; prefer closing it by landing T775 so the class cannot recur (prose is not a remedy for a mechanism failure)."
+    },
+    {
+      "id": "F5",
+      "severity": "low",
+      "summary": "The WZO2 reader is parametric but the writer is hardcoded, so three of five ladder rungs are unrunnable and two lanes mis-stated the hold.",
+      "detail": "src/vb_closure.zig:81-82 parses w,h from the WZO2 header, so the closure reader is genuinely size-generic (T741 correct). But no WZO2 artifact exists at 2x2, 3x2 or 4x3 (only data/oracle-3x3-v2.wzo2 261KB and data/oracle-4x4-v2.wzo2 518MB, both under gitignored data/), and src/oracle_v2_build.zig:543 formats its output path as a literal 'oracle-4x4-v2.wzo2'. So 'kernel vs fixtures differentially at every rung' is presently unrunnable below 3x3. T741 has no artifact-creation row at all and asserts 'no new code needed'; T743 likewise has no artifact row; T742's W3-3 claims 'no src/ ownership (runs oracle_v2_build.zig)'. T740's W3-03 and its OPEN-5 called it exactly right.",
+      "evidence": "src/vb_closure.zig:75-90; src/oracle_v2_build.zig:543; ls artifacts/ data/; .gitignore:4; git ls-files artifacts data",
+      "disposition": "W3-03 holds src/oracle_v2_build.zig and delivers the writer generalisation plus three TRACKED artifacts under artifacts/, with byte-identical rebuild, a 3x2/4x3 transposition control, and a seeded value-flip control."
+    },
+    {
+      "id": "F6",
+      "severity": "informational",
+      "summary": "Every lane's 'Waypoint vs Phase' OPEN was resolved by events between their HEAD and this synthesis; no lane fabricated a citation.",
+      "detail": "The lanes ran at 3ce328e, where docs/epics/E1-markovian/PHASES.md existed (git ls-tree confirms). T757's Race W landed the rename in b0deab1..4cc4255, after their HEAD: PHASES.md is now WAYPOINTS.md and DIRECTION.md:123 says 'Waypoint 3'. T744's report that 'no ratified rename text exists in docs/' was true when written. Recorded so no reader charges the lanes with citing a non-existent file.",
+      "evidence": "git ls-tree -r 3ce328e | grep PHASES; git log 3ce328e..HEAD; docs/audits/2026-08-02-grand-audit/DIRECTION.md:123; docs/epics/E1-markovian/WAYPOINTS.md:14-22"
+    }
+  ],
+  "race_i_comparison": {
+    "protocol": "Each lane's four brief-required sections scored present/absent on its own text. Row quality scored on three mechanical properties the brief names: poppable (one bundle, no human mid-flight), conflict-free holds (checked against the LIVE hold set, i.e. T531), mechanized acceptance (a command or exit code, not prose). Every factual claim spot-checked against DIRECTION.md / CLAIMS.md / tasks.json / the source tree at HEAD 2ec4f93. Independent re-census of the register (231 rows, status distribution, per-node distribution, per-goban distribution) run once and compared against all five.",
+    "no_lane_owed_a_findings_json": "All five bundles declared exactly one deliverable — findings/T74n-waypoint3-spec.md. T744 noted it wrote no findings JSON because a work decomposition makes no claim about the engine; that is correct against its bundle, and no lane is delinquent.",
+    "lanes": [
+      {
+        "lane": "T740",
+        "model": "claude-opus-5",
+        "lines": 643,
+        "rows": 17,
+        "sections_covered": "4/4",
+        "row_quality": {
+          "poppable": "yes",
+          "conflict_free_holds": "CLAIMED BUT FALSE — W3-17 holds build.zig, which T531 holds",
+          "mechanized_acceptance": "yes — a printed command per acceptance condition"
+        },
+        "verification": "Measured starting state reproduces EXACTLY against an independent census: 231 rows; 66/59/51/22/21/7/3/1/1 status split; believed=125; all 24 per-node believed counts; the rung x artifact table; .gitignore:4; oracle_v2_build.zig:543 hardcoded; the C8 detail lines; kill-matrix.json 3 vs mutants.md 10/10 with all ten fixtures present at the cited line numbers. Nothing fabricated. Only drift: C10 1227 vs 1237 at my HEAD, explained by findings files added in between.",
+        "errors": [
+          "Read C8's detail lines correctly (3) but drew no conclusion about the summary line a reader actually sees — the vacuity in F1 went unnamed.",
+          "Missed T531's live hold set (F3).",
+          "Did not state the T472 Track-A ruling, so its rows do not explicitly foreclose a regen (it never proposed one, so this is a missing guard, not a wrong row)."
+        ],
+        "strengths": "Best-structured of the five and the chosen trunk. Every number carries its command. The shard design with C15 row-set equality is the strongest structural idea in the race, and it is offered WITH its divergence from the T305 precedent flagged as the one ruling wanted before dispatch. The only lane whose finish gate ships its own three seeded controls ('a gate that passes all four is not a gate'). Correctly diagnosed the T430 phantom AND gave the right recommendation. Best control-discipline section: three named disciplines, each tied to the specific past incident that motivates it.",
+        "verdict": "trunk"
+      },
+      {
+        "lane": "T741",
+        "model": "claude-sonnet-5",
+        "lines": 330,
+        "rows": 12,
+        "sections_covered": "4/4",
+        "row_quality": {
+          "poppable": "yes — and the clearest statement of why row 2 does not block on the human",
+          "conflict_free_holds": "CLAIMED BUT FALSE — rows 3-4 hold differential.zig, which T531 holds; the row3->row4 serialization on a file hold rather than a logical dependency is honest and explicitly labelled as such",
+          "mechanized_acceptance": "yes"
+        },
+        "verification": "Three of its four §0 staleness findings verified correct (C-A1/C-A2 already run exhaustively; register-tree-map §5 item 5 superseded; the phantom --bundle row). The fourth is half wrong and consequentially so — see errors.",
+        "errors": [
+          "MOST CONSEQUENTIAL LANE ERROR IN THE RACE: read C8's summary line (0), concluded the 6/10 headline was stale and mutation adequacy effectively closed, and therefore carries NO kill-matrix reconciliation row — alone among the five. kill-matrix.json, the only file C8 reads, still says 3, and C8's 0 is vacuous (F1). The reading was reassured by a blind gate, which is precisely the failure mode the project's own never-trust-a-green-test doctrine names.",
+          "Rows 5-9 assert vb_closure needs 'no new code' to run below 3x3. The reader is parametric, but there is no artifact below 3x3 and the writer is hardcoded (F5) — and T741 has no artifact-creation row at all, so three of five rungs are unrunnable in its plan."
+        ],
+        "strengths": "Shortest spec at full 4/4 coverage — the highest information density of the five. Best treatment of DIRECTION Amendment 2: applies all five dependency edges one at a time and concludes, correctly, that Waypoint 3 has been dispatchable since T305/T292 closed and was simply never decomposed. The measure/write split rationale (CLAIMS.md is the scarce resource because every absorption writes it) is the best-argued design point in the race and is the argument for the trunk's shard design. Row 11's 'alternative considered, rejected, and here is exactly when to reverse it' is exemplary spec writing. Family-batched retirement (8 asks, not 116) is a real efficiency the trunk lacked. Five explicit OPENs, including admitting it read mutants.md §7 rather than T292's shipped diff.",
+        "verdict": "graft — design rationale and the retirement batching; its row set is not safe to execute as written (no artifact row, no kill-matrix row)"
+      },
+      {
+        "lane": "T742",
+        "model": "deepseek-v4-pro",
+        "lines": 440,
+        "rows": 9,
+        "sections_covered": "4/4",
+        "row_quality": {
+          "poppable": "yes",
+          "conflict_free_holds": "PARTIAL — W3-1 honestly says it 'touches build.zig (serialize through the Orchestrator)' but the T531 collision is unnoticed; W3-3's 'no src/ ownership (runs oracle_v2_build.zig)' is WRONG, the writer needs generalising (F5)",
+          "mechanized_acceptance": "yes — R1..R8 each print their own count on failure, never a silent pass"
+        },
+        "verification": "§0's two rulings verified exactly, including the mechanism: T472's discharge-by-provenance turns on retro.zig writing only .wzo and never .wzo2, which is why 'Track A regen' is a category error against the WZO2 artifact. Nothing fabricated.",
+        "errors": [
+          "W3-3's hold claim (F5).",
+          "Gate rule R3 ('no live row's status is UNTESTED') would force either a large unbudgeted measurement programme or a dishonest status change against 21 UNTESTED rows; escalated as §6.3 rather than adopted.",
+          "9 rows is under-decomposed for 231: W3-2 alone covers the whole Z-R family plus Z-STATE-LEGAL, Z-R-SCORE and Z-STATE-KEY across five sizes at size L — that is not one bundle."
+        ],
+        "strengths": "HIGHEST-VALUE SINGLE CONTRIBUTION IN THE RACE: §0's two non-relitigable rulings, which between them delete T743's largest row (5-10 worker-days) and one of T744's. Gate-first is the right instinct and is adopted in modified form. The ledger JSON entry is the most concrete disposition record offered, and its control-path fields are what the merged gate's condition 4 checks. Six OPENs, including the honest 'OPEN if the seat meant something else' on the T430 reading rather than asserting its interpretation.",
+        "verdict": "graft — the two rulings are load-bearing for the whole synthesis; the gate schema is adopted"
+      },
+      {
+        "lane": "T743",
+        "model": "deepseek-v4-flash",
+        "lines": 722,
+        "rows": 16,
+        "sections_covered": "4/4 — the deepest of the five",
+        "row_quality": {
+          "poppable": "yes",
+          "conflict_free_holds": "THE ONLY LANE TO CHECK AGAINST THE LIVE HOLD SET — OPEN-9 names T531's battery-family holds and routes new instruments to fresh src/w3_*.zig to avoid them, and flags that the B1 re-mechanization should prefer a new test file over editing src/rules.zig. That pattern is adopted for every new instrument in the merged row set.",
+          "mechanized_acceptance": "yes"
+        },
+        "verification": "Its per-node distribution for all 23 nodes plus RETIRED reproduces EXACTLY against an independent census. Its compute figures (closure 245.8s/1,124MB; I5 149s/2,768MB; I11 69.5s; A2 50.6s; the 3,789s/31-sweep/3.9GB build) are all traceable. Nothing fabricated.",
+        "errors": [
+          "Its LARGEST row, W3-10 (writes-off 4x4 regen, 5-10 worker-days, compute-bound), is largely obviated by T472's discharge-by-provenance, which it cites nowhere. Only the #2-auditor half survives (folded into the merged W3-15).",
+          "Reports mutation adequacy as 6/10 with M3 surviving and M1/M2/M4 unfixtured, citing T475 and the G3b second audit — but the fixtures DO exist in src/vb_mutants.zig (T530, 2026-08-20). It read T475's reconciliation and the VERDICT, not T530's diff. This is the mirror image of T741's error and is less consequential, because it still carries the row and the row's deliverable (b) is merely partly pre-built.",
+          "No artifact-creation row: W3-06 runs closure 'at every rung' with no WZO2 artifact below 3x3 (F5)."
+        ],
+        "strengths": "The only lane to enumerate the actual register row IDs per family — which is what makes each Wave-2 row poppable with no discovery step, and it is grafted wholesale. The only lane to check holds against live state (F3). The only lane to quantify sizes (worker-days per row). Richest control map (13 instruments, each with its historical known-bad and that defect's fingerprint). Sharpest cheap-win observation: seeding provenance is a post-hoc read of build logs, the cheapest gap in the tree. Nine OPENs, the most of any lane, including a hold-conflict OPEN that turned out to be the race's best row-quality find.",
+        "verdict": "graft — the row-ID enumeration, the hold check, the sizings and the control map are all adopted"
+      },
+      {
+        "lane": "T744",
+        "model": "ox-alpha",
+        "lines": 376,
+        "rows": 13,
+        "sections_covered": "4/4",
+        "row_quality": {
+          "poppable": "yes — and the BEST articulation of the rule: the two rows feeding operator rulings complete when the evidence bundle is delivered; the ruling is queued behind the bundle, not blocking the row",
+          "conflict_free_holds": "CLAIMED BUT FALSE — W3-03 wires build.zig, which T531 holds",
+          "mechanized_acceptance": "yes, but the THINNEST gate of the five: 5 conditions and 2 controls, with no controls-manifest condition and no coverage-honesty condition"
+        },
+        "verification": "The 4x3 finding verifies exactly (AXIOMS.md:20 names four sizes; my independent census finds 14 4x3-scoped rows plus 6 multi-size scopes including it). Its 54 4x4-scoped rows figure verifies exactly. Its three-way kill-matrix contradiction is the crispest statement of it in the race. Nothing fabricated.",
+        "errors": [
+          "W3-10 'Exhaustive I11 at 4x4' (size L) is dead work — T473 already ran it exhaustively. But it is honestly derived from a live register sentence (F2), so the cause was worth more than the row.",
+          "W3-11 'KO_SENSITIVE Track A evidence bundle' assembles evidence for a ruling T472 already made. So 2 of 13 rows are obviated.",
+          "OPEN-5 assumes the artifact of record is untracked/oracle-v2/oracle-4x4-v2.wzo2; it is data/oracle-4x4-v2.wzo2 — but it is held as an OPEN, not asserted, which is the correct discipline.",
+          "OPEN-3 ('no ratified rename text exists') was true at its HEAD and is superseded by T757 (F6) — not an error."
+        ],
+        "strengths": "THE ONLY UNIQUE-TO-ONE-LANE SUBSTANTIVE FIND IN THE RACE: 4x3 is not in Z's size set yet the register carries 14 4x3-scoped rows and heavy 4x3 evidence. Four lanes silently treated 4x3 as a rung; this one asked the question and wrote the ruling brief, which became row W3-17. Its mechanical definition of 're-verified' is the crispest in the race and is adopted verbatim as the merged document's preamble. 'Either verdict is a pass; silence is not' and 'any counter that is impossibly clean is itself a finding' are both adopted. Six OPENs, and it correctly declined to write a findings JSON on the reasoned ground that a work decomposition makes no claim about the engine.",
+        "verdict": "graft — the 4x3 row, the re-verified definition, and three framings; 2 of its 13 rows are obviated by rulings it did not read"
+      }
+    ],
+    "ranking": {
+      "order": [
+        "T740",
+        "T743",
+        "T742",
+        "T744",
+        "T741"
+      ],
+      "basis": "Structural completeness and executability of the row set, weighted by whether its factual base survives verification. T740 first: chosen as trunk, every number reproduced, only lane whose gate carries its own seeded controls. T743 second: deepest coverage, exact census, and the two best row-quality contributions (row-ID enumeration, live-hold check) — but its largest row is obviated by a ruling it did not read. T742 third: fewest rows and one wrong hold, but the single most valuable correction in the race, and its gate-first instinct was right. T744 fourth: the only unique substantive find and the best definitions, but 2 of 13 rows obviated and the thinnest gate. T741 fifth on the row set alone — highest density and best Amendment-2 analysis, but it is the one lane whose row set is unsafe to execute as written (no kill-matrix row, no artifact row), and both gaps trace to trusting a green reading.",
+      "caveat": "One row each; n=1 per model. This ranks five documents, not five models. The ordering of T742/T744/T741 is close and the tie-breaks are judgement calls, and T741's fifth place is a statement about two specific gaps, not about density or reasoning quality, on which it scored highest."
+    },
+    "convergence_as_a_signal": "Five independent lanes agreed on: the ladder is evidentiary/shake-out order and never a dispatch gate (all 5); the phantom --bundle row must close and the audit must NOT be re-executed (all 5); the mutation kill matrix is contradictory and must be reconciled (4 of 5 — T741 dissenting, and wrongly); the finish line must be an exit code and not prose (all 5); file ownership and not the wave number is the real serializer (all 5); no worker holds CLAIMS.md (4 of 5). Two lanes independently proposed C15 as the next free claimlint check ID (T740, T741) — verified free. That convergence is itself evidence the brief's four sections were unambiguous, and it is why the disagreements in §6 are worth the operator's attention: they are the places five independent readings did NOT converge."
+  },
+  "notes": "T749 Race I synthesis. Read all five lane specs (2,511 lines) and re-verified every load-bearing number at HEAD 2ec4f93 rather than trusting any lane: independent register census (231 rows; 66 PROVEN / 59 CLAIMED / 51 MEASUREMENT / 22 FALSE-AS-SCOPED / 21 UNTESTED / 7 FALSE / 3 SUPERSEDED / 1 INTRACTABLE / 1 definition; believed 125; per-node and per-goban distributions) reproduced T740's and T743's tables EXACTLY, so no lane fabricated a figure. Six new findings, F1 the serious one: C8 — the promotion gate Waypoint 3 is paid in — is vacuous today and reads clean, and two lanes read it opposite ways from the same run (T740 the detail lines, T741 the summary line). Deliverable is docs/epics/E1-markovian/waypoint-3-decomposition.md: 19 registerable rows in 4 waves, trunk T740, grafts credited per row in its §8, and the five lane disagreements presented in its §6 for the operator rather than silently resolved — including the sharpest (T742's 'no UNTESTED survives' vs T740's NA:<named blocker>), which cannot be split. Two lanes' largest rows are obviated by T472's Track-A discharge-by-provenance, which only T742 read; T744's I11-exhaustive row is dead work traceable to a real register defect (a rescission absorbed into 4x4.C1 but not into 4x4.FP1 or GLOBAL.H4), which became row W3-05. Only T743 checked conflict-free holds against the live hold set and found T531's 20-file battery-family hold, which invalidates that claim in the other four lanes and became row W3-00. Registered NOTHING — the row set awaits operator ratification of §6 and §7, per the Race-I rule. Inbox polled twice (at claim and before close): no pending directives, acked 0. Every lane's PHASES.md citation was valid at their HEAD 3ce328e; T757's rename landed after them, so no lane is charged with a bad citation.",
+  "milestone": "Landmark: advances L2 (proven 4x4 values) — Waypoint 3 is decomposed for the first time: 19 registerable rows in 4 waves with conflict-free holds, one mechanized finish gate carrying four seeded controls of its own, and four disagreements escalated rather than papered over. The loss this exposes is OURS, not an instrument's: C8, the gate guarding every promotion Waypoint 3 exists to make, is vacuous today and reads clean — and two lanes read it opposite ways off the same run. It cuts against declaring the mutation gate satisfied on any of the three live figures. What remains before execution: the operator's ratification of §6 and §7, then W3-00 (settle T531's hold set)."
+}
