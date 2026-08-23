@@ -1,0 +1,60 @@
+{
+  "task_id": "T785",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "identifier": "claude-opus-5/T785",
+  "type": "context-dump",
+  "claims": [],
+  "new_rows": [],
+
+  "what_was_read": [
+    "bin/managent orient (worker preamble)",
+    "untracked/T785-fleet-guard-reliability-spec.md (the bundle)",
+    "findings/README.md (schema)",
+    "tools/runner — guard region 1275-1470 (detector, floor derivation), 2700-2760 (floor + banner), 3110-3210 (kill path), 3370-3395 + 3465-3495 (killed_by writes, exit path), 428-460 (_killed_by map)",
+    "bin/subagent — PROVIDERS (:151), gate call sites",
+    "tools/fleet-keeper.sh — pressure/kill/memory grep (its 'pressure' is dispatch contention, not memory)",
+    "findings/T711-declared-tenant.json, T713-qwen-resident-dispatch.json, T714-host-guard-controls.json, T730-race-g-science-grade.json",
+    "untracked/T712-host-guard-one-arbiter.md, untracked/T715-host-guard-incident-record.md",
+    "untracked/log/t780.log, t781.log, t782.log, t783.log, t784.log + the full untracked/log/*.log corpus (census)",
+    "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md (§0,§1,§5,§8,§9 — format precedent + boundary)",
+    "tools/smoke.sh, build.zig:1239 (existing smoke wiring)"
+  ],
+
+  "commands_run": [
+    "bin/managent orient",
+    "bin/managent claim T785 --agent claude-opus-5",
+    "bin/managent inbox T785 --ack  (x3: start, mid, before done — all empty)",
+    "grep/sed reads of the files above",
+    "the futile-kill census (Appendix A of the spec) over untracked/log/*.log",
+    "a python coverage check over the spec's own control table: 21 ids / 28 arms / 0 armless"
+  ],
+
+  "census_raw": {
+    "kills_with_identified_member": 20,
+    "sufficient": 4,
+    "futile": 16,
+    "futile_pct": 80,
+    "unanchored_regex_would_have_reported": 34,
+    "note": "The unanchored count is wrong because log files quote the runner's source and briefs; '^\\[runner\\] ' is the anchor that makes it a census."
+  },
+
+  "incident_table": [
+    {"lane": "T780", "log": "untracked/log/t780.log:93", "avail_mb": 5761, "floor_mb": 6144, "shortfall_mb": 383, "member_rss_mb": 251, "outcome": "exit 124 @ 87.8 s (:140)"},
+    {"lane": "T781", "log": "untracked/log/t781.log:10984", "avail_mb": 5380, "floor_mb": 6144, "shortfall_mb": 764, "member_rss_mb": 133, "outcome": "exit 124 @ 87.8 s (:11002)"},
+    {"lane": "T782", "log": "untracked/log/t782.log:95", "avail_mb": 5687, "floor_mb": 6144, "shortfall_mb": 457, "member_rss_mb": 129, "outcome": "exit 124 @ 87.7 s (:111)"},
+    {"lane": "T783", "log": "untracked/log/t783.log:102-103", "avail_mb": 6004, "floor_mb": 6144, "shortfall_mb": 140, "member_rss_mb": 126, "outcome": "exit 1 @ 88.1 s (:128) — CULL path, no killed_by (D5)"}
+  ],
+
+  "decisions_taken_and_why": [
+    "Kept the brief's ORC-G1..G6 ids verbatim for traceability and appended ORC-G7..G10 for what this row found, rather than renumbering — a renumber would break the brief's own references.",
+    "Wrote §7 (S06 boundary) unasked: S06's ORC-GOAL-2 claims the same six files, and shipping a spec that silently competes with a ratified-track sprint would be a defect the accept step could not see.",
+    "Sequenced ORC-G6 (sealed race inputs) as independent of the seven passes — it is real, it needs an arm, and it touches no guard file, so serializing it behind the arbiter would delay it for nothing.",
+    "Named the fleet smoke suite tools/fleet-smoke.sh because tools/smoke.sh is already the solver's build smoke; overloading the name would make a green 'smoke' ambiguous.",
+    "Did not write any code: the bundle says the row writes the SPEC and does not implement. The census command is embedded as spec content (a control's definition) with an instruction to promote it WITH arms in pass 1, not to ship it unarmed."
+  ],
+
+  "inbox": "bin/managent inbox T785 --ack polled three times (start, mid-task, before done). Empty on every poll — no D0NN to record.",
+
+  "notes": "Context dump for T785 (orient principle 5: both findings deliverables). The substantive record is findings/T785-guard-reliability-spec.json; the deliverable is docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md."
+}

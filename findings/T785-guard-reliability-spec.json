@@ -1,0 +1,114 @@
+{
+  "task_id": "T785",
+  "date": "2026-08-23",
+  "model": "claude-opus-5",
+  "identifier": "claude-opus-5/T785",
+  "audited_by": null,
+  "claims": [],
+  "new_rows": [],
+
+  "deliverable": {
+    "spec": "docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md",
+    "status": "PROPOSED (rev 1, for operator ratification)",
+    "artifact_type": "SPEC (docs/infra/sprint.md pass protocol) — what we want, testably, for one pass. No code written, nothing implemented.",
+    "citation_pin": "HEAD 5552d81 (2026-08-23); log citations as of 2026-08-23T18:30Z",
+    "size": "463 lines"
+  },
+
+  "id_and_arm_count": {
+    "normative_ids": 21,
+    "breakdown": "ORC-G1..G10 (10 requirements), ORC-GC-1..3 (characterization, 3), ORC-GP-1..4 (pass sequencing, 4), ORC-GS-1..2 (smoke, 2), ORC-GB-1..2 (S06 boundary, 2)",
+    "arms": 28,
+    "armless_ids": 0,
+    "verification": "counted mechanically over the §9 control table's flips column with an exact-token match (so ORC-G1 does not match ORC-G10): 21 ids, 28 arms, 0 armless, 0 ids undefined in the body. The S06 audit found 16 of 31 ids armless; this spec states the count and the accept step (§10.1) recomputes it rather than reading it from the document."
+  },
+
+  "requirements": {
+    "ORC-G1": "Refuse before kill — shed order is stop-admitting, then list-wait, then (only under ORC-G2) a stop; newest/least-progressed first.",
+    "ORC-G2": "No futile kill — if no single member's RSS >= the shortfall, kill nothing and log the shortfall plus every member considered. Stated as a post-hoc-detectable invariant so it is measurable (ORC-G10).",
+    "ORC-G3": "Charge memory to the lane that caused it — and state the two questions separately: 'is the host in danger?' adds the tenant back (T711), 'can a new lane fit?' does not (T713). Both are right for their own question; one formula must not answer both.",
+    "ORC-G4": "Sample the tenant before admitting, not after launching — closes the startup race that produced the 36 MB reading.",
+    "ORC-G5": "One arbiter — the decision is split three ways at HEAD (tools/runner owns response, bin/subagent owns memory admission, tools/fleet-keeper.sh owns dispatch rate). Folds T712.",
+    "ORC-G6": "Sealed inputs immutable while a race runs — content hash at seal time, re-checked at grade time; refuse if possible, detect and state otherwise.",
+    "ORC-G7": "NEW (this row) — a guard-caused death is labeled as such; the cull path must write killed_by.",
+    "ORC-G8": "NEW (this row) — pressure must be sustained (dwell across N polls + a minimum shortfall) before any response; a single 250 ms sample is a reading, not an emergency. [design-open], recommendation stated.",
+    "ORC-G9": "NEW (this row) — the tenant footprint is resolved once per decision and held (high-water recommended), and the diagnostic names its source; ORC-G4 closes the race, ORC-G9 closes the under-reporting that survives the race.",
+    "ORC-G10": "NEW (this row) — the futile-kill rate is measured by a shipped census instrument with its own null and seeded arms, not asserted. Before-number recorded: 80%."
+  },
+
+  "new_evidence_this_row_produced": {
+    "futile_kill_census": {
+      "method": "Paired every '[runner] KILL: host memory pressure' line in untracked/log/*.log with the member it names — inline for the direct-child form, the following '  reaping largest member' line for the cull form — and compared that member's RSS against the shortfall (floor - available).",
+      "result": "20 kills identify a member; 16 (80%) killed a member whose RSS was BELOW the shortfall (futile); 4 were sufficient. Shortfalls 103-1897 MB against members of 40-389 MB.",
+      "futile_rows": "duty-DCLAIM 284/127, t521 362/40, t529 329/186, t542 293/60, t543 276/60, t545 328/87, t549 535/255, t630 1599/389, t636 1599/183, t661 1897/219, t699 1575/240, t774 103/56, t780 383/251, t781 764/133, t782 457/129, t783 140/126",
+      "significance": "The 2026-08-23 incident is not an anomaly, it is the guard's MODAL behaviour. The census gives the sprint a before-number (80%) and an accept target (0), turning ORC-G2 from an assertion into a measurement.",
+      "regex_trap_recorded": "An unanchored match inflates the count 34 -> 20, because log files also quote the runner's own source and briefs. The '^\\[runner\\] ' anchor is the difference between a census and a grep; noted in the spec's Appendix A for the implementer."
+    },
+    "D5_unlabeled_cull": {
+      "finding": "When the largest member is NOT the direct child, tools/runner reaps it (:3164-3183) and sets only host_guard_fired, which produces a stderr note at :3473. killed_by is written only on the direct-child path (:3382) and the directive path (:3222) — never on the cull path.",
+      "worked_example": "T783: culled at untracked/log/t783.log:102-103, lane exited 1 at 88.1 s (:128), no killed_by in the run record.",
+      "consequence": "Every reader that refuses rows with killed_by != none (Ruling 32; tools/fleet-keeper.sh:505,536) ACCEPTS that row and scores it as a model failure. §7c.31 ('a guard may stop a lane, no guard may attribute') is broken from the other end: the guard attributes to the model by omission.",
+      "not_in_the_brief": true
+    },
+    "D6_no_dwell": {
+      "finding": "poll_ms defaults to 250 and the floor comparison runs every poll (tools/runner:3135 reads, :3150 compares). No requirement that pressure persist.",
+      "evidence": "Kills at a shortfall of 15 MB (untracked/log/t512.log:220) and 31 MB (t530.log:37); four kill lines in immediate succession inside one run (t521.log:37,39,41,43).",
+      "not_in_the_brief": true
+    },
+    "tenant_under_reporting": {
+      "finding": "Beyond the startup race, the auto-detected tenant reading is non-monotone and settles far below the true footprint: 36 -> 1890 -> 9206 -> 10153 -> 4873 -> 2739 MB, later settling ~7825 MB (untracked/log/t783.log:48-59 and tail), against a resident engine T711 itself measured at 15.6 GB. Roughly 2x under-report AFTER the race is over.",
+      "consequence": "Closing the startup race (ORC-G4) is necessary but not sufficient; ORC-G9 exists because of this trace.",
+      "not_in_the_brief": true
+    },
+    "s06_boundary": {
+      "finding": "S06 ORC-ARB-1 already assigns the arbiter to managent and names T712/T713 as absorbed, and S06's ORC-GOAL-2 table claims the same six files this sprint cannibalizes. Two sprints editing one file set with no stated boundary is a collision.",
+      "resolution_specced": "§7 — S08 owns the guard's DECISION CONTENT (ORC-G1..G10 and their arms); S06 owns the HOUSING (which binary, the policy file, the dashboard, the registry). Whichever lands first, a rewire that drops an S08 arm is a regression and the battery re-runs against the post-S06 tree (ORC-GB-2, arm A27).",
+      "not_in_the_brief": true
+    }
+  },
+
+  "sequencing_specced": {
+    "pass_1": "characterization only — pins all six subjects, no behaviour change (operator ruling: prove what works works first)",
+    "pass_2": "tools/runner guard path (:3123-3196) — the pressure RESPONSE; first because every other defect routes through it and ORC-G1/G2/G7/G8 all land here. The arbiter is born in this pass.",
+    "pass_3": "bin/subagent (819) — memory admission, the other half of ORC-G3",
+    "pass_4": "tools/fleet-keeper.sh (1169) — dispatch rate; ORC-G1's 'stop admitting' verb needs the rate limiter to be the arbiter's",
+    "pass_5": "bin/dispatch (546) — the advisory gate, thin caller after the real chokepoint is arbiter-owned",
+    "pass_6": "tools/window_policy.py (548) — the token-window fan-out cap, last because it is independent of memory",
+    "pass_7": "untracked/watch-fleet.sh (304) — observation reads arbiter state",
+    "independent": "ORC-G6 (sealed-input hash) touches no guard file and may run parallel to any pass",
+    "total_surface": "six scripts, 4130 lines (tools/runner counted by its guard path, not its 3493 total)",
+    "gate": "smoke at every pass boundary, at least one of them a co-launch batch (the incident is a startup race; a serial smoke would have missed it too)"
+  },
+
+  "out_of_scope_named": [
+    "Raising the floor — forbidden; total//8 (tools/runner:2731) exists because of the 2026-07-29 watchdog-timeout kernel panic (docs/infra/host/incident-2026-07-29.md). A diff that touches it fails accept (§10.5).",
+    "Rewriting tools/runner (consistent with S06 ORC-GOAL-3 — the runner survives, its host-pressure DECISION moves)",
+    "The RSS cap and the other watchdogs — characterized in pass 1, not redesigned",
+    "claimlint, the science suite, race machinery beyond ORC-G6's hash check"
+  ],
+
+  "open_questions": {
+    "1_the_one_for_the_operator": "Sequencing against S06. Options: (a) S08 first, S06 rewires; (b) S06 first; (c) interleaved. RECOMMEND (a) — the fleet is losing lanes today at an 80% futile rate and S06 is a six-file refactor whose pass 1 has not started.",
+    "2": "Where the arbiter's state lives during passes 2-3 — recommend a file in untracked/ (reversible), let S06 choose the final home.",
+    "3": "ORC-G6's enforcement point — recommend both refuse and detect, with detection shipping first (unblockable, needs no lock protocol)."
+  },
+
+  "verification_performed": [
+    "Every file:line cited in the spec was resolved at 5552d81: tools/runner:1400 (detector), :2731 (floor), :3135/:3150 (read/compare), :3151 (largest_pid), :3164-3183 (cull), :3222/:3382 (killed_by writes), :3473 (host_guard_fired note); bin/subagent:151 (PROVIDERS); tools/fleet-keeper.sh:362,505,536,1022-1067; tools/smoke.sh:1-5; build.zig:1239; docs/infra/host/incident-2026-07-29.md exists.",
+    "Two imprecisions in my own draft were found and corrected before delivery: a line range cited for the poll comparison (3141-3148 -> 3135 reads / 3150 compares), and ORC-GP-3 shipping armless (arm A28 added). The armless-id claim is now machine-checked, not asserted.",
+    "tools/smoke.sh already exists and is the SOLVER's build-verification suite — the fleet smoke suite is specced under a distinct name (tools/fleet-smoke.sh) so the two are not overloaded (ORC-GS-1)."
+  ],
+
+  "corrections_to_the_brief": [
+    "The brief cites untracked/log/t780.log and t783.log as incident evidence; those files now also contain each lane's successful re-dispatch (logs append across attempts). The incident lines are still there — t780.log:93, t781.log:10984, t782.log:95, t783.log:102-103 — and the spec's citations name the line, not the file, for that reason. No evidence was lost.",
+    "The brief's ORC-G6 is a race-input defect, not a guard defect; the spec keeps it (it is real and it needs an arm) but sequences it as INDEPENDENT of the seven passes, since it touches no guard file and would otherwise serialize behind the arbiter for no reason."
+  ],
+
+  "files": [
+    "docs/epics/E1-markovian/L1-dashboard/S08-fleet-guard-reliability/spec.md (the deliverable)",
+    "findings/T785-guard-reliability-spec.json (this file)",
+    "findings/T785-context.json (context dump)"
+  ],
+
+  "notes": "T785 (S08 spec: the guards stop killing the fleet) — advances L1 (dispatch tooling). SPEC ONLY, nothing implemented. WHAT SHIPPED: a rev-1 PROPOSED spec with 21 normative ids and 28 arms, 0 armless (machine-counted, and §10.1 makes accept recompute it rather than trust the number). The brief supplied four defects and six requirement ids; this row confirmed all four against the code, and added three defects the incident report did not name — D5 the UNLABELED CULL (a non-direct-child cull kills the lane and writes no killed_by, so the ledger scores a guard kill as a model failure; T783 is the worked example, exit 1 at 88.1 s), D6 NO DWELL (a single 250 ms sample fires an irreversible SIGKILL; the corpus has kills at 15 MB and 31 MB shortfalls), and the post-race TENANT UNDER-REPORTING (the detector settles ~7825 MB against a 15.6 GB engine, so closing the startup race is necessary but not sufficient) — plus the S06 BOUNDARY, since S06 already claims the same six files and an unstated boundary is a collision. Those became ORC-G7, ORC-G8, ORC-G9 and ORC-GB-1/2. THE NUMBER: a futile-kill census over untracked/log/*.log shows 20 kills identify a member and 16 of them (80%) killed a member smaller than the shortfall — the 2026-08-23 incident is the guard's modal behaviour, not an anomaly. ORC-G10 makes that census a shipped instrument with its own null and seeded arms, so accept can demand 0 against a before-number of 80% instead of demanding a feeling. Inbox loop (T352): bin/managent inbox T785 --ack polled at start, mid-task and before done — no directives received (no D0NN to record). No CLAIMS.md changes proposed (claims=[]); claimlint floor untouched. Milestone: L1 (dispatch tooling) — this records a LOSS and instruments it: the fleet's own guard killed 16 of the 20 lanes it named for no memory benefit, four of them in one 88-second window, while every arm meant to prevent exactly this stayed green because it injected the number the detector was supposed to measure. It cuts against the tooling and against the control design, not against any model. The spec buys nothing until a pass lands, and pass 1 buys only characterization — which is the operator's ruling and the point."
+}
