@@ -222,13 +222,12 @@ T266's evidence files into an unrelated commit. Name every path you commit
 briefly orphaned another agent's commit, recovered only via reflog.
 
 **Writing to the kanban.** `managent done <id>` on completion; `managent done
-<id> --fail` if you stopped because the brief was wrong. The `done` command
-checks that every file listed in the bundle's `deliverables=` meta header exists
-on disk. **Do not edit `docs/infra/managent/tasks.json` directly**; the binary
-is the only writer. If a `note` is warranted (recovery shape, dual-authorship,
-why the brief was wrong), record it via `managent dispatch <id> --note <text>`
-(the dispatcher records notes; if you are the worker, ask the Orchestrator to
-add the note).
+<id> --fail` if you stopped because the brief was wrong — the deliverables=
+gate is covered above and in `DELEGATOR.md` §"The bundle meta line". **Do not
+edit `docs/infra/managent/tasks.json` directly**; the binary is the only
+writer. A `note` (recovery shape, dual-authorship, why the brief was wrong)
+goes via `managent dispatch <id> --note <text>` — the dispatcher records
+notes; a worker asks the Orchestrator to add one.
 
 ## Reporting
 

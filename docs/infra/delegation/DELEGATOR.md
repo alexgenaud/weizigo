@@ -113,9 +113,8 @@ review of load-bearing reasoning prefer a **different model** (shared training
 **Visibility.** Work that may run past a minute reports progress and carries a
 budget. From outside, silence and progress look identical.
 
-**Concurrency.** ANALYSIS writes exactly one new file and modifies nothing, so any
-number may run at once. MUTATION may modify existing files, runs one at a time,
-and cites the analysis that recommended it.
+**Concurrency.** ANALYSIS/MUTATION and what each permits: `ROLES.md`
+§"Concurrency" — the concurrency authority; this file does not restate it.
 
 **Durability.** Evidence goes to `docs/evidence/<claim-id>/` when it is produced.
 A claim whose evidence cannot be retrieved is not proven.
