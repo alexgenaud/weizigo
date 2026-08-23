@@ -1,0 +1,488 @@
+{
+ "claims": [],
+ "controls": {
+  "arms": {
+   "negative": "no session header / missing file / empty claude output / is_error envelope all return UNKNOWN (never 0). PASS except T774-control-1.",
+   "null": "same real pi session parsed twice -> identical dict; same claude envelope parsed twice -> identical usage. PASS",
+   "runner_smoke": "sleep 2 under tools/runner: exit 0, wall 2.5s, cpu 0.0s, rss 1MB, run record finalized. PASS",
+   "seeded": "fixture pi session (input 147, output 73, cache_read 200, cache_write 5, reasoning 16, turns 2) reproduces exactly; fixture claude envelope (input 10, output 20, cache_read 30, cache_write 40, reasoning 5, total 100) reproduces exactly. PASS"
+  },
+  "evidence": "docs/evidence/T774-cost-repeatability/controls-out.txt",
+  "instrument_defect": "T774-control-1: tools/token-capture.py read_pi_session counts ANY assistant message as a usage-bearing turn, so a session whose assistant turn carries no usage object returns ok=True with all-zero totals - a silent-zero (free-lane) reading, the exact class the docstring claims to prevent. Guard applied to live readings: any repeat with tokens_source missing or zero tokens treated as UNKNOWN/DNF, never 0. Not fixed here (T774 makes no mechanism changes); handed to T772's successor.",
+  "result": "PASS except one instrument defect (recorded, not fixed - T774 makes no mechanism changes)"
+ },
+ "date": "2026-08-23",
+ "identifier": "deepseek-v4-pro/T774.2",
+ "model": "deepseek-v4-pro",
+ "new_rows": [],
+ "notes": "Resume note: T774.1 (deepseek-v4-flash) designed the battery, ran controls, and drove 13/20 repeats before its runner wall killed the drive mid-flight. T774.2 (deepseek-v4-pro) drove the remaining 7 (ds-m r5, op-m r5, ds-a r4, op-a r2 redo, op-a r4, ds-a r5, op-a r5) via docs/evidence/T774-cost-repeatability/resume.sh, re-running op-a r2 after a host-memory-guard kill and ds-a r4 after a torn record; then ran analysis.py, committed the run records under docs/evidence/T774-cost-repeatability/records/, and wrote this file. 20/20 repeats complete, all finalized with token readings. No inbox directives (0 acked).",
+ "repeatability": {
+  "caveats": "N=5 makes the CV estimate itself noisy - read the raw per-repeat numbers in results.csv (committed) and the committed run records under records/, not just the CV summary. Wall times were recorded under fleet load (6 concurrent lanes during these runs) and are load-affected facts, not rankable meters. This is per-goban-independent (a measurement of the cost instruments, not of the engine); no goban claim is proposed.",
+  "cells": {
+   "ds-a": {
+    "cache_read": {
+     "band_hi": 3599697.67,
+     "band_lo": 859771.13,
+     "cv": 0.3072,
+     "max": 2848384,
+     "mean": 2229734.4,
+     "min": 1429504,
+     "n": 5,
+     "range": 1418880,
+     "sd": 684981.64
+    },
+    "cpu_s": {
+     "band_hi": 6.15,
+     "band_lo": 4.01,
+     "cv": 0.1055,
+     "max": 6.0,
+     "mean": 5.08,
+     "min": 4.7,
+     "n": 5,
+     "range": 1.3,
+     "sd": 0.54
+    },
+    "fresh": {
+     "band_hi": 88359.14,
+     "band_lo": 63041.66,
+     "cv": 0.0836,
+     "max": 82695,
+     "mean": 75700.4,
+     "min": 69346,
+     "n": 5,
+     "range": 13349,
+     "sd": 6329.37
+    },
+    "out_bytes": {
+     "band_hi": 16321147.89,
+     "band_lo": 10504676.91,
+     "cv": 0.1084,
+     "max": 15317406,
+     "mean": 13412912.4,
+     "min": 11554864,
+     "n": 5,
+     "range": 3762542,
+     "sd": 1454117.75
+    },
+    "rss_mb": {
+     "band_hi": 317.66,
+     "band_lo": 184.74,
+     "cv": 0.1323,
+     "max": 283,
+     "mean": 251.2,
+     "min": 205,
+     "n": 5,
+     "range": 78,
+     "sd": 33.23
+    },
+    "token_readings": 5,
+    "tokens_in": {
+     "band_hi": 3682402.6,
+     "band_lo": 928467.0,
+     "cv": 0.2986,
+     "max": 2931079,
+     "mean": 2305434.8,
+     "min": 1499648,
+     "n": 5,
+     "range": 1431431,
+     "sd": 688483.9
+    },
+    "tokens_out": {
+     "band_hi": 65637.19,
+     "band_lo": 29418.41,
+     "cv": 0.1905,
+     "max": 62390,
+     "mean": 47527.8,
+     "min": 38651,
+     "n": 5,
+     "range": 23739,
+     "sd": 9054.7
+    },
+    "tokens_total": {
+     "band_hi": 3739980.8,
+     "band_lo": 965944.4,
+     "cv": 0.2947,
+     "max": 2979802,
+     "mean": 2352962.6,
+     "min": 1544313,
+     "n": 5,
+     "range": 1435489,
+     "sd": 693509.1
+    },
+    "wall_s": {
+     "band_hi": 492.5,
+     "band_lo": 321.54,
+     "cv": 0.105,
+     "max": 458.8,
+     "mean": 407.02,
+     "min": 356.2,
+     "n": 5,
+     "range": 102.6,
+     "sd": 42.74
+    }
+   },
+   "ds-m": {
+    "cache_read": {
+     "band_hi": 143475.14,
+     "band_lo": 19904.06,
+     "cv": 0.3782,
+     "max": 134528,
+     "mean": 81689.6,
+     "min": 53120,
+     "n": 5,
+     "range": 81408,
+     "sd": 30892.77
+    },
+    "cpu_s": {
+     "band_hi": 1.64,
+     "band_lo": 0.6,
+     "cv": 0.2311,
+     "max": 1.5,
+     "mean": 1.12,
+     "min": 0.8,
+     "n": 5,
+     "range": 0.7,
+     "sd": 0.26
+    },
+    "fresh": {
+     "band_hi": 8847.78,
+     "band_lo": 2616.62,
+     "cv": 0.2718,
+     "max": 8514,
+     "mean": 5732.2,
+     "min": 4937,
+     "n": 5,
+     "range": 3577,
+     "sd": 1557.79
+    },
+    "out_bytes": {
+     "band_hi": 2455728.54,
+     "band_lo": 304469.46,
+     "cv": 0.3897,
+     "max": 1844551,
+     "mean": 1380099,
+     "min": 478208,
+     "n": 5,
+     "range": 1366343,
+     "sd": 537814.77
+    },
+    "rss_mb": {
+     "band_hi": 215.66,
+     "band_lo": 204.34,
+     "cv": 0.0135,
+     "max": 215,
+     "mean": 210,
+     "min": 208,
+     "n": 5,
+     "range": 7,
+     "sd": 2.83
+    },
+    "token_readings": 5,
+    "tokens_in": {
+     "band_hi": 149082.37,
+     "band_lo": 25761.23,
+     "cv": 0.3527,
+     "max": 139712,
+     "mean": 87421.8,
+     "min": 58110,
+     "n": 5,
+     "range": 81602,
+     "sd": 30830.28
+    },
+    "tokens_out": {
+     "band_hi": 7199.53,
+     "band_lo": 4359.27,
+     "cv": 0.1229,
+     "max": 6652,
+     "mean": 5779.4,
+     "min": 5028,
+     "n": 5,
+     "range": 1624,
+     "sd": 710.06
+    },
+    "tokens_total": {
+     "band_hi": 156022.09,
+     "band_lo": 30380.31,
+     "cv": 0.337,
+     "max": 146364,
+     "mean": 93201.2,
+     "min": 63193,
+     "n": 5,
+     "range": 83171,
+     "sd": 31410.44
+    },
+    "wall_s": {
+     "band_hi": 65.53,
+     "band_lo": 5.31,
+     "cv": 0.4251,
+     "max": 49.1,
+     "mean": 35.42,
+     "min": 10.0,
+     "n": 5,
+     "range": 39.1,
+     "sd": 15.06
+    }
+   },
+   "op-a": {
+    "cache_read": {
+     "band_hi": 4063176.39,
+     "band_lo": 2271928.01,
+     "cv": 0.1414,
+     "max": 3823008,
+     "mean": 3167552.2,
+     "min": 2792611,
+     "n": 5,
+     "range": 1030397,
+     "sd": 447812.1
+    },
+    "cpu_s": {
+     "band_hi": 8.31,
+     "band_lo": -0.59,
+     "cv": 0.576,
+     "max": 7.8,
+     "mean": 3.86,
+     "min": 2.7,
+     "n": 5,
+     "range": 5.1,
+     "sd": 2.22
+    },
+    "fresh": {
+     "band_hi": 86.2,
+     "band_lo": 65.8,
+     "cv": 0.0671,
+     "max": 82,
+     "mean": 76,
+     "min": 70,
+     "n": 5,
+     "range": 12,
+     "sd": 5.1
+    },
+    "out_bytes": {
+     "band_hi": 34276.79,
+     "band_lo": 23142.01,
+     "cv": 0.097,
+     "max": 31544,
+     "mean": 28709.4,
+     "min": 24576,
+     "n": 5,
+     "range": 6968,
+     "sd": 2783.69
+    },
+    "rss_mb": {
+     "band_hi": 715.53,
+     "band_lo": 498.07,
+     "cv": 0.0896,
+     "max": 639,
+     "mean": 606.8,
+     "min": 510,
+     "n": 5,
+     "range": 129,
+     "sd": 54.37
+    },
+    "token_readings": 5,
+    "tokens_in": {
+     "band_hi": 4063261.19,
+     "band_lo": 2271995.21,
+     "cv": 0.1414,
+     "max": 3823090,
+     "mean": 3167628.2,
+     "min": 2792687,
+     "n": 5,
+     "range": 1030403,
+     "sd": 447816.49
+    },
+    "tokens_out": {
+     "band_hi": 51693.96,
+     "band_lo": 29808.84,
+     "cv": 0.1343,
+     "max": 48409,
+     "mean": 40751.4,
+     "min": 34524,
+     "n": 5,
+     "range": 13885,
+     "sd": 5471.28
+    },
+    "tokens_total": {
+     "band_hi": 4114669.97,
+     "band_lo": 2302089.23,
+     "cv": 0.1412,
+     "max": 3871499,
+     "mean": 3208379.6,
+     "min": 2827211,
+     "n": 5,
+     "range": 1044288,
+     "sd": 453145.18
+    },
+    "wall_s": {
+     "band_hi": 814.18,
+     "band_lo": 459.7,
+     "cv": 0.1391,
+     "max": 770.8,
+     "mean": 636.94,
+     "min": 532.2,
+     "n": 5,
+     "range": 238.6,
+     "sd": 88.62
+    }
+   },
+   "op-m": {
+    "cache_read": {
+     "band_hi": 194038.97,
+     "band_lo": 77972.23,
+     "cv": 0.2133,
+     "max": 180773,
+     "mean": 136005.6,
+     "min": 100890,
+     "n": 5,
+     "range": 79883,
+     "sd": 29016.68
+    },
+    "cpu_s": {
+     "band_hi": 0.9,
+     "band_lo": 0.5,
+     "cv": 0.1429,
+     "max": 0.8,
+     "mean": 0.7,
+     "min": 0.6,
+     "n": 5,
+     "range": 0.2,
+     "sd": 0.1
+    },
+    "fresh": {
+     "band_hi": 10.83,
+     "band_lo": 5.17,
+     "cv": 0.1768,
+     "max": 10,
+     "mean": 8,
+     "min": 6,
+     "n": 5,
+     "range": 4,
+     "sd": 1.41
+    },
+    "out_bytes": {
+     "band_hi": 2058.88,
+     "band_lo": 1131.12,
+     "cv": 0.1454,
+     "max": 1899,
+     "mean": 1595,
+     "min": 1264,
+     "n": 5,
+     "range": 635,
+     "sd": 231.94
+    },
+    "rss_mb": {
+     "band_hi": 494.97,
+     "band_lo": 485.43,
+     "cv": 0.0049,
+     "max": 494,
+     "mean": 490.2,
+     "min": 488,
+     "n": 5,
+     "range": 6,
+     "sd": 2.39
+    },
+    "token_readings": 5,
+    "tokens_in": {
+     "band_hi": 194049.72,
+     "band_lo": 77977.48,
+     "cv": 0.2133,
+     "max": 180783,
+     "mean": 136013.6,
+     "min": 100896,
+     "n": 5,
+     "range": 79887,
+     "sd": 29018.06
+    },
+    "tokens_out": {
+     "band_hi": 2924.78,
+     "band_lo": 2218.82,
+     "cv": 0.0686,
+     "max": 2710,
+     "mean": 2571.8,
+     "min": 2311,
+     "n": 5,
+     "range": 399,
+     "sd": 176.49
+    },
+    "tokens_total": {
+     "band_hi": 196849.21,
+     "band_lo": 80321.59,
+     "cv": 0.2102,
+     "max": 183493,
+     "mean": 138585.4,
+     "min": 103207,
+     "n": 5,
+     "range": 80286,
+     "sd": 29131.91
+    },
+    "wall_s": {
+     "band_hi": 47.01,
+     "band_lo": 27.11,
+     "cv": 0.1342,
+     "max": 45.2,
+     "mean": 37.06,
+     "min": 32.6,
+     "n": 5,
+     "range": 12.6,
+     "sd": 4.97
+    }
+   }
+  },
+  "design": "T626's score-spread race applied to cost. 4 cells = 2 models (deepseek-v4-flash = DeepSeek lane, claude-opus-5 = Claude lane) x 2 brief shapes (M = short mechanical census, A = long read-only audit). N=5 independent repeats per cell, 20 runs total, byte-identical sealed briefs, fresh context per repeat, frozen worktree at 2ec4f93 reset before every run. Interleaved order; every repeat launched under tools/runner (the ordinary-lane wrapper) with run records + token capture. Meters: total tokens = tokens_in + tokens_out (the cost ladder's own unit); cpu-seconds and peak rss_mb from the runner; wall recorded as fact (load-affected, not rankable). Controls (null + seeded + negative + runner smoke) ran before any live reading.",
+  "epoch": "2026-08-23",
+  "question": "When the same model runs the same sealed brief repeatedly in fresh contexts, how much do total tokens, cpu-seconds, and peak rss move, and is the spread small enough for cost to re-enter model selection?",
+  "recommendation": "Cost does NOT re-enter model selection. The gate is NOT passed: the ladder's own unit (total tokens) measures CV 3-7x the 0.05 rankability bar on every cell, and the spread is intrinsic (provider prompt-cache nondeterminism + per-run reasoning variance) rather than N=5 sampling noise - the per-cell range is 0.8-1.4x the mean. cpu-seconds fails worse. Only peak rss is repeatable, and only on the short mechanical brief; at most rss-on-M could feed a per-shape REPORTING band, never a selection decision. T772 (or its successor) should keep cost as a reporting surface only, per the ratified direction.",
+  "seals": {
+   "brief_a_sha256": "eb68252b7a817bc9db7262fb1bf85c1a38fce76089992eb777ab063004b7e208",
+   "brief_m_sha256": "fd42042f0aac843fe0b69914821e5887be97764d42b7f61d6671cd83bffbf8e0",
+   "verified": true
+  },
+  "thresholds": {
+   "cv_rankable_confident": 0.05,
+   "cv_rankable_with_band": 0.15,
+   "rule": "CV <= 0.05: rankable with confidence. 0.05 < CV <= 0.15: rankable only for gaps >= 2x the cell sd (consumer must carry mean +/- 2sd and require band-disjointness). CV > 0.15: not rankable."
+  },
+  "verdict": {
+   "cpu_seconds": {
+    "cv_by_cell": {
+     "ds-a": 0.105,
+     "ds-m": 0.231,
+     "op-a": 0.576,
+     "op-m": 0.143
+    },
+    "rankable": false,
+    "read": "NOT rankable. CV 0.11-0.58; the expensive A brief on the Claude lane is the worst cell (0.576, driven by a 7.8s outlier against 2.7-3.4s)."
+   },
+   "fresh_vs_cache": {
+    "fresh_cv_by_cell": {
+     "ds-a": 0.084,
+     "ds-m": 0.272,
+     "op-a": 0.067,
+     "op-m": 0.177
+    },
+    "read": "Fresh tokens (the actual compute, the part that costs money) are also not rankable at 0.05 (CV 0.07-0.27). The fresh/cache split differs by ~1000x between families on the A brief - Claude serves ~99.99% from cache (fresh ~76 tokens/run) while DeepSeek re-reads ~75k fresh tokens/run - so a cross-family TOTAL-token comparison is additionally meaningless without the split, corroborating T746 3.3's '>10x' ruling."
+   },
+   "peak_rss": {
+    "cv_by_cell": {
+     "ds-a": 0.132,
+     "ds-m": 0.0135,
+     "op-a": 0.0896,
+     "op-m": 0.0049
+    },
+    "rankable": "M-brief only",
+    "read": "The only meter that clears the 0.05 bar, and only on the short mechanical brief (CV 0.005-0.014). On the A brief it drops to the band zone (CV 0.09-0.13)."
+   },
+   "total_tokens": {
+    "cv_by_cell": {
+     "ds-a": 0.295,
+     "ds-m": 0.337,
+     "op-a": 0.141,
+     "op-m": 0.21
+    },
+    "rankable": false,
+    "read": "The cost ladder's own unit is NOT rankable. CV ranges 0.14-0.34 across the four cells (3-7x the 0.05 bar). Three cells fail outright (>0.15); the best cell (op-a, 0.141) is only in the band zone, and its band [2.30M, 4.11M] already contains ds-a's mean (2.35M) - so no two models separate on total tokens even in the best case."
+   }
+  }
+ },
+ "task_id": "T774"
+}

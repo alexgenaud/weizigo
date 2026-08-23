@@ -1,0 +1,39 @@
+PASS  null: real pi session file exists  — /Users/alex/Project/Zig/weizigo/untracked/tokens/sessions/T774.1787496341.jsonl
+PASS  null: read_pi_session twice -> identical dict  — a={'ok': True, 'input': 63952, 'output': 45573, 'cache_read': 3241216, 'cache_write': 0, 'reasoning': 33752, 'turns': 53, 'session_id': '01a02f15-a39a-7805-ba31-baef75eafb53'} b={'ok': True, 'input': 63952, 'output': 45573, 'cache_read': 3241216, 'cache_write': 0, 'reasoning': 33752, 'turns': 53, 'session_id': '01a02f15-a39a-7805-ba31-baef75eafb53'}
+PASS  null: real session parsed ok  — reason=None
+PASS  null: parse_claude_envelope twice -> identical usage  — u1={'input': 1000, 'output': 500, 'cache_read': 2000, 'cache_write': 300, 'reasoning': 100, 'total': 3800}
+PASS  null: claude envelope parsed ok  — usage={'input': 1000, 'output': 500, 'cache_read': 2000, 'cache_write': 300, 'reasoning': 100, 'total': 3800}
+PASS  seeded: pi fixture parsed ok  — reason=None
+PASS  seeded: pi input == 147  — got=147
+PASS  seeded: pi output == 73  — got=73
+PASS  seeded: pi cache_read == 200  — got=200
+PASS  seeded: pi cache_write == 5  — got=5
+PASS  seeded: pi reasoning == 16  — got=16
+PASS  seeded: pi turns == 2  — got=2
+PASS  seeded: pi session_id  — got=seed-session-1
+PASS  seeded: pi return keys match documented contract  — got=['cache_read', 'cache_write', 'input', 'ok', 'output', 'reasoning', 'session_id', 'turns']
+PASS  seeded: claude envelope parsed ok  — usage={'input': 10, 'output': 20, 'cache_read': 30, 'cache_write': 40, 'reasoning': 5, 'total': 100}
+PASS  seeded: claude input == 10  — got=10
+PASS  seeded: claude output == 20  — got=20
+PASS  seeded: claude cache_read == 30  — got=30
+PASS  seeded: claude cache_write == 40  — got=40
+PASS  seeded: claude reasoning == 5  — got=5
+PASS  seeded: claude total == 100  — got=100
+PASS  seeded: claude text  — got='the answer'
+PASS  seeded: claude session_id  — got=seed-claude-1
+PASS  neg: no session header -> ok=False  — got={'ok': False, 'reason': 'no session header in neg-no-header.jsonl'}
+DEFECT  neg: assistant turn without usage -> ok=True all-zeros (documented 'no usage-bearing turns' reason unreachable) — T774-control-1, recorded in findings
+PASS  neg: missing file -> ok=False  — got={'ok': False, 'reason': 'session file missing: /Users/alex/Project/Zig/weizigo/untracked/bakeoff/t774-cost-repeatability/does-not-exist.jsonl'}
+PASS  neg: empty claude output -> usage None  — usage=None
+PASS  neg: is_error envelope -> is_error True  — meta={'is_error': True, 'terminal_reason': None, 'session_id': None, 'session_id_present': False}
+PASS  smoke: runner exit 0  — rc=0
+PASS  smoke: run record finalized (exit=0, end stamped)  — exit=0 end=2026-08-23T14:52:57Z
+PASS  smoke: wall ~= 2s  — wall=2.5
+PASS  smoke: cpu ~= 0s  — cpu=0.0
+PASS  smoke: small rss  — rss_mb=1
+PASS  smoke: task field T774-smoke  — task=T774-smoke
+
+CONTROLS: 1 INSTRUMENT DEFECT(S) found (recorded in findings): 
+  - T774-control-1: read_pi_session silent-zero on usage-less assistant turn
+
+CONTROLS: all checks passed EXCEPT the recorded instrument defect(s); live analysis will guard against them

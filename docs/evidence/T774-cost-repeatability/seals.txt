@@ -1,0 +1,2 @@
+fd42042f0aac843fe0b69914821e5887be97764d42b7f61d6671cd83bffbf8e0  docs/evidence/T774-cost-repeatability/brief-m.txt
+eb68252b7a817bc9db7262fb1bf85c1a38fce76089992eb777ab063004b7e208  docs/evidence/T774-cost-repeatability/brief-a.txt
