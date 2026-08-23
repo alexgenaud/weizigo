@@ -57,7 +57,7 @@ exists, and the kanban row left `dispatchable` — and fails the dispatch
 (exit 2, loud report naming every failing check) when a success claim does
 not hold. The worker's text is never trusted. See tools/dispatch_verify.py.
 """
-import glob, os, re, subprocess, sys, time
+import glob, itertools, os, re, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -403,18 +403,29 @@ def _memory_gate_verdict(provider, raw_model, tenant_mb):
     )
 
 
+_session_path_counter = itertools.count()
+
+
 def _pi_session_path(task_id):
     """Per-lane pi session file for the token meter (T662).
 
     `pi --session <path>` writes its session JSONL to exactly this file;
     the runner reads it after the lane closes and records the usage split
     (fresh vs cache_read) in the run record, trailer and ledger.  The path
-    is unique per dispatch attempt (epoch seconds), so a re-dispatch of
-    the same task never overwrites a previous attempt's session — the
-    T650 principle applied to the meter.  Lives under untracked/tokens/
-    (the capture home); the runner mkdirs the parent at launch."""
+    is unique per dispatch attempt — T792: the original `int(time.time())`
+    (whole-second) formula let two attempts of the same task launched
+    within one wall-clock second collide on the same filename, exactly the
+    overwrite T650/T662 exist to prevent.  `time.time_ns()` alone is not
+    sufficient EITHER — on this host two calls a few instructions apart can
+    still land on the same clock tick — so the path also carries the pid
+    (disambiguates concurrent processes at the same tick) and a per-process
+    monotonic counter (disambiguates repeated calls within one process).
+    Nothing parses this timestamp, so widening the format is safe.  Lives
+    under untracked/tokens/ (the capture home); the runner mkdirs the
+    parent at launch."""
     ident = task_id if task_id else "lane"
-    return f"untracked/tokens/sessions/{ident}.{int(time.time())}.jsonl"
+    return (f"untracked/tokens/sessions/{ident}.{time.time_ns()}."
+            f"{os.getpid()}.{next(_session_path_counter)}.jsonl")
 
 
 def run_worker(cmd, cwd, env):
@@ -453,6 +464,63 @@ def parse_argv(argv):
     return args, flags
 
 
+def _resolve_model(provider, raw_model, flags):
+    """→ (model, error).  Turn a provider + raw dispatch tag into the
+    canonical label bin/managent's canonical_models[] expects (the same
+    fact surface as docs/infra/model-registry.md and
+    src/managent/main.zig's canonicalizeModelTag).  `error` is None on
+    success and a ready-to-print message (for `sys.exit`) otherwise.
+
+    A bare `--model` with no value parses as flags['model'] is True
+    (parse_argv), not a string; treating that the same as "missing" (T792
+    fix) avoids a TypeError crash that `re.sub(..., True)` used to raise
+    for the ollama branch below when a caller passed the flag with no tag.
+
+    ollama fallback (T792 finding, not changed here): a tag outside
+    OLLAMA_TAG_TO_CANONICAL is accepted by stripping a trailing `:cloud`
+    rather than refused — the same permissive behaviour as
+    canonicalizeModelTag, so it is not a NEW divergence, but it means a
+    typo'd or retired tag (e.g. `kimi-k2-thinking:cloud`, retired per
+    model-registry.md) silently produces a non-canonical label instead of
+    an error a human would see immediately."""
+    if raw_model is True:
+        raw_model = None
+    if provider == "deepseek":
+        # DeepSeek: model is chosen from --dspro/--dsflash flags
+        chosen_ds = [f"--{k}" for k in ("dspro", "dsflash") if flags.get(k) is True]
+        if len(chosen_ds) != 1:
+            return None, "subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash"
+        return DS_MODELS[chosen_ds[0]], None
+    if provider == "claude":
+        # Claude: --model <canonical claude label> is required; the label is
+        # passed straight to `claude -p --model`, so it must be canonical.
+        if not raw_model:
+            return None, ("subagent: for --provider claude, --model <canonical claude label> "
+                          "is required\n  canonical: " + ", ".join(sorted(CLAUDE_MODELS)) + "\n")
+        if raw_model not in CLAUDE_MODELS:
+            return None, (f"subagent: '{raw_model}' is not a canonical claude label.\n"
+                          f"  canonical: {', '.join(sorted(CLAUDE_MODELS))}\n")
+        return raw_model, None
+    if provider == "pi":
+        # T732: pi harness, openrouter backend.  --model is the SERVING tag
+        # (stealth/ox-alpha); model is the canonical label (ox-alpha) so the
+        # serving tag never reaches the ledger.
+        if not raw_model:
+            return None, "subagent: for --provider pi, --model <serving tag> is required\n"
+        model = PI_TAG_TO_CANONICAL.get(raw_model)
+        if model is None:
+            return None, (f"subagent: '{raw_model}' is not a known pi serving tag.\n"
+                          f"  known: {', '.join(sorted(PI_TAG_TO_CANONICAL))}\n")
+        return model, None
+    # ollama
+    if not raw_model:
+        return None, "subagent: for --provider ollama, --model <tag> is required\n"
+    model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
+    if model is None:
+        model = re.sub(r":cloud$", "", raw_model)
+    return model, None
+
+
 def main(argv):
     args, flags = parse_argv(argv)
     provider = flags.get("provider")
@@ -489,38 +557,9 @@ def main(argv):
     root = os.path.abspath(test_root) if test_root else ROOT
 
     # ── Resolve model ──────────────────────────────────────────────────
-    if provider == "deepseek":
-        # DeepSeek: model is chosen from --dspro/--dsflash flags
-        chosen_ds = [f"--{k}" for k in ("dspro", "dsflash") if flags.get(k) is True]
-        if len(chosen_ds) != 1:
-            sys.exit("subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash")
-        model = DS_MODELS[chosen_ds[0]]
-    elif provider == "claude":
-        # Claude: --model <canonical claude label> is required; the label is
-        # passed straight to `claude -p --model`, so it must be canonical.
-        if not raw_model:
-            sys.exit("subagent: for --provider claude, --model <canonical claude label> "
-                     "is required\n  canonical: " + ", ".join(sorted(CLAUDE_MODELS)) + "\n")
-        if raw_model not in CLAUDE_MODELS:
-            sys.exit(f"subagent: '{raw_model}' is not a canonical claude label.\n"
-                     f"  canonical: {', '.join(sorted(CLAUDE_MODELS))}\n")
-        model = raw_model
-    elif provider == "pi":
-        # T732: pi harness, openrouter backend.  --model is the SERVING tag
-        # (stealth/ox-alpha); model is the canonical label (ox-alpha) so the
-        # serving tag never reaches the ledger.
-        if not raw_model:
-            sys.exit("subagent: for --provider pi, --model <serving tag> is required\n")
-        model = PI_TAG_TO_CANONICAL.get(raw_model)
-        if model is None:
-            sys.exit(f"subagent: '{raw_model}' is not a known pi serving tag.\n"
-                     f"  known: {', '.join(sorted(PI_TAG_TO_CANONICAL))}\n")
-    else:  # ollama
-        if not raw_model:
-            sys.exit("subagent: for --provider ollama, --model <tag> is required\n")
-        model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
-        if model is None:
-            model = re.sub(r":cloud$", "", raw_model)
+    model, resolve_err = _resolve_model(provider, raw_model, flags)
+    if resolve_err:
+        sys.exit(resolve_err)
 
     # ── resident-aware memory gate (T713) ────────────────────────────────
     # When the model server is resident, the dispatcher knows the reduced
