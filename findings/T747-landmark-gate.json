@@ -1,0 +1,9 @@
+{
+  "task_id": "T747",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T747",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Closed the registration→dispatch landmark gap. add/suggest already refused a missing/unknown **Landmark:** line (T682, commit 5d51634 — verified RED: `managent add` refuses a no-landmark bundle with the worked-example message; `suggest`'s skeleton carries the sanctioned none-form). The hole was bin/dispatch: a row registered before the gate — or a bundle edited after registration — dispatched a worker onto a brief with no landmark (the 2026-08-23 T740–T744 incident). Fix, test-first: three new arms in tools/regression-dispatch.sh (18a valid L<n> dispatches; 18b missing line refuses naming the convention; 18c unknown id L99 refuses naming it) were shown RED against the pre-fix bin/dispatch (18b/18c returned rc=0 and dry-ran), then bin/dispatch gained the backstop (bundle_landmark_verdict mirroring src/managent/main.zig checkBundleLandmark, placed after the T505 title gate) and the suite went GREEN (ALL CONTROLS PASSED). regression-dispatch.sh is already wired into `zig build test` via build.zig (T476 step), so the backstop is gated on every suite run. Sweep: 4 open rows lacked the line and got one derived from their briefs (DARGUS→L1, DCLAIM→L4, DRPLAY→L2, T578→L1); T740–T744 verified already repaired by hand. Adjacent defect observed, NOT in scope: a garbage row with id literally `--bundle` (set S) points at untracked/T430-phase2-audit.md which does not exist on disk — a broken registration, not a missing-landmark case; it needs retire/purge, flagged here for the Orchestrator. Inbox: no directives received (acked 0)."
+}

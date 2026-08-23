@@ -182,6 +182,58 @@ def row_state(root: str, task_id: str):
     return None, None, store
 
 
+# ── T747 landmark backstop ───────────────────────────────────────────────
+# bin/dispatch re-checks the bundle's **Landmark:** declaration that
+# `managent add`/`suggest` enforce (T682).  A row registered before that
+# gate — or a bundle edited after registration — would otherwise dispatch a
+# worker onto a brief with no landmark to narrate against (the 2026-08-23
+# T740–T744 incident).  This is a backstop, not the source of truth: the
+# registration gate is; here we refuse what it would have refused, mirroring
+# its verdicts (declared / absent / invalid) and its affirmative message.
+VALID_LANDMARK_IDS = ["L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]
+
+
+def _contains_valid_landmark_id(text: str) -> bool:
+    for m in re.finditer(r"\bL\d{1,2}\b", text):
+        if m.group(0) in VALID_LANDMARK_IDS:
+            return True
+    return False
+
+
+def _landmark_line_verdict(line: str):
+    """→ (verdict, detail) for a **Landmark:** line, or None if not one."""
+    if not line.startswith("**Landmark:**"):
+        return None
+    rest = line[len("**Landmark:**"):].strip(" \t")
+    if not rest:
+        return ("invalid", "")
+    low = rest.lower()
+    if low.startswith("none") and (len(rest) == 4 or not rest[4].isalnum()):
+        return ("declared", None)
+    if _contains_valid_landmark_id(rest):
+        return ("declared", None)
+    return ("invalid", rest)
+
+
+def bundle_landmark_verdict(content: str):
+    """→ (verdict, detail).  verdict ∈ {declared, absent, invalid}.  Mirror
+    of src/managent/main.zig checkBundleLandmark: the line may sit behind a
+    blockquote `>` or a list bullet, one level deep."""
+    for raw in content.splitlines():
+        line = raw.strip(" \t\r")
+        if line.startswith(">"):
+            line = line[1:].strip(" \t")
+        v = _landmark_line_verdict(line)
+        if v is not None:
+            return v
+        if line.startswith("-") or line.startswith("*"):
+            unbulleted = line[1:].strip(" \t")
+            v = _landmark_line_verdict(unbulleted)
+            if v is not None:
+                return v
+    return ("absent", None)
+
+
 def main(argv):
     task_id = None
     model_raw = None
@@ -295,17 +347,19 @@ def main(argv):
     # brief whose title portion exceeds 40 chars refuses dispatch, naming
     # the title and the limit; a brief with no title line is malformed.
     bundle_path = hits[0]
-    title = None
-    title_re = re.compile(r"^#\s+T\d+\s+(?:\u2014|--|-)\s+(.+?)\s*$")
     try:
         with open(bundle_path, encoding="utf-8") as bf:
-            for line in bf:
-                m = title_re.match(line)
-                if m:
-                    title = m.group(1)
-                    break
+            bundle_content = bf.read()
     except OSError as e:
         sys.exit(f"dispatch: REFUSED — cannot read bundle {bundle_path}: {e}")
+
+    title = None
+    title_re = re.compile(r"^#\s+T\d+\s+(?:\u2014|--|-)\s+(.+?)\s*$")
+    for line in bundle_content.splitlines():
+        m = title_re.match(line)
+        if m:
+            title = m.group(1)
+            break
     if title is None:
         sys.exit(f"dispatch: REFUSED — bundle {os.path.relpath(bundle_path, root)} "
                  f"has no `# {task_id} — <title>` line (DELEGATOR.md §Task titles).\n"
@@ -317,6 +371,28 @@ def main(argv):
                  f"  The title is a display surface, not a summary: a title that needs"
                  f"  more than 40 chars is a sign the task is two tasks. Shorten it;\n"
                  f"  the long form goes in the brief's body.")
+
+    # ── landmark gate (T747 backstop) ────────────────────────────────────
+    # The registration gate (T682) refuses a bundle with no **Landmark:**
+    # line at `managent add`/`suggest`.  A row registered before that gate —
+    # or a bundle edited after registration — reaches dispatch anyway; here
+    # is the backstop that refuses it before a worker's tokens are spent.
+    # Mirror the registration gate's verdicts and its affirmative message.
+    landmark_verdict, landmark_detail = bundle_landmark_verdict(bundle_content)
+    if landmark_verdict == "absent":
+        sys.exit(
+            f"dispatch: REFUSED — bundle {os.path.relpath(bundle_path, root)} "
+            f"declares no **Landmark:** line.\n"
+            f"  Every brief declares a landmark (AGENTS.md §Landmarks / LANDMARKS.md):\n"
+            f"    **Landmark:** advances `L<n> (<short name>)` — <which way it cuts>\n"
+            f"    (a row that advances no landmark says: **Landmark:** none directly; unblocks <row>)\n"
+            f"  Valid ids: {' '.join(VALID_LANDMARK_IDS)}")
+    elif landmark_verdict == "invalid":
+        sys.exit(
+            f"dispatch: REFUSED — bundle {os.path.relpath(bundle_path, root)} "
+            f"declares an unknown landmark id: {landmark_detail!r}.\n"
+            f"  Valid ids (source: LANDMARKS.md + D4): {' '.join(VALID_LANDMARK_IDS)}\n"
+            f"  Expected form: **Landmark:** advances `L<n> (<short name>)` — <which way it cuts>")
 
     # ── directive gate (T625): never launch a row a pending directive ────
     # will kill.  The runner would stop the worker at launch (exit 124),

@@ -616,6 +616,56 @@ else
     FAIL=1
 fi
 
+# ── T747 arms: landmark backstop at dispatch ────────────────────────────
+# The 2026-08-23 incident: five Race I rows (T740–T744) registered and
+# dispatched with no **Landmark:** line.  T682 gates add/suggest, but a
+# row registered before the gate — or a bundle edited after registration —
+# slips through.  bin/dispatch is the backstop: it reads the bundle and
+# refuses a missing or unknown landmark, mirroring the registration gate
+# (worked example in the refusal, not a lecture).  RED against the pre-fix
+# bin/dispatch (no landmark check at dispatch).
+echo " 18a. T747 null: bundle with a valid L<n> landmark dispatches (dry-run)"
+printf '<!--managent set=C deliverables=findings/T998-result.json-->\n# T998 — T747 valid-landmark fixture\n**Landmark:** advances `L2 (proven 4x4 values)` — fixture\n' \
+    > "$WORK/untracked/T998-bundle.md"
+"$MG" add T998 >/dev/null 2>&1 || { echo "    FAIL: managent add T998"; FAIL=1; }
+OUT=$(cd "$ROOT" && "$DISPATCH" T998 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "dry-run T998"; then
+    echo "    PASS: valid landmark dispatched (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; valid landmark should dispatch"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
+echo " 18b. T747 seeded: bundle with no **Landmark:** line refuses dispatch"
+seed_task T999 findings/T999-result.json
+printf '<!--managent set=C deliverables=findings/T999-result.json-->\n# T999 — T747 no-landmark fixture\n' \
+    > "$WORK/untracked/T999-bundle.md"
+OUT=$(cd "$ROOT" && "$DISPATCH" T999 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "Landmark" && echo "$OUT" | grep -q "L<n>"; then
+    echo "    PASS: refused landmark-less bundle, named the convention (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected landmark-less refusal"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+if [ -e "$WORK/untracked/log/t999.log" ]; then
+    echo "    FAIL: landmark refusal spawned a dispatch (log exists)"; FAIL=1
+fi
+
+echo " 18c. T747 seeded: bundle with an unknown landmark id refuses dispatch"
+seed_task T1001 findings/T1001-result.json
+printf '<!--managent set=C deliverables=findings/T1001-result.json-->\n# T1001 — T747 bad-landmark fixture\n**Landmark:** L99 (does not exist)\n' \
+    > "$WORK/untracked/T1001-bundle.md"
+OUT=$(cd "$ROOT" && "$DISPATCH" T1001 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
+RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "L99"; then
+    echo "    PASS: refused unknown landmark id, named it (rc=$RC)"
+else
+    echo "    FAIL: rc=$RC; expected unknown-landmark refusal"; echo "$OUT" | sed 's/^/    | /'
+    FAIL=1
+fi
+
 # ── F3 isolation assertion (T512): nothing of the suite reached live telemetry ─
 # The live logs are append-only; the live fleet may legitimately append while
 # this suite runs.  The invariant under test is: lines appended during the
