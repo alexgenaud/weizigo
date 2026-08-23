@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tools/fleet-keeper.sh — T496 fleet keeper: keep the fleet full, cool down on demand.
+# tools/fleet-keeper.sh — T496/T511 fleet keeper: keep the fleet full, cool down on demand.
 #
 # A shell loop (NOT a managent engine change — src/managent/main.zig is
 # serial-held by T485/T486/T487).  Everything it needs already exists:
@@ -8,6 +8,24 @@
 # ruling of 2026-08-19).  The graceful stop is a FILE flag
 # (untracked/fleet-keeper.cooldown, set by tools/fleet-cooldown.sh) — no
 # store change, no engine change; works for the human and the Orchestrator.
+#
+# T511 startup guards (the 2026-08-20 audit's F1/F2):
+#   1. ARG GUARD — unknown arguments refuse (exit 2, naming the argument)
+#      before anything else runs.  F1: `fleet-keeper.sh status` (a
+#      fleet-cooldown.sh verb) was silently ignored and ran 7h+ as a
+#      keeper.  The cooldown verbs stay in tools/fleet-cooldown.sh; `status`
+#      here points the user there instead of doing what they asked.
+#   2. SINGLE-INSTANCE LEASE — at most one keeper loop runs.  A second
+#      instance exits 3 naming the holder; a keeper whose lease changed
+#      hands while it ran exits on the next tick (F1: two keepers ran at
+#      once; the duplicate-dispatch class T350/T376/T389).
+#   3. DELEGATION-CAP GUARD — a keeper started at WEIZIGO_AGENT_DEPTH >= 3
+#      (the cap bin/dispatch enforces, MAX_DEPTH=3) refuses startup (exit
+#      4).  F2: a depth-3 keeper fired workers that bin/dispatch refused —
+#      a permanent no-op that re-opened the duplicate-dispatch window.
+#
+# Exit codes: 0 normal · 1 idle (loop mode) · 2 usage/unknown arg ·
+#             3 lease held by another instance / lease lost · 4 depth cap.
 #
 # Loop, every FLEET_INTERVAL seconds:
 #   1. read `bin/managent status --json`.
@@ -91,15 +109,76 @@
 #                        = uncapped.
 #
 #   --once               run exactly one iteration and exit (test hook).
+#   -h, --help            print usage and exit.  ANY other argument refuses
+#                         (exit 2) — the cooldown verbs on|off|status live
+#                         in tools/fleet-cooldown.sh, not here (T511 F1).
 #
-# Task: T496/T501/T504/T536/T651 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536/T651) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536), 2026-08-22 (T651)
+# Task: T496/T501/T504/T536/T651/T511 · Model: glm-5.2 (T496/T501), deepseek-v4-pro (T504/T536/T651), deepseek-v4-flash (T511) · Date: 2026-08-19 (T496), 2026-08-20 (T501/T504/T536), 2026-08-22 (T651), 2026-08-23 (T511)
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
+# ── T511 arg guard: refuse unknown arguments (F1) ────────────────────────
+# The 2026-08-20 audit found `fleet-keeper.sh status` (a fleet-cooldown.sh
+# verb) silently entering the keeper loop and running 7h+; the pre-T511 code
+# ignored every argument except `--once`.  Now ANY argument outside the set
+# below refuses (exit 2, naming the argument) BEFORE anything else runs.
+# The cooldown verbs stay in tools/fleet-cooldown.sh — `status` here points
+# the user there instead of doing what they asked.
+usage() {
+  cat <<'EOF'
+usage: tools/fleet-keeper.sh [--once]
+  (no args)     run the fleet-keeper loop (the launchd/cron production shape)
+  --once        run exactly one iteration and exit (diagnostics / tests)
+  -h, --help    print this message and exit
+
+The cooldown verbs are tools/fleet-cooldown.sh on|off|status, NOT keeper
+arguments — a keeper started with one of them would be a no-op at best and
+a duplicate loop at worst (the 2026-08-20 F1 incident: a `status`
+invocation ran 7h+ as a keeper).
+EOF
+}
 ONCE=0
-[ "${1:-}" = "--once" ] && ONCE=1
+case "${1:-}" in
+  "") : ;;
+  --once) ONCE=1 ;;
+  -h|--help) usage; exit 0 ;;
+  on|off|status)
+    echo "fleet-keeper.sh: unknown argument '$1' — '$1' is a fleet-cooldown.sh verb; use tools/fleet-cooldown.sh $1" >&2
+    usage >&2
+    exit 2
+    ;;
+  *)
+    echo "fleet-keeper.sh: unknown argument '$1'" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
+if [ "$#" -gt 1 ]; then
+  echo "fleet-keeper.sh: unexpected extra arguments: $*" >&2
+  usage >&2
+  exit 2
+fi
+
+# ── T511 delegation-cap guard: refuse startup at the cap (F2) ────────────
+# The 2026-08-20 audit found a keeper started from a worker console
+# (WEIZIGO_AGENT_DEPTH=3) firing workers bin/dispatch refused — a permanent
+# no-op that also re-opened the duplicate-dispatch window.  bin/dispatch
+# refuses at depth >= MAX_DEPTH (3); the keeper mirrors that check at
+# startup so it refuses to be that no-op.  Unset → depth 1 (a shell/launchd
+# start); a non-numeric value → treated as MAX_DEPTH (refuse), the same
+# fallback bin/dispatch's int() uses.  `[ x -eq x ]` is the bash idiom for
+# "is x an integer?" — any non-numeric operand fails the test.
+MAX_DEPTH=3
+depth="${WEIZIGO_AGENT_DEPTH:-1}"
+if ! [ "$depth" -eq "$depth" ] 2>/dev/null; then
+  depth="$MAX_DEPTH"
+fi
+if [ "$depth" -ge "$MAX_DEPTH" ]; then
+  echo "fleet-keeper.sh: REFUSED — delegation cap (WEIZIGO_AGENT_DEPTH=$depth, max $((MAX_DEPTH - 1))).  bin/dispatch refuses at the same cap, so a keeper here would fire nothing (F2).  Launch it from a shell or launchd at depth < $MAX_DEPTH." >&2
+  exit 4
+fi
 
 export FLEET_INTERVAL="${FLEET_INTERVAL:-10}"
 export FLEET_CAP="${FLEET_CAP:-5}"
@@ -109,7 +188,7 @@ export FLEET_ROOT="${FLEET_ROOT:-$ROOT}"
 # gets no --test-root, exactly as a real dispatch).  It is now also the lease
 # and state root in bash (T651), so export it for the python child too.
 
-# ── T651/T511 single-instance lease ──────────────────────────────────────
+# ── T511/T651 single-instance lease ──────────────────────────────────────
 # mkdir is the atomic lock (macOS ships no flock(1); the repo's commit mutex
 # uses Python fcntl.flock, but that is per-process and cannot span the bash
 # loop's iterations).  The lock DIR records the owner's pid; a SIGKILLed
@@ -118,23 +197,81 @@ export FLEET_ROOT="${FLEET_ROOT:-$ROOT}"
 # NOT create untracked/ itself: a missing untracked/ must stay missing (the
 # dead-man's switch below), so an unavailable lease degrades to no-guard and
 # lets cooldown_set() refuse.
+#
+# T511 hardening (F1 — two keepers ran at once, no locking): the T651
+# takeover used `rm -rf` of the shared lock path, which is racy — two
+# keepers taking over a stale lease simultaneously can each unlink the
+# other's fresh dir and BOTH run.  Takeover now RENAMES the stale dir away
+# atomically (`mv`, same filesystem → atomic) and never removes the shared
+# path; the fresh winner then VERIFIES its own pid file after writing it, so
+# a keeper whose dir was stolen mid-acquisition gives up instead of running
+# lease-less.  The EXIT trap only removes the dir while it still carries OUR
+# pid (a lease-lost exit must not unlink the new holder's dir).  And the
+# lease is verified EVERY iteration: a running keeper whose lease changed
+# hands exits on the next tick — no running keeper with a stolen lease (the
+# F1 duplicate class).  exit 3 = lease refused or lost.
 LOCK_DIR="$FLEET_ROOT/untracked/fleet-keeper.lock"
-if [ -d "$FLEET_ROOT/untracked" ]; then
-  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    HOLDER="$(cat "$LOCK_DIR/pid" 2>/dev/null || echo unknown)"
-    if [ -n "$HOLDER" ] && kill -0 "$HOLDER" 2>/dev/null; then
-      echo "lease-held: another keeper holds the lease (pid $HOLDER)"
-      exit 3
-    fi
-    # stale lease (holder dead) — take it over
-    rm -rf "$LOCK_DIR" 2>/dev/null || true
-    if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-      echo "lease-held: could not take over the lease dir $LOCK_DIR"
-      exit 3
-    fi
-  fi
+LEASE=""
+# We hold a fresh dir: record our pid, then verify the dir is still ours (a
+# racer may have renamed it away mid-acquisition — give up, never touch a
+# path that may now belong to the winner).
+lease_write_pid() {
   printf '%s\n' "$$" > "$LOCK_DIR/pid" 2>/dev/null || true
-  trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+  if [ "$(cat "$LOCK_DIR/pid" 2>/dev/null || echo x)" != "$$" ]; then
+    echo "lease-held: lost the lease race (pid $$) — another keeper holds it"
+    exit 3
+  fi
+  LEASE=1
+  trap 'if [ -f "$LOCK_DIR/pid" ] && [ "$(cat "$LOCK_DIR/pid" 2>/dev/null)" = "$$" ]; then rm -rf "$LOCK_DIR" 2>/dev/null || true; fi' EXIT
+}
+acquire_lease() {
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    lease_write_pid
+    return 0
+  fi
+  # lock dir exists — held by a live keeper, or stale (dead/never-written pid)
+  local holder
+  holder="$(cat "$LOCK_DIR/pid" 2>/dev/null || echo unknown)"
+  if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+    echo "lease-held: another keeper holds the lease (pid $holder)"
+    exit 3
+  fi
+  # stale — take over by renaming it away atomically, never rm -rf'ing the
+  # shared path (a racing rm could unlink a fresh winner's dir: F1).
+  if ! mv "$LOCK_DIR" "$LOCK_DIR.stale.$$" 2>/dev/null; then
+    # someone else won the takeover while we looked; try a fresh acquisition
+    if mkdir "$LOCK_DIR" 2>/dev/null; then
+      lease_write_pid
+      return 0
+    fi
+    echo "lease-held: could not take over the lease dir $LOCK_DIR"
+    exit 3
+  fi
+  rm -rf "$LOCK_DIR.stale.$$" 2>/dev/null || true  # our moved copy — safe to drop
+  if mkdir "$LOCK_DIR" 2>/dev/null; then
+    lease_write_pid
+    return 0
+  fi
+  echo "lease-held: could not take over the lease dir $LOCK_DIR"
+  exit 3
+}
+# Every iteration: the lease must still be OURS.  A holder that changed hands
+# (stolen, manually removed, taken over by a racing keeper) ends this loop on
+# the next tick — the duplicate-dispatch class is closed by construction.
+verify_lease() {
+  [ -z "$LEASE" ] && return 0   # no lease taken (untracked absent) — nothing to hold
+  local holder
+  holder="$(cat "$LOCK_DIR/pid" 2>/dev/null || echo unknown)"
+  if [ "$holder" != "$$" ]; then
+    echo "lease-lost: the keeper lease changed hands (holder=$holder) — exiting"
+    mkdir -p "$FLEET_ROOT/untracked/log" 2>/dev/null || true
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) lease-lost: the keeper lease changed hands (holder=$holder) — exiting" \
+      >> "$FLEET_ROOT/untracked/log/fleet-keeper.log" 2>/dev/null || true
+    exit 3
+  fi
+}
+if [ -d "$FLEET_ROOT/untracked" ]; then
+  acquire_lease
 fi
 
 iterate() {
@@ -1019,8 +1156,11 @@ PY
 # T651: exit when idle (no running worker and no dispatchable leaf row), so
 # no keeper process holds a seat while the queue is empty; launchd
 # StartInterval wakes a fresh keeper when work appears.  `iterate` returns 1
-# on idle (loop mode only); --once always returns 0.
+# on idle (loop mode only); --once always returns 0.  T511: verify_lease
+# before every iteration — a keeper whose lease changed hands exits on the
+# next tick instead of dispatching alongside the new holder (F1).
 while :; do
+  verify_lease
   iterate
   rc=$?
   [ "$ONCE" -eq 1 ] && break

@@ -37,6 +37,21 @@
 #   g. logjam flag after FLEET_LOGJAM_FLAG minutes (telemetry only).
 #   h. waiting=1 outranks priority; a bumped blocked task anchors pressure.
 #
+# T511 §guards arms (arg guard F1, delegation-cap guard F2, lease ownership;
+# red-first, scratch store/repo):
+#   1. unknown args refused — a `status`/`on` invocation (fleet-cooldown.sh
+#      verbs) must NOT enter the keeper loop (F1: one ran 7h+ as a keeper);
+#      the cooldown verbs stay in fleet-cooldown.sh.
+#   1e. -h/--help prints usage and exits 0 without dispatching.
+#   2. WEIZIGO_AGENT_DEPTH >= 3 (the delegation cap bin/dispatch enforces)
+#      refuses startup — F2: a depth-3 keeper fired workers bin/dispatch
+#      refused, a permanent no-op that re-opened the duplicate-dispatch
+#      window.
+#   3. a stale lease (dead holder pid) is taken over atomically (mv, never
+#      rm -rf of the shared lock path — the T651 takeover's race).
+#   4. a running keeper whose lease changed hands exits on the next tick —
+#      no two keepers can both dispatch (the F1 duplicate class).
+#
 # T504 §5 arms (heal cooldown — a recently-healed row is parked, not re-fired;
 # red-first, scratch store/repo):
 #   T504-a. seeded: claim_count=2 + a recent T477 heal record → parked for the
@@ -1488,6 +1503,212 @@ if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^none" && [ ! -e "$WORK/untracked/f
   echo "    PASS: not-due duty → no wake flag, none dispatched"
 else
   echo "    FAIL: expected no wake flag when duty not due (rc=$RC)"; [ -e "$WORK/untracked/fleet-keeper.wake" ] && sed 's/^/    wake: /' "$WORK/untracked/fleet-keeper.wake"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+
+# ── T511 arms: arg guard (F1), delegation-cap guard (F2), lease ownership ─
+# F1 (2026-08-20 audit): `fleet-keeper.sh status` (a fleet-cooldown.sh verb)
+# was silently ignored and the invocation ran 7h+ as a keeper; two keeper
+# loops ran at once with no locking.  F2: a keeper started at
+# WEIZIGO_AGENT_DEPTH=3 fired workers bin/dispatch refused — a permanent
+# no-op that re-opened the duplicate-dispatch window.  T511: refuse unknown
+# args; refuse startup at the delegation cap; the lease refuses a second
+# instance AND a running keeper whose lease changed hands exits on the next
+# tick.
+#
+# expect_refusal: run the keeper expecting a REFUSAL (non-zero exit, pattern
+# in output).  Pre-fix, an unknown arg is ignored and the keeper enters the
+# loop — which never exits while a stub-claimed row stays in_progress — so
+# a watchdog reaps it and the arm fails (the refusal never came).
+expect_refusal() {  # $1 = label  $2 = output pattern  $3... = keeper args
+  local label="$1" pat="$2"; shift 2
+  "$KEEPER" "$@" >"$WORK/refusal.txt" 2>&1 &
+  local kpid=$! i
+  for i in $(seq 1 50); do
+    kill -0 "$kpid" 2>/dev/null || break
+    sleep 0.1
+  done
+  if kill -0 "$kpid" 2>/dev/null; then
+    kill -9 "$kpid" 2>/dev/null || true
+    wait "$kpid" 2>/dev/null || true
+    echo "    FAIL: $label — the keeper kept running (refused nothing, F1 shape)"
+    sed 's/^/    | /' "$WORK/refusal.txt" | head -3
+    return 1
+  fi
+  wait "$kpid"; local rc=$?
+  local out; out=$(cat "$WORK/refusal.txt")
+  if [ "$rc" -ne 0 ] && echo "$out" | grep -q "$pat"; then
+    echo "    PASS: $label (rc=$rc)"
+    return 0
+  fi
+  echo "    FAIL: $label (rc=$rc); got:"; echo "$out" | sed 's/^/    | /'
+  return 1
+}
+
+echo "  T511-1. seeded: unknown arg 'status' (a fleet-cooldown.sh verb) → refused, nothing dispatched (F1)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+expect_refusal "unknown arg 'status' names the arg" "unknown argument 'status'" status || FAIL=1
+if [ "$(row_status T1)" = "dispatchable" ]; then
+  echo "    PASS: T1 left dispatchable under an arg refusal"
+else
+  echo "    FAIL: T1 moved under an arg refusal (status=$(row_status T1))"; FAIL=1
+fi
+
+echo "  T511-1b. seeded: unknown arg 'on' → refused naming fleet-cooldown.sh (cooldown verbs stay there)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+expect_refusal "unknown arg 'on' points at fleet-cooldown.sh" "fleet-cooldown.sh" on || FAIL=1
+
+echo "  T511-1c. seeded: unknown arg '--bogus' → refused naming the arg"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+expect_refusal "unknown arg '--bogus' names the arg" "unknown argument '--bogus'" --bogus || FAIL=1
+
+echo "  T511-1d. seeded: '--once extra' (extra args) → refused"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+expect_refusal "extra arguments refused" "extra arguments" --once extra || FAIL=1
+
+echo "  T511-1e. null: -h prints usage and exits 0 without dispatching"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+"$KEEPER" -h >"$WORK/help.txt" 2>&1 &
+KH=$!
+for i in $(seq 1 50); do kill -0 "$KH" 2>/dev/null || break; sleep 0.1; done
+if kill -0 "$KH" 2>/dev/null; then
+  kill -9 "$KH" 2>/dev/null || true
+  wait "$KH" 2>/dev/null || true
+  echo "    FAIL: -h kept running (no usage path)"; sed 's/^/    | /' "$WORK/help.txt" | head -3; FAIL=1
+else
+  wait "$KH"; RC=$?
+  if [ "$RC" -eq 0 ] && grep -q "usage:" "$WORK/help.txt" && [ "$(row_status T1)" = "dispatchable" ]; then
+    echo "    PASS: -h → usage, rc=0, nothing dispatched"
+  else
+    echo "    FAIL: -h expected usage + rc=0 (rc=$RC)"; sed 's/^/    | /' "$WORK/help.txt" | head -5; FAIL=1
+  fi
+fi
+
+# ── delegation-cap guard (F2): refuse at WEIZIGO_AGENT_DEPTH >= MAX_DEPTH (3),
+#    the same cap bin/dispatch enforces — a keeper there fires nothing.
+echo "  T511-2. seeded: WEIZIGO_AGENT_DEPTH=3 → refused at the delegation cap (F2), nothing dispatched"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+OUT=$(cd "$ROOT" && WEIZIGO_AGENT_DEPTH=3 "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "delegation cap" && [ "$(row_status T1)" = "dispatchable" ]; then
+  echo "    PASS: depth 3 → refused (rc=$RC), T1 left dispatchable"
+else
+  echo "    FAIL: expected delegation-cap refusal (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T511-2b. null: WEIZIGO_AGENT_DEPTH=2 → dispatch proceeds (under the cap)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+OUT=$(cd "$ROOT" && WEIZIGO_AGENT_DEPTH=2 "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T1 "; then
+  echo "    PASS: depth 2 → dispatched normally"
+else
+  echo "    FAIL: expected dispatch at depth 2 (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T511-2c. null: WEIZIGO_AGENT_DEPTH=abc → refused (mirrors bin/dispatch ValueError → cap)"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+OUT=$(cd "$ROOT" && WEIZIGO_AGENT_DEPTH=abc "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "delegation cap"; then
+  echo "    PASS: non-numeric depth → refused (rc=$RC)"
+else
+  echo "    FAIL: expected refusal on non-numeric depth (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+# ── single-instance lease (F1): stale-lease takeover + lease-theft exit ──
+echo "  T511-3. seeded: stale lease (dead holder pid) → new keeper takes it over and dispatches"
+seed_store "$DOC"
+seed_bundle T1 findings/T1.json
+reset_keeper_state
+sleep 0 & DEADPID=$!; wait "$DEADPID" 2>/dev/null || true
+mkdir "$WORK/untracked/fleet-keeper.lock"
+printf '%s\n' "$DEADPID" > "$WORK/untracked/fleet-keeper.lock/pid"
+OUT=$(cd "$ROOT" && "$KEEPER" --once 2>&1); RC=$?
+if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^dispatched T1 "; then
+  echo "    PASS: stale lease taken over, T1 dispatched (dead holder $DEADPID)"
+else
+  echo "    FAIL: stale lease not taken over (rc=$RC); got:"; echo "$OUT" | sed 's/^/    | /'; FAIL=1
+fi
+
+echo "  T511-4. seeded: lease stolen from a running keeper → it exits; the new keeper dispatches alone (F1 duplicate class)"
+DOC="$(cat <<EOF
+doc = {}
+for rec in [
+  '$(task_rec T1 dispatchable A 2026-08-20T00:01:00Z "" glm-5.2 false)',
+  '$(task_rec T2 dispatchable A 2026-08-20T00:01:01Z "" glm-5.2 false)',
+  '$(task_rec T3 dispatchable A 2026-08-20T00:01:02Z "" glm-5.2 false)',
+]:
+    r = json.loads(rec); doc[next(iter(r))] = r[next(iter(r))]
+EOF
+)"
+seed_store "$DOC"
+for t in T1 T2 T3; do seed_bundle "$t" findings/$t.json; done
+reset_keeper_state
+"$KEEPER" >"$WORK/keeperA.txt" 2>&1 &
+APID=$!
+for i in $(seq 1 60); do
+  [ "$(row_status T1)" = "in_progress" ] && break
+  sleep 0.2
+  if ! kill -0 "$APID" 2>/dev/null; then
+    echo "    FAIL: keeper A died before dispatching T1"; cat "$WORK/keeperA.txt" | sed 's/^/    | /'; FAIL=1
+    break
+  fi
+done
+if [ "$(row_status T1)" = "in_progress" ]; then
+  # steal the lease while A runs, then start a second keeper
+  rm -rf "$WORK/untracked/fleet-keeper.lock"
+  "$KEEPER" >"$WORK/keeperB.txt" 2>&1 &
+  BPID=$!
+  sleep 4
+  AALIVE=0; BALIVE=0
+  kill -0 "$APID" 2>/dev/null && AALIVE=1
+  kill -0 "$BPID" 2>/dev/null && BALIVE=1
+  kill -9 "$APID" "$BPID" 2>/dev/null || true
+  wait "$APID" 2>/dev/null || true; wait "$BPID" 2>/dev/null || true
+  DISP=$(cat "$WORK/keeperA.txt" "$WORK/keeperB.txt" | grep -c "^dispatched T[0-9] ")
+  DUPS=$(cat "$WORK/keeperA.txt" "$WORK/keeperB.txt" | grep "^dispatched T[0-9] " | awk '{print $2}' | sort | uniq -d | wc -l | tr -d ' ')
+  if [ "$AALIVE" -eq 0 ] && [ "$BALIVE" -eq 1 ]; then
+    echo "    PASS: lease-lost keeper exited (A dead), new keeper alive (B)"
+  else
+    echo "    FAIL: expected the lease-lost keeper to exit (A alive=$AALIVE B alive=$BALIVE)"
+    tail -3 "$WORK/keeperA.txt" | sed 's/^/    A| /'
+    tail -3 "$WORK/keeperB.txt" | sed 's/^/    B| /'
+    FAIL=1
+  fi
+  if [ "$DISP" -ge 2 ]; then
+    echo "    PASS: the surviving keeper kept dispatching ($DISP rows fired)"
+  else
+    echo "    FAIL: expected the survivor to keep the fleet moving (dispatches=$DISP)"; FAIL=1
+  fi
+  if [ "$DUPS" -eq 0 ]; then
+    echo "    PASS: no row dispatched twice (duplicate class closed)"
+  else
+    echo "    FAIL: a row was dispatched twice ($DUPS) — the T350/T376/T389 duplicate class"; FAIL=1
+  fi
+else
+  kill -9 "$APID" 2>/dev/null || true; wait "$APID" 2>/dev/null || true
 fi
 
 

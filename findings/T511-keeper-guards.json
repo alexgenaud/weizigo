@@ -1,0 +1,54 @@
+{
+  "task_id": "T511",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T511",
+  "kind": "tooling",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Closed the 2026-08-20 audit's F1/F2 keeper findings (docs/audits/2026-08-20-fleet-and-model-audit.md). Three startup guards in tools/fleet-keeper.sh, each test-first in tools/regression-fleet-keeper.sh (red observed, then green), all wired into zig build test via the existing fleet_keeper_regression step: (1) ARG GUARD — any argument outside {--once, -h, --help} refuses (exit 2, naming the argument) before anything else runs; the cooldown verbs on|off|status stay in tools/fleet-cooldown.sh and `fleet-keeper.sh status` refuses with a pointer there. F1: `fleet-keeper.sh status` was silently ignored and ran 7h+ as a keeper loop. (2) SINGLE-INSTANCE LEASE hardening — T651 shipped the mkdir lease (the T511-registered row took it as its own); T511 hardened it: the stale-lease takeover now RENAMES the stale dir away atomically (`mv`, same filesystem) instead of `rm -rf` of the shared path (the rm was racy — two keepers taking over a stale lease could each unlink the other's fresh dir and BOTH run); the fresh winner VERIFIES its own pid after writing it (a keeper whose dir was stolen mid-acquisition gives up instead of running lease-less); the EXIT trap only unlinks the dir while it still carries OUR pid (a lease-lost exit must not delete the new holder's lease); and the lease is verified EVERY iteration — a running keeper whose lease changed hands exits on the next tick (lease-lost, exit 3, logged to fleet-keeper.log), so two keepers can never both dispatch (the F1 duplicate class, T350/T376/T389). (3) DELEGATION-CAP GUARD — WEIZIGO_AGENT_DEPTH >= 3 (MAX_DEPTH, the same cap bin/dispatch enforces) refuses startup (exit 4); unset defaults to depth 1; a non-numeric value is treated as MAX_DEPTH and refuses, mirroring bin/dispatch's int() ValueError fallback. F2: a depth-3 keeper fired workers bin/dispatch refused — a permanent no-op that re-opened the duplicate-dispatch window. Suite green 4 consecutive full runs (each exercises the concurrent-lease arms); the isolation assertion (T512) still passes — no fixture data reached live telemetry. Observation, not caused by this task: the pre-existing T504-a arm flaked once in 5 runs (row_status returned empty; rc=0/status= reported) in the first RED run, and passed in the other 4 (including with this task's regression changes stashed) — 1/5 denominator, not reproducible, left as an observation per reproduce-before-fix.",
+  "red_quotes": {
+    "method": "T511 arms written into tools/regression-fleet-keeper.sh against the pre-T511 keeper (HEAD before this task's fleet-keeper.sh edit); the suite failed exactly at the new arms, quoted verbatim",
+    "run": "sh tools/regression-fleet-keeper.sh  (2026-08-23, scratch store FLEET_ROOT=/tmp/weizigo/t496-keeper-*)",
+    "T511-1": "FAIL: unknown arg 'status' names the arg — the keeper kept running (refused nothing, F1 shape); FAIL: T1 moved under an arg refusal (status=in_progress)",
+    "T511-1b": "FAIL: unknown arg 'on' points at fleet-cooldown.sh — the keeper kept running (refused nothing, F1 shape)",
+    "T511-1c": "FAIL: unknown arg '--bogus' names the arg — the keeper kept running (refused nothing, F1 shape)",
+    "T511-1d": "FAIL: extra arguments refused (rc=0)",
+    "T511-1e": "FAIL: -h kept running (no usage path)",
+    "T511-2": "FAIL: expected delegation-cap refusal (rc=0)",
+    "T511-2c": "FAIL: expected refusal on non-numeric depth (rc=0)",
+    "T511-3": "PASS (positive control — the T651 stale takeover already worked; kept as the takeover regression guard)",
+    "T511-4": "FAIL: expected the lease-lost keeper to exit (A alive=1 B alive=1) — the pre-fix keeper never re-checks its lease, so a stolen lease left TWO keepers dispatching (the F1 shape)"
+  },
+  "green_quotes": {
+    "run": "sh tools/regression-fleet-keeper.sh  (2026-08-23, post-fix; passed 4 consecutive full runs)",
+    "T511-1": "PASS: unknown arg 'status' names the arg (rc=2); PASS: T1 left dispatchable under an arg refusal",
+    "T511-1b": "PASS: unknown arg 'on' points at fleet-cooldown.sh (rc=2)",
+    "T511-1c": "PASS: unknown arg '--bogus' names the arg (rc=2)",
+    "T511-1d": "PASS: extra arguments refused (rc=2)",
+    "T511-1e": "PASS: -h → usage, rc=0, nothing dispatched",
+    "T511-2": "PASS: depth 3 → refused (rc=4), T1 left dispatchable",
+    "T511-2b": "PASS: depth 2 → dispatched normally",
+    "T511-2c": "PASS: non-numeric depth → refused (rc=4)",
+    "T511-3": "PASS: stale lease taken over, T1 dispatched (dead holder <pid>)",
+    "T511-4": "PASS: lease-lost keeper exited (A dead), new keeper alive (B); PASS: the surviving keeper kept dispatching (3 rows fired); PASS: no row dispatched twice (duplicate class closed)",
+    "isolation": "PASS: docs/infra/dispatch-heals.jsonl — no lines appended during the run; PASS: docs/infra/model-perf.md — no lines appended during the run",
+    "final": "=== regression-fleet-keeper: ALL CONTROLS PASSED ==="
+  },
+  "test_first_note": "The nine T511 arms were written into tools/regression-fleet-keeper.sh BEFORE any change to tools/fleet-keeper.sh, and the suite was run red: the arg arms failed because the pre-fix keeper silently entered the loop (watchdog-reaped: refused nothing), the depth arms failed because the pre-fix keeper dispatched at depth 3/abc (rc=0), and the lease-theft arm failed with A alive=1 B alive=1 — exactly the two-keepers-at-once shape the lease must prevent. The quoted red run is the pre-fix observation; the implementation then landed and the same arms went green.",
+  "deliberate_non_actions": [
+    "The cooldown verbs on|off|status are NOT added to the keeper — they stay in tools/fleet-cooldown.sh, and `fleet-keeper.sh <verb>` refuses with a pointer there. The F1 trap was a user typing a cooldown verb at the keeper; the fix closes the trap, it does not move the verbs.",
+    "No pgrep -f single-instance guard — sprint-2026-08-20 item 9 documented that `pgrep -f fleet-keeper` false-positives on workers whose briefs merely mention tools/fleet-keeper.sh (2 hits while zero keepers ran); T511 must not ship it. The mkdir lease is the guard.",
+    "The delegation-cap guard REFUSES startup at WEIZIGO_AGENT_DEPTH >= 3 (the brief's 'refuse startup at the delegation cap'; audit F2's language). docs/infra/fleet-repair/pass1/spec.md D11 (OPEN) proposes the opposite resolution — exempting the keeper from depth, with a loud KEEPER CANNOT DISPATCH line per iteration. That row is a later batch (G3/pass2) and remains OPEN; this task does not pre-empt it, but the interaction is recorded here for the future D11 owner.",
+    "A full fleet at FLEET_CAP is NOT a startup refusal — that is the normal full-fleet state, and the T651 loop correctly stays alive to refill the moment a slot frees (and the T496 arm 1 / T501 arms assert the at-cap no-op). The F2 no-op is specifically the depth cap, where EVERY firing is refused by bin/dispatch, not the slot cap where firing is merely deferred.",
+    "verify_lease exits rc=3 (same class as lease-held) on lease loss; in loop mode launchd StartInterval re-wakes a fresh keeper (consistent with the T651 idle-exit mortal-organs design). The lease-lost line is written to both stderr-side stdout and untracked/log/fleet-keeper.log for the operator.",
+    "--once keeps its per-iteration contract (prints dispatched/cap/none/cooldown/idle, rc 0) — the arg/depth/lease guards apply before the iteration, so the existing T496/T501/T504/T536/T629/T651 arms are untouched and all still pass."
+  ],
+  "lease_takeover_race_note": "The T651 takeover (`rm -rf \"$LOCK_DIR\"` then `mkdir`) was racy in the stale-takeover path: two keepers taking over a stale lease simultaneously could interleave A.rm, A.mkdir, B.rm (unlinking A's FRESH dir), B.mkdir — both run. Replaced with an atomic `mv` of the stale dir to a pid-unique name (rename on one filesystem is atomic, so exactly one keeper wins the takeover) plus a post-write verify of the fresh dir's pid (a keeper whose dir was renamed away mid-acquisition reads a foreign/absent pid and gives up, exit 3, without touching the shared path). The EXIT trap checks the pid before unlinking so a lease-lost exit never deletes the new holder's lease.",
+  "boundary_with_t651": "T511 is the registered row for the lease (T651's brief: 'T511 is the registered row for the lease — read it, and either take it or depend on it'); T651 shipped the first half (mkdir lease + idle exit + appetite/cap + wake) and its findings record the boundary: 'left T511's remaining scope (refuse unknown args, refuse startup at the delegation cap) to T511'. This task took the lease fully: hardened the takeover (mv + verify), added the per-iteration lease check, and added the two remaining guards. Both rows hold tools/fleet-keeper.sh; the one-writer invariant serialized them.",
+  "deliverables": [
+    "tools/fleet-keeper.sh",
+    "tools/regression-fleet-keeper.sh",
+    "findings/T511-keeper-guards.json"
+  ]
+}
