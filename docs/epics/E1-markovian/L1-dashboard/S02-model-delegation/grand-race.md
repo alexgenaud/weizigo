@@ -3,7 +3,12 @@
 **Author:** claude-fable-5 · **Date:** 2026-08-20 · **Status:** PROPOSED — operator ratifies
 roster, spend, and gates before P1 dispatches
 **Protocol base:** `docs/infra/bakeoff.md` (T328) — this document *extends* it; where the two
-disagree, this one wins for this race only.
+agree, this one wins for this race only.
+**Protocol v2 (T779, 2026-08-23, seat decision — `docs/status/landmark-waypoints-seed-2026-08-23.md` §4):**
+the blinding, judging, family, and ledger provisions of §3/§5/§6 below are SUPERSEDED by
+`docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/race-protocol-v2.md` (six rules as testable
+requirements; instruments `tools/race-collect.py` + its controls). Do not fork the doctrine: amend
+this document only to repoint; v2 is the single home of the blinding/judging/ledger rules.
 **Evidence for every hardening rule below:** the T452 breaches recorded in
 `docs/audits/2026-08-20-fleet-and-model-audit.md` §3.
 
@@ -70,6 +75,9 @@ epoch stay valid *as that epoch*; nothing is rewritten.
 
 Each generation phase: byte-identical brief per lane, isolated worktree, `tools/runner` trailer
 captured, lane output committed to the race directory before any grading.
+
+> **v2 supersedes:** lane hermeticity, the do-not-commit rule, and collection-time blinding are
+> race-protocol-v2.md R2/R3; the G4 sanitizer below remains dispatch-time hygiene only.
 
 ### Sequential lanes and time-shifting — RULED 2026-08-20 (operator's question, answered)
 
@@ -144,6 +152,11 @@ breach:
 
 ## 5. Grading — the panel, its controls, and self-grades as data
 
+> **v2 supersedes this section's judging and family provisions:** race-protocol-v2.md R4 (one fresh
+> blind judge, per-criterion evidence quotes, checkable-facts rubric) and R5 (family rule with
+> audited/unaudited status; model-perf scores audited results only) replace the panel-grades-itself
+> design. The grader validity controls (null/seeded) below still apply on top.
+
 - **Everyone grades everything, blind, including themselves.** Ranking uses only
   **non-family** grades (G3). Self-grades and family-grades are *retained and analyzed*, never
   counted: `self_preference_bias = self_grade − mean(non-family grades received)` is one of the
@@ -160,6 +173,10 @@ breach:
   with a commit hash before the phase dispatches** (the T447/T456 discipline that worked).
 
 ## 6. Data — one schema, mechanical capture, absorbed at close
+
+> **v2 supersedes this section's record schema:** race-protocol-v2.md R6 adds the required
+> `verdict` + `audit_status` fields to the outcome record; the retro-marked Race W worked example
+> is recorded there.
 
 Everything lands in `docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/grand-race-ledger.jsonl` (append-only, one JSON per
 event), written by the harness, never by hand:
