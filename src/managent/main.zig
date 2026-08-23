@@ -3073,8 +3073,16 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     var id_owned = false;
 
     if (use_auto) {
-        // Generate opaque T<N> ID
-        id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{sys_next_id});
+        // T770: mint from max(next_id, live-max+1, archive-max+1).  next_id
+        // alone is not authoritative — a retired (archived) row keeps its id
+        // forever, and re-minting it silently rebinds every citation of the
+        // retired row (T765 re-minted over the archived T765, 2026-08-23).
+        // sys_next_id is already ≥ live-max+1 (T204 raises it in
+        // parseStateJson), so only the archive side is missing here.
+        const archive_path = try archivePath(repo_root);
+        defer alloc.free(archive_path);
+        const mint_base = @max(sys_next_id, maxArchivedTaskId(io, archive_path) + 1);
+        id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{mint_base});
         id_owned = true;
 
         const bundle_path = if (bundle_override) |bp|
@@ -3130,7 +3138,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         };
 
         try state.put(alloc, try alloc.dupe(u8, id), ts);
-        sys_next_id += 1;
+        sys_next_id = mint_base + 1;
 
         // T108 + T317: retry-on-verify (same race as non-auto path).
         // T317: lock before write to prevent lost-update races.
@@ -3180,6 +3188,19 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     if (state.contains(id)) {
         w.diag("error: task '{s}' already exists\n", .{id});
         std.process.exit(1);
+    }
+
+    // T770: also refuse an id already retired to the archive — a retired id
+    // is a reference forever; re-registering it silently rebinds every
+    // citation of the retired row.  (add previously checked live only, so a
+    // freed-by-retirement id could be registered over an archived row.)
+    {
+        const archive_path = try archivePath(repo_root);
+        defer alloc.free(archive_path);
+        if (archiveContains(io, archive_path, id)) {
+            w.diag("error: task '{s}' already exists in the archive (docs/infra/managent/archive.json) — a retired id is never reused\n", .{id});
+            std.process.exit(1);
+        }
     }
 
     const bundle_path = if (bundle_override) |bp|
@@ -3655,8 +3676,14 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     defer unlockStore();
     var state = try readState(io, state_path);
 
-    // Mint the ID
-    const id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{sys_next_id});
+    // Mint the ID — T770: consult the archive too (sys_next_id is already
+    // ≥ live-max+1 via T204 in parseStateJson; the archive side is missing).
+    // A retired id is a reference forever; re-minting it silently rebinds
+    // every citation of the retired row.
+    const archive_path = try archivePath(repo_root);
+    defer alloc.free(archive_path);
+    const mint_base = @max(sys_next_id, maxArchivedTaskId(io, archive_path) + 1);
+    const id = try std.fmt.allocPrint(alloc, "T{d:0>3}", .{mint_base});
     defer alloc.free(id);
 
     // Create the bundle file
@@ -3724,7 +3751,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         .done = null,
     };
     try state.put(alloc, try alloc.dupe(u8, id), ts);
-    sys_next_id += 1;
+    sys_next_id = mint_base + 1;
     try writeStateLocked(io, state_path, &state);
 
     w.diag("\n  suggested {s}  [set: {c}]  [dispatchable]\n", .{ id, set });
@@ -7640,6 +7667,49 @@ fn maxDirectiveId(w: Writers, io: std.Io, repo_root: []const u8, state_path: []c
         }
     }
     return max;
+}
+
+/// T770: archive store path (same layout cmdArchive/cmdRetire use — always
+/// under repo_root, NOT derived from MANAGENT_STORE, so a scratch store's
+/// archive lands in the scratch repo's docs tree).
+fn archivePath(repo_root: []const u8) ![]const u8 {
+    return std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "managent", "archive.json" });
+}
+
+/// T770: largest task-ID suffix already retired to archive.json (0 when the
+/// archive is empty, missing, or unreadable).  Reads the RAW file directly —
+/// NOT readState — because parseStateJson has the side effect of reloading
+/// the `_sys.*` globals (sys_next_id etc.) from whatever file it parses; an
+/// archive read via readState would clobber the live counter with the
+/// archive's stale one.  The auto mint base must consult this: a retired id
+/// is a reference forever, and re-minting it silently rebinds every citation
+/// of the retired row (T765 re-minted over the archived T765, 2026-08-23).
+fn maxArchivedTaskId(io: std.Io, archive_path: []const u8) u32 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, archive_path, alloc, .unlimited) catch return 0;
+    defer alloc.free(content);
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return 0;
+    defer parsed.deinit();
+    if (parsed.value != .object) return 0;
+    var max: u32 = 0;
+    var it = parsed.value.object.iterator();
+    while (it.next()) |entry| {
+        const key = entry.key_ptr.*;
+        if (!std.mem.startsWith(u8, key, "T")) continue;
+        const n = std.fmt.parseInt(u32, key[1..], 10) catch continue;
+        if (n > max) max = n;
+    }
+    return max;
+}
+
+/// T770: true when `id` is already retired to archive.json.  Same raw-read
+/// discipline as maxArchivedTaskId (no parseStateJson side effect).
+fn archiveContains(io: std.Io, archive_path: []const u8, id: []const u8) bool {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, archive_path, alloc, .unlimited) catch return false;
+    defer alloc.free(content);
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch return false;
+    defer parsed.deinit();
+    if (parsed.value != .object) return false;
+    return parsed.value.object.get(id) != null;
 }
 
 fn appendDirective(w: Writers, io: std.Io, repo_root: []const u8, d: Directive) !void {
