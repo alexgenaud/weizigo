@@ -1,0 +1,75 @@
+{
+  "task_id": "T794",
+  "date": "2026-08-23",
+  "model": "ox-alpha",
+  "identifier": "ox-alpha/T794",
+  "nonce": "NONCE-6e92481e7585e960",
+  "claims": [],
+  "new_rows": [],
+  "audited_by": null,
+  "landmark": "L1 (the dashboard tells the truth) — the token meter, which every model-quality and cost claim rests on, now has a unit suite; the basement is tested before anything is built on it.",
+  "deliverable": {
+    "test_file": "tests/unit/test_token_capture.py",
+    "arm_count": 47,
+    "registered_in_manifest": false,
+    "registration_owner": "T789 (wiring the gate), per the brief; T788 rebaseline in flight — do not touch build.zig or docs/infra/suite-truth.md",
+    "final_run": "python3 tests/unit/run.py → ran 74 (47 this row + 27 test_runner.py landed concurrently), failures 0, errors 0, expected-fail 2 (both test_runner.py's recorded defects, owned by that row)"
+  },
+  "half_a_what_is_it_for": {
+    "module_purpose": "tools/token-capture.py IS the dispatch-time token capture path (D043/G1): parse_claude_envelope for claude lanes, write_tees+append_ledger as the two deliberate writes, read_pi_session/scan_sessions as the retroactive pi meter, merge_models as the capture-wins join. Production entry points: tools/runner lazy-import (_load_token_capture), tools/token-backfill.py import, and the CLI (--json --cwd --since) invoked by tools/bakeoff.sh.",
+    "deletion_candidates": [],
+    "verdict": "All 31 functions answer all four questions (purpose / production caller / last did anything / vanish notice): none is deletable. Every function is reachable within two hops of a production entry point. The one duplication worth naming: slug()'s transform is duplicated verbatim in tools/runner._pi_session_scan_target (~line 1634) — deleting either copy requires touching runner, which other lanes own; pinned character-identical by unit test instead.",
+    "functions": [
+      {"n": 1, "name": "_empty_meta", "for": "uniform meta shape when no envelope parses", "callers": "parse_claude_envelope", "used": "every claude run + every unparseable output", "vanish": "KeyError at every meta read on degraded output"},
+      {"n": 2, "name": "canon_tag", "for": "serving tag -> canonical label (T276 rule)", "callers": "tools/runner:2417, tools/token-backfill.py x6, merge_models/main internal", "used": "every recorded reading", "vanish": "serving tags reach records again; aggregations silently drop labels"},
+      {"n": 3, "name": "slug", "for": "cwd -> pi session-directory name", "callers": "default_sessions_dir; duplicated inline in tools/runner _pi_session_scan_target", "used": "every session-dir resolution", "vanish": "session scan finds no directory"},
+      {"n": 4, "name": "default_sessions_dir", "for": "~/.pi/agent/sessions/<slug> default", "callers": "main(), token-backfill:352", "used": "every CLI run without --sessions", "vanish": "CLI defaults break"},
+      {"n": 5, "name": "tokens_dir", "for": "untracked/tokens home", "callers": "write_tees, append_ledger, load_ledger, ledger_path", "used": "every write/read", "vanish": "capture writes fail"},
+      {"n": 6, "name": "ledger_path", "for": "tokens.jsonl path", "callers": "append_ledger, load_ledger", "used": "every ledger op", "vanish": "ledger unreachable"},
+      {"n": 7, "name": "_sanitize", "for": "filesystem-safe tee filename segments", "callers": "write_tees", "used": "every tee write", "vanish": "hostile task/ts strings could escape the tokens dir"},
+      {"n": 8, "name": "write_tees", "for": "complete raw stdout/stderr survival per run (D043 item 2)", "callers": "tools/runner:2279, every lane", "used": "live every dispatch", "vanish": "pi/ollama lanes lose their only capture"},
+      {"n": 9, "name": "append_ledger", "for": "one JSON line per reading or explicit MISSING", "callers": "tools/runner:2447, token-backfill", "used": "live every dispatch", "vanish": "no readings recorded at all"},
+      {"n": 10, "name": "parse_claude_envelope", "for": "claude stdout -> text + normalized usage + meta", "callers": "tools/runner:2285 (claude lanes)", "used": "live every claude lane", "vanish": "claude lanes record nothing"},
+      {"n": 11, "name": "_num (nested in parse_claude_envelope)", "for": "usage value coercion, missing key -> 0", "callers": "parse_claude_envelope", "used": "every claude usage parse", "vanish": "TypeError on absent keys"},
+      {"n": 12, "name": "_usage_zero", "for": "zeroed accumulator shape", "callers": "parse_session, scan_sessions, _empty_agg", "used": "every session scan", "vanish": "shape drift between agg layers"},
+      {"n": 13, "name": "_add_usage", "for": "fold one harness usage object into an accumulator", "callers": "read_pi_session, parse_session", "used": "every assistant turn scanned", "vanish": "session totals zero"},
+      {"n": 14, "name": "_harness_key", "for": "internal key -> harness camelCase key map", "callers": "_add_usage", "used": "every fold", "vanish": "cacheRead/cacheWrite/totalTokens stop summing"},
+      {"n": 15, "name": "read_pi_session", "for": "one pi session JSONL = the lane meter (T662)", "callers": "tools/runner:2334 getattr (pi lanes)", "used": "live every pi lane since T662", "vanish": "pi lanes fall back to attribution by prompt text"},
+      {"n": 16, "name": "deepseek_rate_band", "for": "D044 time-pricing band stamped at write time", "callers": "tools/runner:2399 (deepseek lanes)", "used": "live every deepseek lane", "vanish": "readings unbanded; later readers re-derive calendar rules", "flag": "may be retired under the 2026-08-23 budget-meter ruling — tested AS IT STANDS; retirement decision owned by the Orchestrator, not this row"},
+      {"n": 17, "name": "_first_user_text", "for": "first user message text = attribution input", "callers": "parse_session", "used": "every session parsed", "vanish": "extract_task starves"},
+      {"n": 18, "name": "extract_task", "for": "session -> task id from the dispatch prompt", "callers": "parse_session", "used": "every session scan", "vanish": "all sessions unattributed"},
+      {"n": 19, "name": "parse_session", "for": "one session JSONL -> per-session record", "callers": "scan_sessions", "used": "every scan", "vanish": "--json sessions list empty"},
+      {"n": 20, "name": "scan_sessions", "for": "dir -> sessions/tasks/models/unattributed", "callers": "main(), token-backfill x3", "used": "every CLI + backfill run", "vanish": "retroactive meter dead"},
+      {"n": 21, "name": "_empty_agg", "for": "aggregate shape", "callers": "scan_sessions, merge_models", "used": "every aggregation", "vanish": "key drift"},
+      {"n": 22, "name": "_fold", "for": "session -> aggregate fold", "callers": "scan_sessions", "used": "every session folded", "vanish": "totals undercount"},
+      {"n": 23, "name": "load_ledger", "for": "tokens.jsonl -> entries (+bad-line count)", "callers": "main(), token-backfill x4", "used": "every CLI + backfill run", "vanish": "dispatch-time truth ignored"},
+      {"n": 24, "name": "_ledger_reading", "for": "reading-vs-missing predicate", "callers": "merge_models, main", "used": "every join", "vanish": "missing records miscounted as readings"},
+      {"n": 25, "name": "merge_models", "for": "G1 join: ledger wins per label, sessions fill", "callers": "main()", "used": "every CLI run incl. bakeoff.sh's subprocess", "vanish": "bakeoff per-model totals wrong"},
+      {"n": 26, "name": "render_human", "for": "human-readable report", "callers": "main() non-json path", "used": "every manual invocation", "vanish": "only --json remains"},
+      {"n": 27, "name": "main", "for": "CLI surface", "callers": "tools/bakeoff.sh subprocess, regression-token-capture.sh arms D/J", "used": "live every race", "vanish": "G1 join surface gone"},
+      {"n": 28, "name": "_json_task", "for": "--json task emitter", "callers": "main()", "used": "every --json run", "vanish": "schema drift to callers"},
+      {"n": 29, "name": "_json_agg", "for": "--json aggregate emitter", "callers": "main()", "used": "every --json run", "vanish": "same"},
+      {"n": 30, "name": "_json_session", "for": "--json per-session emitter", "callers": "main()", "used": "every --json run", "vanish": "same"},
+      {"n": 31, "name": "_today", "for": "generated stamp", "callers": "main() --json", "used": "every --json run", "vanish": "trivial"}
+    ]
+  },
+  "half_b_test_first": {
+    "method": "Tests written BEFORE any code change, per the operator method. First run: ran 47, failures 3, errors 1. Then cleanup, then green.",
+    "red_at_first_run": [
+      {"arm": "TestCanonTag.test_arm_table_is_registry_driven", "outcome": "ERROR (tc.SERVING_TAG_MAP absent)", "diagnosis": "canon_tag arms were hard-coded ifs, not table-driven from docs/infra/model-registry.md as the brief requires", "fix": "SERVING_TAG_MAP introduced; canon_tag reduced to :cloud strip + table lookup. Behaviour-identical."},
+      {"arm": "TestExtractTask.test_brief_citing_another_rows_bundle", "outcome": "FAIL (returned T700, the cited bundle, instead of T794)", "diagnosis": "real defect vs stated intent: bare untracked/T match ran FIRST, so prose citing another row's bundle stole the attribution whenever it preceded the Follow line", "fix": "priority order Follow > claim > bare-untracked. Existing black-box controls seed 'Follow untracked/T<id>' first-user text, so they are unaffected; regression-token-capture.sh rerun ALL PASS after the change."},
+      {"arm": "TestParseClaudeEnvelope.test_error_envelope_with_zero_usage_is_missing_not_0_over_0", "outcome": "FAIL (all-zero usage dict returned)", "diagnosis": "real defect vs the docstring's own contract ('an api-error envelope with zero usage is MISSING, never a 0/0 reading'): enforced only when usage was ABSENT, not when present-but-zero", "fix": "is_error + all four base counts == 0 -> usage None. Runner verified unaffected: its capture branch keys off meta['is_error'] (tools/runner ~2359) and never reads a zero dict. tools/regression-token-capture.sh arm A had characterized the OLD behaviour (asserted usage is not None); that assert updated to the corrected contract with a comment citing T794 — the runner-facing semantics are unchanged, only the parser's return for a shape the caller treats as missing either way."}
+    ],
+    "green_at_first_run_count": 43,
+    "adjudicated_test_error_not_code_defect": [
+      {"arm": "TestSlug.test_trailing_slash", "first_outcome": "FAIL (expected '--tmp-x--', got '--tmp-x---')", "ruling": "over-specified TEST, not a code defect: the documented rule is leading-/ stripped, / -> -, wrapped in --, with NO trailing-slash special case, and tools/runner's duplicate is character-identical; cwds never carry trailing slashes. Test corrected to pin the actual documented transform so the two copies stay locked together."}
+    ],
+    "characterization_tests": [],
+    "recorded_defects_left_red": []
+  },
+  "parity_control": {
+    "what": "tests/unit/test_token_capture.py::TestCanonTag asserts (a) tc.CANONICAL_MODELS equals the list parsed out of src/managent/main.zig canonical_models[] — the Python/Zig list parity token-capture has never had; (b) every SERVING_TAG_MAP arm appears in docs/infra/model-registry.md and lands on a canonical label.",
+    "phantom_citation_found": "The canon_tag docstring cited tools/regression-token-capture-canon.sh as its parity control — NO SUCH FILE EXISTS on disk (checked 2026-08-23). A parity claim whose control does not exist is exactly how the three serving-tag rows slipped through. Docstring corrected to cite the real control (the new unit test)."
+  },
+  "notes": "Inbox polled twice (after claim, before done): no directives, nothing to record. D044 flag per brief: deepseek_rate_band tested as it stands; whether the band survives the 2026-08-23 budget-meter ruling is the Orchestrator's call — if retired, TestDeepseekRateBand retires with it. Arm count 47, reported NOT registered (T788/T789 own build.zig + suite-truth.md). No sub-goban/engine files touched; one writer respected (token-capture.py unclaimed by any hold). Files staged by name via tools/git-commit-mine."
+}

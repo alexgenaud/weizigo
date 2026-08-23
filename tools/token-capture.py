@@ -92,6 +92,16 @@ CANONICAL_MODELS = [
 # Usage keys summed per assistant turn.  A key missing from a turn counts 0.
 TOKEN_KEYS = ["input", "output", "cache_read", "cache_write", "reasoning", "total"]
 
+# Serving tag -> canonical label, table-driven from docs/infra/model-registry.md
+# (§Serving tags + §Short names).  The generic `:cloud` strip is code; every
+# other serving-tag divergence is ONE row here (T794).  tests/unit/
+# test_token_capture.py asserts parity against src/managent/main.zig
+# canonicalizeModelTag and against the registry text itself.
+SERVING_TAG_MAP = {
+    "kimi-k2.7-code": "kimi-k2.7",
+    "stealth/ox-alpha": "ox-alpha",
+}
+
 # claude envelope (snake_case, v2.1.237 ground truth) -> internal keys.
 CLAUDE_USAGE_KEYS = {
     "input": "input_tokens",
@@ -120,16 +130,19 @@ def canon_tag(tag):
     T746: `stealth/ox-alpha` is a SERVING TAG and must never reach a record
     (the T276 rule).  Before this map existed the ledger accepted three rows
     spelling it the serving way, and every per-canonical-label aggregation
-    dropped ox-alpha silently instead of loudly.  The parity control is
-    tools/regression-token-capture-canon.sh."""
+    dropped ox-alpha silently instead of loudly.  The arms are table-driven
+    from docs/infra/model-registry.md (SERVING_TAG_MAP, T794); the parity
+    control is tests/unit/test_token_capture.py (Python list + arm table
+    asserted against the Zig source and the registry text).  Note: the
+    docstring here cited tools/regression-token-capture-canon.sh as the
+    parity control until T794 — no such file exists on disk; a parity claim
+    without a control that runs is exactly how the three serving-tag rows
+    slipped through.
+    """
     t = (tag or "").strip()
     if t.endswith(":cloud"):
         t = t[:-len(":cloud")]
-    if t == "kimi-k2.7-code":
-        t = "kimi-k2.7"
-    if t == "stealth/ox-alpha":
-        t = "ox-alpha"
-    return t
+    return SERVING_TAG_MAP.get(t, t)
 
 
 def slug(cwd):
@@ -289,6 +302,11 @@ def parse_claude_envelope(raw):
         "reasoning": thinking,
         "total": input_ + output + cache_read + cache_write,
     }
+    # An is_error envelope whose usage is present but all-zero is a MISSING,
+    # never a legitimate-looking 0/0 reading (T794; the docstring's rule,
+    # previously enforced only for the usage-absent shape).
+    if meta["is_error"] and input_ == output == cache_read == cache_write == 0:
+        return result, None, meta
     return result, usage, meta
 
 
@@ -451,17 +469,23 @@ def _first_user_text(lines):
 def extract_task(text):
     """The task id a dispatch prompt names, or None.
 
-    Canonical: `Follow untracked/T<id>-<slug>.md`.  Fallback: the
-    `claim T<id>` line of the dispatch preamble.  A bare `T<id>` mention is
-    NOT matched — prose referencing another task must not mis-attribute a
-    session.
+    Priority (T794): 1. the canonical instruction line
+    `Follow untracked/T<id>-<slug>.md`; 2. the `claim T<id>` line of the
+    dispatch preamble; 3. any other `untracked/T<id>` mention.  A bare
+    `T<id>` mention is NOT matched — prose referencing another task must not
+    mis-attribute a session — and a brief that cites ANOTHER row's bundle in
+    its prose attributes to the Follow'd task, not the citation (the
+    first-match defect this order replaces).
     """
     if not text:
         return None
-    m = re.search(r"untracked/T(\d+)", text)
+    m = re.search(r"Follow\s+untracked/T(\d+)", text)
     if m:
         return "T" + m.group(1)
     m = re.search(r"claim\s+T(\d+)", text)
+    if m:
+        return "T" + m.group(1)
+    m = re.search(r"untracked/T(\d+)", text)
     if m:
         return "T" + m.group(1)
     return None

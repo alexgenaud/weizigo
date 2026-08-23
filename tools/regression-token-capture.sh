@@ -157,13 +157,15 @@ jsl = "\n".join([
 ])
 text2, usage2, meta2 = tc.parse_claude_envelope(jsl)
 assert text2 == "hello world" and usage2["output"] == 22
-# error envelope -> usage present but api-error zero => caller must treat as
-# missing; the parser reports is_error so the runner can decide
+# error envelope -> usage present but all-zero => MISSING, never a 0/0
+# reading (T794 corrected this arm: it previously asserted the zero dict,
+# characterizing the very 0/0 reading the docstring forbids); the runner
+# decides from meta["is_error"] either way
 _, usage3, meta3 = tc.parse_claude_envelope(json.dumps(
     {"type": "result", "is_error": True, "result": "boom",
      "usage": {"input_tokens": 0, "output_tokens": 0,
                "cache_read_input_tokens": 0, "cache_creation_input_tokens": 0}}))
-assert meta3["is_error"] and usage3 is not None
+assert meta3["is_error"] and usage3 is None
 # garbage -> text passthrough, no usage
 t4, u4, _ = tc.parse_claude_envelope("not json at all")
 assert t4 == "not json at all" and u4 is None
