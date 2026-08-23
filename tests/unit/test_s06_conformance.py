@@ -21,10 +21,10 @@ Python (`tools/fleet-keeper.sh`), Zig (`src/managent/main.zig`) and POSIX sh
 (`untracked/watch-fleet.sh`); none can be imported, and the facts under test
 are *declarations*, which is precisely what source text carries.
 
-**Counts.** 24 arms: **19 GREEN** characterization + null/seeded controls, **5 RED**
-spec-conformance covering **7 normative ids** (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4,
+**Counts.** 31 arms: **22 GREEN** characterization + null/seeded controls, **9 RED**
+spec-conformance covering **13 normative ids** (POL-1, POL-3, POL-4, GATE-2, DASH-1, DASH-4,
 ARB-4 — one arm can assert more than one id, so arms and ids are not in bijection and are counted
-separately).
+separately). The 7 arms added by T813 (3 GREEN, 4 RED) cover POL-8…13.
 
 **Labels** (`tests/roundtrip/README.md`'s vocabulary, which this tier honours):
 CHARACTERIZATION arms pin today and are expected GREEN; they are deleted or
@@ -201,6 +201,88 @@ class TestAppetiteDial(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# T813 — the dial + class semantics (ORC-POL-8/9/10)
+# ---------------------------------------------------------------------------
+
+class TestAppetiteDialAndClass(unittest.TestCase):
+    """The operator's 2026-08-23 ruling: the 0-9 dial and the class are TWO
+    first-class configurations.  Today the code has one — the class — and it
+    collapses to a binary gate (off/reserved/probe exclude, spend/conserve
+    pass); the dial exists in no tracked source file.
+    """
+
+    # CHARACTERIZATION — dies with ORC-PLAN-3 step 1 (policy reader).
+    def test_conserve_has_no_branch_today(self):
+        """TODAY (ORC-POL-8): `conserve` is dead code — `filterQualified`
+        excludes `.off`/`.reserved`/`.probe` and has NO `.conserve` branch, so
+        a CONSERVE family falls through to the candidate list exactly like
+        SPEND.  Pinned so step 1 retires the level rather than silently
+        keeping a five-level enum that behaves as two.
+        """
+        zig = src(MAIN_ZIG)
+        self.assertIn("if (app == .off)", zig)
+        self.assertIn("if (app == .reserved)", zig)
+        self.assertIn("if (app == .probe)", zig)
+        self.assertNotIn("if (app == .conserve)", zig,
+                         "a .conserve branch now exists — the level is "
+                         "implemented; re-read this arm and ORC-POL-8's "
+                         "retire decision")
+
+    # CHARACTERIZATION — dies with ORC-PLAN-3 step 1.
+    def test_reserved_and_probe_name_conditions_that_do_not_exist_today(self):
+        """TODAY (ORC-POL-9): the `.reserved`/`.probe` branches exclude with
+        reason strings naming "reserved task types only" / "probe-flagged rows
+        only", but no row carries either flag — the conditions they name do
+        not exist.  Pinned so step 1 defines the row flags rather than
+        deleting the levels the operator values ("1 is less informative than
+        RESERVE and PROBE").
+        """
+        zig = src(MAIN_ZIG)
+        self.assertIn("reserved task types only", zig)
+        self.assertIn("probe-flagged rows only", zig)
+        # the Row struct has a shape field but no reserved/probe flag
+        self.assertNotRegex(zig, r"reserved\s*:\s*\?bool")
+        self.assertNotRegex(zig, r"probe\s*:\s*\?bool")
+
+    @unittest.expectedFailure  # RED — owner: ORC-PLAN-3 step 1 (policy reader)
+    def test_dial_is_a_weight_and_zero_excludes(self):
+        """SHOULD (ORC-POL-8/10): a per-model dial d in 0..9; d=0 excludes,
+        d>=1 weights the draw.  RED: no dial mechanism at all — the word
+        "dial" appears nowhere in main.zig, and the draw is uniform
+        (`drawCandidate` = `rng.uintLessThan`).
+        """
+        zig = src(MAIN_ZIG)
+        self.assertRegex(zig, r"dial", "no per-model dial mechanism at all")
+        self.assertNotIn("rng.uintLessThan", zig,
+                         "draw is still uniform — the dial-weighted draw has "
+                         "not replaced it")
+
+    @unittest.expectedFailure  # RED — owner: ORC-PLAN-3 step 1
+    def test_selection_consults_class_then_qualification_then_dial(self):
+        """SHOULD (ORC-POL-9): selection order class gate -> dial-0 forbid ->
+        qualification -> dial-weighted draw -> cost reported.  RED: today the
+        class is a binary gate, the draw is uniform, and `soloPick` picks the
+        cheapest measured cost (no quality gate, no dial).
+        """
+        zig = src(MAIN_ZIG)
+        self.assertRegex(zig, r"dial", "no dial consulted in selection")
+        self.assertNotRegex(zig, r"measured cost .* > .*\(cheapest\)",
+                            "cost still decides a pick — it must be reporting "
+                            "only (T772 ratified)")
+
+    @unittest.expectedFailure  # RED — owner: ORC-PLAN-3 step 1
+    def test_dial_inheritance_is_materialized_not_hidden(self):
+        """SHOULD (ORC-POL-10): a model with no dial row inherits its family's
+        default dial, materialized at parse time; a model whose family has no
+        default is a parse error.  RED: no `default_dial` mechanism to inherit
+        from.
+        """
+        zig = src(MAIN_ZIG)
+        self.assertRegex(zig, r"default_dial",
+                         "no materialized dial-inheritance mechanism")
+
+
+# ---------------------------------------------------------------------------
 # ORC-POL-4 / ORC-GATE-2 — the merged cooldown machine
 # ---------------------------------------------------------------------------
 
@@ -259,6 +341,56 @@ class TestCooldownMachine(unittest.TestCase):
         merge = re.search(r"\*\*ORC-POL-4.*?\n\n", spec, re.S)
         self.assertIsNotNone(merge, "ORC-POL-4 not found — parser break")
         self.assertIn("fleet-keeper.cooldown", merge.group(0))
+
+
+# ---------------------------------------------------------------------------
+# T813 — cooldown = prohibition with scope + reason + end (ORC-POL-11/12/13)
+# ---------------------------------------------------------------------------
+
+class TestCooldownSemantics(unittest.TestCase):
+    """T813: cooldown is prohibition (do not draw until the end-condition),
+    each carrying scope + reason + end; a rate reduction is the dial, never a
+    cooldown.  Today the auto-cooldown is one narrow case — family-only,
+    provider-limit-only, duration-only — wearing the general name.
+    """
+
+    # CHARACTERIZATION — dies with ORC-PLAN-3 step 1.
+    def test_todays_auto_cooldown_is_one_narrow_case(self):
+        """TODAY (ORC-POL-11/12): `window_policy.py`'s `family_cooldown` keys
+        by family only (no model/fleet scope), arms only from a provider-limit
+        death (no reason enumeration), and ends only on a duration (a reset
+        epoch or `FALLBACK_COOLDOWN_SECONDS`) — no `until`-condition, no
+        `indefinite`.  Pinned so step 1 widens the concept rather than keeping
+        the narrow case's name.
+        """
+        wp = src(WINDOW_POLICY)
+        body = re.search(r"def family_cooldown\(.*?\n\s*return by_family", wp, re.S)
+        self.assertIsNotNone(body, "family_cooldown not found — parser break")
+        b = body.group(0)
+        self.assertIn("by_family[fam]", b)      # family scope only
+        self.assertNotIn("scope", b)            # no scope axis
+        self.assertNotIn("indefinite", b)       # no indefinite end-form
+        self.assertNotIn("until-done", b)       # no until-condition
+        self.assertIn('"provider-limit"', wp)   # the only reason
+        self.assertNotIn("graceful-shutdown", wp)
+        self.assertNotIn("reserve-queue-for-refactor", wp)
+
+    @unittest.expectedFailure  # RED — owner: ORC-PLAN-3 step 1
+    def test_cooldown_carries_reason_end_and_scope(self):
+        """SHOULD (ORC-POL-11/12): every cooldown carries scope + reason + end,
+        with the reason enumeration (provider-limit, graceful-shutdown,
+        reserve-queue-for-refactor, preserve-tokens-before-reset,
+        operator-manual) and the three end-forms (duration, until, indefinite).
+        RED: today the cooldown is family-only, provider-limit-only,
+        duration-only.
+        """
+        wp = src(WINDOW_POLICY)
+        self.assertRegex(wp, r"scope", "no scope axis in the cooldown record")
+        self.assertRegex(wp,
+                         r"graceful-shutdown|reserve-queue-for-refactor|"
+                         r"preserve-tokens-before-reset|operator-manual",
+                         "no reason enumeration")
+        self.assertRegex(wp, r"indefinite", "no indefinite end-form")
 
 
 # ---------------------------------------------------------------------------

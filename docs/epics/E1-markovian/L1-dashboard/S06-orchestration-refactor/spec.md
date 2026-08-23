@@ -1,11 +1,14 @@
 # S06 — spec: orchestration refactor (one policy file, one dashboard, one arbiter)
 
 **Artifact type: SPEC** (`docs/infra/sprint.md` — a spec says what we want, testably, for one
-pass). **Owner:** deepseek-v4-pro/T748 · **Date:** 2026-08-23 · **Status:** **rev 2 — AMENDED,
-awaiting operator ratification.** Rev 1 (PROPOSED) was audited by `claude-sonnet-5`/T778
-(verdict RATIFIABLE-WITH-AMENDMENTS, 4 major / 2 medium / 2 minor); T802 discharged all eight
-and added four of its own, found while writing the arms. **See §14 (amendment log) for the
-twelve, each with its arm.** Not a worker brief, not a plan, no code.
+pass). **Owner:** deepseek-v4-pro/T748 · **Date:** 2026-08-23 · **Status:** **rev 3 — AMENDED
+(T813: appetite dial + class, cooldown reasons), awaiting operator ratification.** Rev 1
+(PROPOSED) was audited by `claude-sonnet-5`/T778 (verdict RATIFIABLE-WITH-AMENDMENTS, 4 major /
+2 medium / 2 minor); T802 discharged all eight and added four of its own, found while writing
+the arms. **See §14 (amendment log) for rev 1→2's twelve, each with its arm, and rev 3's five.** Rev 3 (T813) amends
+the policy section only: the operator's 2026-08-23 ruling makes the 0–9 dial and the appetite
+class two first-class, co-consulted configurations, retires the `conserve` level, and gives
+every cooldown a reason, an end-condition and a scope. Not a worker brief, not a plan, no code.
 
 **Sits on:** the ratified seed (`docs/status/orchestration-refactor-seed-2026-08-23.md` — its
 eight rulings are DECIDED, this spec does not reopen them), the existing tools it migrates
@@ -164,6 +167,34 @@ the dial and the categorical form, and it must be made explicitly rather than by
 table step 1 happens to port; (c) this is an **11th multi-way job**, absent from the roadmap
 §6 table of ten, found by T802's census: *two appetite tables, disagreeing*.
 
+**Amendment (T813, 2026-08-23) — the dial and the class are two first-class configurations,
+both consulted.** The operator ruled: *"I think BOTH the 0-9 dial and enums convey different
+information and BOTH are required. Make BOTH equal first-class configurations, honoured and
+consulted during model selection."* They carry different information and must both be consulted:
+**the class (enum) is a policy CLASS** — what *kind* of permission the family has and what
+condition attaches to drawing it; **the dial (0–9) is a RATE / eagerness** — how strongly to
+prefer the model when it is permitted at all. The operator's own note records why both stay:
+*"admittedly the number 1 is less informative than RESERVE and PROBE."* `1` says *rarely*;
+`RESERVED` and `PROBE` say *why* and *under what condition*. A single scalar cannot carry both,
+and neither can a single word. The §7c.11 mechanics carry over unchanged (0 = unliftable hard
+forbid, monotone back-pressure between, max = no back-pressure, operator-only raise, auto may
+only reduce); the §7c.11 **initial values** are superseded by the operator's 2026-08-23 table
+below, which is now the file's seed. The mechanism is ORC-POL-8/9/10; the file rows are in
+ORC-POL-5's worked example.
+
+| family | class | dial | the operator's words (2026-08-23), verbatim as rationale |
+|---|---|---|---|
+| ollama-cloud | `OFF` | **0** | *"DO NOT USE"* |
+| claude-fable | `RESERVED` | **1** | *"ONLY when it's the only, necessary and best option"* |
+| local (qwen) | `PROBE` | **1** | *"ONLY when we believe/hope to get some good test results"* |
+| claude (opus / sonnet / haiku) | `SPEND` | **4** | *"available but dice roll leans deepseek, all else equal"* |
+| deepseek (dspro / dsflash) | `SPEND` | **5** | *"reliably available"* |
+| ox-alpha | `SPEND` | **9** | *"test whenever you get the opportunity"* |
+
+The dial is per **model** (the family numbers above are the family *default dials* — §7c.11's
+"bulk convenience"); the class is per **family**. A model with no dial row inherits its family's
+default (ORC-POL-10, materialized — never a hidden fallback).
+
 **ORC-POL-4 (the cooldown mechanisms merge — ruling 6).** heal (T504), dispatch (T536), window
 (T628/T677) **and the global keeper flag** cooldowns become **one visible state machine** in the
 policy file, with one namespace and one dashboard row each. The merge is a *schema* fact, not a
@@ -192,6 +223,12 @@ no dashboard row to make it visible. A merge that left this mechanism out would 
 the third place to look *and* the incident. It is in the merge as of this amendment, and it is
 the state machine's **only** state whose entry condition is a bare file.
 
+**Amendment (T813, 2026-08-23) — the merge separates two mechanisms the name conflates.** A
+cooldown is **prohibition** (do not draw until the end-condition), and every cooldown carries
+**scope**, **reason** and **end** (ORC-POL-11/12); a **rate reduction** is the **dial**, not a
+cooldown. The current auto-cooldown (provider limit → `FALLBACK_COOLDOWN_SECONDS`) is one row of
+this machine — scope `family`, reason `provider-limit`, end `duration` — not the whole concept.
+
 **ORC-POL-5 (schema — worked example, the full file).** The file is JSON (the project's
 store convention), at `docs/infra/orchestration-policy.json` (committed, diff-reviewed — it is
 the gate-as-data artifact, so it lives in git, not `untracked/`). Runtime *state* (who is cooled
@@ -200,21 +237,17 @@ down *right now*) stays in the store/run-records, never in the policy file — t
 
 ```json
 {
-  "schema_version": 1,
-  "note": "Every entry carries owner, reason, expiry. Env vars override only; nothing here is a hidden default.",
+  "schema_version": 2,
+  "note": "Every entry carries owner, reason, expiry. Env vars override only; nothing here is a hidden default. A family row carries BOTH a class (the permission kind) and a dial (the eagerness — the family DEFAULT, which member models inherit unless a model_dials row overrides it). Cooldowns are prohibitions, each with scope + reason + end; rate reduction is a dial, never a cooldown.",
   "appetite": [
-    {"model": "dspro",   "dial": 6, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "dsflash", "dial": 6, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "sonnet",  "dial": 6, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "haiku",   "dial": 6, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "opus",    "dial": 4, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "qwen",    "dial": 4, "owner": "operator", "reason": "initial, 2026-08-22 (§7c.11)", "expiry": null},
-    {"model": "fable",   "dial": 2, "owner": "operator", "reason": "reserve for when Fable is most appropriate AND needed", "expiry": null},
-    {"model": "glm",     "dial": 0, "owner": "operator", "reason": "ollama weekly quota exhausted (D036)", "expiry": "next-ollama-quota-refresh"},
-    {"model": "minimax", "dial": 0, "owner": "operator", "reason": "ollama weekly quota exhausted (D036)", "expiry": "next-ollama-quota-refresh"},
-    {"model": "kimi",    "dial": 0, "owner": "operator", "reason": "ollama weekly quota exhausted (D036)", "expiry": "next-ollama-quota-refresh"},
-    {"model": "oxalpha", "dial": 6, "owner": "operator", "reason": "free while the blind test runs; draw and compare at every reasonable opportunity, never penalize on speed (ruling 2026-08-23, 2ec4f93 — supersedes T732 RESERVED)", "expiry": "blind-test-reveal"}
+    {"family": "ollama-cloud", "class": "OFF",      "dial": 0, "owner": "operator", "reason": "DO NOT USE (operator 2026-08-23)", "expiry": "next-ollama-quota-refresh"},
+    {"family": "claude-fable", "class": "RESERVED", "dial": 1, "owner": "operator", "reason": "ONLY when it's the only, necessary and best option (operator 2026-08-23)", "expiry": null},
+    {"family": "local",        "class": "PROBE",    "dial": 1, "owner": "operator", "reason": "ONLY when we believe/hope to get some good test results (operator 2026-08-23)", "expiry": null},
+    {"family": "claude",       "class": "SPEND",    "dial": 4, "owner": "operator", "reason": "available but dice roll leans deepseek, all else equal (operator 2026-08-23)", "expiry": null},
+    {"family": "deepseek",     "class": "SPEND",    "dial": 5, "owner": "operator", "reason": "reliably available (operator 2026-08-23)", "expiry": null},
+    {"family": "ox-alpha",     "class": "SPEND",    "dial": 9, "owner": "operator", "reason": "test whenever you get the opportunity (operator 2026-08-23; supersedes T732 RESERVED and the rev-2 dial 6)", "expiry": "blind-test-reveal"}
   ],
+  "model_dials": [],
   "caps": [
     {"family": "claude", "fan_out": 3, "owner": "operator", "reason": "§7c.33 one race's lanes, never two races", "expiry": null},
     {"family": "fable",  "fan_out": 1, "owner": "operator", "reason": "RESERVED lane runs alone or not at all (§7c.33)", "expiry": null},
@@ -272,12 +305,133 @@ Armed as `TestAppetiteDial.test_keeper_has_no_row_for_ox_alpha_so_it_falls_throu
 to a refusal, never to a default appetite.** A default that silently permits is the D036 class
 this sprint exists to kill.
 
+**Amendment (T813, 2026-08-23) — RESERVED and PROBE are class values with row-flag conditions,
+not dial sentinels.** ORC-POL-8/9 re-spec the level: `RESERVED` and `PROBE` are per-**family**
+classes that gate on a row flag (`reserved` / `probe`), not sentinels on a per-model dial. Their
+live subjects are `claude-fable` (RESERVED) and `local` (PROBE), so the "no per-model subject"
+framing above is superseded — the subject is per-family, and the condition that did not exist now
+does (ORC-POL-9). The §12.2 sentinel-vs-string question is moot for a new reason: there is no
+sentinel to encode, because the class is not a value on the dial axis.
+
 **ORC-POL-7 (env vars are overrides, and overrides are recorded).** The existing knobs
 (`FLEET_MODEL_ALLOW/DENY`, `FLEET_APPETITE`, `FLEET_FAMILY_CAP`, `WEIZIGO_DIRECTIVE_STALE_HOURS`)
 keep working **as overrides of a file entry**, and an override is appended to
 `untracked/fleet-window-overrides.jsonl` with the reason it was needed (the T677 override-recording
 precedent, generalized). A knob with no corresponding file entry is refused with "add it to the
 policy file or it is not a knob" — the D036 silent-default class dies here. (T766: `WEIZIGO_WINDOW_BUDGET_*` knobs retired.)
+
+**ORC-POL-8 (the dial is a draw weight — 0 excludes, 1–9 weights; `conserve` is retired).** For
+a model `m`, `dial(m) ∈ {0,…,9}`. `dial(m) = 0` excludes the model from every draw (hard forbid,
+"DO NOT USE" — §7c.11's unliftable forbid). `dial(m) ≥ 1` admits the model to a **weighted draw**
+with weight `dial(m)`: draw probability ∝ weight. The dial's only effect on a `≥1` candidate is
+its weight — **lowering a dial lowers a model's draw share, it never removes it** (rate reduction
+is not prohibition; the class gate and dial 0 are the only removals). `dial = 9` means "draw it at
+every reasonable opportunity": the model is the modal outcome whenever it is qualified (its weight
+is the scheme's maximum). A dial of 5 versus 4 is a defined, checkable effect: two candidates at 5
+and 4 draw in proportion 5:4 (5/9 vs 4/9).
+
+**Dead-level disposition (decided per level — a level with no observable behaviour is not a level):**
+
+| level | disposition | reason |
+|---|---|---|
+| `off` | **keep** as a class | the family-level hard forbid ("DO NOT USE"); it is what dial 0 means at family scope, and it is the only level with an observable branch today |
+| `probe` | **keep, and specify** | names "probe-flagged rows only" — the flag does not exist today, so ORC-POL-9 defines it (row flag `probe`); the operator values it: "1 is less informative than PROBE" |
+| `conserve` | **RETIRE** | no branch today — `filterQualified` treats it exactly as `spend` (falls through to the candidate list). Its meaning, "use less, keep using", is precisely the dial's 1–3 range: a *rate*, not a *permission kind* |
+| `spend` | **keep** as a class | the general permission ("available"); the dial carries *how eagerly* within it |
+| `reserved` | **keep, and specify** | names "reserved task types only" — the task-type test does not exist today, so ORC-POL-9 defines it (row flag `reserved`); the operator values it: "1 is less informative than RESERVED" |
+
+**ORC-POL-9 (selection consults class first, then the dial among the qualified — the order, with
+"all else equal" defined).** Selection applies, in order: **(1) class gate** — `OFF` out always;
+`RESERVED` in only when the row carries `reserved`; `PROBE` in only when the row carries `probe`;
+`SPEND` in always; **(2) dial-0 forbid** — a model at dial 0 is out (a model-level "DO NOT USE"
+inside a class-admitted family); **(3) qualification** — methodology §5's gate (score ≥ threshold,
+no fabricated citations, verification ≥ floor): a model that fails it is out *even at dial 9*; an
+**unmeasured** model is eligible (D027 exploration-first: unmeasured is a reason to *try*, never to
+exclude and never to prefer — T772); **(4) the dial weights the draw** among the survivors,
+probability ∝ dial; **(5) cost is reported, never consulted** — `shape_reasons` may state measured
+costs, they never decide a pick (T772 ratified: cost is removed from model choice entirely). **"All
+else equal"** is defined by (1)–(3): candidates that survive the class gate, the dial-0 forbid and
+the qualification gate, with the dial the sole remaining discriminator — which is exactly the
+operator's "dice roll leans deepseek, all else equal": deepseek's 5 outdraws claude's 4, and only
+there.
+
+The two row flags — `reserved` (the §1 reserved task types: deep holistic review, gate-holder
+verification, spec/design adjudication; never one-off/general) and `probe` (exploration-only rows;
+never during a measured suite run) — are row-declared in the bundle header and read by the one
+parser (ORC-REG-2); their position in the registration contract is design's (ORC-REG-3's field
+list grows by two), their **semantics** are normative here. An `ox-alpha` at dial 9 is drawn at
+every reasonable opportunity *because* it passes (1)–(3) on the rows where it is qualified and
+then carries the maximum weight — not because it bypasses any of them.
+
+**ORC-POL-10 (dial inheritance is materialized, never a hidden fallback).** The policy file
+declares a dial per **model short name** and a **default dial per family** (the operator's
+2026-08-23 table is the initial family defaults). A model with no explicit dial row **inherits its
+family's default dial, and the inheritance is materialized** — the reader resolves every model to
+a concrete dial at parse time and the dashboard renders the resolved dial, so the inheritance is
+never a fallback nobody can see. A model whose family has no default dial is a **parse error**
+(refused, like an entry with no owner/reason — ORC-POL-2), never silently drawn at an invented
+default. The per-model override is how §7c.11's "family setting is bulk convenience" is honoured:
+a family default is the bulk write; a `model_dials` row is the unit of record for a model that
+differs.
+
+**ORC-POL-11 (rate reduction is the dial; cooldown is prohibition — and every cooldown carries
+scope, reason, end).** The two mechanisms ORC-POL-4's machine conflates are distinct: **rate
+reduction = the dial** (use less, keep using — dial 1–8, never a prohibition); **cooldown =
+prohibition** (do not draw *at all* until the end-condition, however long that is). Every cooldown
+record carries three required fields — `scope` (one model / one family / the whole fleet), `reason`
+(the ORC-POL-12 enumeration), `end` (one of the three ORC-POL-12 forms) — plus owner and creation
+time. A cooldown missing any of the three is refused at parse (ORC-POL-2). The current auto-cooldown
+(a terminal run record showing a provider limit, `FALLBACK_COOLDOWN_SECONDS` 30 min or a parsed
+reset) is **one row** of this machine — scope `family`, reason `provider-limit`, end `duration` —
+not the whole concept, and it no longer gets to use the general name alone.
+
+**ORC-POL-12 (the cooldown reason enumeration, the three end-condition forms, the scope axis).**
+
+Reasons (the enumeration to start from — extended by adding a name, never by omitting one):
+
+| reason | what it is |
+|---|---|
+| `provider-limit` | today's automatic case — a terminal run record showed a provider limit |
+| `graceful-shutdown` | the fleet is shutting down deliberately |
+| `reserve-queue-for-refactor` | hold the queue for a large refactor; do not resume until it is done |
+| `preserve-tokens-before-reset` | save tokens ahead of a family reset |
+| `operator-manual` | the operator flipped it by hand |
+
+End-conditions (exactly three forms):
+
+| form | example | note |
+|---|---|---|
+| `duration` | "cooldown Claude for the next 3 h 34 min" | an ISO instant or a seconds count; expires itself |
+| `until` | "do not resume until the refactor task `<T-id>` is done" | a named condition re-evaluated at every read — the `managent tell … pause --until-done <T-id>` mechanism, generalized to a family or the fleet |
+| `indefinite` | "graceful shutdown" | pending a human flip; **visible and never silently expiring** — it does not lapse, it waits |
+
+Scope axis: `model` (one short name) · `family` (one family) · `fleet` (all). The current machine
+is `family`-only; `model` and `fleet` are new, and `fleet` is what the 2026-08-20→23 keeper flag
+effectively was — but as a scoped, owned, expiring record, not a bare file.
+
+**ORC-POL-13 (a cooldown is legible or it does not exist).** Every cooldown renders on the
+dashboard as one row — **what** is cooled (scope), **why** (reason), **when/on-what it ends**
+(end-condition) — beside the pauses section (ORC-PAUSE-3, ORC-DASH-4). A prohibition nobody can
+see is how the keeper stayed paused from 2026-08-20 without anyone noticing (the ORC-PAUSE-1
+incident); the `indefinite` form is the one that most needs the row, because it is the one that
+will not lapse on its own.
+
+**Worked example — one real task type, dial ordered, one dial moves by 1 (ORC-POL-9).** Take
+**audit** (27 % of task-type share, §1). A plain audit row (no `reserved`/`probe` flag):
+
+- **class admits**: `claude` (opus, sonnet, haiku), `deepseek` (dspro, dsflash), `ox-alpha`.
+  `ollama-cloud` is OFF (glm, minimax, kimi out); `claude-fable` is RESERVED and audit is not a
+  reserved task type (fable out); `local` is PROBE and audit is not probe-flagged (qwen out).
+- **dial orders** (all at family defaults; no `model_dials` override): weights opus 4 · sonnet 4 ·
+  haiku 4 · dspro 5 · dsflash 5 · ox-alpha 9, sum 31. Draw shares: ox-alpha 9/31 ≈ 29 %; dspro
+  and dsflash 5/31 ≈ 16 % each; opus, sonnet, haiku 4/31 ≈ 13 % each. (Assuming each admitted
+  candidate passes §5 or is unmeasured — D027 admits unmeasured; a §5 failure drops out regardless
+  of dial.)
+- **one dial moves by 1**: raise haiku 4 → 5. Sum becomes 32; haiku rises 4/31 ≈ 12.9 % → 5/32 ≈
+  15.6 %, ox-alpha falls 9/31 ≈ 29.0 % → 9/32 ≈ 28.1 %, the other four fall by the same
+  renormalization. The effect is exactly the dial's: a +1 raises one model's draw share and
+  lowers every other survivor's — it never removes anyone, and it never reaches a candidate the
+  class or qualification gate already dropped.
 
 ---
 
@@ -606,15 +760,17 @@ spec audit found, and the exact failure §0's own rule names (*"an id with no co
 requirement, it is a wish"*). The remainder is therefore **enumerated by id**, because an
 unenumerated remainder is how coverage debt goes silent.
 
-**Armed count at `8c00704`: 22 of 31.** The 15 in the flips column below (ARB-1, ARB-2, ARB-3,
+**Armed count: 28 of 37.** The 15 in the flips column below (ARB-1, ARB-2, ARB-3,
 DASH-2, DASH-3, DASH-5, PAUSE-1, PAUSE-2, POL-2, POL-7, PROV-1, REG-1, REG-2, REG-3, REG-4)
 plus **7 armed by T802** in `tests/unit/test_s06_conformance.py` — POL-1, POL-3, POL-4, DASH-1,
 DASH-4, ARB-4, GATE-2 — the four load-bearing ones T778's disposition named, plus the three its
-arms necessarily also assert. Those seven arms are **RED by construction and correct to be red**
+arms necessarily also assert — plus **6 armed by T813** in the same file — POL-8, POL-9, POL-10,
+POL-11, POL-12, POL-13. The T802 arms are **RED by construction and correct to be red**
 (ORC-CTRL-2: red first): each is `@unittest.expectedFailure` naming the ORC-PLAN-3 step that
 owes the mechanism, and each is paired with a GREEN *characterization* arm pinning what the
 subject does **today** — so a migration step cannot change today's behaviour silently, and
-cannot mark the id armed without turning its red arm green.
+cannot mark the id armed without turning its red arm green. T813's arms follow the same pattern
+(3 GREEN characterization pinning today, 4 RED conformance naming step 1).
 
 **Still unarmed — 9, owed in P3:** `ORC-GOAL-1`, `ORC-GOAL-2`, `ORC-GOAL-3`, `ORC-GOAL-4`
 (the four goal statements — arguably unarmable as stated, which is itself a finding: a goal that
@@ -699,7 +855,10 @@ itself past that.
 | Feedstock T709 | ORC-REG-1 (mechanical store-write refusal subsumes the rc=0 reconcile) |
 | T747 landmark gate | ORC-REG-3 (field 3) |
 | T738/T739 dashboard trim | ORC-DASH-2/3 |
-| §7c.11/12 appetite | ORC-POL-3 |
+| §7c.11/12 appetite | ORC-POL-3/8/9/10 |
+| Operator ruling 2026-08-23 (dial + class both required) | ORC-POL-3, ORC-POL-8/9/10 |
+| Operator ruling 2026-08-23 (cooldown = prohibition, reason/end/scope) | ORC-POL-11/12/13 |
+| T772 ratified (cost removed; qualification first) | ORC-POL-9 |
 | §7c.31 guard vs attribution | ORC-ARB-2 |
 | §7c.18 kernel-attested identity | ORC-ARB-4, ORC-REG-1 |
 | §7c.21 two-tier closure + audit cap | ORC-REG-3 (field 5), ORC-ACC-3 |
@@ -727,17 +886,27 @@ itself past that.
 2. **RESERVED encoding** (ORC-POL-6): `-1` sentinel vs explicit `"appetite": "RESERVED"` string.
    **Recommend the explicit string** — but **DEFERRED, no live consumer** (amended T802, T778
    finding 4): ox-alpha was RESERVED's only per-model subject and is now free/SPEND, so design
-   would be choosing an encoding for an empty category. Revisit when something is RESERVED
-   per-model again.
-3. **The appetite mechanism itself** (ORC-POL-3, added T802): the per-model 0–9 dial vs the
-   per-family categorical word that both live tables actually implement. **Recommend the dial**
-   (the categorical form cannot express §7c.11 monotone back-pressure), with the family word
-   derived from it by stated floor thresholds. This is `[design-open]` and must be chosen
-   explicitly — rev 1 assumed the dial existed and could be "carried over unchanged".
+   would be choosing an encoding for an empty category. **Amended T813:** moot for a new reason —
+   RESERVED/PROBE are class values with row-flag conditions (ORC-POL-9), not values on the dial
+   axis, so there is no sentinel to encode; the class is a distinct field (`"class": "RESERVED"`),
+   and its live subjects are `claude-fable` (RESERVED) and `local` (PROBE).
+3. **The appetite mechanism itself** (ORC-POL-3) — **RESOLVED by the operator, 2026-08-23**
+   (T813): the per-model 0–9 dial and the per-family categorical word are **both** first-class,
+   because they carry different information — the class is the *permission kind* (what condition
+   attaches), the dial is the *eagerness* (how strongly to prefer when permitted). "Recommend
+   the dial" (rev 2) is superseded: both stay, and ORC-POL-8/9/10 specify the division of labour.
+   The one genuinely open composition point is §12.5 (dial eagerness vs D027 least-data).
 4. **The dashboard's section set** (ORC-DASH-4, added T802): replace today's five task-view
    sections with the five fleet-view sections, or render both under the omission rule.
    **Recommend both** — the specified set shares nothing with the existing set, so "replace" is
    a deletion of a surface the operator uses daily.
+5. **Dial eagerness vs D027 least-data** (ORC-POL-9, added T813): among candidates at *equal*
+   dial, does the draw stay uniform, or does T772's exploration-first least-data rule prefer the
+   less-measured model? The operator's dial is a standing eagerness signal; least-data is a
+   per-selection exploration signal; their composition inside a weighted draw is `[design-open]`.
+   **Recommend uniform among equal dials** (a weighted draw's natural "all else equal"), with
+   least-data available to a row's own shape picker (T772's `soloPick`/`panelPick`) as a
+   secondary signal — and neither rule silently dropped.
 
 **Deferred to design (the spec states the principle, design states the mechanism):**
 
@@ -801,3 +970,20 @@ It does not touch the eight ratified seed rulings, does not build anything, and 
 the four `[design-open]` items (two inherited, two added by rows 10 and 11) — those are design's,
 and §12 now lists all four. **Rev 2 is a spec amendment awaiting ratification, and no absorption
 pass may begin before it is ratified**: rows 9–11 each change what a pass must build.
+
+### Rev 2 → rev 3 (T813, 2026-08-23) — appetite dial + class, cooldown reasons
+
+Amends the policy section only. Every row names the id it changed and the arm that holds it;
+arms live in `tests/unit/test_s06_conformance.py` (7 new arms — 3 GREEN characterization, 4 RED
+spec-conformance), text analysis of `src/managent/main.zig` and `tools/window_policy.py`.
+
+| # | id(s) | what changed | arm |
+|---|---|---|---|
+| 1 | ORC-POL-3, ORC-POL-8 | the operator's ruling makes the 0–9 dial and the class two first-class configurations; the dial reference table (0/1/1/4/5/9) is the new initial config, superseding §7c.11's 2026-08-22 numbers; `conserve` retired | `test_conserve_has_no_branch_today` (GREEN) · `test_dial_is_a_weight_and_zero_excludes` (RED, step 1) |
+| 2 | ORC-POL-9, ORC-POL-6 | selection order class→dial-0→qualification→weighted-draw→cost-reported; `reserved`/`probe` conditions now exist as row flags | `test_reserved_and_probe_name_conditions_that_do_not_exist_today` (GREEN) · `test_selection_consults_class_then_qualification_then_dial` (RED, step 1) |
+| 3 | ORC-POL-10 | dial inheritance is materialized (family default + per-model override), never a hidden fallback | `test_dial_inheritance_is_materialized_not_hidden` (RED, step 1) |
+| 4 | ORC-POL-4, ORC-POL-11/12/13 | rate reduction = dial vs cooldown = prohibition; every cooldown carries scope + reason + end; the reason enumeration, three end-forms, and scope axis are specified | `test_todays_auto_cooldown_is_one_narrow_case` (GREEN) · `test_cooldown_carries_reason_end_and_scope` (RED, step 1) |
+| 5 | ORC-POL-5 | the worked example's `appetite` array becomes family class + default dial (operator's table) plus an explicit `model_dials` override list; `schema_version` 1→2 | (documentary — held by row 1's dial arm) |
+
+The 6 new ids (POL-8…13) each carry an arm; none of the 9 pre-existing unarmed ids is newly
+armed by this amendment, and no id is added unarmed.
