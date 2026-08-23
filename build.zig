@@ -349,6 +349,23 @@ pub fn build(b: *std.Build) void {
     startup_liveness_regression.cwd = b.path(".");
     test_step.dependOn(&startup_liveness_regression.step);
 
+    // ── buffered-pi session liveness controls (T773) ──────────────────
+    // The stdout-only startup fuse killed WORKING buffered lanes: pi holds
+    // stdout to completion, so a lane that IS working writes only its
+    // session JSONL (T735 attempt 2: 40 turns / 19,060 output tokens
+    // during the 600 s the fuse called "no output since launch").  T773:
+    // the fuse reads the pi session file's mtime too (--session <path>, or
+    // the cwd-slug session dir when no --session was passed — the same
+    // fallback T751 owes the token meter), and the kill note states what
+    // was measured, never a cause.  Arms: survives-session (no stdout,
+    // --session file growing past the old startup timeout), survives-
+    // fallback (no stdout, cwd-slug session dir growing), hung (no stdout,
+    // no session writes — still killed, note measurement-only), scoping
+    // (non-agent silence untouched).
+    const pi_session_liveness_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-pi-session-liveness.sh" });
+    pi_session_liveness_regression.cwd = b.path(".");
+    test_step.dependOn(&pi_session_liveness_regression.step);
+
     // ── per-harness liveness fuse controls (T634) ─────────────────────
     // The startup-liveness fuse keys on stdout — correct for pi/ollama
     // (streaming), WRONG for claude (buffers to the end).  T616 died at

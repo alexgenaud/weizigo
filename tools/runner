@@ -1606,6 +1606,91 @@ def _argv_session_path(argv):
     return None
 
 
+# ── T773: the pi session liveness sensor (stdout is not the only signal) ─
+#
+# pi buffers stdout to completion, so a working lane can be silent on the
+# stream for its whole run while appending continuously to its session
+# JSONL.  The stdout-only startup fuse (T586) killed such lanes and blamed
+# them: T735 attempt 2 (ox-alpha) died at 600.9 s with 40 assistant turns
+# and 19,060 output tokens already in its session file; T616 (claude, Race
+# F) died the same way with its 43 KB deliverable on disk; the note
+# "bundle never read?" was a causal claim about the model the evidence
+# refuted.  The fix has two halves:
+#   1. the liveness sensor is mtime movement on the pi session file — under
+#      `--session <path>`, or the cwd-slug session dir
+#      (~/.pi/agent/sessions/<cwd-slug>/) when no --session was passed, the
+#      same fallback T751 owes the token meter (token-capture.py's
+#      slug()/default_sessions_dir).  One resolution serves both consumers;
+#   2. a kill note states what was measured (no stdout bytes, the session
+#      reading), never a cause it did not measure.
+
+def _pi_session_scan_target(argv):
+    """Resolve the pi session liveness target for a lane, or None.
+
+    Returns (kind, path): ('file', <absolute --session path>) when the
+    dispatch passed `--session <path>` (pi writes that exact file), else
+    ('dir', <session dir>) — the cwd-slug dir
+    ~/.pi/agent/sessions/<cwd-slug>/ (pi's no---session home; the slug is
+    token-capture.py's: leading '/' stripped, '/' -> '-', wrapped in '--').
+    WEIZIGO_PI_SESSIONS_DIR overrides the session dir for the regression
+    (the test hook, mirroring WEIZIGO_CLAUDE_TRANSCRIPT_DIR — never invent
+    or read the real session store to test the fuse).  None when the lane
+    is not a pi-style session writer (a claude lane's transcript is the
+    T634 sensor instead)."""
+    sp = _argv_session_path(argv)
+    if sp is not None:
+        resolved = (sp if os.path.isabs(sp)
+                    else os.path.join(os.getcwd(), sp))
+        return ("file", resolved)
+    injected = os.environ.get("WEIZIGO_PI_SESSIONS_DIR")
+    if injected:
+        return ("dir", injected)
+    cwd = os.getcwd()
+    slug = "--" + cwd.lstrip("/").replace("/", "-") + "--"
+    return ("dir", os.path.join(os.path.expanduser("~"), ".pi", "agent",
+                                 "sessions", slug))
+
+
+def _pi_session_max_mtime(target, spawn_epoch):
+    """Max wall-clock mtime across the pi session liveness target.
+
+    kind 'file': the single --session JSONL's mtime (missing until pi
+    writes it — no file contributes 0, and no file is not evidence of a
+    hang).  kind 'dir': every entry's mtime that is >= spawn_epoch — a
+    PRE-launch session file in the shared cwd-slug dir must never mark a
+    hung lane alive (the same launch-epoch rule the claude sensor uses).
+    Returns 0.0 when the target is absent or unreadable."""
+    kind, path = target
+    try:
+        if kind == "file":
+            st = os.stat(path)
+            return st.st_mtime if st.st_mtime >= spawn_epoch else 0.0
+        names = os.listdir(path)
+    except OSError:
+        return 0.0
+    m = 0.0
+    for name in names:
+        p = os.path.join(path, name)
+        try:
+            st = os.stat(p)
+        except OSError:
+            continue
+        if st.st_mtime >= spawn_epoch and st.st_mtime > m:
+            m = st.st_mtime
+    return m
+
+
+def _pi_session_sensor_desc(target):
+    """Human-readable description of the session sensor for a kill note:
+    what was measured, never why.  'file' names the path; 'dir' names the
+    dir the scan covered."""
+    if not target:
+        return "no pi session sensor"
+    kind, path = target
+    return (f"pi session file {path!r}" if kind == "file"
+            else f"pi session dir {path!r}")
+
+
 # ── T586: agent-lane detection (the startup-liveness scope) ─────────────────
 #
 # The nonce-stall failure mode was a dispatched pi/deepseek worker producing
@@ -2444,11 +2529,16 @@ def main():
                          "Set 0 to disable progress watchdog (fallback "
                          "ceilings still apply).")
     ap.add_argument("--startup-timeout", type=int, default=600,
-                    help="T586: for STREAMING agent lanes (pi/ollama), SIGKILL "
-                         "when the worker emits no output at all within this "
-                         "many seconds of launch (default 600 = 10 min; 0 to "
+                    help="T586/T773: for agent lanes (pi/ollama), SIGKILL "
+                         "when the worker emits no stdout AND its pi session "
+                         "file shows no mtime activity within this many "
+                         "seconds of launch (default 600 = 10 min; 0 to "
                          "disable). A never-started worker is a loud anomaly, "
-                         "not a silent wall burn. Non-agent commands are "
+                         "not a silent wall burn. The pi session JSONL -- under "
+                         "--session <path>, or the cwd-slug session dir when no "
+                         "--session was passed (T773) -- is the buffered-lane "
+                         "liveness signal: a lane writing its session is alive, "
+                         "whatever the stream says. Non-agent commands are "
                          "unaffected. Claude lanes are NOT covered — they "
                          "buffer output; --claude-liveness-timeout governs "
                          "them.")
@@ -2606,6 +2696,19 @@ def main():
               f"timeout {agent_progress_timeout_s}s "
               f"(sensor = stdout/stderr + [progress] + declared deliverable mtime)",
               file=sys.stderr)
+    # T773: the buffered-lane liveness target — resolved once here (before
+    # the banner) so the same resolution feeds the banner, the fuse, and
+    # (via token-capture's cwd-slug fallback) the post-hoc token meter.
+    pi_session_target = None
+    if agent_lane and not claude_lane:
+        pi_session_target = _pi_session_scan_target(argv)
+        if pi_session_target and args.startup_timeout > 0:
+            _pst_kind, _pst_path = pi_session_target
+            print(f"[runner] pi session liveness: mtime fuse on "
+                  f"{_pst_kind} {_pst_path!r} "
+                  f"(stdout buffered — session file growth is the liveness "
+                  f"signal, T773)",
+                  file=sys.stderr)
     if claude_lane:
         print(f"[runner] claude liveness: mtime fuse, timeout {claude_liveness_timeout}s "
               f"(stdout buffered — sensor = deliverables + session transcript)",
@@ -2868,6 +2971,22 @@ def main():
         agent_deliverable_watermark = _claude_sensor_max_mtime(
             agent_deliverables, None, spawn_epoch)
 
+    # ── T773: pi session liveness state (session-file mtime, not stdout) ──
+    # The watermark is the max session mtime at launch; any strictly-newer
+    # mtime is activity and advances last_pi_session_activity (initialised to
+    # launch, so a genuinely dead lane still dies at --startup-timeout).  The
+    # startup fuse fires only when BOTH the stream and this sensor have been
+    # silent for the whole window — a buffered lane writing its session JSONL
+    # is alive (T735 attempt 2 wrote 19,060 output tokens during the 600 s
+    # the old fuse called "no output since launch").  Throttled to ~1 s like
+    # the claude fuse (the threshold is minutes long).
+    pi_session_watermark = 0.0
+    last_pi_session_activity = t0
+    last_pi_session_scan = 0.0
+    if pi_session_target:
+        pi_session_watermark = _pi_session_max_mtime(
+            pi_session_target, spawn_epoch)
+
     try:
         while True:
             ret = proc.poll()
@@ -3116,6 +3235,23 @@ def main():
                         agent_deliverable_watermark = m
                         last_progress_time = time.monotonic()
 
+            # ── T773: pi session liveness — mtime on the session file ──
+            # A buffered pi lane writes ONLY its session JSONL while it
+            # works (stdout is held to completion), so session-file growth is
+            # the fuse's liveness signal for such a lane.  Throttled to ~1 s;
+            # any strictly-newer mtime on the --session file (or any file in
+            # the cwd-slug session dir) advances the startup fuse's activity
+            # watermark.
+            if pi_session_target:
+                now_m = time.monotonic()
+                if now_m - last_pi_session_scan >= 1.0:
+                    last_pi_session_scan = now_m
+                    m = _pi_session_max_mtime(
+                        pi_session_target, spawn_epoch)
+                    if m > pi_session_watermark:
+                        pi_session_watermark = m
+                        last_pi_session_activity = now_m
+
             # ── kill decisions ────────────────────────────────────────
             if kill_reason:
                 pass  # host guard already decided (direct-child kill)
@@ -3174,23 +3310,44 @@ def main():
             else:
                 # Fallback: silent child — use traditional wall/CPU ceilings
                 progress_notice_printed = False  # kept in outer scope for diagnostics
-                # T586: an agent lane that has emitted NOTHING since launch is
-                # a never-started worker — kill it LOUDLY at --startup-timeout
-                # (default 10 min), not silently at the wall ceiling 45 min
-                # later.  Non-agent commands are unaffected (this branch is
-                # their wall/CPU fallback exactly as before).
-                if agent_lane and args.startup_timeout > 0 and elapsed >= args.startup_timeout:
-                    kill_reason = (
-                        f"startup liveness timeout {args.startup_timeout}s "
-                        f"({_format_duration(args.startup_timeout)}) — agent "
-                        f"lane produced no output since launch (bundle never "
-                        f"read?)"
-                    )
-                    # T634: a liveness-fuse kill is unscoreable — mark the
-                    # run record so the verification layer (T629 killed_by)
-                    # can refuse to attribute it to the model.  The stderr
-                    # message above is byte-identical to T586's (null control).
-                    run_record["kill_class"] = "liveness"
+                # T586/T773: an agent lane that has emitted NOTHING on stdout
+                # since launch is a loud anomaly — but stdout is NOT the only
+                # liveness signal for a buffered pi lane (its session JSONL is
+                # being written continuously while it works; T735 attempt 2
+                # was killed at 600.9 s with 40 turns and 19,060 output
+                # tokens already in the file).  The startup fuse fires only
+                # when BOTH the stream and the session sensor have been
+                # silent for the whole window: last_pi_session_activity
+                # starts at launch, so a genuinely dead lane still dies at
+                # --startup-timeout exactly as before.  Non-agent commands
+                # are unaffected (this branch is their wall/CPU fallback
+                # exactly as before).
+                if agent_lane and args.startup_timeout > 0:
+                    since_session = time.monotonic() - last_pi_session_activity
+                    if since_session >= args.startup_timeout:
+                        # T773: the note states what was measured — no stdout
+                        # bytes, and the session reading — never a cause it
+                        # did not measure.  "bundle never read?" was a causal
+                        # claim about the model that the evidence refuted.
+                        if pi_session_target and last_pi_session_activity > t0 + 1.0:
+                            sess_reading = (
+                                f"no pi session activity for "
+                                f"{since_session:.0f}s "
+                                f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
+                        else:
+                            sess_reading = (
+                                f"no pi session activity since launch "
+                                f"(sensor: {_pi_session_sensor_desc(pi_session_target)})")
+                        kill_reason = (
+                            f"startup liveness timeout {args.startup_timeout}s "
+                            f"({_format_duration(args.startup_timeout)}) — "
+                            f"no stdout bytes since launch; {sess_reading}"
+                        )
+                        # T634: a liveness-fuse kill is unscoreable — mark the
+                        # run record so the verification layer (T629 killed_by)
+                        # can refuse to attribute it to the model.  The stderr
+                        # message above is byte-identical to T586's (null control).
+                        run_record["kill_class"] = "liveness"
                 elif args.max_wall and elapsed >= args.max_wall:
                     kill_reason = (
                         f"wall ceiling {args.max_wall}s "
