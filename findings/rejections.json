@@ -1,5 +1,5 @@
 {
- "description": "Findings whose proposed status change was considered and dispositioned \u2014 either rejected by the register (refuting_row names the row), or adjudicated out of register scope (not-a-register-claim / absorbed-under-register-id, with the reason in rationale). Never a bare ignore list: every entry carries the reason, and claimlint refuses entries that do not (T269).",
+ "description": "Findings whose proposed status change was considered and dispositioned — either rejected by the register (refuting_row names the row), or adjudicated out of register scope (not-a-register-claim / absorbed-under-register-id, with the reason in rationale). Never a bare ignore list: every entry carries the reason, and claimlint refuses entries that do not (T269).",
  "rejections": [
   {
    "finding_task": "T212",
@@ -9,7 +9,7 @@
    "register_status": "FALSE-AS-SCOPED",
    "disposition": "rejected-by-register",
    "refuting_row": "CODE.WZO2-INCOMPLETE (now FALSE-AS-SCOPED; the true count is 131,068 provably unreachable entries per CODE.WZO2-PASS1-LAW, absorbed T279)",
-   "rationale": "The register correctly refuted T212's PROVEN proposal. CODE.WZO2-INCOMPLETE (2026-08-02) was CLAIMED based on a ~6.77M estimate later found 51.7\u00d7 overstated (T266, verified T277, absorbed T279). The artifact is structurally complete at the entry level (CODE.WZO2-PASS1-LAW:PROVEN) but still not verified for closure or value-correctness. The WZO2-4X4-VALID row in CLAIMS.md records the reasoning: 'passing every check we had did not make the artifact valid, because no check we had tested completeness or value-correctness.' This is one of the project's better epistemic moments (GRAND-AUDIT \u00a75). Corrected 2026-08-03 (T279)."
+   "rationale": "The register correctly refuted T212's PROVEN proposal. CODE.WZO2-INCOMPLETE (2026-08-02) was CLAIMED based on a ~6.77M estimate later found 51.7× overstated (T266, verified T277, absorbed T279). The artifact is structurally complete at the entry level (CODE.WZO2-PASS1-LAW:PROVEN) but still not verified for closure or value-correctness. The WZO2-4X4-VALID row in CLAIMS.md records the reasoning: 'passing every check we had did not make the artifact valid, because no check we had tested completeness or value-correctness.' This is one of the project's better epistemic moments (GRAND-AUDIT §5). Corrected 2026-08-03 (T279)."
   },
   {
    "finding_task": "T264",
@@ -18,7 +18,7 @@
    "proposed_status": "CLAIMED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'all 10 tools print a version stamp on startup/--version, built via tools/gen-version.sh'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
   },
   {
@@ -28,7 +28,7 @@
    "proposed_status": "CLAIMED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'oracle-v2-build writes artifacts into untracked/vNN/ with a manifest, version counter in untracked/VERSION'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
   },
   {
@@ -38,7 +38,7 @@
    "proposed_status": "CLAIMED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Infra statement about tooling, not an epistemic claim about Go: 'the verify-battery JSON header includes battery_version with the full version stamp'. True and recorded in docs/infra/versioning.md; registering it would pollute the epistemic register (T269 part 1)."
   },
   {
@@ -49,7 +49,7 @@
    "register_status": "CODE.GTP-KOKEY: PROVEN",
    "disposition": "absorbed-under-register-id",
    "refuting_row": "CODE.GTP-KOKEY (PROVEN)",
-   "rationale": "The findings file used the task ID 'T265' as the claim ID \u2014 a schema violation (claims[].id must be a register ID). The finding's content (engine and solver ko rules independently verified to agree, 0 disagreements) is registered as CODE.GTP-KOKEY, which already carries status PROVEN; the proposed status matches the row the content was absorbed under."
+   "rationale": "The findings file used the task ID 'T265' as the claim ID — a schema violation (claims[].id must be a register ID). The finding's content (engine and solver ko rules independently verified to agree, 0 disagreements) is registered as CODE.GTP-KOKEY, which already carries status PROVEN; the proposed status matches the row the content was absorbed under."
   },
   {
    "finding_task": "T267",
@@ -95,110 +95,110 @@
    "finding_task": "T290",
    "finding_file": "T290-context.json",
    "claim_id": "GLOBAL.I8-SCOPE",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals. Per DELEGATEE.md \u00a7Reporting, claims[] and new_rows[] in a context dump must be empty to avoid double-counting in C7."
+   "refuting_row": "—",
+   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals. Per DELEGATEE.md §Reporting, claims[] and new_rows[] in a context dump must be empty to avoid double-counting in C7."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
    "claim_id": "GLOBAL.I9-ANCHOR-4x4",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
    "claim_id": "GLOBAL.A1-MUTATION",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
    "claim_id": "GLOBAL.BATTERY-GAPS",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
    "claim_id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T290-battery-spec.json); dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
-   "claim_id": "GLOBAL.I8-SCOPE \u2014 I8 measures fixpoint-vs-truncation agreement on 24-state fixture, not L==H within fixpoint",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.I8-SCOPE — I8 measures fixpoint-vs-truncation agreement on 24-state fixture, not L==H within fixpoint",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) \u2014 new_rows string entry; dumps are narrative, not proposals."
+   "refuting_row": "—",
+   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
-   "claim_id": "GLOBAL.I9-ANCHOR-4x4 \u2014 4\u00d74 anchor is +1; MIGOS basic-ko agrees at +1; +2 is different game",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.I9-ANCHOR-4x4 — 4×4 anchor is +1; MIGOS basic-ko agrees at +1; +2 is different game",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) \u2014 new_rows string entry; dumps are narrative, not proposals."
+   "refuting_row": "—",
+   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
-   "claim_id": "GLOBAL.BATTERY-GAPS \u2014 6 gaps in requirement-tree coverage, 4 runnable after Phase 2 kernel",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.BATTERY-GAPS — 6 gaps in requirement-tree coverage, 4 runnable after Phase 2 kernel",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) \u2014 new_rows string entry; dumps are narrative, not proposals."
+   "refuting_row": "—",
+   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
   },
   {
    "finding_task": "T290",
    "finding_file": "T290-context.json",
-   "claim_id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE \u2014 A1\u2013A6 re-based on Amendment 1 (mutation testing + golden master)",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE — A1–A6 re-based on Amendment 1 (mutation testing + golden master)",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) \u2014 new_rows string entry; dumps are narrative, not proposals."
+   "refuting_row": "—",
+   "rationale": "Duplicate of the task's findings file (T290-battery-spec.json) — new_rows string entry; dumps are narrative, not proposals."
   },
   {
    "finding_task": "T288",
    "finding_file": "T288-context.json",
-   "claim_id": "GLOBAL.ADR0020-LH-CORRECT: The 716 L\u2260H gaps at 2\u00d72 are the correct output of the loopy-game fixpoint \u2014 PROVEN",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.ADR0020-LH-CORRECT: The 716 L≠H gaps at 2×2 are the correct output of the loopy-game fixpoint — PROVEN",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump."
   },
   {
    "finding_task": "T288",
    "finding_file": "T288-context.json",
-   "claim_id": "GLOBAL.ADR0020-VERIFY-PASS: ADR-0020 verification as a pass condition means 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements, NOT L==H everywhere \u2014 CLAIMED",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "claim_id": "GLOBAL.ADR0020-VERIFY-PASS: ADR-0020 verification as a pass condition means 0 Bellman violations + 0 fixpoint-vs-truncation fixture disagreements, NOT L==H everywhere — CLAIMED",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "Duplicate of the task's findings file (T288-absorption.json); dumps are narrative, not proposals. The claim ID with appended description is a new_rows string entry in the context dump."
   },
   {
@@ -228,8 +228,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Valid claim at CLAIMED \u2014 the T312 parallel fixpoint solver with race controls, convergence proof, and seeded-defect detection. Needs CLAIMS.md \u00a72 manual insertion (weizigo-absorb generated directive: add_row after GLOBAL.ADR0001-PROJECT). T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Valid claim at CLAIMED — the T312 parallel fixpoint solver with race controls, convergence proof, and seeded-defect detection. Needs CLAIMS.md §2 manual insertion (weizigo-absorb generated directive: add_row after GLOBAL.ADR0001-PROJECT). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T313",
@@ -238,8 +238,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.WZO2-RELEASESAFE-INV (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Valid claim at CLAIMED \u2014 ReleaseSafe rebuild produces byte-identical artifact with zero safety panics. UB-independence evidence for serial path. Promotion to PROVEN blocked by DIRECTION Amendment 2 edge 5 (mutation adequacy for code involved). T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.WZO2-RELEASESAFE-INV (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Valid claim at CLAIMED — ReleaseSafe rebuild produces byte-identical artifact with zero safety panics. UB-independence evidence for serial path. Promotion to PROVEN blocked by DIRECTION Amendment 2 edge 5 (mutation adequacy for code involved). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T314",
@@ -248,8 +248,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "MEASUREMENT",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.PARALLEL-FIXPOINT-MEASURED (MEASUREMENT, CLAIMS.md \u00a72.10)",
-   "rationale": "Measurement of T312 parallel fixpoint on Apple M5 Max \u2014 speedup curve, RSS, byte-identical artifacts. Status MEASUREMENT (not a truth claim). T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.PARALLEL-FIXPOINT-MEASURED (MEASUREMENT, CLAIMS.md §2.10)",
+   "rationale": "Measurement of T312 parallel fixpoint on Apple M5 Max — speedup curve, RSS, byte-identical artifacts. Status MEASUREMENT (not a truth claim). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T316",
@@ -258,7 +258,7 @@
    "proposed_status": "CLAIMED (downgrade from PROVEN)",
    "register_status": "covered by T312 absorption above",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md \u00a72.10)",
+   "refuting_row": "CODE.T312-PARALLEL-FIXPOINT (CLAIMED, CLAIMS.md §2.10)",
    "rationale": "T316 audit finding: T312's proposed PROVEN status is downgraded to CLAIMED due to cite-tag mismatches, internal test-count contradiction, missing provenance, and wrong_answer_pass_rate reporting coverage not false-pass probability. Absorbed under T312's own CLAIMED proposal (which agrees the correct status is CLAIMED). T337 S4, 2026-08-04."
   },
   {
@@ -268,8 +268,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.MANAGENT-MODEL-VALIDATION (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Tooling claim: canonical model label validation in managent (canonical_models[], canonicalizeModelTag, isCanonicalModel). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.MANAGENT-MODEL-VALIDATION (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Tooling claim: canonical model label validation in managent (canonical_models[], canonicalizeModelTag, isCanonicalModel). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T317",
@@ -278,8 +278,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.MANAGENT-LOST-UPDATE (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Tooling claim: lost-update safety in managent store (lock\u2192re-read\u2192writeStateLocked\u2192unlock pattern for 5 commands). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.MANAGENT-LOST-UPDATE (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Tooling claim: lost-update safety in managent store (lock→re-read→writeStateLocked→unlock pattern for 5 commands). Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T317",
@@ -288,8 +288,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.MANAGENT-AMEND (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Tooling claim: append-only amendment path for done/failed tasks (managent amend). Valid CLAIMED, first real use on T326 (T337). T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.MANAGENT-AMEND (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Tooling claim: append-only amendment path for done/failed tasks (managent amend). Valid CLAIMED, first real use on T326 (T337). T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T319",
@@ -298,8 +298,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.MANAGENT-ARCHIVE (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Tooling claim: managent archive command with dry-run, eligibility checks, idempotency, and cmdWhy dual-store search. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.MANAGENT-ARCHIVE (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Tooling claim: managent archive command with dry-run, eligibility checks, idempotency, and cmdWhy dual-store search. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T322",
@@ -308,18 +308,18 @@
    "proposed_status": "CLAIMED",
    "register_status": "CLAIMED",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.REGRESSION-WIRING (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "Tooling claim: orphaned regression scripts wired into zig build test (managent-done-git, managent-memory-safety). Extended by T337 S5 which wired 4 more. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md \u00a72.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
+   "refuting_row": "CODE.REGRESSION-WIRING (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "Tooling claim: orphaned regression scripts wired into zig build test (managent-done-git, managent-memory-safety). Extended by T337 S5 which wired 4 more. Valid CLAIMED. T337 S4, 2026-08-04. Rows since added to CLAIMS.md §2.10 by T337 S4 (2026-08-04); this entry converted from the invalid 'pending-CLAIMS.md-placement' marker (an unrecognized disposition claimlint refused) to absorbed-under-register-id by STANDING-ABSORB (2026-08-05)."
   },
   {
    "finding_task": "T306",
    "finding_file": "T306-b1-unification.json",
    "claim_id": "GLOBAL.Z-R-MOVE-B1-EQUIV",
-   "proposed_status": "PROVEN (findings proposes PROVEN at 2\u00d72/3\u00d72, CLAIMED at 3\u00d73/4\u00d74)",
+   "proposed_status": "PROVEN (findings proposes PROVEN at 2×2/3×2, CLAIMED at 3×3/4×4)",
    "register_status": "CLAIMED (register holds at CLAIMED per DIRECTION Amendment 2 edge 5)",
    "disposition": "rejected-by-register",
-   "refuting_row": "GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md \u00a72.1)",
-   "rationale": "Findings proposes PROVEN at 2\u00d72/3\u00d72; register holds at CLAIMED per DIRECTION Amendment 2 edge 5: solver claims may not be promoted past CLAIMED until mutation adequacy covers them. The B1 lemma kills one mutant but the larger goban scopes lack exhaustive coverage. T337 S4, 2026-08-04."
+   "refuting_row": "GLOBAL.Z-R-MOVE-B1-EQUIV (CLAIMS.md §2.1)",
+   "rationale": "Findings proposes PROVEN at 2×2/3×2; register holds at CLAIMED per DIRECTION Amendment 2 edge 5: solver claims may not be promoted past CLAIMED until mutation adequacy covers them. The B1 lemma kills one mutant but the larger goban scopes lack exhaustive coverage. T337 S4, 2026-08-04."
   },
   {
    "finding_task": "T335",
@@ -328,8 +328,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "UNTESTED",
    "disposition": "rejected-by-register",
-   "refuting_row": "4x4.C1 (UNTESTED, CLAIMS.md \u00a72.3: 'SUPPORTED, not PROVEN; no exhaustive ground truth exists')",
-   "rationale": "The T335 proposal to promote 4x4.C1 to CLAIMED on the strength of G3b pass0 is rejected on the sprint owner's own ruling: docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md \u00a76 (Orchestrator, 2026-08-05) states 'G3b is NOT discharged, and no claim is promoted'. C-A1/C-A2 closure was tabled as PASS with no denominator \u2014 the 4x4 evidence is a 22-entry sample out of 99,133,036 (0.00002%), the exact defect the g3b spec was written to prevent (\u00a72.1: a check that cannot fail is not a check); the four remaining gaps are registered as T363. Internal consistency (0 Bellman violations, 0 key mismatches, 0 move-set mismatches) is not correctness against ground truth, which is what 4x4.C1 asserts and what the row marks UNTESTED."
+   "refuting_row": "4x4.C1 (UNTESTED, CLAIMS.md §2.3: 'SUPPORTED, not PROVEN; no exhaustive ground truth exists')",
+   "rationale": "The T335 proposal to promote 4x4.C1 to CLAIMED on the strength of G3b pass0 is rejected on the sprint owner's own ruling: docs/epic-01-markovian/sprints/g3b-value-correctness/pass0/accept.md §6 (Orchestrator, 2026-08-05) states 'G3b is NOT discharged, and no claim is promoted'. C-A1/C-A2 closure was tabled as PASS with no denominator — the 4x4 evidence is a 22-entry sample out of 99,133,036 (0.00002%), the exact defect the g3b spec was written to prevent (§2.1: a check that cannot fail is not a check); the four remaining gaps are registered as T363. Internal consistency (0 Bellman violations, 0 key mismatches, 0 move-set mismatches) is not correctness against ground truth, which is what 4x4.C1 asserts and what the row marks UNTESTED."
   },
   {
    "finding_task": "T335",
@@ -338,8 +338,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "UNTESTED",
    "disposition": "rejected-by-register",
-   "refuting_row": "4x4.FP1 (UNTESTED \u2014 checks 1-2; check 3 PASSES, CLAIMS.md \u00a72.2) and 4x4.FP1-C1/4x4.FP1-C2 (UNTESTED, CLAIMS.md \u00a72.2)",
-   "rationale": "The T335 proposal to promote 4x4.FP1 to CLAIMED is rejected: the register row 4x4.FP1 remains UNTESTED for checks 1-2 (seed from -N/+N, zero-change termination) per CLAIMS.md \u00a72.2 and 4x4/EPISTEMIC.md:69-97; only check 3 (V0/V1 Bellman identities, 4x4.FP1-C3) is PROVEN as scoped. The I4 Bellman-residual result from G3b pass0 covers the check-3 class, not seeding/termination. The g3b sprint owner's ruling (pass0/accept.md \u00a76, 2026-08-05) states no claim is promoted from G3b pass0; I5 containment is deferred to T344 and does not discharge FP1 checks 1-2. Internal-consistency measurement is not fixpoint-seeding evidence."
+   "refuting_row": "4x4.FP1 (UNTESTED — checks 1-2; check 3 PASSES, CLAIMS.md §2.2) and 4x4.FP1-C1/4x4.FP1-C2 (UNTESTED, CLAIMS.md §2.2)",
+   "rationale": "The T335 proposal to promote 4x4.FP1 to CLAIMED is rejected: the register row 4x4.FP1 remains UNTESTED for checks 1-2 (seed from -N/+N, zero-change termination) per CLAIMS.md §2.2 and 4x4/EPISTEMIC.md:69-97; only check 3 (V0/V1 Bellman identities, 4x4.FP1-C3) is PROVEN as scoped. The I4 Bellman-residual result from G3b pass0 covers the check-3 class, not seeding/termination. The g3b sprint owner's ruling (pass0/accept.md §6, 2026-08-05) states no claim is promoted from G3b pass0; I5 containment is deferred to T344 and does not discharge FP1 checks 1-2. Internal-consistency measurement is not fixpoint-seeding evidence."
   },
   {
    "finding_task": "T344",
@@ -348,8 +348,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "NO SUCH ID",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md \u00a72.10)",
-   "rationale": "The findings file used the malformed ID 'Z-CONVERGE-FIX' \u2014 no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote."
+   "refuting_row": "GLOBAL.I5-SCC-CONTAIN (CLAIMED, CLAIMS.md §2.10)",
+   "rationale": "The findings file used the malformed ID 'Z-CONVERGE-FIX' — no register prefix (GLOBAL./CODE./<goban>.) and a collision with the Z-column vocabulary (the tree/colex label Z-CONVERGE-FIX already names the fixpoint-convergence row family, e.g. 4x4.WZO2-A2-EXHAUSTIVE's tree cell). The content (I5 SCC containment passes at 3x2/4x3/4x4, ko_not_cr=0) is registered as GLOBAL.I5-SCC-CONTAIN (CLAIMED) added by STANDING-ABSORB 2026-08-05, cited from findings/T344-i5-4x4.json. Single-instrument self-report held at CLAIMED, not PROVEN, per verify-then-promote."
   },
   {
    "finding_task": "T402",
@@ -358,8 +358,8 @@
    "proposed_status": "PROVEN",
    "register_status": "CODE.RESOLVER-INTERFACE: PROVEN",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.RESOLVER-INTERFACE (PROVEN, CLAIMS.md \u00a72.11 tail)",
-   "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix: RESOLVER. is not an ID scope in CLAIMS.md \u00a71 (GLOBAL./CODE./<goban> are), and this is a claim about code, not about a goban \u2014 CODE. is the right namespace (renaming now is cheap; renaming after citation is not). Registered as CODE.RESOLVER-INTERFACE at PROVEN: definitional code claim (the interface contract is what src/resolver.zig says; 11 unit tests pass, 1 deliberate skip, re-verified by zig test at absorption), and the no-authoritative-resolver rule is ADR-0022's recorded policy (brief rule 3)."
+   "refuting_row": "CODE.RESOLVER-INTERFACE (PROVEN, CLAIMS.md §2.11 tail)",
+   "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix: RESOLVER. is not an ID scope in CLAIMS.md §1 (GLOBAL./CODE./<goban> are), and this is a claim about code, not about a goban — CODE. is the right namespace (renaming now is cheap; renaming after citation is not). Registered as CODE.RESOLVER-INTERFACE at PROVEN: definitional code claim (the interface contract is what src/resolver.zig says; 11 unit tests pass, 1 deliberate skip, re-verified by zig test at absorption), and the no-authoritative-resolver rule is ADR-0022's recorded policy (brief rule 3)."
   },
   {
    "finding_task": "T402",
@@ -368,8 +368,8 @@
    "proposed_status": "PROVEN",
    "register_status": "CODE.RESOLVER-BUDGET-QUARANTINE: CLAIMED",
    "disposition": "rejected-by-register",
-   "refuting_row": "CODE.RESOLVER-BUDGET-QUARANTINE (CLAIMED, CLAIMS.md \u00a72.11 tail \u2014 downgraded at T418 absorption)",
-   "rationale": "T418 absorption renamed the ID to CODE.RESOLVER-BUDGET-QUARANTINE and DOWNGRADED the proposed status from PROVEN to CLAIMED. The demotion, the resolver registration and its metadata are code/process facts verifiable by reading src/resolver.zig and ADR-0022; but the load-bearing measured non-convergence (4\u00d73 root oscillates in {0,1,2,7,9,12}, never equals PSK truth +4) is a single-instrument T387 datum of the same provenance class as GLOBAL.CAPTURE-BUDGET-DAG (T387 readings salvaged from /tmp, no independent seat \u2014 that sibling row is held at MEASUREMENT for exactly this reason, T404). Verify-then-promote (QA-023 chain): a load-bearing claim moves to PROVEN only after an independent seat agrees; none has adjudicated the oscillation, so the compound claim is CLAIMED, not PROVEN. Brief rule 3: 'If you cannot justify it, downgrade \u2014 and say you did.'"
+   "refuting_row": "CODE.RESOLVER-BUDGET-QUARANTINE (CLAIMED, CLAIMS.md §2.11 tail — downgraded at T418 absorption)",
+   "rationale": "T418 absorption renamed the ID to CODE.RESOLVER-BUDGET-QUARANTINE and DOWNGRADED the proposed status from PROVEN to CLAIMED. The demotion, the resolver registration and its metadata are code/process facts verifiable by reading src/resolver.zig and ADR-0022; but the load-bearing measured non-convergence (4×3 root oscillates in {0,1,2,7,9,12}, never equals PSK truth +4) is a single-instrument T387 datum of the same provenance class as GLOBAL.CAPTURE-BUDGET-DAG (T387 readings salvaged from /tmp, no independent seat — that sibling row is held at MEASUREMENT for exactly this reason, T404). Verify-then-promote (QA-023 chain): a load-bearing claim moves to PROVEN only after an independent seat agrees; none has adjudicated the oscillation, so the compound claim is CLAIMED, not PROVEN. Brief rule 3: 'If you cannot justify it, downgrade — and say you did.'"
   },
   {
    "finding_task": "T402",
@@ -378,8 +378,8 @@
    "proposed_status": "PROVEN",
    "register_status": "CODE.RESOLVER-CONTROLS: PROVEN",
    "disposition": "absorbed-under-register-id",
-   "refuting_row": "CODE.RESOLVER-CONTROLS (PROVEN, CLAIMS.md \u00a72.11 tail)",
-   "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix (RESOLVER. is not an ID scope in CLAIMS.md \u00a71; CODE. is, and this is a code claim). Registered as CODE.RESOLVER-CONTROLS at PROVEN: both controls fire over all 23,420 3\u00d73 harness positions \u2014 verification is exhaustive within the harness, and the harness was independently re-run at absorption (null 0/23,420; deliberately_wrong REFUTED at 20,216/20,216; capture_budget proposes 20,216/23,420, abstains 3,204/23,420). Brief rule 3 qualifies PROVEN: 'RESOLVER.CONTROLS cites both controls firing over 23,420 positions at 3x3, which qualifies.' The claim is about the harness's control wiring, not a goban value."
+   "refuting_row": "CODE.RESOLVER-CONTROLS (PROVEN, CLAIMS.md §2.11 tail)",
+   "rationale": "T418 absorption renamed the proposed ID to the established CODE. prefix (RESOLVER. is not an ID scope in CLAIMS.md §1; CODE. is, and this is a code claim). Registered as CODE.RESOLVER-CONTROLS at PROVEN: both controls fire over all 23,420 3×3 harness positions — verification is exhaustive within the harness, and the harness was independently re-run at absorption (null 0/23,420; deliberately_wrong REFUTED at 20,216/20,216; capture_budget proposes 20,216/23,420, abstains 3,204/23,420). Brief rule 3 qualifies PROVEN: 'RESOLVER.CONTROLS cites both controls firing over 23,420 positions at 3x3, which qualifies.' The claim is about the harness's control wiring, not a goban value."
   },
   {
    "finding_task": "T437",
@@ -388,8 +388,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "T437 explicitly states 'No status change \u2014 this finding file is for tracking, not a claim promotion.' The proposed ID GLOBAL.ADR0013-PSK-TRACTABLE is a malformed compound (no \u00a71 SCOPE.LEGACY convention: the established row family for ADR-0013 consequences is GLOBAL.B-1; 'PSK-TRACTABLE' was a working title for the Track A scope and was never promoted \u2014 ADR-0013 itself records PSK exact-solve as INTRACTABLE at the EMPTY 2x2, with 118M ban-set states, AGENTS.md foreclosure). The finding's notes describe a four-commit consolidation that does not move any epistemic claim. Recording it as a register row would inflate CLAIMS.md without epistemic content (T269 part 1)."
+   "refuting_row": "—",
+   "rationale": "T437 explicitly states 'No status change — this finding file is for tracking, not a claim promotion.' The proposed ID GLOBAL.ADR0013-PSK-TRACTABLE is a malformed compound (no §1 SCOPE.LEGACY convention: the established row family for ADR-0013 consequences is GLOBAL.B-1; 'PSK-TRACTABLE' was a working title for the Track A scope and was never promoted — ADR-0013 itself records PSK exact-solve as INTRACTABLE at the EMPTY 2x2, with 118M ban-set states, AGENTS.md foreclosure). The finding's notes describe a four-commit consolidation that does not move any epistemic claim. Recording it as a register row would inflate CLAIMS.md without epistemic content (T269 part 1)."
   },
   {
    "finding_task": "T438",
@@ -398,8 +398,8 @@
    "proposed_status": "",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Envelope artefact (T442 diagnosis). T438's new_rows field was authored as `[\"T443\", \"T444\"]` \u2014 array of strings, not the schema's array of objects (findings/README.md \u00a7Schema requires {id, legacy, goban, claim, status, evidence, depends_on, narrowed, wrong_answer_pass_rate}). The strings were cross-references to later sprint tasks, not proposed register rows. T443 (storage durability policy) is a real kanban task (managent show T443 \u2192 done) but its own findings file carries claims:[] new_rows:[] \u2014 it has never proposed a CLAIMS.md row, and the storage-policy work is recorded in untracked/T443-policy-draft.md (operator ratification pending). No register row to absorb; the entry exists only as a parser artefact from a malformed envelope."
+   "refuting_row": "—",
+   "rationale": "Envelope artefact (T442 diagnosis). T438's new_rows field was authored as `[\"T443\", \"T444\"]` — array of strings, not the schema's array of objects (findings/README.md §Schema requires {id, legacy, goban, claim, status, evidence, depends_on, narrowed, wrong_answer_pass_rate}). The strings were cross-references to later sprint tasks, not proposed register rows. T443 (storage durability policy) is a real kanban task (managent show T443 → done) but its own findings file carries claims:[] new_rows:[] — it has never proposed a CLAIMS.md row, and the storage-policy work is recorded in untracked/T443-policy-draft.md (operator ratification pending). No register row to absorb; the entry exists only as a parser artefact from a malformed envelope."
   },
   {
    "finding_task": "T438",
@@ -408,8 +408,8 @@
    "proposed_status": "",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Envelope artefact, paired with T443 above. T444 (stale-row triage) is a real kanban task (managent show T444 \u2192 done) and its own findings file carries claims:[] new_rows:[] \u2014 a read-only triage with no register promotion. The T438 cross-reference is a malformed envelope: new_rows[] held strings, not row objects. Triage findings are operator-facing recommendations on stale rows, not epistemic claims; they live in the triage block of T444-stale-row-triage.json and in the kanban assertions ledger, not CLAIMS.md."
+   "refuting_row": "—",
+   "rationale": "Envelope artefact, paired with T443 above. T444 (stale-row triage) is a real kanban task (managent show T444 → done) and its own findings file carries claims:[] new_rows:[] — a read-only triage with no register promotion. The T438 cross-reference is a malformed envelope: new_rows[] held strings, not row objects. Triage findings are operator-facing recommendations on stale rows, not epistemic claims; they live in the triage block of T444-stale-row-triage.json and in the kanban assertions ledger, not CLAIMS.md."
   },
   {
    "finding_task": "T441",
@@ -418,8 +418,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Bare identifier violates CLAIMS.md \u00a71 SCOPE.LEGACY scheme (no GLOBAL./CODE./NxM. prefix; 'DOCTOR-CONSOLE-LIE' is a working title, not an ID). The underlying code fix is verified PASS by T441-AUDIT (findings/T441-audit.json, nonce NONCE-385f6836b123e242, all five checks PASS including this one) \u2014 the audit is the proof; the unratified claim proposal duplicates it with a malformed ID. Recording it would register a row whose ID is unparseable by claims_register.zig and whose evidence is the same audit's per-check field. Five identical dispositions follow for the other T441 proposals (INBOX-ACK-SCOPE, INBOX-READ-ATTRIBUTION, LIVENESS-UNASSERTED, ASSERTION-LEDGER-BOOT)."
+   "refuting_row": "—",
+   "rationale": "Bare identifier violates CLAIMS.md §1 SCOPE.LEGACY scheme (no GLOBAL./CODE./NxM. prefix; 'DOCTOR-CONSOLE-LIE' is a working title, not an ID). The underlying code fix is verified PASS by T441-AUDIT (findings/T441-audit.json, nonce NONCE-385f6836b123e242, all five checks PASS including this one) — the audit is the proof; the unratified claim proposal duplicates it with a malformed ID. Recording it would register a row whose ID is unparseable by claims_register.zig and whose evidence is the same audit's per-check field. Five identical dispositions follow for the other T441 proposals (INBOX-ACK-SCOPE, INBOX-READ-ATTRIBUTION, LIVENESS-UNASSERTED, ASSERTION-LEDGER-BOOT)."
   },
   {
    "finding_task": "T441",
@@ -428,8 +428,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Bare identifier violates CLAIMS.md \u00a71. The targetless inbox --ack refusal is verified PASS by T441-AUDIT check 2 (exit codes 1/0/0 against the three probe commands, evidence quoted from the live bin/managent run). Recording a register row would duplicate the audit with a malformed ID; the audit's check 2 is the load-bearing verification."
+   "refuting_row": "—",
+   "rationale": "Bare identifier violates CLAIMS.md §1. The targetless inbox --ack refusal is verified PASS by T441-AUDIT check 2 (exit codes 1/0/0 against the three probe commands, evidence quoted from the live bin/managent run). Recording a register row would duplicate the audit with a malformed ID; the audit's check 2 is the load-bearing verification."
   },
   {
    "finding_task": "T441",
@@ -438,8 +438,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Bare identifier violates CLAIMS.md \u00a71. The read_by/read_at attribution on acked directives is verified PASS by T441-AUDIT check 3 (D069 planted with read=false, after ack record shows read_by=T441, read_at populated). The audit is the proof; the proposal duplicates it with a malformed ID."
+   "refuting_row": "—",
+   "rationale": "Bare identifier violates CLAIMS.md §1. The read_by/read_at attribution on acked directives is verified PASS by T441-AUDIT check 3 (D069 planted with read=false, after ack record shows read_by=T441, read_at populated). The audit is the proof; the proposal duplicates it with a malformed ID."
   },
   {
    "finding_task": "T441",
@@ -448,8 +448,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Bare identifier violates CLAIMS.md \u00a71. The 'UNKNOWN \u2014 no assertion' liveness display is verified PASS by T441-AUDIT check 4 (liveness output quoted: UNKNOWN for 3 rows; no 'never beat' string present). Audit is the proof; proposal duplicates with a malformed ID."
+   "refuting_row": "—",
+   "rationale": "Bare identifier violates CLAIMS.md §1. The 'UNKNOWN — no assertion' liveness display is verified PASS by T441-AUDIT check 4 (liveness output quoted: UNKNOWN for 3 rows; no 'never beat' string present). Audit is the proof; proposal duplicates with a malformed ID."
   },
   {
    "finding_task": "T441",
@@ -458,8 +458,8 @@
    "proposed_status": "PROVEN",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Bare identifier violates CLAIMS.md \u00a71. The assertion ledger bootstrap (managent assert verb, JSONL store at docs/infra/assertion-ledger/assertions.jsonl, identity via MANAGENT_TASK_ID/PI_MODEL) is verified PASS by T441-AUDIT check 5 (assertion A0002 appended, schema matches the spec). The audit is the proof; the proposal duplicates it with a malformed ID. (Note: the live assertion ledger at HEAD carries ~13 rows, all closed; this row would have been the natural home for them if the ID had been registered correctly, but the schema violation is what stopped it.)"
+   "refuting_row": "—",
+   "rationale": "Bare identifier violates CLAIMS.md §1. The assertion ledger bootstrap (managent assert verb, JSONL store at docs/infra/assertion-ledger/assertions.jsonl, identity via MANAGENT_TASK_ID/PI_MODEL) is verified PASS by T441-AUDIT check 5 (assertion A0002 appended, schema matches the spec). The audit is the proof; the proposal duplicates it with a malformed ID. (Note: the live assertion ledger at HEAD carries ~13 rows, all closed; this row would have been the natural home for them if the ID had been registered correctly, but the schema violation is what stopped it.)"
   },
   {
    "finding_task": "T447",
@@ -468,8 +468,8 @@
    "proposed_status": "",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Envelope artefact (T442 diagnosis). T447's new_rows field was authored as `[\"T449\", \"T450\"]` \u2014 array of strings, not the schema's array of objects. T449 (runner worktree blind lane) is a real kanban task (managent show T449 \u2192 dispatchable) but its own findings file has not yet been produced; the task is the dispatchable follow-up identified by T447's race, not a register row proposed by T447. Cross-reference, not proposal."
+   "refuting_row": "—",
+   "rationale": "Envelope artefact (T442 diagnosis). T447's new_rows field was authored as `[\"T449\", \"T450\"]` — array of strings, not the schema's array of objects. T449 (runner worktree blind lane) is a real kanban task (managent show T449 → dispatchable) but its own findings file has not yet been produced; the task is the dispatchable follow-up identified by T447's race, not a register row proposed by T447. Cross-reference, not proposal."
   },
   {
    "finding_task": "T447",
@@ -478,8 +478,8 @@
    "proposed_status": "",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Envelope artefact, paired with T449 above. T450 is a real kanban task (managent show T450 \u2192 dispatchable) and its own findings file has not yet been produced; T447's cross-reference is a malformed envelope (new_rows[] as string array, not row objects). No register row to absorb."
+   "refuting_row": "—",
+   "rationale": "Envelope artefact, paired with T449 above. T450 is a real kanban task (managent show T450 → dispatchable) and its own findings file has not yet been produced; T447's cross-reference is a malformed envelope (new_rows[] as string array, not row objects). No register row to absorb."
   },
   {
    "finding_task": "T460",
@@ -488,8 +488,8 @@
    "proposed_status": "CLAIMED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "Malformed compound ID: 'T452-design-race-verdict' is a task ID with an appended descriptive slug, not a CLAIMS.md \u00a71 SCOPE.LEGACY identifier (no GLOBAL./CODE./NxM. prefix; verbose descriptor rather than terse legacy). The grader's actual content (lanes' scores against the sealed T452 key, the 4-3 split on the bounded-fix question, the B/C/F/G 'bounded fix exists' verdict with proof-v2:680-696 / 1-ko qa023 expectation / TOTAL_STATES 2430 findings) is recorded in untracked/race-grading/t452/scores-glm-5.2.md and the lane-level reports \u2014 those are the operator-facing record, not a register row. The T452 verdict itself (whether to adopt bounded fix as ADR-0023 successor) is the operator's call from the race result, not an epistemic claim to register. Recording a row with this ID would pollute CLAIMS.md with a parse-broken identifier (CLAIMS.md \u00a71 expects T452-DESIGN-RACE-VERDICT-shape strings to be SCOPE.LEGACY pairs; this is neither scope nor legacy)."
+   "refuting_row": "—",
+   "rationale": "Malformed compound ID: 'T452-design-race-verdict' is a task ID with an appended descriptive slug, not a CLAIMS.md §1 SCOPE.LEGACY identifier (no GLOBAL./CODE./NxM. prefix; verbose descriptor rather than terse legacy). The grader's actual content (lanes' scores against the sealed T452 key, the 4-3 split on the bounded-fix question, the B/C/F/G 'bounded fix exists' verdict with proof-v2:680-696 / 1-ko qa023 expectation / TOTAL_STATES 2430 findings) is recorded in untracked/race-grading/t452/scores-glm-5.2.md and the lane-level reports — those are the operator-facing record, not a register row. The T452 verdict itself (whether to adopt bounded fix as ADR-0023 successor) is the operator's call from the race result, not an epistemic claim to register. Recording a row with this ID would pollute CLAIMS.md with a parse-broken identifier (CLAIMS.md §1 expects T452-DESIGN-RACE-VERDICT-shape strings to be SCOPE.LEGACY pairs; this is neither scope nor legacy)."
   },
   {
    "finding_task": "T468",
@@ -498,8 +498,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark distribution across the kanban (5 do-now tasks serve L1+L4 only, zero serve L2) \u2014 task-queue observation, not an epistemic claim about Go. The finding is recorded in docs/status/landmark-assignment-2026-08-19.md (T468's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark distribution across the kanban (5 do-now tasks serve L1+L4 only, zero serve L2) — task-queue observation, not an epistemic claim about Go. The finding is recorded in docs/status/landmark-assignment-2026-08-19.md (T468's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
   },
   {
    "finding_task": "T468",
@@ -508,8 +508,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71. The proposal is a meta-observation that L6 (small Go solved, certifiably) has no task with L6 as its primary chain because L6 is the convergence point of L2+L4+L5. Task-queue observation, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that L6 (small Go solved, certifiably) has no task with L6 as its primary chain because L6 is the convergence point of L2+L4+L5. Task-queue observation, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md."
   },
   {
    "finding_task": "T468",
@@ -518,8 +518,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71. The proposal is a meta-observation recommending a new landmark (L8, language honesty) for work like T458. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR, not in the epistemic register. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation recommending a new landmark (L8, language honesty) for work like T458. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR, not in the epistemic register. Recorded in docs/status/landmark-assignment-2026-08-19.md."
   },
   {
    "finding_task": "T468",
@@ -528,8 +528,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71. The proposal is a meta-observation recommending a new landmark (L9, fleet race capability) for the bake-off harness T328. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR. Recorded in docs/status/landmark-assignment-2026-08-19.md."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation recommending a new landmark (L9, fleet race capability) for the bake-off harness T328. The map is at docs/audits/2026-08-05-handover/LANDMARKS.md and any landmark proposal belongs there as an ADR. Recorded in docs/status/landmark-assignment-2026-08-19.md."
   },
   {
    "finding_task": "T468",
@@ -538,8 +538,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71. The proposal is a meta-observation that T349 is a malformed registration (shell-quoting accident) superseded by T352 with no work to do. Task-queue observation about a dispatchable artifact, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T349's own row in the kanban (managent show T349) is the operator-facing record."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that T349 is a malformed registration (shell-quoting accident) superseded by T352 with no work to do. Task-queue observation about a dispatchable artifact, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T349's own row in the kanban (managent show T349) is the operator-facing record."
   },
   {
    "finding_task": "T468",
@@ -548,8 +548,8 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71. The proposal is a meta-observation that the --bundle stub references untracked/T430-phase2-audit.md (verified absent 2026-08-19), superseded by T433-phase2-audit.md (present, claim_count=0). Task-queue observation about a phantom stub, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T444/T446 already recommended close-with-evidence."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1. The proposal is a meta-observation that the --bundle stub references untracked/T430-phase2-audit.md (verified absent 2026-08-19), superseded by T433-phase2-audit.md (present, claim_count=0). Task-queue observation about a phantom stub, not an epistemic claim. Recorded in docs/status/landmark-assignment-2026-08-19.md; T444/T446 already recommended close-with-evidence."
   },
   {
    "finding_task": "T479",
@@ -558,17 +558,17 @@
    "proposed_status": "MEASUREMENT",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "OBSERVATION.* identifier violates CLAIMS.md \u00a71 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark-coverage in the live kanban after T479's sweep \u2014 21 of 22 live tasks show a fleet-greppable L<n> token, with --bundle correctly blank. Task-queue observation, not an epistemic claim about Go. Recorded in findings/T479-landmark-application.json (T479's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
+   "refuting_row": "—",
+   "rationale": "OBSERVATION.* identifier violates CLAIMS.md §1 (ID scheme: <SCOPE>.<LEGACY-ID>; SCOPE is GLOBAL/CODE/NxM; no OBSERVATION scope exists). The proposal is a meta-observation about landmark-coverage in the live kanban after T479's sweep — 21 of 22 live tasks show a fleet-greppable L<n> token, with --bundle correctly blank. Task-queue observation, not an epistemic claim about Go. Recorded in findings/T479-landmark-application.json (T479's deliverable), which is the operator-facing record; registering it would pollute the epistemic register with a parse-broken identifier and a non-epistemic datum."
   },
   {
    "finding_task": "ERA-2026-08-04-PRECONVENTION",
    "finding_file": "pre-convention-block",
    "claim_id": "ERA-WAIVER-PRECONVENTION",
-   "proposed_status": "\u2014",
-   "register_status": "\u2014",
+   "proposed_status": "—",
+   "register_status": "—",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "ERA WAIVER (pre-authorized wrap-up, 2026-08-20): the pre-convention findings block (T203, T228-T251, T262, T275, T281) predates the findings-file convention; those rows carry no findings files because the convention did not exist when they closed. One waiver line covers the block rather than 24 archaeology digs, per the DONE-review sweep ruling. Their work is evidenced in git history; absence of findings files is era-consistent, not drift."
   },
   {
@@ -578,7 +578,7 @@
    "proposed_status": "FALSE-AS-SCOPED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
+   "refuting_row": "—",
    "rationale": "RETRACTED 2026-08-21. The notes of findings/T557-pass1-phases-8-9.json carried the D27 claim that the sonnet/opus B-3 lanes 'reported verification they could not have performed' under --allowedTools Read. The premise was false: --allowedTools pre-approves tools (it is not a deny-list; that is --disallowedTools) and the lane transcripts record real Bash (opus 31 calls, sonnet 12). Both lanes DEFEND. The retraction lives in OWNER-LOG D33 and findings/T557-b3-verification-review.json (claude-opus-5)."
   },
   {
@@ -588,8 +588,128 @@
    "proposed_status": "FALSE-AS-SCOPED",
    "register_status": "NO SUCH ID",
    "disposition": "not-a-register-claim",
-   "refuting_row": "\u2014",
-   "rationale": "CORRECTED 2026-08-21 (D34). The review's conclusion 'dspro stands, on cost and minimality' was superseded by the operator's cost ruling + D34: cost is out of the scored metrics, so the B-3 verdict is a TIE on result quality (dspro \u2248 opus), not 'dspro wins on cost'. The file is immutable; this entry is the correction. See OWNER-LOG D34 + docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/goldilocks.md (cost removed from the overqualified definition)."
+   "refuting_row": "—",
+   "rationale": "CORRECTED 2026-08-21 (D34). The review's conclusion 'dspro stands, on cost and minimality' was superseded by the operator's cost ruling + D34: cost is out of the scored metrics, so the B-3 verdict is a TIE on result quality (dspro ≈ opus), not 'dspro wins on cost'. The file is immutable; this entry is the correction. See OWNER-LOG D34 + docs/epics/E1-markovian/L1-dashboard/S02-model-delegation/goldilocks.md (cost removed from the overqualified definition)."
+  },
+  {
+   "finding_task": "T696",
+   "finding_file": "T696-race-h-grade.json",
+   "claim_id": "proposed",
+   "proposed_status": "",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "—",
+   "rationale": "Proposed kanban work item, not a register claim. Race H key: resolve KD-2/KD-3/KD-4 and re-seal. Minted as a sprint row by the seat (2026-08-23)."
+  },
+  {
+   "finding_task": "T696",
+   "finding_file": "T696-race-h-grade.json",
+   "claim_id": "proposed",
+   "proposed_status": "",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "—",
+   "rationale": "Proposed kanban work item, not a register claim. Race H battery: add an undecidable S2 situation and rebuild S4's arms. Minted as a sprint row by the seat (2026-08-23)."
+  },
+  {
+   "finding_task": "T696",
+   "finding_file": "T696-race-h-grade.json",
+   "claim_id": "proposed",
+   "proposed_status": "",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "—",
+   "rationale": "Proposed kanban work item, not a register claim. Dispatch verification: reconcile rc=0 deliverable path against the tree. Minted as a sprint row by the seat (2026-08-23)."
+  },
+  {
+   "finding_task": "T696",
+   "finding_file": "T696-race-h-grade.json",
+   "claim_id": "proposed",
+   "proposed_status": "",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "—",
+   "rationale": "Proposed kanban work item, not a register claim. Pre-commit C7 floor: scope the nonconforming check to the committing path. Minted as a sprint row by the seat (2026-08-23)."
+  },
+  {
+   "finding_task": "DARGUS",
+   "finding_file": "DARGUS-2026-08-22.json",
+   "claim_id": "T569",
+   "proposed_status": "",
+   "register_status": "NO SUCH ID",
+   "disposition": "not-a-register-claim",
+   "refuting_row": "—",
+   "rationale": "T569 is a task ID, not a register claim ID — namespace error (C13). The finding's new_rows carried a task ID where a register-bound claim ID was expected."
+  },
+  {
+   "finding_task": "T266",
+   "finding_file": "T266-incompleteness.json",
+   "claim_id": "CODE.ACCEPT-KOKEY",
+   "proposed_status": "PROVEN (source comparison + checker's own refusal output + one end-to-end trace)",
+   "register_status": "SUPERSEDED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "CODE.ACCEPT-KOKEY re-labelled SUPERSEDED by T731 (Race G G36, 2026-08-23): T273 `b475533` fixed the second ko copy — src/oracle_v2_accept.zig:159-162 now delegates to the single production rules.koAfterCapture",
+   "rationale": "T266 was correct when written (2026-08-02): the second unfixed ko copy existed and is what failed A1/A2/A8, absorbed at PROVEN by T279. T731 re-labelled the row SUPERSEDED because the fix landed and the row no longer describes HEAD. This disposition records the later re-labelling, not a refutation of T266's original diagnosis."
+  },
+  {
+   "finding_task": "T266",
+   "finding_file": "T266-incompleteness.json",
+   "claim_id": "CODE.CLAIMLINT-C7-NEWROWS",
+   "proposed_status": "PROVEN (A/B experiment on this findings file + source read at HEAD c344f02)",
+   "register_status": "SUPERSEDED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "CODE.CLAIMLINT-C7-NEWROWS re-labelled SUPERSEDED by T731 (Race G G38, 2026-08-23): T269 `b08f386` fixed both C7 defects — C7 now parses every new_rows entry and is a census, not a floor",
+   "rationale": "T266 was correct when written (2026-08-02): C7 truncated at the first new_rows entry and mis-parsed status, absorbed at PROVEN by T279. T731 re-labelled the row SUPERSEDED because T269 fixed both defects. This disposition records the later re-labelling, not a refutation of T266's original diagnosis."
+  },
+  {
+   "finding_task": "T279",
+   "finding_file": "T279-absorption.json",
+   "claim_id": "CODE.ACCEPT-KOKEY",
+   "proposed_status": "PROVEN",
+   "register_status": "SUPERSEDED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "CODE.ACCEPT-KOKEY re-labelled SUPERSEDED by T731 (Race G G36, 2026-08-23): T273 `b475533` fixed the second ko copy",
+   "rationale": "T279's absorption record (PROVEN) was correct at absorption (2026-08-03). T731 re-labelled the row SUPERSEDED after T273 landed. This disposition records the later re-labelling."
+  },
+  {
+   "finding_task": "T279",
+   "finding_file": "T279-absorption.json",
+   "claim_id": "CODE.CLAIMLINT-C7-NEWROWS",
+   "proposed_status": "PROVEN",
+   "register_status": "SUPERSEDED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "CODE.CLAIMLINT-C7-NEWROWS re-labelled SUPERSEDED by T731 (Race G G38, 2026-08-23): T269 `b08f386` fixed both C7 defects",
+   "rationale": "T279's absorption record (PROVEN) was correct at absorption (2026-08-03). T731 re-labelled the row SUPERSEDED after T269 landed. This disposition records the later re-labelling."
+  },
+  {
+   "finding_task": "T670",
+   "finding_file": "T670-class-c-triage.json",
+   "claim_id": "2x2.T12",
+   "proposed_status": "MEASUREMENT",
+   "register_status": "FALSE-AS-SCOPED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "2x2.T12 re-labelled FALSE-AS-SCOPED by T731 (Race G G34, 2026-08-23): the 144/160-vertex root-free 2×2 SCC (docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md §6.2) refutes '2×2 admits no reachable non-root cycles' under basic ko",
+   "rationale": "The class-C triage snapshot read 2x2.T12 as MEASUREMENT before Race G. T731 re-labelled it FALSE-AS-SCOPED because the no-cycles premise is false under basic ko (true only of PSK-legal reachability). This disposition records the later re-labelling."
+  },
+  {
+   "finding_task": "T674",
+   "finding_file": "T674-class-c-triage.json",
+   "claim_id": "2x2.T12",
+   "proposed_status": "MEASUREMENT",
+   "register_status": "FALSE-AS-SCOPED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "2x2.T12 re-labelled FALSE-AS-SCOPED by T731 (Race G G34, 2026-08-23): the 144/160-vertex root-free 2×2 SCC refutes the no-cycles premise under basic ko",
+   "rationale": "The class-C triage snapshot read 2x2.T12 as MEASUREMENT before Race G. T731 re-labelled it FALSE-AS-SCOPED. This disposition records the later re-labelling."
+  },
+  {
+   "finding_task": "T676",
+   "finding_file": "T676-class-c-triage.json",
+   "claim_id": "2x2.T12",
+   "proposed_status": "MEASUREMENT",
+   "register_status": "FALSE-AS-SCOPED",
+   "disposition": "rejected-by-register",
+   "refuting_row": "2x2.T12 re-labelled FALSE-AS-SCOPED by T731 (Race G G34, 2026-08-23): the 144/160-vertex root-free 2×2 SCC refutes the no-cycles premise under basic ko",
+   "rationale": "The class-C triage snapshot read 2x2.T12 as MEASUREMENT before Race G. T731 re-labelled it FALSE-AS-SCOPED. This disposition records the later re-labelling."
   }
  ]
 }

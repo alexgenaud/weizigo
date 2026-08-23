@@ -421,7 +421,7 @@ compiling code and **zero executions**. Absorbed 2026-08-01 (Fable/T177):
 - **Verify-battery** (harness + three invariant modules): 36 unit tests
   (module-local, not reachable from `zig build test`), harness not wired to
   any invariant module — every check is a stub, zero verification runs
-  `[CODE.VB-STUBS:PROVEN]`. T171's I5 Tarjan calibration is **partial**:
+  `[CODE.VB-STUBS:SUPERSEDED]`. T171's I5 Tarjan calibration is **partial**:
   node counts exact, edge counts +30–34% off the committed references, and
   the 3×2 test gate is self-calibrated against an uncommitted number
   `[3x2.I5-CAL:MEASUREMENT]`. T172's blind reimplementation found five spec
@@ -510,7 +510,7 @@ TIE=0, H=+16 verified genuine, 99.997% single-ko
 closure checks C-A1/C-A2 are specified and unrun (they need the Phase 2
 kernel), and the acceptance harness that was meant to check the values had
 its own divergent ko rule, so A1/A2/A8 were measuring their own off-manifold
-walk `[CODE.ACCEPT-KOKEY:PROVEN]`. The foreclosures remain measured, not
+walk `[CODE.ACCEPT-KOKEY:SUPERSEDED]`. The foreclosures remain measured, not
 conjectured, and the 154/508 (30.3%) C2 falsification at 3×2
 `[3x2.T13:PROVEN]` is stronger evidence than ever (T110, 2026-07-30).
 

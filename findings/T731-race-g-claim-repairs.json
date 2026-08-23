@@ -1,0 +1,39 @@
+{
+  "task_id": "T731",
+  "date": "2026-08-23",
+  "model": "deepseek-v4-pro",
+  "audited_by": "deepseek-v4-pro/T706",
+  "claims": [
+    {
+      "id": "2x2.T12",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "\"2×2 admits no reachable non-root cycles\" is false under basic ko: the 2×2 reachable graph has a 144-vertex non-trivial SCC under the shipped rule and a 160-vertex one under the corrected rule, root-free; the statement is true only of PSK-legal reachability (Race G G34; caught on both fields by claude-opus-5/T690, ruled by T706).",
+      "evidence_path": "docs/evidence/QA-023/ko-fix-rerun-2026-07-29.md"
+    },
+    {
+      "id": "GLOBAL.FP2",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "FP2 states the same proposition as GLOBAL.C2 (the canonical row, FALSE-AS-SCOPED at 3×2) and is refuted by 3x2.T13; the falsification reached C2/CERTCORE/FP2-bounded but never FP2, which stayed CLAIMED (Race G G30; caught by claude-opus-5/T690 and deepseek-v4-flash/T694, ruled by T706).",
+      "evidence_path": "docs/evidence/T13/probe-reimplementation-2026-07-30.md"
+    },
+    {
+      "id": "CODE.ACCEPT-KOKEY",
+      "proposed_status": "SUPERSEDED",
+      "rationale": "True when written (T266, 2026-08-02): a second unfixed ko copy existed in src/oracle_v2_accept.zig and failed A1/A2/A8. T273 (b475533) fixed it — src/oracle_v2_accept.zig:159-162 now delegates to the single production rules.koAfterCapture — so the row no longer describes HEAD (Race G G36; four of five lanes, ruled by T706).",
+      "evidence_path": "findings/T706-race-g-batch2-grade.json"
+    },
+    {
+      "id": "CODE.CLAIMLINT-C7-NEWROWS",
+      "proposed_status": "SUPERSEDED",
+      "rationale": "True when written (T266): C7 truncated at the first new_rows entry and mis-parsed status. T269 (b08f386) fixed both — C7 now parses every new_rows entry and is a census, not a floor (Race G G38; four of five lanes, ruled by T706).",
+      "evidence_path": "findings/T706-race-g-batch2-grade.json"
+    },
+    {
+      "id": "CODE.VB-STUBS",
+      "proposed_status": "SUPERSEDED",
+      "rationale": "True when written (2026-07-31 inspection): the harness was unwired and stubCheck-only. T258/T292 wired verify_battery.zig to vb_table/vb_fixpoint/vb_graph, removed stubCheck, and the vb_* tests now run under zig build test (Race G G39; four of five lanes, ruled by T706).",
+      "evidence_path": "findings/T706-race-g-batch2-grade.json"
+    }
+  ],
+  "notes": "T731 (leaf, deepseek-v4-pro) — executes the Race G claim repairs that the race proved but no row absorbed. Landmark: L4 (the ledger is clean) — Race G's science by-product lands in the register instead of rotting in findings files.\n\nSTATUS CHANGES (5, all tier-A, audited_by = the Race G batch-2 grader T706 whose ruling these execute): 2x2.T12 MEASUREMENT→FALSE-AS-SCOPED; GLOBAL.FP2 CLAIMED→FALSE-AS-SCOPED (at 3×2); CODE.ACCEPT-KOKEY, CODE.CLAIMLINT-C7-NEWROWS, CODE.VB-STUBS PROVEN→SUPERSEDED.\n\nCITATION REPAIRS (status-preserving, in CLAIMS.md evidence columns): (a) 4x4.C1 — repointed 4x4/EPISTEMIC.md:141-147→:161-167 and PROGRESS.md:210-211→:213, added docs/evidence/I11-4x4-EXHAUSTIVE/PROVENANCE.md (G26 cite gap); (b) GLOBAL.FP3 — added docs/evidence/GLOBAL-FP3/probe_fp3_finite_lattice_2026_08_22.zig + run-fp3-2026-08-22.log + docs/evidence/GLOBAL-FP1/proof-2026-07-30.md (G43 cite gap); (c) WZO2.I2-CLEAN — added docs/evidence/BATTERY/i2-wzo2-T270/check_i2_wzo2.py (G35 cite gap, the independent R8 instrument); (d) 3x3.E2-RUN2 (G33) — repointed PROGRESS.md:128→:118 and cited 3x3/EPISTEMIC.md:11 for the 50/8000 + 12-pt figures (NOT SUBAGENTS.md:46, which would have transitively pulled ~23 pre-existing dead untracked/B*.md citations into C2's reachable set — rejected on that ground); (e) GLOBAL.P3 (G50) — repointed 4x4/EPISTEMIC.md:25→:34,62-65.\n\nWHOSE LOSS EACH REPAIR RECORDS (milestone line): G34/2x2.T12 records the misses of claude-sonnet-5, claude-haiku-4-5-20251001, deepseek-v4-pro and deepseek-v4-flash (only claude-opus-5 caught the false status on both fields); G30/GLOBAL.FP2 records the misses of claude-sonnet-5, claude-haiku-4-5-20251001 and deepseek-v4-pro (opus and flash caught the status); G36/G38/G39 (the SUPERSEDED code trio) record claude-haiku-4-5-20251001's miss on all three (it rubber-stamped PROVEN, and on G39 gave a wrong reason — a copyright year).\n\nCLAIMLINT BEFORE/AFTER (both runs committed to this note): BEFORE C1a=0 C1b=0 C2=13 C3=48 C6=0 C7-unabsorbed=0 C9=0 C5=0 C11=0 calibration=PASS. AFTER C1a=0 C1b=0 C2=13 C3=46 C6=0 C7-unabsorbed=0 C9=0 C5=1 C11=0 calibration=PASS. All gated counters unchanged or improved (C3 dropped 48→46 as three PROVEN rows became SUPERSEDED; C2 stayed at its 13 floor).\n\nC7 DISPOSITIONS ADDED: the five status changes orphaned seven historical findings (T266-incompleteness.json and T279-absorption.json proposed PROVEN for the two CODE rows; T670/T674/T676-class-c-triage.json proposed MEASUREMENT for 2x2.T12). Seven findings/rejections.json entries dispose of them as rejected-by-register with refuting_row naming the T731 re-labelling and superseding commit — the findings were correct when absorbed; the re-labelling is a later event, not a refutation.\n\nRESIDUALS (recorded, not acted on — out of the brief's enumerated scope): (1) C5 SHADOWED=1, a direct consequence of the CODE.ACCEPT-KOKEY SUPERSEDED relabel: GLOBAL.BATTERY-GAPS still carries d:CODE.ACCEPT-KOKEY (the T266 defect instance), and a SUPERSEDED parent can never be FALSE so the d: edge is now a dead end; the honest fix is d:→e: (the historical defect is evidence of the gap, not a logical premise), left for the claims-register owner or a follow-up. (2) CLAIMS.md §6-D1's resolution text still quotes PROGRESS.md:128 (now stale) and 4x4/EPISTEMIC.md:58 (also stale) for the D-1 two-runs ruling; the row 3x3.E2-RUN2 was repointed but the ruling prose was not edited — a ruling record is the claims-register owner's call, not a worker's. (3) docs/epistemic/PROGRESS.md carries present-tense prose around the two cite-tags I fixed (the VB-STUBS and ACCEPT-KOKEY bullets still describe the pre-fix state); only the tags were corrected to keep C6 green; the prose staleness is a separate debt.\n\nVERIFY-NONCE: NONCE-fee3a743e3f3bebd. Inbox polled via bin/managent inbox T731 --ack at claim, mid-work and before close — empty each time; no directive ID to record."
+}
