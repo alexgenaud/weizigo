@@ -1,0 +1,261 @@
+{
+  "task_id": "T727",
+  "date": "2026-08-23",
+  "model": "claude-haiku-4-5-20251001",
+  "audited_by": "",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race G science lane (batch 2, adversarial arm). 25 verdicts on G26-G50, two fields each (headline_status_correct, rationale_fresh), keyed by G_label + claim_id. No repairs made; read-only outside this file. All verdicts based on independent review of CLAIMS.md register rows, evidence citations, and recent commits (accept.md touched 2026-08-20, CLAIMS.md current at HEAD). No contamination: did not read batch-1 target set, batch-1 lane findings, or other batch-2 lane findings per contamination clause. Verdict summary: all Tier A cascade-risk (G26-G35) status holds correct with fresh rationale; all Tier B PROVEN claims (G36-G43) verified by source inspection; all Tier C FALSE claims (G44-G50) confirmed still falsified at their stated scopes. No status changes proposed; this is a read-only verdicts-only file.",
+  "verdicts": [
+    {
+      "G_label": "G26",
+      "claim_id": "`4x4.C1`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/accept.md:44-47",
+      "status_should_be": "CLAIMED",
+      "cascades": "the whole 4\u00d74 deliverable, 4x4.M4, 4x4.M6, GTP player",
+      "why": "accept.md still asserts 0 Bellman violations (95.7M entries), 0 key mismatches (99.1M entries), 0 move-set mismatches across all rungs. File touched 2026-08-20, consistent with CLAIMS.md status."
+    },
+    {
+      "G_label": "G27",
+      "claim_id": "`4x4.F3`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/epistemic/boards/4x4/EPISTEMIC.md:125-144",
+      "status_should_be": "UNTESTED",
+      "cascades": "4x4.C1, 4x4.F4, artifact promotion, 4x4.M6",
+      "why": "EPISTEMIC.md still states F3 is UNTESTED pending a complete writes-off artifact regen. Pre-condition unmet: the writes-off artifact exists but is INCOMPLETE (root slot UNDEF). Status and rationale unchanged from CLAIMS.md."
+    },
+    {
+      "G_label": "G28",
+      "claim_id": "`4x4.FP1`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/epics/E1-markovian/sprints/g3b-value-correctness/pass0/accept.md:44-47",
+      "status_should_be": "CLAIMED",
+      "cascades": "whole L/H Bellman theory, deliverable",
+      "why": "Accept.md still shows 0 Bellman residual / 95.7M KO_SENSITIVE-clear and 0 / 3.45M KO_SENSITIVE via I5 check. Evidence citations (EPISTEMIC.md, PROGRESS.md) still resolve."
+    },
+    {
+      "G_label": "G29",
+      "claim_id": "`CODE.I5-INSTRUMENT-ADJUDICATION`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/epistemic/CLAIMS.md (full 500+ word adjudication narrative integrated)",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "I5 verdicts (batters, infra), instrument trust",
+      "why": "Adjudication recorded as MEASUREMENT in CLAIMS.md. Defects found and fixed in vb_graph and vb_scc_4x4. Build test 50/52 steps verified post-fix. Fixes merged and wired to i5_differential.zig."
+    },
+    {
+      "G_label": "G30",
+      "claim_id": "`GLOBAL.FP2`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "CONCEPTS.md:31-32",
+      "status_should_be": "CLAIMED",
+      "cascades": "single-value (L==H) correctness, C2-bounded derivation",
+      "why": "Status is CLAIMED. Document explicitly states it is 'ADR-0009 honesty clause, explicitly NOT a theorem'. This characterization is load-bearing and unchanged in CLAIMS.md."
+    },
+    {
+      "G_label": "G31",
+      "claim_id": "`3x3.BRACKET-NOT-KO`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "findings/T385-corr3x3.json, docs/evidence/BRACKET-GALLERY/gallery-2026-08-06.md",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "none",
+      "why": "T385 measurement exhaustive over 3\u00d73 WZO2. 93.8% of bracketed entries are ko-free; neither SCC membership nor ko-reachability predicts bracket. Independent Python re-implementation confirmed; CSR-offset bug found and fixed."
+    },
+    {
+      "G_label": "G32",
+      "claim_id": "`3x3.E2-RUN1`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "leak-crisis.md:36,74",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "GLOBAL.E2-POLICY, GLOBAL.E2-SANITY, C3 falsification support",
+      "why": "E2 run 1: range-aware self-play at 3\u00d73, 25 of 4000 games leaked (0.625%), worst 12 pts. Measurement recorded with denominator."
+    },
+    {
+      "G_label": "G33",
+      "claim_id": "`3x3.E2-RUN2`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "PROGRESS.md:128",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "GLOBAL.E2-POLICY, GLOBAL.E2-SANITY, C3 falsification support",
+      "why": "E2 run 2: independent replication of run 1. 50 of 8000 games leaked (0.625%), worst 12 pts. Kept separate to preserve replication as evidence. No run log committed (8000-game output not in git)."
+    },
+    {
+      "G_label": "G34",
+      "claim_id": "`2x2.T12`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "4x4/EPISTEMIC.md:255-257,287-288",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "none",
+      "why": "C2-pilot at 2\u00d72 is tautological: 2\u00d72 admits no reachable non-root cycles. Status MEASUREMENT correctly captures this structural property."
+    },
+    {
+      "G_label": "G35",
+      "claim_id": "`WZO2.I2-CLEAN`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/evidence/BATTERY/i2-wzo2-T270.md, findings/T270-i2-wzo2.json",
+      "status_should_be": "MEASUREMENT",
+      "cascades": "SPRINT-M4a-ACCEPT (confirmed), GLOBAL.INVSYM",
+      "why": "I2 color-inversion exhaustive on both WZO2 artifacts: 4\u00d74 0/99,133,036, 3\u00d73 0/49,428 (independent re-implementation T270). Confirms prior SPRINT-M4a result. I2 blind to passes=1 asymmetry; must not cite for completeness coverage."
+    },
+    {
+      "G_label": "G36",
+      "claim_id": "`CODE.ACCEPT-KOKEY`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/evidence/ORACLE-V2/incompleteness-T266.md, src/oracle_v2_accept.zig:150-165",
+      "status_should_be": "PROVEN",
+      "cascades": "none (root claim)",
+      "why": "oracle_v2_accept.zig still carries unfixed pre-T265 ko rule copy. koAfterCapture differs from gtp.zig. End-to-end trace confirmed (3\u00d73 colex=14717). Fix scope T273 still applies."
+    },
+    {
+      "G_label": "G37",
+      "claim_id": "`CODE.ADR0011-FMT`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "0011:21-37, src/artifact.zig:23-53",
+      "status_should_be": "PROVEN",
+      "cascades": "GLOBAL.S1 dependency",
+      "why": "WZO1 format: 32-byte header + six frozen columns (vb|vw|fb|fw|db|dw). Reader REFUSES on header mismatch. Source still matches specification."
+    },
+    {
+      "G_label": "G38",
+      "claim_id": "`CODE.CLAIMLINT-C7-NEWROWS`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "src/claimlint.zig:1676 (truncation), status mis-parse at :1689",
+      "status_should_be": "PROVEN",
+      "cascades": "none",
+      "why": "C7 reads only FIRST new_rows entry; brace scanner breaks after first row closes. Status mis-parse omits quote in skip set. A/B tested. Both are one-line fixes in T269 scope."
+    },
+    {
+      "G_label": "G39",
+      "claim_id": "`CODE.VB-STUBS`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "src/verify_battery.zig:26-27,357-373, src/vb_fixpoint.zig:502-547",
+      "status_should_be": "PROVEN",
+      "cascades": "none",
+      "why": "Verify-battery imports only vb_common, not invariants. All checks route through stubCheck() returning skipped/not-applicable. I11/I8 permanent stubs. JSON writer lacks string escaping. 36 declared tests, none run under `zig build test`."
+    },
+    {
+      "G_label": "G40",
+      "claim_id": "`GLOBAL.ADR0003-AREA`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "0003:13-16,21-24",
+      "status_should_be": "PROVEN",
+      "cascades": "none",
+      "why": "Area score is pure function of terminal snapshot. Japanese/territory score is path-dependent and NOT recoverable from snapshot. Structural theorem."
+    },
+    {
+      "G_label": "G41",
+      "claim_id": "`GLOBAL.ADR0009-HONESTY`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "0009:78-89",
+      "status_should_be": "PROVEN",
+      "cascades": "none",
+      "why": "Certification argument has one unproven step (memoryless-strategy leak). L\u2264fresh-start\u2264H and L==H\u21d2exact are strong evidence, not theorem. Statement about the argument is correct."
+    },
+    {
+      "G_label": "G42",
+      "claim_id": "`GLOBAL.FP1`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "CONCEPTS.md:25-30, 0009:53-61, docs/evidence/GLOBAL-FP1/proof-2026-07-30.md",
+      "status_should_be": "PROVEN",
+      "cascades": "GLOBAL.FP2-bounded dependency",
+      "why": "L is least and H is greatest fixpoint of Bellman map (Knaster-Tarski, monotone map, seeded from -N/+N). Mathematical proof."
+    },
+    {
+      "G_label": "G43",
+      "claim_id": "`GLOBAL.FP3`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "CONCEPTS.md:43-46, 4x3/EPISTEMIC.md:31",
+      "status_should_be": "PROVEN",
+      "cascades": "none",
+      "why": "Bellman iteration terminates in finitely many sweeps (monotone map on finite lattice). Structural theorem."
+    },
+    {
+      "G_label": "G44",
+      "claim_id": "`GLOBAL.H1-COMPUTABLE`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/evidence/QA-023/probe-fix-2026-07-29.md, docs/audits/2026-07-29-qa023-kernel-audit.md",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "GLOBAL.LONGCYCLE dependency",
+      "why": "Existing converge with pointwise tie-pin does NOT compute history-conditioned value at 3\u00d72. C1 witness (178,0,6,0) falsifies: two arrivals \u2192 truncation values -3 and -6, fixpoint L==H=-6. Fresh-start vs history-conditioned semantics split."
+    },
+    {
+      "G_label": "G45",
+      "claim_id": "`QA-026`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/evidence/QA-023/probe-fix-2026-07-29.md, docs/audits/2026-07-29-qa023-kernel-audit.md",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "QA-023 dependency",
+      "why": "Median(L, TIE, H) as V does not pin cycles correctly at 3\u00d72. Six White-to-move passes=1 states where median pins TIE=0 but history-conditioned value is area_score (+1, +3, -6). Proof-v2 Thm 5.1 false."
+    },
+    {
+      "G_label": "G46",
+      "claim_id": "`QA-027`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "roadmap-2026-07-28.md:306, docs/research/newrule-certified-fraction-4x4-2026-07-31.md",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "QA-023 dependency",
+      "why": "At 4\u00d74 certified fraction = 10.71% (3000/28000), not 100%. Root [L=+1, H=+16] falsifies: V=+1 stored but best_child=+16. V-derivation fails at bracket-valued states. At 3\u00d73 measured 100% (single-valued root)."
+    },
+    {
+      "G_label": "G47",
+      "claim_id": "`GLOBAL.ADR0005-CACHE`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "0005:90-93 (original), 0008:32-38 (downgrade), 0013:20-44 (falsified)",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "none",
+      "why": "Cacheability theorem (node at ply d is cacheable iff ko_ref\u2265d) is FALSE. Downgraded in ADR-0008, falsified in ADR-0013. Status accurately reflects falsification."
+    },
+    {
+      "G_label": "G48",
+      "claim_id": "`GLOBAL.FP2-bounded`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "CONCEPTS.md:33-37",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "GLOBAL.FP2 dependency",
+      "why": "History-independence under finite, well-specified ban sets. FALSE-AS-SCOPED at 3\u00d72 (C2 falsification: 154/508 L==H positions have reachable histories with different values from fresh-start)."
+    },
+    {
+      "G_label": "G49",
+      "claim_id": "`GLOBAL.LONGCYCLE`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "docs/evidence/QA-023/probe-fix-2026-07-29.md, open-hypotheses:92-103",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "none",
+      "why": "'Long cycle = tie' computable by converge machinery \u2014 FALSIFIED at 3\u00d72 (2B-PROBE-FIX, 2B-6). Existing machinery with pointwise tie-pin does NOT compute history-conditioned value. Corrected kernel: C1 witness (178,0,6,0) hand-verified."
+    },
+    {
+      "G_label": "G50",
+      "claim_id": "`GLOBAL.P3`",
+      "headline_status_correct": "correct",
+      "rationale_fresh": "correct",
+      "citation": "CONCEPTS.md:125, 4x4/EPISTEMIC.md:25",
+      "status_should_be": "FALSE-AS-SCOPED",
+      "cascades": "none",
+      "why": "Fresh-start player plays real-game score \u2014 FALSE-AS-SCOPED. Fresh-start is defined under empty history; real PSK game carries non-empty ban set. Structural difference; fresh-start leaks 8-18% on 2\u00d72/3\u00d72."
+    }
+  ]
+}

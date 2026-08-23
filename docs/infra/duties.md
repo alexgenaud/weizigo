@@ -18,7 +18,7 @@ undefined (and never ran).
 
 UIDs share a column with task ids so one display serves both.
 
-## The three duties, registered 2026-08-19
+## The four duties — DCLAIM, DRPLAY and DARGUS registered 2026-08-19; DFLEET added with the fleet keeper (T496)
 
 | UID | erodes toward | one chunk = |
 |---|---|---|
@@ -81,3 +81,22 @@ section. Due-ness is by closes, not clock: a duty becomes due `due_after` task c
 The third duty is `DARGUS`, not `DOCTOR`: T427's fixture-marker guard refuses any id containing
 `DOCTOR` on the live store, because regression harnesses use that word in fixture ids. The guard
 is right and was not weakened for a naming preference.
+
+## Resolved: STANDING-CLAIMVERIFY is DCLAIM (T533, 2026-08-23)
+
+`STANDING-CLAIMVERIFY` (proposed 2026-08-19 in `docs/status/backlog-2026-08-19.md`, carried into
+`docs/status/ROADMAP-2026-08-20.md` §1.3 as "register STANDING-CLAIMVERIFY (proposed 2026-08-19,
+never registered)") is the **same duty as `DCLAIM`**: identical erodes-toward
+(`L4 (the ledger is clean)`), identical one-chunk unit (verify one prose-only `PROVEN` claim:
+re-run its probe, or record NO-SUCH-PROBE naming what a probe would need), identical pass rule
+(reproduced | NO-SUCH-PROBE; fresh claimlint 2026-08-23: C3 UNBACKED 48 of 69 `PROVEN` rows),
+and identical deliverable (a findings entry citing the claim id and the run). DCLAIM's brief
+already carries STANDING-CLAIMVERIFY's "no register edits without a separate ruling" as "change
+no claim status". The only nominal difference is the `STANDING-*` prefix versus a duty UID —
+precisely the dressing-as-a-task the duties mechanism (T478) exists to retire.
+
+**Merged: one duty, not two.** DCLAIM stands registered (`duty: true`, `due_after: 5` — due 5
+task closes after its last chunk) and cycling (`findings/DCLAIM-2026-08-20.json`,
+`-2026-08-22.json`, `-2026-08-22-FP3.json`, `DCLAIM-chunk3.json` — GLOBAL.S1 REPRODUCED). No
+second registration; the ROADMAP §1.3 item is satisfied by this merge. Chunk-pass definition
+for the merged duty: "What a chunk's pass means" above.
