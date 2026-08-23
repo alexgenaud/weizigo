@@ -109,6 +109,10 @@ file that carries the old word.
 
 ## Queue, surface, and roles
 
+- **model short names** — human surfaces (tables, prose, dashboards) use short names
+  (`opus`, `dspro`, `dsflash`, `oxalpha`, …); stores and ledgers keep canonical labels
+  (operator ruling 2026-08-23). The one short-name table lives in
+  `docs/infra/model-registry.md` — no second mapping anywhere.
 - **kanban** — the `bin/managent` task queue: tasks, sets, holds, needs, claims, columns; never
   "board" in prose (`AGENTS.md` terminology ruling 2026-07-29, extended to *goban* 2026-07-31;
   spec: `docs/infra/managent/spec.md`).
