@@ -80,9 +80,9 @@ grand-race.md §2).
   excluded ox-alpha from **every** mechanized pick with the reason
   `ox-alpha: family ox-alpha appetite RESERVED (reserved task types only)` — i.e. the record
   blocked the exact comparison it was supposed to serve.
-  `src/managent/main.zig` still carries `.{ .family = "ox-alpha", .appetite = .reserved }`
-  (line ~321); that one-line change is owed and is serialized behind the other `main.zig`
-  rows, so it is queued rather than applied here.
+  **Landed 2026-08-23** (seed commit `2ec4f93`): `src/managent/main.zig:322` now reads
+  `.{ .family = "ox-alpha", .appetite = .spend }`, so mechanized picks can draw ox-alpha.
+  The earlier note here saying the one-liner was still owed is superseded by that commit.
 - **scope:** read-only advisor (T745, 2026-08-23) — a *scope* limit, not an appetite limit.
   Dispatch it liberally on read-only work; audit (27% of volume) and spec/design review are
   exactly that shape, so the scope limit costs almost nothing in placement coverage.
