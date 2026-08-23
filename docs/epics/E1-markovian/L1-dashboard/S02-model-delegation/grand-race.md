@@ -10,7 +10,7 @@ disagree, this one wins for this race only.
 ## 1. Purpose — two deliverables from one spend
 
 1. **The artifact:** the wave-2 fleet-toolchain consolidation (keeper / watcher / dispatcher →
-   fewer, tested, modular Zig binaries; see `docs/status/ROADMAP-2026-08-20.md` Phase C) —
+   fewer, tested, modular Zig binaries; see `docs/status/ROADMAP-2026-08-20.md` Stage 2) —
    specified, audited, implemented, and accepted through the project's own delivery pipeline.
 2. **The measurement:** a definitive, race-grade profile of every model on every phase of that
    pipeline — ideation, specification, synthesis, auditing, implementation, and *grading itself*
