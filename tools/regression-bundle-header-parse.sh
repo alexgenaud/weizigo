@@ -101,7 +101,7 @@ echo "  T880 regression: space-separated list headers parse fully, confirmation 
 
 # ── Arm 1: space-separated holds — ALL elements stored ─────────────────────
 echo "    1. add from bundle holds=a.zig b.zig c.zig stores all THREE"
-write_bundle T880S1 s1 'set=A holds=a.zig b.zig c.zig'
+write_bundle T880S1 s1 'set=A type=infra holds=a.zig b.zig c.zig'
 ADD1="$(mg add T880S1 2>&1)" || { echo "       FAIL: add T880S1 exited non-zero"; FAIL=1; }
 H1="$(store_list T880S1 holds)"
 if [ "$H1" = '["a.zig", "b.zig", "c.zig"]' ]; then
@@ -113,7 +113,7 @@ fi
 
 # ── Arm 2: comma-separated holds still work (regression guard) ────────────
 echo "    2. add from bundle holds=a.zig,b.zig,c.zig stores all THREE (comma)"
-write_bundle T880S2 s2 'set=A holds=a.zig,b.zig,c.zig'
+write_bundle T880S2 s2 'set=A type=infra holds=a.zig,b.zig,c.zig'
 ADD2="$(mg add T880S2 2>&1)" || { echo "       FAIL: add T880S2 exited non-zero"; FAIL=1; }
 H2="$(store_list T880S2 holds)"
 if [ "$H2" = '["a.zig", "b.zig", "c.zig"]' ]; then
@@ -125,7 +125,7 @@ fi
 
 # ── Arm 3: mixed separators ───────────────────────────────────────────────
 echo "    3. add from bundle holds=a.zig,b.zig c.zig stores all THREE (mixed)"
-write_bundle T880S3 s3 'set=A holds=a.zig,b.zig c.zig'
+write_bundle T880S3 s3 'set=A type=infra holds=a.zig,b.zig c.zig'
 mg add T880S3 >/dev/null 2>&1 || { echo "       FAIL: add T880S3 exited non-zero"; FAIL=1; }
 H3="$(store_list T880S3 holds)"
 if [ "$H3" = '["a.zig", "b.zig", "c.zig"]' ]; then
@@ -154,7 +154,7 @@ fi
 
 # ── Arm 5: null — one hold reports one ────────────────────────────────────
 echo "    5. add from bundle holds=a.zig reports holds 1 (a.zig)"
-write_bundle T880N1 n1 'set=A holds=a.zig'
+write_bundle T880N1 n1 'set=A type=infra holds=a.zig'
 ADD5="$(mg add T880N1 2>&1)" || { echo "       FAIL: add T880N1 exited non-zero"; FAIL=1; }
 if [ "$(store_list T880N1 holds)" = '["a.zig"]' ]; then
     echo "       PASS: store holds == [\"a.zig\"]"
@@ -172,7 +172,7 @@ fi
 
 # ── Arm 6: null — no holds= leaves [] and never an empty-list path ────────
 echo "    6. bundle with no holds= leaves [] and the confirmation has no holds mention"
-write_bundle T880N2 n2 'set=A'
+write_bundle T880N2 n2 'set=A type=infra'
 ADD6="$(mg add T880N2 2>&1)" || { echo "       FAIL: add T880N2 exited non-zero"; FAIL=1; }
 if [ "$(store_list T880N2 holds)" = '[]' ]; then
     echo "       PASS: store holds == []"
@@ -190,7 +190,7 @@ fi
 
 # ── Arm 7: round-trip — the one-writer guard sees ALL three holds ─────────
 echo "    7. round-trip: claim conflicting with the SECOND of three held files is REFUSED"
-write_bundle T880H h 'set=A holds=src/held1.zig src/held2.zig src/held3.zig'
+write_bundle T880H h 'set=A type=infra holds=src/held1.zig src/held2.zig src/held3.zig'
 mg add T880H >/dev/null 2>&1 || { echo "       FAIL: add T880H exited non-zero"; FAIL=1; }
 H7="$(store_list T880H holds)"
 if [ "$H7" = '["src/held1.zig", "src/held2.zig", "src/held3.zig"]' ]; then
@@ -202,7 +202,7 @@ fi
 mg claim T880H --agent deepseek-v4-pro >/dev/null 2>&1 || { echo "       FAIL: claim T880H exited non-zero"; FAIL=1; }
 # Candidate conflicts on the holder's SECOND held file — the file the
 # truncated store could not see.
-write_bundle T880C c 'set=A holds=src/held2.zig'
+write_bundle T880C c 'set=A type=infra holds=src/held2.zig'
 mg add T880C >/dev/null 2>&1 || { echo "       FAIL: add T880C exited non-zero"; FAIL=1; }
 CLAIM7_OUT="$(mg claim T880C --agent deepseek-v4-flash 2>&1 || true)"
 CLAIM7_RC=0; mg claim T880C --agent deepseek-v4-flash >/dev/null 2>&1 && CLAIM7_RC=0 || CLAIM7_RC=$?
@@ -228,11 +228,11 @@ fi
 
 # ── Arm 8: needs= space-separated stores every element ────────────────────
 echo "    8. add from bundle needs=T880A1 T880A2 stores both needs"
-write_bundle T880A1 a1 'set=A'
-write_bundle T880A2 a2 'set=A'
+write_bundle T880A1 a1 'set=A type=infra'
+write_bundle T880A2 a2 'set=A type=infra'
 mg add T880A1 >/dev/null 2>&1 || { echo "       FAIL: add T880A1 exited non-zero"; FAIL=1; }
 mg add T880A2 >/dev/null 2>&1 || { echo "       FAIL: add T880A2 exited non-zero"; FAIL=1; }
-write_bundle T880NE ne 'set=A needs=T880A1 T880A2'
+write_bundle T880NE ne 'set=A type=infra needs=T880A1 T880A2'
 mg add T880NE >/dev/null 2>&1 || { echo "       FAIL: add T880NE exited non-zero"; FAIL=1; }
 NE="$(store_list T880NE needs)"
 if [ "$NE" = '["T880A1", "T880A2"]' ]; then
@@ -244,7 +244,7 @@ fi
 
 # ── Arm 9: needs= comma-separated still works (regression guard) ──────────
 echo "    9. add from bundle needs=T880A1,T880A2 stores both needs (comma)"
-write_bundle T880NC nc 'set=A needs=T880A1,T880A2'
+write_bundle T880NC nc 'set=A type=infra needs=T880A1,T880A2'
 mg add T880NC >/dev/null 2>&1 || { echo "       FAIL: add T880NC exited non-zero"; FAIL=1; }
 NC="$(store_list T880NC needs)"
 if [ "$NC" = '["T880A1", "T880A2"]' ]; then
@@ -259,7 +259,7 @@ fi
 # reads priority from the meta line), never held files.  The first sync run
 # polluted 26 live rows with "priority=99" holds before this was pinned.
 echo "    10. holds=tools/one.sh priority=99 stores ONE hold (the key is not absorbed)"
-write_bundle T880P1 p1 'set=A holds=tools/one.sh priority=99'
+write_bundle T880P1 p1 'set=A type=infra holds=tools/one.sh priority=99'
 ADD10="$(mg add T880P1 2>&1)" || { echo "       FAIL: add T880P1 exited non-zero"; FAIL=1; }
 H10="$(store_list T880P1 holds)"
 if [ "$H10" = '["tools/one.sh"]' ]; then
@@ -278,7 +278,7 @@ fi
 
 # ── Arm 11: holds --sync fills space-separated holds and is idempotent ────
 echo "    11. holds --sync fills a space-separated bundle's holds; second run no-op"
-write_bundle T880SY1 sy1 'set=A holds=tools/s1.sh tools/s2.sh tools/s3.sh'
+write_bundle T880SY1 sy1 'set=A type=infra holds=tools/s1.sh tools/s2.sh tools/s3.sh'
 mg add T880SY1 >/dev/null 2>&1 || { echo "       FAIL: add T880SY1 exited non-zero"; FAIL=1; }
 # make it stale: store holds emptied (the T872 shape: declared, not stored)
 python3 - "$SCRATCH_STORE" <<'PYEOF'
