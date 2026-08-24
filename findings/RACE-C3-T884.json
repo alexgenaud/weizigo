@@ -1,0 +1,8 @@
+{
+  "task_id": "T884",
+  "date": "2026-08-24",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race C3 lane T884 triage. Lane directory: untracked/race-c3/lane-T884/. Batches completed: 1 through 6 (all 44 items have a row). Two canaries identified: CODE.RESOLVER-CONTROLS (Tier A, committed evidence at docs/evidence/CODE.RESOLVER/PROVENANCE.md) and GLOBAL.H1-CENSUS (Tier A, committed evidence at docs/evidence/GLOBAL.H1-CENSUS/). QA-025 is an alias of GLOBAL.MIGOS-RULE (already in the debt list) and is treated as a duplicate/canary. Class distribution across the 44 items: a=2 (canaries only), b=13, c=29. Honest weakest point: several class-(b) commands were inferred from source inspection rather than from a recorded run log; wall/RAM estimates for those are the lane's own and should be verified before use. Also, the lane's batch alignment drifted by one item due to a counting error; correction objects are appended to batch-6."
+}
