@@ -291,3 +291,27 @@ named as the decisive test.
 |---|---|---|
 | B39 | **Land `T827`'s patch and pin the T818 open-row case as a test arm.** The judge's own "where I would not bet" names it: with that arm pinned, `T826` and `T831` would turn a green arm red — the outcome the brief ranks worst. Until it exists, the suite cannot tell a real fix from a flattering one. | the race produced a winner; the value is only realised when it lands |
 | B40 | **The full suite carries 3 failures and 7 errors at base**, identical across base and every patch — pre-existing cwd/path artifacts in the `token_capture`, `dispatch` and `s06` modules, unrelated to any patch. Noted so they are not mistaken for race damage, and because a suite with 10 known-bad results at base is a weak oracle. | measured from every worktree |
+
+## B-new-9. The corpus three-way is judged — T819, audited by the seat, 2026-08-24
+
+**Reported as two experiments, per the amendment.** Judge `kimi-k2.7`/T819.
+
+**Experiment 1 — does seeding from the legacy classifier help?** T817's brief-aware classifier scores
+**27/27 = 100%** against a hand-built ground truth; the legacy keyword classifier scores **19/27 =
+70.4%**. So the brief-aware claim **reproduces**, but **the published 78% figure does not** — the
+measured legacy accuracy is 70.4%. Caveat the seat adds: the ground truth is **n=27**, which is a thin
+basis for a 100% claim, and the eight legacy misses are concentrated in `spec`→`audit` confusion.
+
+**Experiment 2 — the clean two-model comparison, and the consequential result.** T818 (`ox-alpha`) and
+T820 (`deepseek-v4-pro`) worked from **byte-identical briefs** over the same 578 tasks. Their
+`task_type` labels agree on **206 of 578 — 35.6%**. Scope taxonomies are outright incompatible and
+capability vocabularies are model-specific. The seat recomputed independently on the subset it could
+extract and got **16/49 = 32.7%** — same magnitude, so the figure is credible. (Two earlier
+recomputations by the seat returned 0% and were its own extraction errors: `task_type` is a nested
+object, and the two corpora use different id keys.)
+
+| # | consequence | why it matters |
+|---|---|---|
+| B41 | **Task-type labels are model-dependent, not objective.** Two capable models given identical instructions over the same 578 tasks agree about a third of the time. **Every "model X suits task type Y" conclusion therefore rests on labels that two models cannot reproduce** — including the task-type frequencies used to argue allocation. This does not say the labels are useless; it says the label is a *judgement*, and any allocation claim built on one needs its inter-rater agreement stated alongside it. | 206/578, plus incompatible scope taxonomies |
+| B42 | **The published legacy-classifier accuracy is wrong.** 78% is the standing figure; measured accuracy on the ground truth is **70.4%**. Whatever rests on the 78% number needs restating. | 19/27 |
+| B43 | **A brief amendment cannot add a deliverable.** The seat's amendment asked T819 to write model-perf ledger cells; the bundle header did not declare `docs/infra/model-task-metrics.jsonl`, so the close gate could not check it and **no ledger rows were written**. Same class as B24 (`suggest` drops `holds=`): the header is the only thing the mechanism reads, and prose asking for more is unenforceable. | 35 ledger rows, none for the corpus lanes |
