@@ -448,3 +448,18 @@ verified it the way that counts: dispatched a real task and confirmed it claimed
 its transcript to 175 KB. **My attempt at a broad script sweep exceeded its time limit and did not
 complete**, so "nothing else broke" is supported by a real dispatch and the five named scripts, not by an
 exhaustive pass. Stated rather than implied.
+
+## B-new-15. Provider refusals are invisible to our records — 2026-08-24
+
+| # | finding | evidence |
+|---|---|---|
+| B54 | **An upstream rate-limit is recorded as a successful empty run.** The operator sees explicit `429 … "stealth/ox-alpha is temporarily rate-limited upstream"` in his own console, while our harness records those same runs as **exit 0 with no output** — three such runs today, at 13.1 s, 8.8 s and one longer. **No 429 appears anywhere in our logs.** The `provider-429` classification exists only as a `dispatch_verify` verification outcome (`verified=unreached reason=provider-429`) and evidently cannot see the refusal on pi lanes. So the honest reading — *the provider refused, the model was never reached* — is rendered as a clean success. | his console versus our run records |
+| B55 | **Every model-quality inference the seat drew from those empty runs is withdrawn.** The seat told the operator three times that ox-alpha showed "unreliable protocol compliance"; that was already retracted once when the nonce check was shown to read its own prompt back, and it is now retracted a second time on a different ground: the empty runs are consistent with upstream refusal, and there is no evidence for a model explanation. **Two independent instrument defects produced the same false accusation against one model.** | this file |
+| B56 | **A near-miss worth recording as method.** The seat's first check for 429s in a run log reported two hits and was about to report "ox-alpha hit rate limits and recovered". The matches were the digits inside a process id (`84291`). Caught before reporting. This is the same class as an earlier incident where a log grep matched documentation strings inside task output. **A substring match is not evidence; the match must be shown in context before it is believed.** | the grep and the pid |
+
+**Model selection rule adopted, operator 2026-08-24:** for the most important findings and audits, use
+**one model per family** — one Claude, one DeepSeek, one Ollama, plus ox-alpha when it is responsive —
+rather than several from one family. Family diversity is what distinguishes a property of the problem
+from a habit of one provider. Currently: the ideal consolidation is on DeepSeek, the what-is audit on
+Ollama, and Claude is unreliable this hour (one row produced nothing in 488 s with no 429 recorded), so
+the Claude arm waits rather than being forced.
