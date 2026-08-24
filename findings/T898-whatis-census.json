@@ -1,0 +1,81 @@
+{
+  "task_id": "T898",
+  "date": "2026-08-24",
+  "model": "claude-sonnet-5",
+  "claims": [],
+  "new_rows": [],
+  "census": {
+    "method_doc": "docs/epics/E1-markovian/L1-dashboard/S11-honest-instruments/stream2-whatis/census-method.md",
+    "script": "tools/emission-census.py",
+    "script_wired_into_build": false,
+    "script_wiring_note": "build.zig is held uncommitted by another in-flight row (T891) at write time; wiring this script's --self-test into zig build test is named as owed follow-up rather than done now, to avoid committing another row's unreviewed hunk under this task's message",
+    "definition": "an emission point is a call site in tracked source that writes to stdout or ends the process with an observable exit status; stderr-only diagnostics are excluded by rule",
+    "scope": [
+      "bin/argus", "bin/dispatch", "bin/subagent",
+      "tools/** (git-tracked)",
+      "src/managent/*.zig",
+      "src/claimlint.zig",
+      "src/absorb.zig"
+    ],
+    "scope_out_of_bounds": [
+      "engine-side Go tooling (weizigo-arena/oracle/gtp/engine-vs-engine/reachcensus/chainability)",
+      "the ~100 research/experiment src/*.zig files outside src/managent and the checkers",
+      "file writes read back as data (findings JSON, store-census.json, run records) — named as the one class this rule cannot see"
+    ],
+    "counts_at_HEAD_21c7689_dirty": {
+      "scope_files_total": 154,
+      "scope_files_skipped_unrecognized_language": 24,
+      "files_with_at_least_one_emission_point": 125,
+      "stdout_emissions": 5580,
+      "exit_emissions": 424,
+      "count_total_everything_in_scope": 6004,
+      "diagnostics_excluded_by_rule": 764,
+      "regression_sh_files": 90,
+      "regression_sh_emissions_test_narration": 4527,
+      "product_surface_files": 35,
+      "product_surface_emissions": 1477
+    },
+    "self_test": {
+      "null_control": "PASS — 0 emission points on a call-free synthetic scratch tree",
+      "seeded_defect_control": "PASS — 6 planted stdout + 3 planted exit found exactly; 4 planted diagnostics correctly excluded",
+      "unplanned_corroboration_on_real_code": [
+        "tools/model_tags.py scores 0 emission points, matching whatis.md R6's own citation that it raises rather than prints",
+        "tools/regression-runner-host-guard.sh and tools/regression-subagent-resident-gate.sh (whatis.md C5/C6) score 0 because T872 (commit 12e7055) deleted both the same evening — confirmed via git log --diff-filter=D, not a script defect"
+      ]
+    },
+    "many_ways_ranked_by_drift": [
+      {
+        "rank": 1,
+        "job": "model-label canonicalization (whatis.md J1)",
+        "copies": ["src/managent/main.zig canonical_models[]/serving_tag_map :249",
+                    "bin/dispatch MODELS/canonicalize_model :120-155",
+                    "bin/subagent PI_TAG_TO_CANONICAL/CANONICAL_TO_OLLAMA_TAG/CANONICAL_TO_PI_TAG :190-219",
+                    "tools/model_tags.py (strict)",
+                    "tools/attribution-backfill.py (lenient + stale fallback) :77-118"],
+        "drift": "five independent copies; the fix (T890) is a regression guard (tools/regression-serving-tag-single-path.sh) asserting agreement, not a unification"
+      },
+      {
+        "rank": 2,
+        "job": "the stdout/stderr split itself (new — not in whatis.md's 14)",
+        "copies": ["src/util.zig out()/note()/warn() :37-51, used by claimlint.zig/absorb.zig/~20 other src/*.zig files",
+                    "src/managent/main.zig Writers.data()/Writers.diag() :35-54, built independently for one file"],
+        "drift": "the architecture is duplicated at the design level — two structurally near-identical doc comments, never unified into one shared module"
+      },
+      {
+        "rank": 3,
+        "job": "per-provider argv construction (part of whatis.md J5)",
+        "copies": ["bin/subagent deepseek branch :833-849", "claude branch :850-867",
+                    "pi branch :868-878", "ollama branch :879-889"],
+        "drift": "four dissimilar cmd shapes for one job; each provider-specific fix (T732, T890) touched one branch, not the shared shape"
+      }
+    ],
+    "coverage_fraction": {
+      "arithmetic": "20 files the three arms' 48 union sites actually cite (of 23 in-scope citations; 2 no longer exist post-T872-delete-wave, 1 legitimately emits nothing) / denominator",
+      "against_full_in_scope_population": "20 / 125 = 16.0%",
+      "against_product_surface_population": "20 / 35 = 57.1%",
+      "note": "line-level coverage is not meaningful — union citations point at the causing mechanism (a catch/default/table), not at the downstream print/exit call this census counts; see census-method.md §6"
+    },
+    "fourth_pass_verdict": "NOT warranted as another blind arm. 57.1% file-level gap on the arms' own sampling population plus 1,477 unclassified product emission points means the priority is classifying what is already enumerated, not drawing a fourth disjoint sample. The one defensible future pass is a rule extension (file-write facts read back as data), not a repeat of the entrypoint/anti-pattern method."
+  },
+  "notes": "T898: produces a method + denominator only, per the brief's constraint; no claims or new register rows proposed. whatis.md is not edited (single-owner, revision 2). Inbox checked, empty."
+}
