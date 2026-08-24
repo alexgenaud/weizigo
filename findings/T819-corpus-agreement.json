@@ -1,0 +1,413 @@
+{
+  "task_id": "T819",
+  "date": "2026-08-24",
+  "model": "kimi-k2.7",
+  "identifier": "kimi-k2.7/T819",
+  "claims": [],
+  "new_rows": [],
+  "result": {
+    "corpus_tasks": 578,
+    "T817_calibration": {
+      "ground_truth_n": 27,
+      "legacy": {
+        "right": 19,
+        "wrong": 8,
+        "accuracy": 0.7037,
+        "misses": [
+          [
+            "T443",
+            "spec",
+            "research"
+          ],
+          [
+            "T776",
+            "spec",
+            "audit"
+          ],
+          [
+            "T785",
+            "spec",
+            "audit"
+          ],
+          [
+            "T803",
+            "spec",
+            "audit"
+          ],
+          [
+            "T471",
+            "research",
+            "audit"
+          ],
+          [
+            "T408",
+            "infra",
+            "implement"
+          ],
+          [
+            "T270",
+            "battery",
+            "infra"
+          ],
+          [
+            "T626",
+            "audit",
+            "infra"
+          ]
+        ]
+      },
+      "brief": {
+        "right": 27,
+        "wrong": 0,
+        "accuracy": 1.0,
+        "misses": []
+      }
+    },
+    "T818_vs_T820": {
+      "type_exact_agree": 206,
+      "type_total": 578,
+      "type_agreement_rate": 0.3564,
+      "type_confusion": {
+        "infra->infra": 41,
+        "audit->audit": 39,
+        "battery->audit": 5,
+        "orchestration->orchestration": 15,
+        "UNKNOWN->integration": 1,
+        "battery->infra": 19,
+        "audit->integration": 3,
+        "research->spec": 1,
+        "implement->implement": 25,
+        "UNKNOWN->battery": 38,
+        "UNKNOWN->UNKNOWN": 12,
+        "battery->implement": 25,
+        "audit->spec": 22,
+        "implement->research": 2,
+        "battery->research": 17,
+        "integration->implement": 17,
+        "integration->research": 3,
+        "audit->research": 7,
+        "audit->implement": 20,
+        "audit->infra": 24,
+        "audit->orchestration": 4,
+        "implement->infra": 14,
+        "battery->integration": 5,
+        "integration->integration": 5,
+        "integration->infra": 20,
+        "orchestration->implement": 14,
+        "implement->spec": 2,
+        "research->orchestration": 2,
+        "research->infra": 9,
+        "UNKNOWN->spec": 2,
+        "battery->spec": 3,
+        "UNKNOWN->orchestration": 3,
+        "spec->implement": 1,
+        "integration->orchestration": 3,
+        "UNKNOWN->research": 4,
+        "integration->spec": 3,
+        "battery->battery": 55,
+        "audit->battery": 15,
+        "infra->battery": 3,
+        "research->implement": 7,
+        "spec->spec": 13,
+        "UNKNOWN->implement": 2,
+        "orchestration->audit": 1,
+        "research->audit": 2,
+        "UNKNOWN->infra": 7,
+        "battery->orchestration": 6,
+        "orchestration->infra": 9,
+        "integration->audit": 3,
+        "infra->orchestration": 1,
+        "orchestration->spec": 4,
+        "research->battery": 2,
+        "research->research": 1,
+        "implement->audit": 1,
+        "implement->battery": 2,
+        "implement->orchestration": 1,
+        "infra->audit": 2,
+        "spec->battery": 5,
+        "orchestration->research": 1,
+        "UNKNOWN->audit": 4,
+        "integration->battery": 1
+      }
+    },
+    "adjudication": {
+      "T818": {
+        "match": 176,
+        "total": 578,
+        "accuracy": 0.3045,
+        "confusion": {
+          "infra->implement": 9,
+          "audit->audit": 74,
+          "battery->audit": 67,
+          "orchestration->orchestration": 21,
+          "UNKNOWN->integration": 2,
+          "battery->UNKNOWN": 2,
+          "audit->infra": 17,
+          "research->spec": 1,
+          "implement->audit": 10,
+          "UNKNOWN->infra": 17,
+          "UNKNOWN->implement": 10,
+          "implement->infra": 21,
+          "battery->infra": 20,
+          "implement->UNKNOWN": 3,
+          "battery->battery": 19,
+          "battery->orchestration": 10,
+          "integration->implement": 10,
+          "integration->UNKNOWN": 1,
+          "audit->battery": 10,
+          "audit->UNKNOWN": 5,
+          "audit->research": 6,
+          "audit->orchestration": 11,
+          "implement->implement": 5,
+          "audit->integration": 2,
+          "infra->infra": 24,
+          "battery->research": 9,
+          "integration->infra": 15,
+          "integration->integration": 13,
+          "audit->implement": 6,
+          "battery->implement": 6,
+          "orchestration->infra": 12,
+          "implement->orchestration": 2,
+          "orchestration->research": 1,
+          "research->audit": 8,
+          "integration->orchestration": 4,
+          "audit->spec": 3,
+          "integration->audit": 6,
+          "battery->spec": 1,
+          "spec->infra": 1,
+          "integration->spec": 2,
+          "UNKNOWN->audit": 27,
+          "integration->battery": 4,
+          "research->infra": 5,
+          "infra->battery": 3,
+          "UNKNOWN->research": 2,
+          "spec->battery": 1,
+          "research->implement": 7,
+          "implement->research": 3,
+          "UNKNOWN->battery": 4,
+          "orchestration->audit": 3,
+          "spec->spec": 10,
+          "infra->orchestration": 3,
+          "UNKNOWN->spec": 1,
+          "research->orchestration": 2,
+          "orchestration->implement": 2,
+          "implement->battery": 3,
+          "UNKNOWN->orchestration": 1,
+          "battery->integration": 1,
+          "infra->audit": 7,
+          "orchestration->spec": 5,
+          "UNKNOWN->UNKNOWN": 9,
+          "spec->UNKNOWN": 1,
+          "infra->research": 1,
+          "spec->audit": 5,
+          "spec->orchestration": 1,
+          "research->research": 1
+        }
+      },
+      "T820": {
+        "match": 210,
+        "total": 578,
+        "accuracy": 0.3633,
+        "confusion": {
+          "infra->implement": 17,
+          "audit->audit": 47,
+          "orchestration->orchestration": 23,
+          "integration->integration": 8,
+          "infra->UNKNOWN": 2,
+          "integration->infra": 3,
+          "spec->spec": 19,
+          "implement->audit": 15,
+          "battery->infra": 16,
+          "UNKNOWN->implement": 9,
+          "implement->infra": 32,
+          "spec->audit": 14,
+          "research->UNKNOWN": 4,
+          "audit->battery": 4,
+          "research->orchestration": 3,
+          "implement->implement": 24,
+          "research->battery": 7,
+          "implement->UNKNOWN": 4,
+          "infra->infra": 76,
+          "spec->research": 2,
+          "audit->orchestration": 3,
+          "orchestration->infra": 3,
+          "implement->battery": 18,
+          "integration->research": 2,
+          "integration->orchestration": 1,
+          "spec->battery": 5,
+          "implement->orchestration": 10,
+          "audit->implement": 1,
+          "infra->research": 6,
+          "implement->integration": 3,
+          "research->audit": 9,
+          "infra->audit": 24,
+          "research->implement": 2,
+          "spec->orchestration": 5,
+          "implement->research": 4,
+          "orchestration->audit": 3,
+          "infra->orchestration": 10,
+          "spec->integration": 3,
+          "implement->spec": 1,
+          "infra->battery": 6,
+          "orchestration->implement": 1,
+          "orchestration->spec": 2,
+          "research->research": 8,
+          "battery->audit": 95,
+          "research->infra": 2,
+          "battery->battery": 3,
+          "orchestration->integration": 2,
+          "infra->integration": 2,
+          "audit->spec": 1,
+          "audit->research": 1,
+          "battery->implement": 1,
+          "spec->UNKNOWN": 2,
+          "UNKNOWN->battery": 1,
+          "UNKNOWN->UNKNOWN": 2,
+          "orchestration->UNKNOWN": 1,
+          "battery->UNKNOWN": 6
+        }
+      }
+    },
+    "scope": {
+      "raw_class_agree": 0,
+      "raw_class_total": 578,
+      "brief_bytes_match": 564,
+      "unique_paths_match": 283,
+      "T818_to_S07": {
+        "micro->S-unknown": 25,
+        "single-doc->S-unknown": 30,
+        "single-doc->S4": 205,
+        "multi-artifact->S2": 28,
+        "code-touch->S2": 80,
+        "micro->S1": 5,
+        "single-doc->S1": 8,
+        "multi-artifact->S1": 1,
+        "single-doc->S5": 26,
+        "single-doc->S2": 5,
+        "single-doc->S3": 3,
+        "code-touch->S3": 10,
+        "multi-artifact->S3": 10,
+        "code-touch->S4": 18,
+        "micro->S4": 49,
+        "heavy-compute->S2": 24,
+        "code-touch->S5": 7,
+        "heavy-compute->S3": 4,
+        "multi-artifact->S5": 3,
+        "multi-artifact->S4": 7,
+        "heavy-compute->S4": 23,
+        "heavy-compute->S5": 2,
+        "micro->S5": 3,
+        "micro->S2": 1,
+        "code-touch->S-unknown": 1
+      },
+      "T820_to_S07": {
+        "XS->S-unknown": 26,
+        "M->S-unknown": 1,
+        "S->S-unknown": 5,
+        "XL->S4": 19,
+        "S->S2": 23,
+        "UNKNOWN->S-unknown": 24,
+        "XS->S2": 23,
+        "L->S2": 37,
+        "XS->S1": 5,
+        "S->S1": 4,
+        "S->S5": 13,
+        "M->S1": 4,
+        "M->S4": 95,
+        "M->S2": 49,
+        "S->S4": 80,
+        "XL->S1": 1,
+        "L->S5": 10,
+        "L->S4": 49,
+        "M->S3": 8,
+        "L->S3": 5,
+        "XL->S3": 4,
+        "XL->S5": 6,
+        "XS->S4": 59,
+        "S->S3": 9,
+        "XL->S2": 6,
+        "XS->S3": 1,
+        "M->S5": 8,
+        "XS->S5": 4
+      }
+    },
+    "confidence_calibration": {
+      "high,high": {
+        "n": 122,
+        "agree": 103
+      },
+      "high,medium": {
+        "n": 60,
+        "agree": 35
+      },
+      "high,low": {
+        "n": 27,
+        "agree": 14
+      },
+      "medium,high": {
+        "n": 83,
+        "agree": 6
+      },
+      "medium,medium": {
+        "n": 107,
+        "agree": 8
+      },
+      "medium,low": {
+        "n": 80,
+        "agree": 20
+      },
+      "low,high": {
+        "n": 7,
+        "agree": 1
+      },
+      "low,medium": {
+        "n": 49,
+        "agree": 1
+      },
+      "low,low": {
+        "n": 43,
+        "agree": 18
+      }
+    },
+    "merged_corpus_counts": {
+      "task_type": {
+        "agree_2_2": 206,
+        "adjudicated": 372,
+        "undecidable": 0
+      },
+      "scope_class": {
+        "agree_2_2": 0,
+        "adjudicated": 578,
+        "undecidable": 0
+      },
+      "brief_bytes": {
+        "agree_2_2": 564,
+        "adjudicated": 14,
+        "undecidable": 0
+      },
+      "unique_paths": {
+        "agree_2_2": 283,
+        "adjudicated": 295,
+        "undecidable": 0
+      },
+      "capabilities": {
+        "agree_2_2": 0,
+        "adjudicated": 0,
+        "undecidable": 578
+      }
+    },
+    "evidence_paths": [
+      "docs/infra/task-corpus.jsonl",
+      "docs/infra/task-corpus.md",
+      "docs/infra/task-corpus-b/notes.md",
+      "docs/infra/task-corpus-c/notes.md",
+      "docs/infra/task-corpus-agreement.md"
+    ],
+    "proposed_model_task_metrics_rows": [
+      {"task_type":"audit","model":"deepseek-v4-flash","serving_tag":"deepseek-v4-flash","epoch":"post-2026-08-18","run_id":"T817","task_id":"T817","n":1,"correctness":27,"rubric_max":27,"qualified":true,"actionable":true,"cost":null,"cost_grade":"unmeasured","wall_s":null,"cpu_s":null,"rss_mb":null,"grader":"kimi-k2.7/T819","blind":false,"blind_note":"derivation was blind to other miners; adjudicator reused its own published classifier","verdict":"pass-with-findings","evidence":"docs/infra/task-corpus-agreement.md","as_of":"2026-08-24","notes":"T817 seeded-classifier lane. brief-aware classifier 27/27 on self-declared+race-organizer holdout (reproduced on live data). Legacy classifier 19/27 on live data = 70.4%, not the reported 78% (store drift). Scope/capabilities not independently scored."},
+      {"task_type":"audit","model":"ox-alpha","serving_tag":"stealth/ox-alpha","epoch":"all","run_id":"T818","task_id":"T818","n":1,"correctness":176,"rubric_max":578,"qualified":false,"actionable":true,"cost":null,"cost_grade":"unmeasured","wall_s":null,"cpu_s":null,"rss_mb":null,"grader":"kimi-k2.7/T819","blind":true,"blind_note":"self-declared blind to T817/T820; source code contains no read of their outputs","verdict":"pass-with-findings","evidence":"docs/infra/task-corpus-agreement.md","as_of":"2026-08-24","notes":"T818 clean two-model lane. task_type matches T819 ruling 176/578 (30.4%). Scope parse bug in deliverables regex truncates hyphenated paths, causing 295/578 unique_paths mismatches. Confidence poorly calibrated except joint-high."},
+      {"task_type":"audit","model":"deepseek-v4-pro","serving_tag":"deepseek-v4-pro","epoch":"post-2026-08-18","run_id":"T820","task_id":"T820","n":1,"correctness":210,"rubric_max":578,"qualified":false,"actionable":true,"cost":null,"cost_grade":"unmeasured","wall_s":null,"cpu_s":null,"rss_mb":null,"grader":"kimi-k2.7/T819","blind":true,"blind_note":"self-declared blind to T817/T818; source code contains no read of their outputs","verdict":"pass-with-findings","evidence":"docs/infra/task-corpus-agreement.md","as_of":"2026-08-24","notes":"T820 clean two-model lane. task_type matches T819 ruling 210/578 (36.3%). Better on infra/spec/orchestration; overcalls battery and infra. Uses kanban bundle field, so avoids T818's multi-brief disambiguation bug."}
+    ]
+  },
+  "notes": "T819 corpus agreement audit. Two experiments reported separately per the 2026-08-24 amendment. T817 100% brief-aware claim reproduces; legacy 78% does not reproduce on live data. T818 vs T820 task_type agreement 35.6%; scope taxonomies incompatible; capabilities vocabularies model-specific."
+}

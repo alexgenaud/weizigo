@@ -1,0 +1,5792 @@
+{
+  "task_id": "T819",
+  "date": "2026-08-24",
+  "model": "kimi-k2.7",
+  "identifier": "kimi-k2.7/T819",
+  "claims": [],
+  "new_rows": [],
+  "adjudicator": "T817 brief-aware classifier applied to live briefs + S07 scope rules",
+  "rulings": [
+    {
+      "id": "DARGUS",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "DCLAIM",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "DRPLAY",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "battery",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "ORCHA-FLASH",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S-unknown",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "STANDING-ABSORB",
+      "ruling_type": "integration",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "STANDING-CLEANUP",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T203",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "audit",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T226",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T227",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T228",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T229",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T230",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T231",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T232",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T233",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T234",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T235",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T236",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T237",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T238",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T239",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T240",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T241",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T242",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T243",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T244",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T245",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T246",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T247",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T248",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T249",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T250",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T251",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T252",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T253",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T254",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T255",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T256",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T257",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "research",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T258",
+      "ruling_type": "battery",
+      "ruling_scope": "S1",
+      "T818_type": "battery",
+      "T820_type": "audit",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T259",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T260",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T261",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T262",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T263",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T264",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T265",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S1",
+      "T818_type": "integration",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T266",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T267",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T268",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T269",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T270",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T271",
+      "ruling_type": "research",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T272",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T273",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T274",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T275",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T276",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T277",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T278",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T279",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T280",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T281",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T282",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T283",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T284",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T285",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T286",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T287",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T288",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T289",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T290",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T291",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T292",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T293",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T294",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T295",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T296",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T304",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T305",
+      "ruling_type": "research",
+      "ruling_scope": "S3",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T306",
+      "ruling_type": "integration",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T307",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T308",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T309",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T310",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T311",
+      "ruling_type": "audit",
+      "ruling_scope": "S3",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T312",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T313",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T314",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T315",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T316",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T317",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T318",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T319",
+      "ruling_type": "research",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T320",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "orchestration",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T321",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T322",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T323",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T324",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T325",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T326",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T327",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T328",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T329",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T330",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T331",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T332",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T333",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T334",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T335",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T336",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T337",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T338",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T339",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T340",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T341",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T342",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T343",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T344",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T345",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T346",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T347",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T348",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T349",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "orchestration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T350",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T351",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T352",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T353",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "spec",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T354",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T355",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T356",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T357",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T358",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T359",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T360",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T361",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T362",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T363",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T364",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T365",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T366",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T367",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T368",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T369",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T370",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T371",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T372",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T373",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T374",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T375",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T376",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "battery",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T377",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T378",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T379",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T380",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T381",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T382",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T383",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T384",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T385",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T386",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T387",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T388",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T389",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T390",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T391",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T392",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T393",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T394",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T395",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T396",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T397",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T398",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T399",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T400",
+      "ruling_type": "research",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T401",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T402",
+      "ruling_type": "battery",
+      "ruling_scope": "S3",
+      "T818_type": "UNKNOWN",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T403",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T404",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T405",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T406",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T407",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T408",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T409",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T410",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T411",
+      "ruling_type": "audit",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T412",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T413",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T414",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T415",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T416",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T417",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T418",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T419",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T420",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T421",
+      "ruling_type": "audit",
+      "ruling_scope": "S3",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T422",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T423",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T424",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T425",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T426",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T427",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T428",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T429",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T430",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T431",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T432",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T433",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T434",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T435",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T436",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T437",
+      "ruling_type": "integration",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T438",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T439",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T440",
+      "ruling_type": "integration",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T441",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T441-AUDIT",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T442",
+      "ruling_type": "integration",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T443",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T444",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "research",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T445",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T446",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T447",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T448",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T449",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T450",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T451",
+      "ruling_type": "research",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T452",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T453",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T454",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T455",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T456",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T457",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T458",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "integration",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T459",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T460",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T461",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T462",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "research",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T463",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T464",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T465",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T466",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T467",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T468",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "UNKNOWN",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T469",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T470",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T471",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T472",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T473",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T474",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T475",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T476",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "infra",
+      "T820_type": "orchestration",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T477",
+      "ruling_type": "audit",
+      "ruling_scope": "S3",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T478",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T479",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T480",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "integration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T481",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T482",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T483",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T484",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T485",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T486",
+      "ruling_type": "implement",
+      "ruling_scope": "S3",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T487",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T488",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T489",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T490",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T491",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T492",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T493",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T494",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T495",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T496",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T497",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T498",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T499",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T500",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T501",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T502",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T503",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T504",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T505",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T506",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T507",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T508",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T509",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "research",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T510",
+      "ruling_type": "integration",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "spec",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T511",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T512",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T513",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T514",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T515",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T516",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T517",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T518",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T519",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "integration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T520",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T521",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T522",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T523",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T524",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T525",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T526",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T527",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T528",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T529",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T530",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T531",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T532",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "orchestration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T533",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T534",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T535",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T536",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T537",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T538",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T539",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T540",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T541",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T542",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T543",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T544",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T545",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T546",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T547",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T548",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T549",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T550",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T551",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T552",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T553",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T554",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T555",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T556",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T557",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "audit",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T558",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T559",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T561",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T562",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T563",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T564",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T565",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "integration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T566",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T567",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T568",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T569",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T570",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T571",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T572",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T573",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T574",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T575",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T576",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T577",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T578",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T579",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T580",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T581",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T582",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T583",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T584",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T585",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T586",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T587",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T588",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T589",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T590",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T591",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T592",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T593",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T594",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T595",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T596",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T597",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T598",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T599",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T600",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T601",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T602",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T603",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T604",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T605",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T606",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T607",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T608",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T609",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T610",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T611",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T612",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T613",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T614",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T615",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T616",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T617",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T618",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T619",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T620",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T621",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T622",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T623",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T624",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T625",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T626",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T627",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T628",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T629",
+      "ruling_type": "research",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T630",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T631",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T632",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T634",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T635",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T636",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T637",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T638",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T639",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T640",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T641",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T642",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T643",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T644",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T645",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T646",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T647",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T648",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T649",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T650",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T651",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T652",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T653",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T654",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T655",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T656",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T657",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T658",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T659",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T660",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T661",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T662",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T674",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "audit",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T677",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "research",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T679",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T682",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T683",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T685",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T687",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T690",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T691",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T692",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T693",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T696",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T697",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T698",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T699",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T700",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T701",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T702",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T703",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T704",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T705",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T706",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T707",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T708",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T709",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "infra",
+      "T820_type": "audit",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T710",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T711",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T712",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T713",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T714",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T715",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T716",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T717",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T718",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T719",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T720",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T721",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T722",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T723",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "orchestration",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T724",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T725",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T726",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T727",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T728",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T729",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T730",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T731",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T732",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "integration",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T733",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T734",
+      "ruling_type": "audit",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T735",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T736",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T737",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T738",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T739",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T740",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T741",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T742",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T743",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T744",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T745",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T746",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "research",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T747",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T748",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T749",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T750",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T751",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T752",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T753",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T754",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T755",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T756",
+      "ruling_type": "audit",
+      "ruling_scope": "S1",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": true
+    },
+    {
+      "id": "T757",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T758",
+      "ruling_type": "implement",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T759",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T760",
+      "ruling_type": "research",
+      "ruling_scope": "S4",
+      "T818_type": "research",
+      "T820_type": "implement",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T761",
+      "ruling_type": "battery",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T762",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T763",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "UNKNOWN",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": true
+    },
+    {
+      "id": "T764",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T765",
+      "ruling_type": "infra",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "UNKNOWN",
+      "agree_type": false
+    },
+    {
+      "id": "T766",
+      "ruling_type": "battery",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T767",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T768",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T769",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T770",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T771",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T772",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T773",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T774",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T775",
+      "ruling_type": "infra",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T776",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T777",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T778",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T779",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T780",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T781",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T782",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T783",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "audit",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "T784",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T785",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T786",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T787",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T788",
+      "ruling_type": "battery",
+      "ruling_scope": "S4",
+      "T818_type": "implement",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T789",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T790",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T791",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T792",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "battery",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T793",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "audit",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T794",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "battery",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T795",
+      "ruling_type": "implement",
+      "ruling_scope": "S-unknown",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T796",
+      "ruling_type": "implement",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "S",
+      "agree_type": true
+    },
+    {
+      "id": "T797",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "integration",
+      "T820_type": "battery",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T798",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T799",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T800",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "UNKNOWN",
+      "T820_type": "infra",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "S",
+      "agree_type": false
+    },
+    {
+      "id": "T801",
+      "ruling_type": "infra",
+      "ruling_scope": "S3",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T802",
+      "ruling_type": "orchestration",
+      "ruling_scope": "S5",
+      "T818_type": "orchestration",
+      "T820_type": "orchestration",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T803",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T804",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "infra",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T805",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T806",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "orchestration",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T807",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T808",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "heavy-compute",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T809",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T810",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T811",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T812",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "battery",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T813",
+      "ruling_type": "spec",
+      "ruling_scope": "S4",
+      "T818_type": "spec",
+      "T820_type": "spec",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "XL",
+      "agree_type": true
+    },
+    {
+      "id": "T814",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "research",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T815",
+      "ruling_type": "audit",
+      "ruling_scope": "S2",
+      "T818_type": "audit",
+      "T820_type": "implement",
+      "T818_scope_class": "code-touch",
+      "T820_scope_class": "M",
+      "agree_type": false
+    },
+    {
+      "id": "T816",
+      "ruling_type": "infra",
+      "ruling_scope": "S2",
+      "T818_type": "orchestration",
+      "T820_type": "implement",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "L",
+      "agree_type": false
+    },
+    {
+      "id": "T817",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "battery",
+      "T820_type": "infra",
+      "T818_scope_class": "multi-artifact",
+      "T820_scope_class": "XL",
+      "agree_type": false
+    },
+    {
+      "id": "T818",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "T819",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "M",
+      "agree_type": true
+    },
+    {
+      "id": "T820",
+      "ruling_type": "audit",
+      "ruling_scope": "S4",
+      "T818_type": "audit",
+      "T820_type": "audit",
+      "T818_scope_class": "single-doc",
+      "T820_scope_class": "L",
+      "agree_type": true
+    },
+    {
+      "id": "TL1A",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "TL1B",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "TL1C",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "TL1D",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "TL1E",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    },
+    {
+      "id": "TL1F",
+      "ruling_type": "UNKNOWN",
+      "ruling_scope": "S-unknown",
+      "T818_type": "UNKNOWN",
+      "T820_type": "battery",
+      "T818_scope_class": "micro",
+      "T820_scope_class": "XS",
+      "agree_type": false
+    }
+  ],
+  "notes": "Per-task rulings for the 578 tasks in the T818/T820 shared universe. Ruling formed before any score was tallied."
+}
