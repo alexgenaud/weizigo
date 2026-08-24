@@ -8,7 +8,7 @@
 
 | item | owner | model | state |
 |---|---|---|---|
-| arm A (untracked) | T857 | ox-alpha | RUN |
+| arm A (untracked) | T857 | ox-alpha | **ARMS** — landed, blindness verified |
 | arm B (untracked) | T859 | deepseek-v4-pro | RUN |
 | grade (untracked) | — | — | — |
 | **`stream1-design/design.md`** | — | — | **—** |
@@ -17,7 +17,7 @@
 
 | item | owner | model | state |
 |---|---|---|---|
-| arm A (untracked) | T858 | deepseek-v4-pro | RUN |
+| arm A (untracked) | T858 | deepseek-v4-pro | **ARMS** — landed, all citations resolve |
 | arm B (untracked) | T860 | ox-alpha | RUN |
 | grade (untracked) | — | — | — |
 | **`stream2-whatis/whatis.md`** | — | — | **—** |
@@ -54,7 +54,30 @@ than left blank forever.
 - **A phase whose final document exists but is ungraded is not progress** — it is a draft in the
   wrong directory.
 
-## Baseline this sprint must move
+## Baseline — first measurement, from stream2 arm A (T858, deepseek-v4-pro)
+
+Every figure carries a `file:line` citation in the arm, and the author verified each resolves.
+**Provisional until arm B corroborates it.**
+
+| # | count | value |
+|---|---|---|
+| 1 | reporting surfaces inventoried | **30** |
+| 2 | surfaces emitting a value where the honest answer is "cannot determine" | **6** |
+| 3 | checks that cannot fail under any input | **4** |
+| 4 | places that reinterpret unrecognised input as valid | **3** |
+| 5 | jobs with more than one implementation | **7** |
+| 6 | stated blind spots in the method | **6** |
+
+Two entries stand out and are recorded here so they are not lost in a long document:
+
+- **A standing trigger that can never fire.** Its condition needs a prior value greater than zero, but
+  the state parser drops the key that would hold it, so the prior always reads zero after any other
+  store write. It is **self-documented in the source** as unable to fire.
+- **`managent done --verdict` silently defaults to `pass`.** An unrecognised flag is dropped, so a close
+  that meant to record a qualified verdict records an unqualified one. This is the defect the outgoing
+  seat hit on its own close, now located at a line.
+
+## Superseded baseline note
 
 Measured 2026-08-24 by a full sweep of every regression script: **23 of 86 fail**. Three carry the
 store-census fixture signature; two prior enumerations of that class were both incomplete. Stream2's
