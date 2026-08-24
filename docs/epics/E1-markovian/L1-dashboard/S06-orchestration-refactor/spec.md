@@ -1,14 +1,17 @@
 # S06 — spec: orchestration refactor (one policy file, one dashboard, one arbiter)
 
 **Artifact type: SPEC** (`docs/infra/sprint.md` — a spec says what we want, testably, for one
-pass). **Owner:** deepseek-v4-pro/T748 · **Date:** 2026-08-23 · **Status:** **rev 3 — AMENDED
-(T813: appetite dial + class, cooldown reasons), awaiting operator ratification.** Rev 1
+pass). **Owner:** deepseek-v4-pro/T748 · **Date:** 2026-08-23 · **Status:** **rev 4 — AMENDED (T822: arm-or-delete — armed count == id count,
+32 of 32; five ids deleted: the four ORC-GOAL-* and ORC-GATE-2), awaiting operator ratification.** Rev 1
 (PROPOSED) was audited by `claude-sonnet-5`/T778 (verdict RATIFIABLE-WITH-AMENDMENTS, 4 major /
 2 medium / 2 minor); T802 discharged all eight and added four of its own, found while writing
-the arms. **See §14 (amendment log) for rev 1→2's twelve, each with its arm, and rev 3's five.** Rev 3 (T813) amends
+the arms. **See §14 (amendment log) for rev 1→2's twelve, each with its arm, rev 3's five, and
+rev 3→4's arm-or-delete (T822).** Rev 3 (T813) amends
 the policy section only: the operator's 2026-08-23 ruling makes the 0–9 dial and the appetite
 class two first-class, co-consulted configurations, retires the `conserve` level, and gives
-every cooldown a reason, an end-condition and a scope. Not a worker brief, not a plan, no code.
+every cooldown a reason, an end-condition and a scope. Rev 4 (T822) is not an amendment to the
+requirements: it closes the gap RACE-X measured (12 of 37 honestly armed at rev 3) by arming
+every remaining id and deleting the five ids that are not requirements. Not a worker brief, not a plan, no code.
 
 **Sits on:** the ratified seed (`docs/status/orchestration-refactor-seed-2026-08-23.md` — its
 eight rulings are DECIDED, this spec does not reopen them), the existing tools it migrates
@@ -60,25 +63,33 @@ Where a ruling underdetermines a design choice, this spec states the **options**
 listed options* without re-ratification; choosing anything else is a plan amendment. Decided
 rulings are never reopened here.
 
-The migration surface (§8) is **counted, not asserted**: 5 named tools + **75** `tools/
-regression-*.sh` scripts at `HEAD`. (The brief names "74"; the delta is
-`regression-window-resilience.sh`, added by T736 at `11b69b8`. The count below sums to 75 — a
-script left uncounted is a silent truncation and a spec defect.)
+The migration surface (§8) is **counted, not asserted**: six named tools (§1's scope table —
+rev 1 said "5" and undercounted its own document by one, T811 R9) + **82** `tools/
+regression-*.sh` scripts live (rev 1 said "75 at HEAD", which was correct at its own pin — the
+live count is the ORC-PLAN-4 mechanism's number, and `TestDispositionCount` fails the moment the
+declared count and the live count diverge; prose is not a remedy for a mechanism failure). A
+script left off ORC-PLAN-4's disposition table is a spec defect, not a reader's problem.
 
 ---
 
 ## 1. Goal and scope
 
-**ORC-GOAL-1 (the goal).** The fleet's orchestration state lives in **one policy file** (ruling
-1), its human surface is **one dashboard** in `bin/managent` (ruling 3), its pressure response is
-**one arbiter** (ruling 4), its rows register through **one file-first contract** (ruling 5), its
-pauses **expire loudly** (ruling 2), its gates are **data, not prose** (ruling 6), its startup
-prose is **`orient` only** (ruling 7), and its models are **registry entries** (ruling 8).
-End state: the operator sees one pane, dispatches one command, and onboards a model by editing
-one file.
+**The goal (unnumbered — a goal is the §10 acceptance bars, not an id; §0's rule: a
+requirement with no control is a wish, and a goal with no mechanism is the same. Rev 1–3
+carried this as ORC-GOAL-1; T822 deleted the goal ids because each was a summary of the ids
+below and §11 still maps every ruling to its ids).** The fleet's orchestration state lives in
+**one policy file** (ruling 1 → ORC-POL-1/2/5/7), its human surface is **one dashboard** in
+`bin/managent` (ruling 3 → ORC-DASH-1–5), its pressure response is **one arbiter** (ruling 4 →
+ORC-ARB-1–4), its rows register through **one file-first contract** (ruling 5 → ORC-REG-1–4),
+its pauses **expire loudly** (ruling 2 → ORC-PAUSE-1–3), its gates are **data, not prose**
+(ruling 6 → ORC-GATE-1, ORC-POL-4), its startup prose is **`orient` only** (ruling 7 →
+ORC-ORIENT-1), and its models are **registry entries** (ruling 8 → ORC-PROV-1). End state: the
+operator sees one pane, dispatches one command, and onboards a model by editing one file — the
+three bars ORC-ACC-1 measures.
 
-**ORC-GOAL-2 (the scope number — what this sprint replaces).** The refactor collapses, at
-`HEAD`:
+**The scope number — what this sprint replaces (unnumbered context; the census content is
+carried by ORC-PLAN-4's disposition table and `TestAbsorptionTargetsAreLive`. Was
+ORC-GOAL-2; deleted by T822).** The refactor collapses, at `HEAD`:
 
 | today | lines @`a1415fe` | lines @`8c00704` | role | goes to |
 |---|---|---|---|---|
@@ -87,30 +98,34 @@ one file.
 | `tools/directive_policy.py` | 176 | 176 | directive staleness + discharge | policy file (expiring pauses) + `managent` |
 | `bin/dispatch` | 536 | **546** | dispatch gate + canonicalization | policy reader; gate logic moves to `managent` |
 | `bin/subagent` | 557 | **858** | launch chokepoint + provider selection | provider seam (registry entries) |
-| `untracked/watch-fleet.sh` | 304 | **311** | dashboard | thin refresh wrapper; rendering moves to `managent` |
+| `untracked/watch-fleet.sh` | 286 | **311** | dashboard | thin refresh wrapper; rendering moves to `managent` |
 
-Six files, **3479 lines** at the spec's own pin — **3608 at `8c00704`**, recomputed by T802
-(T778 finding 6). Both columns are kept because the *delta* is the load-bearing fact: T766
-removed 189 lines from `window_policy.py`, and the surface still grew by 129, because
-`bin/subagent` gained 301 (T713's resident gate, T773's liveness fuse). **The surface this sprint
-plans to shrink is growing faster than the sprint is shrinking it** — at +129 lines in the eight
-hours between the two pins. That is the argument for ORC-PLAN-3's one-door-per-pass order over
-any big-bang cut-over, and the reason the accept question ("did we actually shrink it") must be
-answered against a pin taken at accept, never against 3479.
+Six files, **3461 lines** at the spec's own pin — **3608 at `8c00704`**, recomputed by T802
+(T778 finding 6) and corrected by T811 (RACE-X: watch-fleet was **286** at `a1415fe`, not 304 —
+304 is the count at `402922f`, six minutes later). Both columns are kept because the *delta* is
+the load-bearing fact: T766 removed 189 lines from `window_policy.py`, and the surface still
+grew by 147, because `bin/subagent` gained 301 (T713's resident gate, T773's liveness fuse).
+**The surface this sprint plans to shrink is growing faster than the sprint is shrinking it** —
+at +147 lines in the eight hours between the two pins. That is the argument for ORC-PLAN-3's
+one-door-per-pass order over any big-bang cut-over, and the reason the accept question ("did we
+actually shrink it") must be answered against a pin taken at accept, never against 3461.
 
-**ORC-GOAL-3 (what is out, named — seed "Explicitly out of scope").** claimlint and the science
-suite (separate ledger tooling); the history squash (T535, its own spec-first console); race
+**What is out, named (unnumbered — a scope boundary is prose guidance for builders, not a
+testable requirement. Was ORC-GOAL-3; deleted by T822).** claimlint and the science suite
+(separate ledger tooling); the history squash (T535, its own spec-first console); race
 machinery beyond what the policy file touches. Also out: `tools/runner` itself is **not
 rewritten** — it survives as the launch/guard layer; its interaction with the arbiter changes
 (§8, REWIRE disposition), its internals do not.
 
-**ORC-GOAL-4 (the reconciler absorption — stated, with the one fold-point flagged).** The seed's
+**The reconciler absorption (unnumbered — the pre-pass statement is ORC-ARB-3's and the
+fold-point is §12 open question 1; the goal-level restatement was ORC-GOAL-4, deleted by
+T822).** The seed's
 feedstock list names T578 ("this sprint absorbs its reconciler scope, operator-ratified
-direction"). Consequence: the **arbiter is the deterministic pre-pass** that S04's
+direction"). Consequence: the **arbiter is the deterministic pre-pass** (ORC-ARB-3) that S04's
 `REC-LIFE-2` was going to build — it applies every (a)/(b) mechanism before any model token is
 spent, and a quiet store is a zero-token wake. What is **not** absorbed here is the model-spawn
 residue (S04 `REC-LIFE-1`, the verdict/triage reconciler that wakes on a non-empty residue).
-That boundary is `[design-open]` (§7 open question 1) because the seed's two statements — "one
+That boundary is `[design-open]` (§12 open question 1) because the seed's two statements — "one
 arbiter" (ruling 4) and "absorbs its reconciler scope" (feedstock) — do not by themselves say
 whether the model-spawn folds into this sprint's build or becomes a successor row. The spec
 **recommends**: ship the arbiter pre-pass first (its zero-token wake is the measurable win and
@@ -195,14 +210,19 @@ The dial is per **model** (the family numbers above are the family *default dial
 "bulk convenience"); the class is per **family**. A model with no dial row inherits its family's
 default (ORC-POL-10, materialized — never a hidden fallback).
 
-**ORC-POL-4 (the cooldown mechanisms merge — ruling 6).** heal (T504), dispatch (T536), window
+**ORC-POL-4 (the cooldown mechanisms merge — ruling 6; absorbs ORC-GATE-2, which T822
+deleted as a duplicate of this id — one machine, one T802 amendment, the same arms).**
+heal (T504), dispatch (T536), window
 (T628/T677) **and the global keeper flag** cooldowns become **one visible state machine** in the
-policy file, with one namespace and one dashboard row each. The merge is a *schema* fact, not a
-behaviour change: each cooldown's arithmetic survives as a named state of the machine. (§6
-specifies the states.)
+policy file, with one namespace, one dashboard row each, and one visible transition set. The
+merge is a *schema* fact, not a behaviour change: each cooldown's arithmetic survives as a
+named state of the machine — T504 heal, T536 dispatch, T628/T677 window, the flag file's
+boolean (rev 1's "(§6 specifies the states.)" cross-reference was wrong — §6 is the
+registration flow; §7's ORC-GATE-2 named the states, and its content folds here).
 
 **Amendment (T802) — the merge was three of four, and the omitted one is the one with the
-incident.** Rev 1 (and ORC-GATE-2) named three mechanisms. There is a fourth:
+incident.** Rev 1's two homes for the merge — this id and its §7 twin (then ORC-GATE-2, folded
+here by T822) — named three mechanisms. There is a fourth:
 `untracked/fleet-keeper.cooldown`, tested by `fleet-keeper.sh`'s `cooldown_set()` as
 `os.listdir(dir)` + basename membership. Because it is a *file's existence*, it carries **no
 owner, no reason and no expiry** — all three of which ORC-POL-2 requires of every policy entry.
@@ -473,26 +493,30 @@ Canonical labels live in stats and records, never on the human pane.
 and T739's fill-the-screen rule are normative: a section with zero rows prints nothing; recovered
 vertical space becomes visible rows, not blank lines.
 
-**ORC-DASH-4 (the one pane — worked example, real data).** The pane has exactly five sections —
-keeper liveness, pauses, window budget + appetite, benched models, and the queue head — all from
+**ORC-DASH-4 (the one pane — worked example, illustrative data).** The pane has exactly five sections —
+keeper liveness, pauses, appetite + cap, benched models, and the queue head — all from
 the store + policy file at read time. Rendered against the live store at `a1415fe` (live values
-marked ●; the single illustrative pause row is marked ◇ because `directives.jsonl` is empty at
-`HEAD`):
+marked ●; every row whose store state could not be verified at the pin is marked ◇ and is
+illustrative, never a claim — T810 R5 found the queue row of rev 3 was invented, listing rows
+that did not exist at the pin; the corrected store numbers below are T810's own census):
 
 ```
 ● keeper       alive · lease pid 29107 · last tick 2s ago (interval 10s)
-● pauses       ◇ dsflash: cooldown-test — "you've hit your session limit" · age 0h12 · expires in 0h48
-               (no live pauses — directives.jsonl empty)
+◇ pauses       dsflash: cooldown-test — "you've hit your session limit" · age 0h12 · expires in 0h48
+               (illustrative ◇ — directives.jsonl is append-only and non-empty; no live
+               enforcing pause at the pin, which is the point: the pause row renders)
 ● appetite
    family         appetite   cap
    claude         SPEND      3    (claude-fable RESERVED — runs alone)
    deepseek       SPEND      6
-   ollama-cloud   OFF        5    (deny: glm, minimax, kimi — quota)
+   ollama-cloud   OFF        5    (deny: glm, minimax, kimi — quota; see §14 rev 3→4 for the
+                                  operator's 2026-08-24 return-to-SPEND ruling)
    local          PROBE      1
    ox-alpha       SPEND      —    (free while the blind test runs, 2026-08-23)
 ● benched       (none benched at HEAD — deepseek-v4-flash last benched 2026-08-20, T544 failures=6, now clear)
-● queue         in_progress 3 (T724 T733 T739) · dispatchable 21 · blocked 0
-                claimlint C1a=0 C1b=0 C2=13 C6=0 · lanes: 41 unregistered finding(s)
+◇ queue         in_progress 3 (T527 T700 T723) · dispatchable 26 · blocked 1
+               (illustrative ◇ — real store census at the pin, per T810 R5; the rev-3
+               T724/T733/T739 numbers were invented: T733/T739 did not exist at `a1415fe`)
 ```
 
 The pane's contract is the five section names and their data sources (store + policy file); the
@@ -529,13 +553,27 @@ deleting a surface the operator uses daily is not a consolidation the census ask
 
 ## 5. One arbiter (ruling 4)
 
-**ORC-ARB-1 (one decision point).** Host-pressure and shed-load decisions move out of N runners
-into a single arbiter inside `managent`. Under real pressure it sheds in order: pause/queue new
-dispatches first, stop the newest or least-progressed lane next, target a specific consumer only
-when one is actually identified (T712). The arbiter **absorbs** T712 (one arbiter, no per-runner
-kills) and T713 (resident-tenant dispatch check — the dispatcher knows the reduced memory budget
-when the model server is resident; list-wait is acceptable, mid-run fratricide is not). T711's
-declared-tenant fix already landed and is a prerequisite, not a co-deliverable.
+**ORC-ARB-1 (one decision point — amended rev 4, T822: the shed order restates the ratified
+T821/ram-policy build, which landed ahead of this sprint's P4.2; the rev-1 phrase "inside
+`managent`" is amended because the decision is enforced where the lane is launched).**
+Host-pressure and shed-load decisions live in
+**one arbiter** — built by T821 in `tools/runner`, the launch chokepoint every lane passes
+through (`bin/subagent` is its only caller). Under real pressure it responds in the order
+`docs/infra/host/ram-policy.md` ratifies: **(1) refuse new admissions** — a lane whose declared
+need does not fit what is already admitted is refused before anything is spawned, the row stays
+dispatchable, zero tokens spent (rev 1's "pause/queue new dispatches first"); **(2) stop a lane
+only for its OWN overrun** — `--rss-cap-mb`, sized to the declaration, is the only remaining
+stop, always that lane's own (INV-1; rev 1's "stop the newest or least-progressed lane next"
+was superseded by ram-policy's futile-kill finding: 16 of 20 recorded kills were futile, 0 of
+20 necessary and effective); **(3) alarm, never kill, when a host-wide consumer is identified**
+— the L3 alarm names the real top consumer (T712's "target a specific consumer only when one
+is actually identified", minus the kill). The arbiter **absorbs** T712 (one arbiter, no
+per-runner kills) and T713 (resident-tenant dispatch check — the resident model declares its
+registry RAM figure at admission; list-wait is acceptable, mid-run fratricide is not). T711's
+declared-tenant fix already landed and is a prerequisite, not a co-deliverable. Its control
+battery is `tools/regression-arbiter.sh` (T821, SURVIVE — the P4.2 bar itself, not a thing
+under test); the REWIRE of the twelve still-live `regression-runner-*.sh` entries to the
+arbiter remains owed to the pass that formally closes P4.2 (see the ORC-PLAN-4 amendment).
 
 **ORC-ARB-2 (a guard may stop a lane, no guard may attribute — §7c.31, mechanical).** The
 arbiter stops lanes; it never scores models. `killed_by` stays an enumerated value written from
@@ -543,7 +581,7 @@ the runner's own terminal record, and any row with `killed_by != none` is refuse
 scorer with the skip count stated. The arbiter's stop is a harness decision; attribution is a
 measurement decision; the two never share a code path.
 
-**ORC-ARB-3 (the arbiter is the reconciler pre-pass — ORC-GOAL-4).** The arbiter's deterministic
+**ORC-ARB-3 (the arbiter is the reconciler pre-pass — §1 prose, was ORC-GOAL-4).** The arbiter's deterministic
 pre-pass applies every (a)/(b) mechanism before any model token is spent; a quiet store is a
 zero-token wake. The model-spawn residue is the §7 open question 1 fold-point.
 
@@ -598,19 +636,17 @@ queue is not the fix and is not promised here.
 **ORC-GATE-1 (every dispatch gate re-justified — ruling 6).** Each of today's dispatch gates is
 re-justified against process doctrine or demoted. Display preferences (the 40-char title
 refusal) demote to **warnings** — they do not block a dispatch. The gate *inventory* is design's
-to produce (§7 open question 3 names the shape); the *principle* is normative: a gate that exists
+to produce (the inventory is §12's deferred-to-design list); the *principle* is normative: a gate that exists
 to enforce a taste, not a safety invariant, is a warning.
 
-**ORC-GATE-2 (the merged cooldown machine — one visible state machine).** heal · dispatch ·
-window · **global-keeper-flag** cooldowns become states of one machine with one namespace, one
-dashboard row each, and one visible transition set. The arithmetic of each state survives (T504
-heal, T536 dispatch, T628/T677 window, the flag file's boolean); what dies is the third *and
-fourth* place to look for "is this thing cooled down". (Amended T802 — see ORC-POL-4: the flag
-file was omitted from rev 1's merge, and it is the mechanism that has idled the fleet for ~73
-hours at the time of this amendment. Its arithmetic does not survive intact: a state with no
-expiry cannot be a state of a machine whose defining property is that pauses lapse loudly, so
-the flag's boolean becomes a scoped, owned, expiring entry — a behaviour change, deliberately,
-and the only one this merge makes.)
+**Deleted in rev 4 — the former `ORC-GATE-2` (a duplicate of ORC-POL-4).** Rev 1–3 carried the merged
+cooldown machine twice — here under the gate diet (ruling 6) and in §2 as ORC-POL-4 — with the
+same T802 amendment, the same arms, and the same single machine. One id for one machine: the
+merge contract (one namespace, one dashboard row each, one visible transition set) and the
+flag-file behaviour change (its boolean becomes a scoped, owned, expiring state — the only
+behaviour change the merge makes, because a state with no expiry cannot belong to a machine
+whose defining property is that pauses lapse loudly) are all ORC-POL-4's now. Ruling 6's
+traceability row (§11) maps to ORC-GATE-1 + ORC-POL-4.
 
 **ORC-ORIENT-1 (startup-prose diet — ruling 7).** `managent orient`'s ≤150-line preamble is the
 only boilerplate, injected at dispatch; briefs carry task-specific content only. This builds on
@@ -777,29 +813,43 @@ Each control is scripted against a scratch store (`MANAGENT_STORE`), regression-
 "every id in §1–§7 has at least one arm"; T778 finding 1 counted the flips column and found 15
 of **31** normative ids armed, i.e. 16 wishes wearing requirements — the same overclaim the S04
 spec audit found, and the exact failure §0's own rule names (*"an id with no control is not a
-requirement, it is a wish"*). The remainder is therefore **enumerated by id**, because an
-unenumerated remainder is how coverage debt goes silent.
+requirement, it is a wish"*). RACE-X (T810/T811/T812) re-measured rev 3 and found the honest
+count was **12 of 37** — the flips column is a plan, not an inventory (R1), four of the seven
+T802 arms could not observe their subject (R2), and no id met §0's own null+seeded predicate
+(R7). T822 (rev 4) is the convergent close: **armed count == id count == 32 of 32**, with the
+predicate stated — an id is armed iff at least one arm exists **on disk** whose subject is the
+id (the §0 null+seeded pair is the P3 battery's bar, ORC-CTRL-2, not the census predicate; a
+RED arm with a named owning step is a recorded defect, and turning it green is the step's own
+acceptance).
 
-**Armed count: 28 of 37.** The 15 in the flips column below (ARB-1, ARB-2, ARB-3,
-DASH-2, DASH-3, DASH-5, PAUSE-1, PAUSE-2, POL-2, POL-7, PROV-1, REG-1, REG-2, REG-3, REG-4)
-plus **7 armed by T802** in `tests/unit/test_s06_conformance.py` — POL-1, POL-3, POL-4, DASH-1,
-DASH-4, ARB-4, GATE-2 — the four load-bearing ones T778's disposition named, plus the three its
-arms necessarily also assert — plus **6 armed by T813** in the same file — POL-8, POL-9, POL-10,
-POL-11, POL-12, POL-13. The T802 arms are **RED by construction and correct to be red**
-(ORC-CTRL-2: red first): each is `@unittest.expectedFailure` naming the ORC-PLAN-3 step that
-owes the mechanism, and each is paired with a GREEN *characterization* arm pinning what the
-subject does **today** — so a migration step cannot change today's behaviour silently, and
-cannot mark the id armed without turning its red arm green. T813's arms follow the same pattern
-(3 GREEN characterization pinning today, 4 RED conformance naming step 1).
+The 15 flips-column ids are all armed on disk now: fourteen carry a **RED spec-conformance
+arm** (T822) in `tests/unit/test_s06_conformance.py` naming the ORC-PLAN-3 step that owes the
+mechanism — ARB-2, ARB-3, DASH-2, DASH-3, DASH-5, PAUSE-1, PAUSE-2, POL-2, POL-7, PROV-1,
+REG-1, REG-2, REG-3, REG-4 — and ARB-1 is armed GREEN because T821 built its mechanism ahead
+of P4.2 (admission arbiter; battery `regression-arbiter.sh`). On top of the arms T802 wrote
+(POL-1, POL-3, POL-4, DASH-1, DASH-4, ARB-4) and T813 wrote (POL-8…13), plus T822's arms for the ids that had
+none (POL-5, POL-6's conformance half, POL-13, PAUSE-3, GATE-1, ORIENT-1). The adjacent arms
+RACE-X flagged were replaced, not kept: POL-4's prose-regex arm (whose green condition was a
+spec edit) is now a code-signature arm over the policy reader, and DASH-1/DASH-4's substring
+greps are strengthened with the watch-fleet-thin half. Cross-tier arms are credited, not
+duplicated: ORC-ORIENT-1's ≤150-line cap is behaviorally held by `regression-orient.sh` (T353);
+ORC-REG-4's dropped-edge control by `regression-managent-holds.sh` (T539); ORC-ARB-1's battery
+is `regression-arbiter.sh` (T821, SURVIVE — the P4.2 bar itself). The T802/T813 arms are **RED
+by construction and correct to be red** (ORC-CTRL-2: red first): each is
+`@unittest.expectedFailure` naming the ORC-PLAN-3 step that owes the mechanism, paired with a
+GREEN *characterization* arm pinning what the subject does **today** — so a migration step
+cannot change today's behaviour silently, and cannot mark the id armed without turning its red
+arm green. T822's arms follow the same pattern (35 GREEN characterization / 28 RED conformance,
+63 arms total, 0.1 s).
 
-**Still unarmed — 9, owed in P3:** `ORC-GOAL-1`, `ORC-GOAL-2`, `ORC-GOAL-3`, `ORC-GOAL-4`
-(the four goal statements — arguably unarmable as stated, which is itself a finding: a goal that
-cannot be armed should be a measurable acceptance bar in §10 or should not carry an id),
-`ORC-POL-5` (the schema's worked example), `ORC-POL-6` (the RESERVED encoding — see the
-amendment below; it has no live subject), `ORC-PAUSE-3` (one row per pause), `ORC-GATE-1` (the
-gate diet, whose inventory is design's), `ORC-ORIENT-1` (the prose diet, armed in `S05`'s own
-`regression-orient.sh` rather than here — a cross-tier arm that this table should credit or
-disclaim, not omit).
+**Deleted by T822 — five ids, so the count is 32, and armed == id holds.** `ORC-GOAL-1..4` (the
+four goal statements) carried no mechanism to observe — each was a summary of the ids under it
+and of §10's acceptance bars, and this spec's own rev-2 census said a goal that cannot be armed
+"should be a measurable acceptance bar in §10 or should not carry an id". Their prose stays in
+§1, unnumbered. `ORC-GATE-2` was a duplicate of `ORC-POL-4` — one machine, one T802 amendment,
+the same arms; the merge contract and the flag-file behaviour change fold into POL-4. Zero new
+ids were added (T822 found no missing requirement; candidates, if any, are noted in its
+findings file only).
 
 The mandatory core:
 
@@ -813,7 +863,7 @@ The mandatory core:
 | C6 | dashboard truth | a section rendering a number not in store/policy | refused (the pane may not invent a figure) | ORC-DASH-5 |
 | C7 | empty section | a section with zero rows | omitted, no heading | ORC-DASH-3 |
 | C8 | short names | a canonical label on the human pane | refused (short names only) | ORC-DASH-2 |
-| C9 | arbiter shed order | pressure: shed queue-first, then newest lane | never kills a mid-run lane to admit a new one | ORC-ARB-1 |
+| C9 | arbiter shed order | pressure: a lane whose declared need cannot be admitted, or a mid-run lane over its own cap | refused before spawn (row stays dispatchable); the only stop is the lane's own overrun; never kills to admit | ORC-ARB-1 |
 | C10 | guard vs attribution | a stopped lane | `killed_by` enumerated, scorers refuse + state skips | ORC-ARB-2 |
 | C11 | registration fields | bundle missing a landmark line / >40-char title / no gate | refused at the `managent` call, names the field + example | ORC-REG-3 |
 | C12 | direct store edit | a task writes `tasks.json` directly | fails mechanically (hook/permission) | ORC-REG-1 |
@@ -864,14 +914,14 @@ itself past that.
 | 1 one policy file | ORC-POL-1/2/5/7 |
 | 2 expiring pauses | ORC-PAUSE-1/2/3 |
 | 3 one dashboard | ORC-DASH-1–5 |
-| 4 one arbiter | ORC-ARB-1–4, ORC-GOAL-4 |
+| 4 one arbiter | ORC-ARB-1–4 |
 | 5 registration flow | ORC-REG-1–4 |
-| 6 gate diet | ORC-GATE-1/2 |
+| 6 gate diet | ORC-GATE-1, ORC-POL-4 (ORC-GATE-2 folded in, T822) |
 | 7 startup-prose diet | ORC-ORIENT-1 |
 | 8 provider seam | ORC-PROV-1 |
 | Acceptance (3 days + onboarding + one pane) | ORC-ACC-1 |
 | Feedstock T712/T713 | ORC-ARB-1 |
-| Feedstock T578 (reconciler scope) | ORC-GOAL-4, ORC-ARB-3 |
+| Feedstock T578 (reconciler scope) | ORC-ARB-3 + §1 prose (was ORC-GOAL-4, deleted T822) |
 | Feedstock T709 | ORC-REG-1 (mechanical store-write refusal subsumes the rc=0 reconcile) |
 | T747 landmark gate | ORC-REG-3 (field 3) |
 | T738/T739 dashboard trim | ORC-DASH-2/3 |
@@ -884,6 +934,8 @@ itself past that.
 | §7c.21 two-tier closure + audit cap | ORC-REG-3 (field 5), ORC-ACC-3 |
 | T778 audit (8 findings) | §14 amendment log, rows 1–8 |
 | T802 census + arms (4 findings) | §14 amendment log, rows 9–12; `tests/unit/test_s06_conformance.py` |
+| Goal statements (were ORC-GOAL-1..4) | §1 prose (unnumbered) + §10 acceptance; deleted T822 |
+| RACE-X census closure (12 of 37 honest) | §9, §14 rev 3→4; `tests/unit/test_s06_conformance.py` |
 
 ---
 
@@ -900,7 +952,8 @@ itself past that.
 
 **Options with a recommendation (`[design-open]` — design may choose among these only):**
 
-1. **The reconciler fold-point** (ORC-GOAL-4): (a) absorb the model-spawn into this sprint's
+1. **The reconciler fold-point** (was ORC-GOAL-4, deleted by T822 — the pre-pass statement is
+   ORC-ARB-3's and the goal prose is §1's): (a) absorb the model-spawn into this sprint's
    build, or (b) ship the arbiter pre-pass first, model-spawn as a successor row. **Recommend
    (b)** — an unshipped pre-pass cannot audit a model-spawn.
 2. **RESERVED encoding** (ORC-POL-6): `-1` sentinel vs explicit `"appetite": "RESERVED"` string.
@@ -930,7 +983,8 @@ itself past that.
 
 **Deferred to design (the spec states the principle, design states the mechanism):**
 
-- the merged cooldown machine's exact state set and transitions (ORC-GATE-2);
+- the merged cooldown machine's exact state set and transitions (ORC-POL-4 — ORC-GATE-2 was
+  folded into it by T822);
 - the dashboard's column layout (ORC-DASH-4);
 - the registration parser's grammar and the mechanical store-write refusal's enforcement point
   (hook vs `managent` permission check) — both must be kernel-attested per §7c.18, the concrete
@@ -959,8 +1013,12 @@ acceptance is three consecutive clean days on the new mechanism.
 
 Every row names the id it changed and the arm that holds it. A row with no arm is a wish; that is
 §0's rule and it applies to amendments as much as to requirements. Arms live in
-`tests/unit/test_s06_conformance.py` (hermetic, stdlib-only, **24 arms — 19 GREEN
-characterization, 5 RED spec-conformance covering 7 ids**, 0.04 s) unless stated.
+`tests/unit/test_s06_conformance.py` (hermetic, stdlib-only, **63 arms — 35 GREEN
+characterization, 28 RED spec-conformance covering 32 ids**, 0.1 s) unless stated. A
+**documentary row** — a change with no mechanism to observe — says so and is exempt; every
+other row names its arm. (RACE-X finding R11 flagged rows 3/5/6/7 below as unarmed; rev 3→4
+arms or resolves each: row 3 → `TestRetiredMeter` (the meter's absence from the code), rows 5
+and 6 are documentary-exempt and now say so, row 7 → ORC-REG-1's conformance arm.)
 
 ### Discharging T778 (`findings/T778-s06-spec-audit.json`)
 
@@ -968,11 +1026,11 @@ characterization, 5 RED spec-conformance covering 7 ids**, 0.04 s) unless stated
 |---|---|---|---|---|
 | 1 | major | ORC-CTRL-1 | universal-coverage claim withdrawn; armed count **stated as 22 of 31**, the 9 unarmed **enumerated by id**; the 4 load-bearing ones T778 named are armed here | the 5 new RED arms below, each `expectedFailure` with its owning step |
 | 2 | major | ORC-PLAN-4/5 | re-pinned 75 → **80** at `8c00704`, 5 uncounted scripts placed (19/16/45/0); reframed as pin drift, not an authoring error (75 was correct at `a1415fe`) | `TestDispositionCount` — null + seeded control + live check |
-| 3 | major | ORC-DASH-4, ORC-DASH-5, ORC-ACC-1 | the T766-retired `window_budgets` meter removed from the pane, its data source, and **the acceptance bar** | (documentary; no mechanism left to arm) |
+| 3 | major | ORC-DASH-4, ORC-DASH-5, ORC-ACC-1 | the T766-retired `window_budgets` meter removed from the pane, its data source, and **the acceptance bar** | `TestRetiredMeter` (T822: the meter's knobs are gone from every tracked source — a documentary row held by the deletion's absence) |
 | 4 | major | ORC-POL-5, ORC-POL-6, §12.2 | ox-alpha RESERVED → free/SPEND per `2ec4f93`; RESERVED restated as a category with **no per-model member**; the sentinel-vs-string design-open **deferred as moot** | `test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend` |
-| 5 | medium | header | one sentence stating T772 (`soloPick`/assignment) and this spec (appetite/caps/cooldowns) are distinct subsystems — no amendment was owed | — |
-| 6 | medium | ORC-GOAL-2 | line counts recomputed: 3479 @`a1415fe` → **3608** @`8c00704`; both columns kept because the delta is the finding | — |
-| 7 | minor | ORC-REG-1 | "collide gracefully" resolved: **refuse**, naming the alternative filename | (owed: registration battery, P4.4) |
+| 5 | medium | header | one sentence stating T772 (`soloPick`/assignment) and this spec (appetite/caps/cooldowns) are distinct subsystems — no amendment was owed | documentary (no mechanism to observe) |
+| 6 | medium | ORC-GOAL-2 | line counts recomputed: 3479 @`a1415fe` → **3608** @`8c00704`; both columns kept because the delta is the finding; T811 later corrected the pin figure to 3461 | documentary (no mechanism to observe; the census content is held by `TestAbsorptionTargetsAreLive` and ORC-PLAN-4) |
+| 7 | minor | ORC-REG-1 | "collide gracefully" resolved: **refuse**, naming the alternative filename | ORC-REG-1's conformance arm (T822): `test_direct_tasks_json_edits_fail_mechanically` |
 | 8 | minor | ORC-POL-3, ORC-DASH-4 | the family-word/per-model-dial mismatch answered — see row 11, which supersedes the question T778 asked | `test_appetite_is_family_categorical_today_not_a_per_model_dial` |
 
 ### Found by T802 while arming (four, all from the census)
@@ -1007,3 +1065,74 @@ spec-conformance), text analysis of `src/managent/main.zig` and `tools/window_po
 
 The 6 new ids (POL-8…13) each carry an arm; none of the 9 pre-existing unarmed ids is newly
 armed by this amendment, and no id is added unarmed.
+
+### Rev 3 → rev 4 (T822, 2026-08-24) — arm or delete, no third option
+
+RACE-X (T810/T811/T812) measured the honest on-disk arm count of rev 3 as **12 of 37** (the
+spec claimed 28). This revision is the convergent close, not a fourth amendment round: per
+unarmed id, exactly ARM or DELETE. Outcome — **armed count == id count == 32 of 32**; the five
+non-requirements are gone (see §9 for the full accounting and the armed-predicate statement).
+Every arm below is on disk in `tests/unit/test_s06_conformance.py` (63 arms: 35 GREEN / 28 RED)
+unless a cross-tier script is named. Zero new ids were added.
+
+| # | id(s) | decision | arm / deletion reason |
+|---|---|---|---|
+| 1 | ORC-GOAL-1 | **DELETE** | a goal is the §10 acceptance bars, not an id — its content is the union of the ids under it and ORC-ACC-1's three bars; §0 forbids numbering a wish. Prose stays in §1, unnumbered | (no arm — deleted) |
+| 2 | ORC-GOAL-2 | **DELETE** | the scope census, not a requirement — the six-file surface is held by `TestAbsorptionTargetsAreLive` and ORC-PLAN-4's disposition table. Prose + corrected table stay in §1 (T811's 286/3461 figures adopted) | (no arm — deleted) |
+| 3 | ORC-GOAL-3 | **DELETE** | a scope boundary is prose guidance for builders, not a testable requirement | (no arm — deleted) |
+| 4 | ORC-GOAL-4 | **DELETE** | the pre-pass statement is ORC-ARB-3's (C1 flips it) and the fold-point is §12 open question 1 | (no arm — deleted) |
+| 5 | ORC-GATE-2 | **DELETE — DUPLICATE-OF ORC-POL-4** | one machine, one T802 amendment, the same arms; the merge contract and the flag-file behaviour change fold into POL-4 | (no arm — deleted) |
+| 6 | ORC-POL-2 | **ARM** | entry contract (owner/reason/expiry + parse refusal) | `test_every_policy_entry_carries_owner_reason_and_expiry` (RED, step 1) |
+| 7 | ORC-POL-5 | **ARM** | the schema's worked example — the file + blocks + schema_version 2 | `test_policy_file_exists_with_schema_version_two` (RED, step 1) |
+| 8 | ORC-POL-6 | **ARM** | unknown model → refusal, never a silent default (the live half after T813) | `test_unknown_model_resolves_to_a_refusal` (RED, step 1) + existing GREEN `test_keeper_has_no_row_for_ox_alpha...` |
+| 9 | ORC-POL-7 | **ARM** | env overrides recorded (T677 precedent, GREEN) + unbacked knob refused (RED) | `test_override_recording_precedent_exists` (GREEN) · `test_knob_with_no_file_entry_is_refused` (RED, step 1) |
+| 10 | ORC-POL-13 | **ARM** | cooldown legibility — one dashboard row with scope/reason/end (T811 finding 2: the T813 arms asserted POL-11/12's subject, not this id's) | `test_each_cooldown_renders_as_one_row_with_scope_reason_end` (RED, step 3) |
+| 11 | ORC-PAUSE-1 | **ARM** | 5-hour default maximum + loud EXPIRED render | `test_pause_default_max_and_loud_expiry_in_the_policy_file` (RED, step 1/3) |
+| 12 | ORC-PAUSE-2 | **ARM** | T625 mechanism exists in Python (GREEN) + moves to the policy file (RED) | `test_directive_policy_has_discharge_and_staleness_today` (GREEN) · `test_staleness_horizon_lives_in_the_policy_file` (RED, step 1) |
+| 13 | ORC-PAUSE-3 | **ARM** | one row per pause, owner/reason/age/expiry, no second ledger | `test_each_pause_renders_as_one_row_with_owner_reason_age_expiry` (RED, step 3) |
+| 14 | ORC-DASH-2 | **ARM** | short names through the one table — wrapper does it today (GREEN), managent must keep it (RED) | `test_watch_fleet_resolves_short_names_through_the_one_table` (GREEN) · `test_managent_pane_resolves_short_names_through_the_one_table` (RED, step 3) |
+| 15 | ORC-DASH-3 | **ARM** | T738 omission + T739 fill — wrapper omits empty sections today (GREEN), managent must keep the rules (RED) | `test_watch_fleet_omits_empty_sections_today` (GREEN) · `test_managent_pane_omits_empty_sections` (RED, step 3) |
+| 16 | ORC-DASH-5 | **ARM** | the five data sources wired; nothing invented (C6 is the P3 seeded control) | `test_dashboard_reads_only_the_five_stated_sources` (RED, step 3) |
+| 17 | ORC-ARB-1 | **ARM** | the T821 build exists (GREEN — admission, own-overrun stop, alarm-never-kill; battery is `regression-arbiter.sh`); shed-order prose amended to the ratified ram-policy | `test_arbiter_exists_as_one_admission_component` (GREEN) · `test_arbiter_refusal_precedes_any_model_token` (GREEN) |
+| 18 | ORC-ARB-2 | **ARM** | T629 killed_by enum exists (GREEN); the scorer-side refusal with stated skip count is the RED half | `test_killed_by_is_an_enumerated_runner_stamped_value` (GREEN) · `test_every_scorer_refuses_killed_rows_with_skip_count` (RED, step 2) |
+| 19 | ORC-ARB-3 | **ARM** | pre-launch admission = zero tokens on refusal (GREEN); the policy-driven pre-pass in managent is the RED half | `test_arbiter_refusal_precedes_any_model_token` (GREEN) · `test_policy_driven_prepass_exists_in_managent` (RED, step 1/2) |
+| 20 | ORC-REG-1 | **ARM** | direct tasks.json edits fail mechanically — nothing refuses today | `test_direct_tasks_json_edits_fail_mechanically` (RED, step 4) |
+| 21 | ORC-REG-2 | **ARM** | one parser, three call sites — bin/dispatch still parses the header itself (T505's title_re) | `test_one_parser_shared_by_add_suggest_and_dispatch` (RED, step 4) |
+| 22 | ORC-REG-3 | **ARM** | landmark gate exists at add (GREEN, T682); title≤40 and gate-declaration refused at add are the RED half | `test_landmark_gate_is_enforced_at_registration` (GREEN) · `test_registration_refuses_title_and_gate_at_add` (RED, step 4) |
+| 23 | ORC-REG-4 | **ARM** | the T735/T539 repair is the parser and it is held cross-tier | `test_holds_edges_are_read_by_the_one_parser_at_add` (GREEN) + `regression-managent-holds.sh` (T539, credited) |
+| 24 | ORC-GATE-1 | **ARM** | taste-gate demotion — the T505 title refusal exists today (GREEN), must become a warning (RED) | `test_title_gate_is_a_refusal_at_dispatch_today` (GREEN) · `test_taste_gates_are_warnings_not_refusals` (RED, step 5) |
+| 25 | ORC-ORIENT-1 | **ARM** | the ≤150-line cap is enforced (GREEN, T353 — `regression-orient.sh` credited); injection at dispatch is the RED half | `test_orient_preamble_cap_is_enforced` (GREEN) · `test_orient_is_injected_at_dispatch` (RED, step 5) |
+| 26 | ORC-PROV-1 | **ARM** | the registry is data today (GREEN); dispatch reading the one registry is the RED half (step 6 = the acceptance demo) | `test_model_registry_is_read_today` (GREEN) · `test_dispatch_reads_the_one_registry` (RED, step 6) |
+| 27 | ORC-POL-4 (adjacent arm) | **ARM, replaced** | the rev-2 RED arm's green condition was a spec edit (prose regex over ORC-POL-4's paragraph — RACE-X R2). Replaced by a code-signature arm over the reader | `test_one_cooldown_machine_names_all_four_mechanisms` (RED, step 1) |
+| 28 | ORC-DASH-1/4 (adjacent arms) | **ARM, strengthened** | the rev-2 substring greps could pass on a comment; the watch-fleet-thin half makes the green condition the actual rendering move | `test_managent_renders_the_five_specified_sections` (RED, step 3, strengthened) |
+| 29 | ORC-POL-3/8/9/10/11/12, ORC-ARB-4, ORC-POL-1, ORC-DASH-1/4 | **KEEP, already armed** | no change; the GATE-2 coverage these arms carried moves to POL-4 | existing arms |
+
+**Also in this revision (factual corrections the race earned, each with its own arm where a
+mechanism exists):** the ORC-DASH-4 pane's queue row was invented (T810 R5 — T724/T733/T739 did
+not exist at the pin) and is now ◇-illustrative with T810's corrected census; the normative
+section-name list's "window budget + appetite" is "appetite + cap" (T810 R6 — the retired
+meter's name leaked into the contract); watch-fleet's pin line count is 286, not 304 (T811 R10 —
+the six-file total is 3461 at `a1415fe`, delta +147); ORC-ARB-1's shed order restates the
+ratified T821/ram-policy build; the "directives.jsonl empty at HEAD" note is gone (T811 R11 —
+the file is append-only and non-empty). Each is named in this log with its evidence; the pane
+corrections are part of the DASH-4 arms' subject, and the meter retirement is now held by
+`TestRetiredMeter`.
+
+**Cross-task observation (recorded, not resolved here):** T834 (`T834-appetite-ollama-back`)
+landed its operator-ruled change mid-revision (commit `91e4478`, 2026-08-24): `ollama-cloud`
+returns OFF → SPEND in `src/managent/main.zig` — a step-1 slice landed ahead of the sprint, the
+same shape as T821's arbiter. Its appetite change also turned the rev-2 characterization arm
+`test_the_two_appetite_tables_disagree_today`'s appetite half stale (the family-NAME sets still
+differ); T822 re-pinned that arm to the structural truth (names differ; keeper ollama=SPEND) so
+it holds at both the pre- and post-T834 trees. The §2 seed table and the pane's appetite block
+still show the 2026-08-23 OFF — T834's own amendment owes that update.
+
+**Process defect recorded (evidence for ORC-G6's scope, S08 — not this document's to fix):**
+the subject document moved mid-race. T813 (dispatched by the oversight seat) amended the spec
+to rev 3 at 23:11 while RACE-X was auditing rev 2 (T807/T809 at `d79726c`); the race brief
+pinned its subject by revision NAME, not by commit. `S08/spec.md` ORC-G6 requires a race's
+sealed inputs to be immutable while a race runs; this instance shows the rule must cover **any**
+document under audit, not only a race's sealed key. Credit where due: the dsflash entrant
+(T808, `findings/T808-race-x-s06-audit.json`) **detected the move and audited rev 3 while
+declaring the drift** rather than auditing a stale target — the grader ranked that first, and an
+entrant catching a measurement failure the fleet caused is worth more than any single finding.
