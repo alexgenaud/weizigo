@@ -1,0 +1,159 @@
+{
+  "task_id": "T870",
+  "date": "2026-08-24",
+  "model": "claude-opus-5",
+  "claims": [],
+  "new_rows": [],
+  "kind": "context-dump",
+  "sweep": {
+    "invocation": "sh tools/regression-<name>.sh from repo root (matches build.zig's addSystemCommand for all 80 wired entries)",
+    "watchdog_seconds": 300,
+    "started_utc": "2026-08-24T16:03Z",
+    "finished_utc": "2026-08-24T16:22Z",
+    "head_at_start": "4827aaf",
+    "head_at_finish": "6943e23",
+    "scripts_total": 88,
+    "scripts_wired": 80,
+    "scripts_unwired": 8,
+    "nonzero_raw": 26,
+    "measurement_artefacts": 3,
+    "red_corrected": 23,
+    "green_with_a_skipped_arm": 7,
+    "host_load_average_at_start": "6.08 (three other lanes in flight)",
+    "concurrent_lanes": [
+      "T861",
+      "T867",
+      "T868",
+      "T869"
+    ],
+    "note": "logs live in a volatile scratch directory under the system temp area; not cited by path per the commit gate"
+  },
+  "red_set_corrected": [
+    "regression-argus-doctor",
+    "regression-claim-lifecycle",
+    "regression-commit-concurrency",
+    "regression-directive-kill",
+    "regression-dispatch-caps",
+    "regression-dispatch-verification",
+    "regression-fleet-keeper",
+    "regression-git-commit-mine",
+    "regression-managent-assert-store",
+    "regression-managent-holds",
+    "regression-managent-impression-gate",
+    "regression-managent-integrity",
+    "regression-managent-lock",
+    "regression-managent-memory-safety",
+    "regression-managent-status-json",
+    "regression-ollama-dispatcher",
+    "regression-precommit",
+    "regression-process-ownership",
+    "regression-runner-guard",
+    "regression-task-id-archive",
+    "regression-task-identity",
+    "regression-watch-fleet",
+    "regression-window-resilience"
+  ],
+  "measurement_artefacts_not_red_at_head": {
+    "regression-battery-baselines": "passes with the artifact argument build.zig passes it (addArtifactArg)",
+    "regression-battery-sweep": "passes with both artifact arguments; also not part of `zig build test` at all",
+    "regression-subagent-prompt": "passes with WEIZIGO_AGENT_DEPTH unset"
+  },
+  "unwired_8": [
+    "regression-arbiter",
+    "regression-managent-done-git",
+    "regression-managent-memory-safety",
+    "regression-process-ownership",
+    "regression-race-collect",
+    "regression-request-accounting",
+    "regression-scratch-repo",
+    "regression-task-identity"
+  ],
+  "green_with_a_skipped_arm": [
+    "regression-directive-integrity",
+    "regression-managent-done-two-phase",
+    "regression-one-dispatch-path",
+    "regression-orcha-acceptance",
+    "regression-runner-reporting",
+    "regression-runner-taskid",
+    "regression-T227"
+  ],
+  "failure_signature_classes": {
+    "worktree_guard_absolute_threshold": [
+      "regression-claim-lifecycle",
+      "regression-commit-concurrency",
+      "regression-git-commit-mine"
+    ],
+    "deployed_bin_stale": [
+      "regression-managent-assert-store",
+      "regression-managent-holds",
+      "regression-managent-impression-gate",
+      "regression-managent-integrity"
+    ],
+    "t682_landmark_gate_fixture": [
+      "regression-directive-kill",
+      "regression-fleet-keeper",
+      "regression-window-resilience"
+    ],
+    "s10_store_loss_detector_fixture": [
+      "regression-dispatch-caps",
+      "regression-managent-status-json",
+      "regression-fleet-keeper",
+      "regression-argus-doctor"
+    ],
+    "live_tree_or_live_store": [
+      "regression-precommit",
+      "regression-managent-memory-safety",
+      "regression-argus-doctor"
+    ],
+    "caller_environment": [
+      "regression-subagent-prompt"
+    ],
+    "host_ram_pressure": [
+      "regression-ollama-dispatcher"
+    ],
+    "clock_race": [
+      "regression-task-identity"
+    ],
+    "shell_or_argv_invocation": [
+      "regression-process-ownership",
+      "regression-battery-baselines",
+      "regression-battery-sweep"
+    ],
+    "incomplete_scratch_repo": [
+      "regression-dispatch-verification"
+    ],
+    "real_code_defect": [
+      "regression-managent-lock",
+      "regression-task-id-archive",
+      "regression-watch-fleet",
+      "regression-directive-kill(arm 8d)"
+    ]
+  },
+  "totals": {
+    "delete": 11,
+    "fix_the_test": 21,
+    "fix_the_code": 10,
+    "unclassifiable": 0,
+    "entries": 42
+  },
+  "consolidations": [
+    "host-pressure admission: 4 checks -> 1 (survivor regression-arbiter.sh, wired)",
+    "deploy freshness: 5 checks -> 1 (survivor tools/smoke.sh as a suite preflight)",
+    "store-shrink fixture hygiene: 5 remaining scripts -> source the shared helper; make it structural via the unwired regression-scratch-repo.sh",
+    "git-commit-mine worktree guard: 3 reds -> 1 code fix (not duplicates, one shared blocker)",
+    "8 unwired scripts: wire 5, the other 3 are already in the red set; delete none",
+    "regression-window-resilience.sh is wired into test_step twice (build.zig:679 and :914) -> drop one line",
+    "liveness: 3 checks, do not consolidate; adopt the timestamp-pinning idiom in regression-task-identity"
+  ],
+  "isolations": [
+    "three git-commit-mine reds pass with the `< 2000 files` threshold neutralised",
+    "four stale-bin reds re-run against a fresh binary: two pass outright, two fail only on the freshness arm",
+    "regression-subagent-prompt flips to green with WEIZIGO_AGENT_DEPTH unset; precommit and fleet-keeper do not",
+    "regression-process-ownership: sh syntax errors disappear under bash; one real arm (S6 sys.path) still fails",
+    "S10 store-loss refusal reproduced directly on a hand-shrunk scratch store"
+  ],
+  "inherited_not_verified": [
+    "docs/infra/suite-truth.md `RED module main` (3 stale T635 assign: expectations) \u2014 zig test src/managent/main.zig not re-run"
+  ],
+  "notes": "Context dump for T870 (classification of every red, vacuous and unwired check). Narrative/measurement record only \u2014 it proposes no register claim and no new row; the row's proposals, verdicts and consolidation recommendations live in findings/T870-greenup-classify.json and the classification document."
+}
