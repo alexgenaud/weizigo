@@ -25,23 +25,8 @@ if [ "${1:-}" = "--build" ]; then
     "$PROJECT/tools/deploy.sh" "$PROJECT/zig-out/bin/managent" "$MG"
 fi
 
-# T268: the deployed copy must BE what we built (same stamp discipline as
-# regression-managent-integrity.sh).  Binaries older than the gate close rows
-# silently — measuring that would be a stale-binary seam, not a gate result.
-stamp_of() {
-    "$1" --version 2>&1 | grep -oE '[a-z][a-z0-9-]* [0-9a-f]{7}(-dirty)? built' | head -1 | sed 's/ built$//' || true
-}
-BUILT_STAMP=$(stamp_of "$PROJECT/zig-out/bin/managent")
-DEPLOYED_STAMP=$(stamp_of "$MG")
-if [ -z "$DEPLOYED_STAMP" ]; then
-    echo "    FAIL: bin/managent missing or unstamped — run 'zig build deploy-managent'"
-    FAIL=1
-elif [ "$BUILT_STAMP" != "$DEPLOYED_STAMP" ]; then
-    echo "    FAIL: deployed bin/$DEPLOYED_STAMP != built zig-out/$BUILT_STAMP — bin/ is stale"
-    FAIL=1
-else
-    echo "  T268: deployed $DEPLOYED_STAMP == built $BUILT_STAMP"
-fi
+# Deploy freshness is a suite preflight (tools/smoke.sh), not a per-check
+# assertion — T872 green-up deleted the re-implemented arm.
 
 # The done path runs the absorption gate (T485), which needs a claimlint
 # binary + a parseable register.  Missing binary → SKIP (same convention as

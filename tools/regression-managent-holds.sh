@@ -51,25 +51,9 @@ if [ "${1:-}" = "--build" ]; then
     "$PROJECT/tools/deploy.sh" "$PROJECT/zig-out/bin/managent" "$MG"
 fi
 
-# T268: the deployed copy must BE what we built.
-stamp_of() {
-    "$1" --version 2>&1 | grep -oE '[a-z][a-z0-9-]* [0-9a-f]{7}(-dirty)? built' | head -1 | sed 's/ built$//' || true
-}
-BUILT_STAMP=$(stamp_of "$PROJECT/zig-out/bin/managent")
-DEPLOYED_STAMP=$(stamp_of "$MG")
-echo "  T268: deployed stamp check"
-if [ -z "$DEPLOYED_STAMP" ]; then
-    echo "    FAIL: bin/managent missing or unstamped — run 'zig build' then deploy"
-    FAIL=1
-elif [ -z "$BUILT_STAMP" ]; then
-    echo "    SKIP: no built zig-out/bin/managent (build with 'zig build') — cannot stamp-check"
-    exit 0
-elif [ "$BUILT_STAMP" = "$DEPLOYED_STAMP" ]; then
-    echo "    PASS: deployed bin/$DEPLOYED_STAMP == built zig-out/$BUILT_STAMP"
-else
-    echo "    FAIL: deployed bin/$DEPLOYED_STAMP != built zig-out/$BUILT_STAMP — bin/ is stale"
-    FAIL=1
-fi
+# Deploy freshness is a suite preflight (tools/smoke.sh), not a per-check
+# assertion — T872 green-up deleted the re-implemented arm (see the sibling
+# managent regressions).
 
 # T445: /tmp/weizigo decays. Create it, and REFUSE to run if scratch creation
 # fails — an empty scratch var once sent a suite's arms into the LIVE repo.

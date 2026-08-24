@@ -732,15 +732,10 @@ known-red tools/regression-dispatch-caps.sh stream2b-green repair
 known-red tools/regression-dispatch-verification.sh D021 repair
 known-red tools/regression-fleet-keeper.sh stream2b-green not-precommit
 known-red tools/regression-git-commit-mine.sh T454 deploy
-known-red tools/regression-managent-assert-store.sh T518 repair
-known-red tools/regression-managent-holds.sh T682 deploy
-known-red tools/regression-managent-impression-gate.sh stream2b-green deploy
-known-red tools/regression-managent-integrity.sh stream2b-green deploy
 known-red tools/regression-managent-lock.sh T337 repair
 known-red tools/regression-managent-memory-safety.sh stream2b-green not-precommit
 known-red tools/regression-managent-status-json.sh stream2b-green repair
 known-red tools/regression-process-ownership.sh stream2b-green not-precommit
-known-red tools/regression-runner-guard.sh T821 repoint
 known-red tools/regression-subagent-prompt.sh stream2b-green repair
 known-red tools/regression-task-id-archive.sh stream2b-green repair
 known-red tools/regression-task-identity.sh stream2b-green repair
