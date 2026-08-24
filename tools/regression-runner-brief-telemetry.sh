@@ -42,15 +42,18 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 RUNNER="$PROJECT/tools/runner"
 FAIL=0
 
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+
 cleanup() {
     [ -n "${WORK:-}" ] && rm -rf "$WORK"
 }
 trap cleanup EXIT
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t520-brief-XXXXXX)" || { echo "regression-runner-brief-telemetry.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+weizigo_scratch_repo t520-brief WORK   # T849: isolated scratch repo
 cd "$WORK"
-git init -q
 git config user.email t520@test
 git config user.name T520
 echo base > README.md
