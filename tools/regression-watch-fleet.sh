@@ -23,6 +23,15 @@
 #   L. T799/T804: footer is the terminal's last line — one blank above it,
 #      nothing below (cleanup's exit newline only); cursor hidden, restored on q.
 #   M. T799: cursor restored on the ^C trap path (exit 130).
+#   Q. T839: the in-flight transcript drives the rate (field 5) and the
+#      freshness age (field 6); no usage -> UNKNOWN + fresh, no transcript
+#      -> UNKNOWN + "-".
+#   R. T839: freshness_of() arithmetic — Ns/Nm/Nh/Nd, STALE across the
+#      15-min-to-1h band, "-" for no mtime; 5-char slot, nothing leaks.
+#   S. T839: CONCERNS never accuses — fresh transcript 'lived', exit-0 run
+#      record 'finished' (the T818 shape), only the dead+unclosed 'orphaned'.
+#   T. T839: the always-UNKNOWN rate is broken — 1 of 3 fixtures with a
+#      transcript renders a rate; no blank rate or freshness field.
 #
 # Usage:  tools/regression-watch-fleet.sh [--build]
 
@@ -1031,6 +1040,241 @@ esac
 printf '%s' "$OUT_M" | grep -q 'another key to refresh' || { echo "    FAIL: no footer rendered before the ^C (trap fired too early)"; m_fail=1; }
 if [ "$m_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 rm -rf "$WORKM"
+
+
+# ── Arm Q: T839 — the in-flight transcript drives the rate and the freshness ─
+# tokens.jsonl is written at completion, so a running task had no reading and
+# the rate column rendered UNKNOWN forever (T823's column was honest and
+# useless). T839 adds the second source: the harness transcript — pi appends
+# to untracked/tokens/sessions/<task>.<ts>.<pid>.<n>.jsonl continuously, and
+# claude writes under $WEIZIGO_CLAUDE_TRANSCRIPT_DIR (same <task>.* naming).
+# A task with a transcript renders a labelled rate (field 5) and a freshness
+# age (field 6); a task whose transcript has no usage-bearing turn yet
+# renders UNKNOWN (never 0 — rate_of's rule) but STILL renders the freshness,
+# because the liveness IS the point: a working console must not look dead;
+# a task with no transcript renders UNKNOWN and "-". Fixtures: Q1's session
+# started 30 s before the process — the LIVE shape, where a worker claims
+# after pi launches so the session start routinely precedes the claim (T822:
+# session 06:44:25Z, claim 07:12:03Z) and staleness must be judged against
+# the PROCESS start, not the claim. Red against the pre-T839 live file:
+# every rate UNKNOWN and no sixth column at all.
+echo "  Q. transcript -> labelled rate + freshness; no usage -> UNKNOWN + fresh; none -> UNKNOWN/- (live file)"
+WORKQ=$(mktemp -d /private/tmp/weizigo/wf-tx-XXXXXX)
+mkdir -p "$WORKQ/bin" "$WORKQ/untracked/tokens/sessions" "$WORKQ/docs/infra/managent"
+ln -s "$MG" "$WORKQ/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKQ/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKQ" init -q
+git -C "$WORKQ" config user.email t839@test
+git -C "$WORKQ" config user.name T839
+STORE_Q="$WORKQ/docs/infra/managent/tasks.json"
+LIVE_COPY_Q="$WORKQ/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY_Q" 2>/dev/null
+for pair in "T970:tx-fresh" "T971:tx-no-usage" "T972:tx-none"; do
+    id=${pair%%:*}; slug=${pair##*:}
+    printf '<!--managent -->\n# %s — %s\n\n**Landmark:** L1 (the dashboard tells the truth)\n' "$id" "$slug" > "$WORKQ/untracked/$id-$slug.md"
+done
+NOW_Q=$(date +%s)
+CLAIM_Q=$(date -u -r $((NOW_Q - 3600)) '+%Y-%m-%dT%H:%M:%SZ')
+recQ() { printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1" "$2"; }
+printf '{\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
+    "$(recQ T970 "$CLAIM_Q")" "$(recQ T971 "$CLAIM_Q")" "$(recQ T972 "$CLAIM_Q")" > "$STORE_Q"
+# Q1: current-run transcript — session header 30 s old, one assistant turn
+# with usage.output=1200 (the LIVE late-claim shape: session start precedes
+# the claim, so it must be judged against the process, and 30 s < the 120 s
+# slack means it is the current run).
+TS_Q1=$(date -u -r $((NOW_Q - 30)) '+%Y-%m-%dT%H:%M:%S.000Z')
+cat > "$WORKQ/untracked/tokens/sessions/T970.1700000000.1.0.jsonl" <<EOF
+{"type":"session","version":3,"id":"q1","timestamp":"$TS_Q1","cwd":"$WORKQ"}
+{"type":"message","id":"m1","parentId":"q1","timestamp":"$TS_Q1","message":{"role":"assistant","content":"ok","usage":{"input":50,"output":1200,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":1250}}}
+EOF
+# Q2: current-run transcript, header only (no usage-bearing turn yet)
+TS_Q2=$(date -u -r $((NOW_Q - 30)) '+%Y-%m-%dT%H:%M:%S.000Z')
+cat > "$WORKQ/untracked/tokens/sessions/T971.1700000000.2.0.jsonl" <<EOF
+{"type":"session","version":3,"id":"q2","timestamp":"$TS_Q2","cwd":"$WORKQ"}
+EOF
+# Q3: no transcript at all
+for id in T970 T971 T972; do
+    bash -c "cd '$WORKQ' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/$id-$slug.md' sleep 90" &
+    eval "PQ_$id=\$!"
+done
+sleep 2   # arms F/G race: a frame drawn within ms of spawn misses the worker
+FRAME_Q=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_Q" FLEET_COLS=200 sh "$LIVE_COPY_Q" </dev/null 2>/dev/null)
+kill $PQ_T970 $PQ_T971 $PQ_T972 2>/dev/null; wait $PQ_T970 $PQ_T971 $PQ_T972 2>/dev/null
+q_fail=0
+qrow() { printf '%s\n' "$FRAME_Q" | awk -v t="  $1 " 'index($0,t)==1 {print; exit}'; }
+qfield() { qrow "$1" | awk -v f="$2" '{print $f; exit}'; }
+for id in T970 T971 T972; do
+    printf '%s\n' "$FRAME_Q" | grep -q "^  $id " || { echo "    FAIL: $id missing from PROGRESS"; q_fail=1; }
+done
+# Q1: a fresh transcript with usage -> a labelled rate, not UNKNOWN, not 0
+case "$(qfield T970 5)" in
+    UNKNOWN|'') echo "    FAIL: T970 has a transcript with usage -> rate should be labelled, got '$(qfield T970 5)'"; q_fail=1;;
+    *[0-9]/s) ;;
+    *) echo "    FAIL: T970 rate must be 'NNN.N/s', got '$(qfield T970 5)'"; q_fail=1;;
+esac
+# Q1 freshness: a seconds-age marker (the file was just written)
+case "$(qfield T970 6)" in
+    *s) ;;
+    *) echo "    FAIL: T970 freshness must be a seconds-age, got '$(qfield T970 6)'"; q_fail=1;;
+esac
+# Q2: transcript but no usage -> UNKNOWN rate (never 0), freshness still rendered
+[ "$(qfield T971 5)" = "UNKNOWN" ] || { echo "    FAIL: T971 (no usage) -> rate UNKNOWN, got '$(qfield T971 5)'"; q_fail=1; }
+case "$(qfield T971 6)" in
+    *s|STALE|-) ;;
+    *) echo "    FAIL: T971 freshness must still render, got '$(qfield T971 6)'"; q_fail=1;;
+esac
+# Q3: no transcript -> UNKNOWN rate, "-" freshness
+[ "$(qfield T972 5)" = "UNKNOWN" ] || { echo "    FAIL: T972 (no transcript) -> rate UNKNOWN, got '$(qfield T972 5)'"; q_fail=1; }
+[ "$(qfield T972 6)" = "-" ] || { echo "    FAIL: T972 (no transcript) -> freshness '-', got '$(qfield T972 6)'"; q_fail=1; }
+# every PROGRESS row carries at least 6 fields: task landmark model elapsed rate fresh desc
+for id in T970 T971 T972; do
+    nf=$(qrow "$id" | awk '{print NF}')
+    [ "$nf" -ge 6 ] || { echo "    FAIL: $id row has $nf fields, want >= 6"; q_fail=1; }
+done
+# the elapsed column (23-28) still holds a duration and no PROGRESS row has a colon-duration
+PROG_Q=$(printf '%s\n' "$FRAME_Q" | sed -n '/^PROGRESS/,/^CONCERNS/p')
+printf '%s' "$(printf '%s\n' "$PROG_Q" | grep '^  T970 ' | head -1)" | cut -c23-28 | grep -q '[0-9]' \
+    || { echo "    FAIL: elapsed column (23-28) lost its duration"; q_fail=1; }
+printf '%s\n' "$PROG_Q" | grep '^  T97' | grep -q ':' && { echo "    FAIL: a PROGRESS row carries a colon-duration"; q_fail=1; }
+if [ "$q_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKQ"
+
+# ── Arm R: T839 — freshness_of() arithmetic (live file) ───────────────────
+# Expose freshness_of the way rate_of is exposed (arm O mirrors this pattern
+# for the rate arithmetic): mtime (epoch seconds) -> a 5-char age marker.
+# Buckets: seconds under a minute, minutes up to the 15-min heal horizon
+# (900 s), STALE across the 15-min-to-1h ambiguity band (901..3600), hours
+# up to a day, days beyond. Pinned at every bucket boundary; the 5-char slot
+# is the deliverable (STALE fills it exactly — a 4-char cap would make STALE
+# overflow and push the description, the jitter this column exists to avoid).
+echo "  R. freshness_of returns Ns/Nm/Nh/Nd | STALE | - (live file)"
+r_fail=0
+if [ ! -f "$LIVE" ]; then
+    echo "    FAIL: live file not found at $LIVE"; r_fail=1
+else
+    WATCH_FLEET_SOURCE=1 . "$LIVE" 2>/dev/null
+    if ! command -v freshness_of >/dev/null 2>&1; then
+        echo "    FAIL freshness_of: undefined (live file not patched)"; r_fail=1
+    else
+        NOW_R=$(date +%s)
+        rcheck() {  # $1=expected  $2=actual  $3=label
+            if [ "$1" != "$2" ]; then echo "    FAIL $3: expected '$1' got '$2'"; r_fail=1; fi
+        }
+        rcheck "-"     "$(freshness_of '')"         "freshness_of '' (no mtime)"
+        rcheck "-"     "$(freshness_of 0)"          "freshness_of 0 (no mtime)"
+        rcheck " 0s"   "$(freshness_of "$NOW_R")"   "freshness_of now (0s old)"
+        rcheck " 1s"   "$(freshness_of $((NOW_R-1)))" "freshness_of 1s"
+        rcheck "59s"   "$(freshness_of $((NOW_R-59)))" "freshness_of 59s"
+        rcheck " 1m"   "$(freshness_of $((NOW_R-60)))" "freshness_of 60s (crosses into minutes)"
+        rcheck "15m"   "$(freshness_of $((NOW_R-900)))" "freshness_of 900s (still minutes)"
+        rcheck "STALE" "$(freshness_of $((NOW_R-901)))" "freshness_of 901s (past the 15-min horizon)"
+        rcheck "STALE" "$(freshness_of $((NOW_R-3600)))" "freshness_of 3600s (1h, also STALE)"
+        rcheck " 1h"   "$(freshness_of $((NOW_R-3601)))" "freshness_of 3601s (past the STALE band: age again)"
+        rcheck "23h"   "$(freshness_of $((NOW_R-82800)))" "freshness_of 23h"
+        rcheck " 1d"   "$(freshness_of $((NOW_R-86400)))" "freshness_of 24h (crosses into days)"
+        rcheck " 7d"   "$(freshness_of $((NOW_R-604800)))" "freshness_of 7d"
+        # the 5-char slot: nothing over 5 chars leaks (STALE is the widest)
+        for probe in "$(freshness_of "$NOW_R")" "$(freshness_of $((NOW_R-59)))" "$(freshness_of $((NOW_R-900)))" "$(freshness_of $((NOW_R-901)))" "$(freshness_of $((NOW_R-86400)))" "$(freshness_of '')"; do
+            [ "${#probe}" -le 5 ] || { echo "    FAIL freshness_of: '$probe' is ${#probe} chars, overflows the 5-char column"; r_fail=1; }
+        done
+    fi
+fi
+if [ "$r_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+
+# ── Arm S: T839 — CONCERNS never accuses work that is alive or finished ──
+# Operator ruling: "CONCERNS must not accuse a finished task" (T818 was
+# complete — 12 of 12 chunks committed — and failed only the nonce echo;
+# calling it orphaned trained the reader to ignore the section). The label
+# is now one of three truthful ones: 'lived' (a transcript written within
+# the last 15 min — the heal horizon — proves the console is healthy even
+# when pgrep cannot see it: qwen/T824's 573 KB transcript across 25 bash
+# calls while its log sat at 2,951 bytes), 'finished' (the latest run record
+# shows a clean exit — the work is done, the task just was not closed),
+# and 'orphaned' only for a genuinely dead, unclosed task. Fixtures: S1
+# fresh transcript -> lived; S2 transcript stale past the horizon -> orphaned
+# (a silent transcript IS an orphan); S3 exit-0 run record (the T818 shape)
+# -> finished; S4 nothing -> orphaned. Red against the pre-T839 live file:
+# every fixture 'orphaned'.
+echo "  S. CONCERNS labels: lived / finished / orphaned, no false accusation (live file)"
+WORKS=$(mktemp -d /private/tmp/weizigo/wf-conc-XXXXXX)
+mkdir -p "$WORKS/bin" "$WORKS/untracked/tokens/sessions" "$WORKS/untracked/runs" "$WORKS/docs/infra/managent"
+ln -s "$MG" "$WORKS/bin/managent"
+cp "$PROJECT/docs/infra/model-registry.md" "$WORKS/docs/infra/model-registry.md" 2>/dev/null
+git -C "$WORKS" init -q
+git -C "$WORKS" config user.email t839@test
+git -C "$WORKS" config user.name T839
+STORE_S="$WORKS/docs/infra/managent/tasks.json"
+CONCSTATE_S="$WORKS/concerns.tsv"
+LIVE_COPY_S="$WORKS/untracked/watch-fleet-live.sh"
+cp "$LIVE" "$LIVE_COPY_S" 2>/dev/null
+for id in T980 T981 T982 T983; do
+    printf '<!--managent -->\n# %s — concern label\n\n**Landmark:** L1 (the dashboard tells the truth)\n' "$id" > "$WORKS/untracked/$id-bundle.md"
+done
+recS() { printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1"; }
+printf '{\n  %s,\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
+    "$(recS T980)" "$(recS T981)" "$(recS T982)" "$(recS T983)" > "$STORE_S"
+NOW_S=$(date +%s)
+# S1: FRESH transcript (last write 30 s ago) -> lived
+TS_S1=$(date -u -r $((NOW_S - 30)) '+%Y-%m-%dT%H:%M:%S.000Z')
+cat > "$WORKS/untracked/tokens/sessions/T980.1700000000.1.0.jsonl" <<EOF
+{"type":"session","version":3,"id":"s1","timestamp":"$TS_S1","cwd":"$WORKS"}
+{"type":"message","id":"m1","parentId":"s1","timestamp":"$TS_S1","message":{"role":"assistant","content":"ok","usage":{"input":10,"output":50,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":60}}}
+EOF
+# S2: STALE transcript (last write 17 min ago, past the 15-min horizon) -> orphaned
+TS_S2=$(date -u -r $((NOW_S - 1000)) '+%Y-%m-%dT%H:%M:%S.000Z')
+cat > "$WORKS/untracked/tokens/sessions/T981.1700000000.2.0.jsonl" <<EOF
+{"type":"session","version":3,"id":"s2","timestamp":"$TS_S2","cwd":"$WORKS"}
+EOF
+python3 -c "import os,time; os.utime('$WORKS/untracked/tokens/sessions/T981.1700000000.2.0.jsonl', (int(time.time())-1000,)*2)"
+# S3: no transcript, run record with a clean exit (the T818 shape) -> finished
+printf '{"task":"T982","attempt":1,"exit":0,"reap_ok":true,"end":"2026-08-23T22:09:20Z","wall":1509.2}\n' > "$WORKS/untracked/runs/T982.json"
+# S4: no transcript, no run record -> orphaned
+EPOCH_S=$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-01-01 00:00:00" +%s 2>/dev/null)
+[ -z "$EPOCH_S" ] && EPOCH_S=$(python3 -c "import time;print(int(time.mktime(time.strptime('2026-01-01 00:00:00','%Y-%m-%d %H:%M:%S'))))")
+printf 'T980\t%s\nT981\t%s\nT982\t%s\nT983\t%s\n' "$EPOCH_S" "$EPOCH_S" "$EPOCH_S" "$EPOCH_S" > "$CONCSTATE_S"
+# no live workers — all four tasks go to CONCERNS
+FRAME_S=$(env -u WATCH_FLEET_SOURCE FLEET_CONC_STATE="$CONCSTATE_S" MANAGENT_STORE="$STORE_S" FLEET_COLS=200 sh "$LIVE_COPY_S" </dev/null 2>/dev/null)
+s_fail=0
+CONC_S=$(printf '%s\n' "$FRAME_S" | sed -n '/^CONCERNS/,$p')
+crow() { printf '%s\n' "$CONC_S" | grep "^  $1 " | head -1; }
+case "$(crow T980)" in *lived*) ;; *) echo "    FAIL: T980 fresh transcript -> label 'lived', got: '$(crow T980)'"; s_fail=1;; esac
+case "$(crow T981)" in *orphaned*) ;; *) echo "    FAIL: T981 transcript past the horizon -> 'orphaned', got: '$(crow T981)'"; s_fail=1;; esac
+case "$(crow T982)" in *finished*) ;; *) echo "    FAIL: T982 exit-0 run record -> 'finished', got: '$(crow T982)'"; s_fail=1;; esac
+case "$(crow T983)" in *orphaned*) ;; *) echo "    FAIL: T983 nothing -> 'orphaned', got: '$(crow T983)'"; s_fail=1;; esac
+# T591 alignment preserved: times at 23-28; holder at 30-37 from the store (arm P contract)
+for prow in "$(crow T980)" "$(crow T981)" "$(crow T982)" "$(crow T983)"; do
+    [ -n "$prow" ] || continue
+    [ "$(printf '%s' "$prow" | cut -c23-28)" = "00:00 " ] || { echo "    FAIL: times column moved in CONCERNS row: '$prow'"; s_fail=1; }
+    [ "$(printf '%s' "$prow" | cut -c30-37 | tr -d ' ')" = "dsflash" ] || { echo "    FAIL: holder must come from the store (arm P): '$prow'"; s_fail=1; }
+done
+if [ "$s_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+rm -rf "$WORKS"
+
+# ── Arm T: T839 — the always-UNKNOWN failure mode is broken (live file) ──
+# The whole point: mid-flight every running task used to render UNKNOWN
+# because tokens.jsonl is written at completion. This arm exercises the
+# integration — a fleet of 3 fixtures, 1 with a transcript-with-usage, must
+# show exactly 1 non-UNKNOWN rate (not 0), and no rate or freshness field
+# may be blank (the silent-zero case the brief calls the failure mode).
+echo "  T. live transcript breaks the always-UNKNOWN rate (live file)"
+# rows under PROGRESS only (awk: start at the PROGRESS heading, stop at the
+# next all-caps section heading — no CONCERNS heading means the sed range
+# would run to EOF and swallow later sections' rows; and a heading line's
+# empty field would count as a blank). BSD grep's BRE `\|` degenerates when
+# one branch matches the empty string (`^UNKNOWN$\|^$` matched nothing), so
+# the field tests are awk, not grep.
+T_ROWS=$(printf '%s\n' "$FRAME_Q" | awk '/^PROGRESS$/{p=1;next} p && /^[A-Z][A-Z]+$/{p=0} p && /^  T9/{print}')
+T_TOTAL=$(printf '%s\n' "$T_ROWS" | wc -l | tr -d ' ')
+T_NONEMPTY=$(printf '%s\n' "$T_ROWS" | awk '$5!="" && $5!="UNKNOWN"{n++} END{print n+0}')
+T_BLANK=$(printf '%s\n' "$T_ROWS" | awk '$5==""{n++} END{print n+0}')
+T_FBLANK=$(printf '%s\n' "$T_ROWS" | awk '$6==""{n++} END{print n+0}')
+t_fail=0
+[ "$T_TOTAL" = "3" ] || { echo "    FAIL: want 3 PROGRESS rows, got $T_TOTAL"; t_fail=1; }
+[ "$T_NONEMPTY" = "1" ] || { echo "    FAIL: exactly 1 transcript-with-usage -> want 1 non-UNKNOWN rate, got $T_NONEMPTY"; t_fail=1; }
+[ "$T_BLANK" = "0" ] || { echo "    FAIL: $T_BLANK blank rate field(s) — silent zero is the failure mode"; t_fail=1; }
+[ "$T_FBLANK" = "0" ] || { echo "    FAIL: $T_FBLANK blank freshness field(s)"; t_fail=1; }
+if [ "$t_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+
 
 if [ "$FAIL" = "1" ]; then
     echo "=== T466 watch-fleet regression: FAIL ==="
