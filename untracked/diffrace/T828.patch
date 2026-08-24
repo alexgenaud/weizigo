@@ -1,0 +1,34 @@
+diff --git a/tools/dispatch_verify.py b/tools/dispatch_verify.py
+index f29b29b..b96cef3 100755
+--- a/tools/dispatch_verify.py
++++ b/tools/dispatch_verify.py
+@@ -1012,8 +1012,28 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+                 _fail_perf(task_id, model, "unknown", "row", unreached, directive_kill))
+ 
+     if status != "done":
+-        # The row never closed.  rc==0 with an open row is the kimi incident.
++        # The row never closed.  rc==0 with an open row is the kimi incident —
++        # UNLESS every declared deliverable exists (T818, 2026-08-23: 12/12
++        # chunks, a manifest, derive.py and notes.md all committed, and this
++        # branch still reported plain "fail=row" for two hours).  Proof-of-
++        # work (the deliverables) and proof-of-reading (the nonce) answer
++        # different questions; when the work is provably present the failure
++        # is that the worker never echoed the nonce or closed the row — a
++        # PROTOCOL failure, RECOVERABLE, and it must not read the same as a
++        # worker that produced nothing.
+         if rc == 0:
++            work_present = bool(deliverables) and not dl_missing
++            if work_present and not nonce_ok:
++                return (2,
++                        "worker exited 0, WORK PRESENT (every declared "
++                        "deliverable exists) but the task never left %s and "
++                        "the nonce was not echoed — verification FAILED "
++                        "(protocol failure, not absence of work)" % status,
++                        details + ["NOTE kanban: task %s is still %s despite "
++                                   "WORK PRESENT — classified as a protocol "
++                                   "failure (nonce), not fail=row"
++                                   % (task_id, status)],
++                        (task_id, model, "incomplete", "fail", "nonce"))
+             return (2,
+                     "worker exited 0 but the task never left %s — verification FAILED"
+                     % status,
