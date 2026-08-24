@@ -1,0 +1,21 @@
+{
+ "task_id": "T818",
+ "date": "2026-08-23",
+ "model": "ox-alpha",
+ "claims": [
+  {
+   "id": "MEAS.CORPUS-B",
+   "proposed_status": "MEASUREMENT",
+   "rationale": "Blind second derivation of task_type/task_scope/capabilities for all 579 store tasks (method v6, 12 chunks, sha256-verified): types battery 135, audit 134, UNKNOWN 74, integration 55, infra 47, implement 47, orchestration 44, research 24, spec 19; UNKNOWN concentrated on the 26 brief-less ids plus 48 thin briefs.",
+   "evidence_path": "docs/infra/task-corpus-b"
+  },
+  {
+   "id": "MEAS.CORPUS-B-METER-GAPS",
+   "proposed_status": "FALSE-AS-SCOPED",
+   "rationale": "The corpus cannot support per-model cost or accuracy rankings as scoped: 771/1387 (55.6%) token rows have tokens_in null and 61 run records carry wall/cpu/rss all null; only 249/579 tasks have any measured wall time.",
+   "evidence_path": "docs/infra/task-corpus-b/notes.md"
+  }
+ ],
+ "new_rows": [],
+ "notes": "T818 (blind second miner). Did NOT read docs/infra/task-corpus.jsonl, task-corpus.md, findings/T817-* or tools/model-profiles.py. Deliverables: docs/infra/task-corpus-b/{manifest.json,notes.md,derive.py,chunk-*.jsonl}. Method versioned m1->m6 under an append-only discipline (each generation's chunk files kept, sha256 in manifest); production = method 6. Capability vocabulary of 10 tags derived from the data, examples in notes.md. Eight ranked anomalies with reproducible queries, headline ones: model attribution rests on the agent field for 269/519 done tasks; token meter majority-missing (55.6% null); 61 null-metric run records; T789 retry storm of 148 attempts. Agreement measurement vs T817 should compare type/scope/capability labels, not cost figures."
+}
