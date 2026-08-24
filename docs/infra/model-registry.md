@@ -66,6 +66,49 @@ From the serving-tag probe (claude-opus-5/orcha), one `ollama run <tag> "say rea
 invocation. Claude lanes need `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1` (authorized per
 grand-race.md §2).
 
+## Appetite — dial and class (operator ruling 2026-08-24, T834)
+
+The operator's ruling, verbatim (2026-08-24):
+
+> *"We can now use Ollama again. Set APPETITE to use Opus, Sonnet, Haiku, DSPro, Flash,
+> Kimi K2.7, Minimax-m3, and GLM-5.2 with equal opportunity (same APPETITE 0-9 score),
+> continue to reserve Fable. Make extra use of oxalpha (race against all others)."*
+
+Target configuration — **dial** (0–9, per model, rate/eagerness) and **class** (per
+family, the kind of permission; the S06 spec ORC-POL-3 separation, T813):
+
+| model | dial | class | note |
+|---|---|---|---|
+| `claude-opus-5` | 5 | spend | equal opportunity |
+| `claude-sonnet-5` | 5 | spend | " |
+| `claude-haiku-4-5-20251001` | 5 | spend | " |
+| `deepseek-v4-pro` | 5 | spend | " |
+| `deepseek-v4-flash` | 5 | spend | " |
+| `kimi-k2.7` | 5 | spend | ollama-cloud returns from OFF |
+| `minimax-m3` | 5 | spend | " |
+| `glm-5.2` | 5 | spend | " |
+| `ox-alpha` | 9 | spend | *"make extra use … race against all others"* |
+| `claude-fable-5` | 1 | reserved | *"continue to reserve Fable"* |
+| `qwen3.8:27b-mlx` | (unchanged) | (unchanged) | local family, T833's — do not pre-empt |
+
+**The 0–9 dial does NOT exist in code.** `src/managent/main.zig` carries only the
+five-level `Appetite` enum (`off / probe / conserve / spend / reserved`) — there is no
+numeric dial field (the S06 spec ORC-POL-3 mechanism is spec, not implementation). So the
+2026-08-24 ruling is expressed in code only as its **class** half: the eight
+equal-opportunity models and ox-alpha are all `spend`, Fable is `reserved`, qwen is
+`probe`. The **dial** half — equal *rate* (dial 5 everywhere, ox-alpha 9) — is
+**unexpressed**. Consequence, stated plainly: the current table is
+*permitted-equally* (all eight are eligible for the draw), which is **weaker** than
+*drawn-equally* (an equal rate/eagerness). The dial lands with S06 pass 1 (the policy
+file); this task is the worked example of why the compiled-in table must move out of
+`main.zig` (see findings/T834-appetite.json).
+
+What the ruling changes relative to the S06 spec's 2026-08-23 seed table
+(`docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md` §ORC-POL-3):
+ollama-cloud `OFF`/dial 0 → `SPEND`/dial 5, and claude dial
+4 → 5 (the 2026-08-23 table set claude at 4, "dice roll leans deepseek"; the 2026-08-24
+ruling sets all eight at 5 — equal opportunity).
+
 ## Stealth model — ox-alpha (T732, 2026-08-23)
 
 - **label:** `ox-alpha` · **family:** UNKNOWN (identity sealed) · **provider:** openrouter ·
@@ -169,8 +212,14 @@ a fleet-critical control — never for cheap audits and never for long-running o
   most races.
 - **qwen3.8:27b-mlx** — local 18 GB MLX build, the local probe model. The label `qwen3.8` was
   added to `canonical_models` in `src/managent/main.zig` (T317) once ledger lines named it.
-- **glm-5.2 / minimax-m3 / kimi-k2.7** — ollama-cloud family; appetite OFF → SPEND per
-  measurement-methodology.md §1 (rejoin is a human flip, ~48 h ±24 h window as of 2026-08-21).
+- **glm-5.2 / minimax-m3 / kimi-k2.7** — ollama-cloud family; appetite **OFF → SPEND,
+  landed 2026-08-24 (T834)** per the operator's ruling *"We can now use Ollama again"*.
+  The rejoin is done, not pending (the earlier "~48 h ±24 h" window closed). All three
+  serving tags re-verified resolvable 2026-08-24 (`ollama run … "say ready"` answered on
+  `glm-5.2:cloud`, `minimax-m3:cloud`, `kimi-k2.7-code:cloud`; `kimi-k2.7:cloud` still
+  fails and remains not-for-dispatch). Dial target 5 (equal opportunity) — see the
+  "Appetite — dial and class" section above; the class is SPEND in code, the dial is
+  unimplemented.
 
 ## Legacy labels — do not use
 

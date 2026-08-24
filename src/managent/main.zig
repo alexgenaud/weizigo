@@ -342,10 +342,15 @@ const model_families = [_]ModelFamily{
 };
 
 // family → appetite, mirroring measurement-methodology.md §1 (2026-08-22).
-// ollama-cloud is OFF (rejoin is a human flip); claude-fable is RESERVED
-// (never one-off/general); local is PROBE (probe-flagged rows only).
+// T834 (operator ruling 2026-08-24): ollama-cloud returns OFF → SPEND
+// (glm / minimax / kimi back on the roster).  The five-level enum has no
+// 0–9 dial, so the operator's equal-opportunity dial 5 is expressed here
+// only as the class SPEND — permitted-equally, not drawn-equally (the dial
+// is the S06 spec ORC-POL-3 mechanism; see docs/infra/model-registry.md).
+// claude-fable is RESERVED (never one-off/general); local is PROBE
+// (probe-flagged rows only).
 const family_appetite = [_]FamilyAppetite{
-    .{ .family = "ollama-cloud", .appetite = .off },
+    .{ .family = "ollama-cloud", .appetite = .spend },
     .{ .family = "claude", .appetite = .spend },
     .{ .family = "claude-fable", .appetite = .reserved },
     .{ .family = "deepseek", .appetite = .spend },
@@ -12265,32 +12270,47 @@ test "assign: every canonical model has a family and appetite mapping" {
     }
 }
 
-test "assign: OFF family absent from every candidate list, reason recorded" {
+test "assign: nine-model spend roster; fable RESERVED and qwen PROBE excluded" {
     var prng = std.Random.DefaultPrng.init(0);
     var res = try assignModel(null, &.{}, prng.random());
     defer freeAssignResult(&res);
 
-    // ollama-cloud is OFF (glm/minimax/kimi), fable RESERVED, qwen PROBE →
-    // the qualified list is the operator's five-model roster.
-    try std.testing.expectEqual(@as(usize, 5), res.candidates.len);
+    // T834 (operator ruling 2026-08-24): ollama-cloud is SPEND again
+    // (glm/minimax/kimi back), fable RESERVED, qwen PROBE → the qualified
+    // list is the operator's eight equal-opportunity models PLUS ox-alpha
+    // (dial 9, "test whenever you get the opportunity").
+    try std.testing.expectEqual(@as(usize, 9), res.candidates.len);
+    var saw_glm = false;
+    var saw_minimax = false;
+    var saw_kimi = false;
+    var saw_ox = false;
     for (res.candidates) |c| {
-        try std.testing.expect(!std.mem.eql(u8, c, "glm-5.2"));
-        try std.testing.expect(!std.mem.eql(u8, c, "minimax-m3"));
-        try std.testing.expect(!std.mem.eql(u8, c, "kimi-k2.7"));
+        if (std.mem.eql(u8, c, "glm-5.2")) saw_glm = true;
+        if (std.mem.eql(u8, c, "minimax-m3")) saw_minimax = true;
+        if (std.mem.eql(u8, c, "kimi-k2.7")) saw_kimi = true;
+        if (std.mem.eql(u8, c, "ox-alpha")) saw_ox = true;
         try std.testing.expect(!std.mem.eql(u8, c, "qwen3.8:27b-mlx"));
         try std.testing.expect(!std.mem.eql(u8, c, "claude-fable-5"));
     }
-    var saw_off = false;
+    try std.testing.expect(saw_glm);
+    try std.testing.expect(saw_minimax);
+    try std.testing.expect(saw_kimi);
+    try std.testing.expect(saw_ox);
+    var saw_reserved = false;
+    var saw_probe = false;
     for (res.reasons) |r| {
-        if (std.mem.indexOf(u8, r, "appetite OFF for family ollama-cloud") != null) saw_off = true;
+        if (std.mem.indexOf(u8, r, "appetite RESERVED") != null) saw_reserved = true;
+        if (std.mem.indexOf(u8, r, "appetite PROBE") != null) saw_probe = true;
     }
-    try std.testing.expect(saw_off);
+    try std.testing.expect(saw_reserved);
+    try std.testing.expect(saw_probe);
 }
 
 test "assign: single qualified candidate forces method=forced" {
     var prng = std.Random.DefaultPrng.init(0);
-    // Exclude the claude family and flash → only deepseek-v4-pro remains.
-    const excl = [_][]const u8{ "claude", "deepseek-v4-flash" };
+    // Exclude claude, flash, ollama-cloud and ox-alpha → only
+    // deepseek-v4-pro remains (ollama-cloud is SPEND again per T834).
+    const excl = [_][]const u8{ "claude", "deepseek-v4-flash", "ollama-cloud", "ox-alpha" };
     var res = try assignModel(null, &excl, prng.random());
     defer freeAssignResult(&res);
     try std.testing.expectEqualStrings("forced", res.method);
@@ -12307,7 +12327,7 @@ test "assign: named model is preferred, qualified list still recorded" {
     try std.testing.expectEqualStrings("claude-fable-5", res.model);
     // fable is RESERVED, so it is not in the qualified list — but the list is
     // still recorded so a later reader sees what was passed over.
-    try std.testing.expectEqual(@as(usize, 5), res.candidates.len);
+    try std.testing.expectEqual(@as(usize, 9), res.candidates.len);
     var saw_note = false;
     for (res.reasons) |r| {
         if (std.mem.indexOf(u8, r, "preferred by row (outside qualified list)") != null) saw_note = true;
@@ -12378,7 +12398,7 @@ test "assign: candidates/method/reasons round-trip serialize → parse" {
     ts.candidates = try cands.toOwnedSlice(alloc);
     ts.method = try alloc.dupe(u8, "random");
     var reas = std.ArrayList([]const u8).empty;
-    try reas.append(alloc, try alloc.dupe(u8, "glm-5.2: appetite OFF for family ollama-cloud"));
+    try reas.append(alloc, try alloc.dupe(u8, "claude-fable-5: family claude-fable appetite RESERVED (reserved task types only)"));
     ts.assign_reasons = try reas.toOwnedSlice(alloc);
 
     try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
@@ -12395,7 +12415,7 @@ test "assign: candidates/method/reasons round-trip serialize → parse" {
     try std.testing.expectEqualStrings("claude-opus-5", p.candidates[0]);
     try std.testing.expectEqualStrings("deepseek-v4-pro", p.candidates[1]);
     try std.testing.expectEqual(@as(usize, 1), p.assign_reasons.len);
-    try std.testing.expectEqualStrings("glm-5.2: appetite OFF for family ollama-cloud", p.assign_reasons[0]);
+    try std.testing.expectEqualStrings("claude-fable-5: family claude-fable appetite RESERVED (reserved task types only)", p.assign_reasons[0]);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
