@@ -1,7 +1,7 @@
 # S11 STATUS — the only progress surface
 
 **A phase is complete when its single final document exists in `docs/` and carries a grade here.**
-`—` not started · `RUN` arms in flight · `ARMS` arms landed, ungraded · `GRADED` audited ·
+`—` not started · `ACTIVE` a worker is executing it right now · `ARMS` arms landed, ungraded · `GRADED` audited ·
 `ACCEPTED` reconciled, final document written. Anything short of ACCEPTED is incomplete.
 
 ## stream1-design — ideal design, blind to the repository
@@ -9,7 +9,7 @@
 | item | owner | model | state |
 |---|---|---|---|
 | arm A (untracked) | T857 | ox-alpha | **ARMS** — landed, blindness verified |
-| arm B (untracked) | T859 | deepseek-v4-pro | RUN |
+| arm B (untracked) | T859 | deepseek-v4-pro | ACTIVE |
 | grade (untracked) | — | — | — |
 | **`stream1-design/design.md`** | — | — | **—** |
 
@@ -18,7 +18,7 @@
 | item | owner | model | state |
 |---|---|---|---|
 | arm A (untracked) | T858 | deepseek-v4-pro | **ARMS** — landed, all citations resolve |
-| arm B (untracked) | T860 | ox-alpha | RUN |
+| arm B (untracked) | T860 | ox-alpha | ACTIVE |
 | grade (untracked) | — | — | — |
 | **`stream2-whatis/whatis.md`** | — | — | **—** |
 
