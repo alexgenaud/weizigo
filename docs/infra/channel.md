@@ -20,12 +20,16 @@ phase documents in git (`spec.md`, `design.md`, `plan.md`, `test.md`,
 untracked/msg/
 ├── <epic>/                  ← one directory per epic
 │   ├── <sprint>/            ← one directory per sprint within the epic
-│   │   ├── STATE.md         ← crash-recovery anchor (read first)
 │   │   ├── DECISIONS.md     ← rulings awaiting promotion to docs/
 │   │   └── NNN-<from>-to-<to>.md  ← numbered messages (append-only)
-│   ├── STATE.md             ← epic-level crash-recovery anchor
 │   └── DECISIONS.md         ← epic-level rulings
 ```
+
+**Hand-over narrative lives in git, not the channel** (operator ruling 2026-08-24:
+STATE.md retired — a hand-maintained anchor no one is compelled to update becomes
+a stale trap). The durable pointer is `bin/managent resume`, then the newest
+`docs/status/RESUME-*.md` — named as a wildcard, never updated, so it cannot go
+stale.
 
 **Current channel:** `untracked/msg/milestone-01-ko-reframe/` — the live epic channel for
 `E1-markovian`. Its directory name (`milestone-01-ko-reframe`)
@@ -41,7 +45,6 @@ To initialize a new sprint channel, copy from:
 
 ```
 docs/infra/channel-template/
-├── STATE.md
 └── DECISIONS.md
 ```
 
@@ -59,8 +62,7 @@ These are placeholder files with `<EPIC>`, `<SPRINT>`, `<DATE>` markers.
 > carries a README stating its retention reason and the date its pass closed.
 >
 > The epic-level channel (`untracked/msg/<epic>/`) is pruned only when the epic
-> closes, by human decision, because it holds cross-sprint `DECISIONS.md` and
-> `STATE.md` that no single sprint owns.
+> closes, by human decision, because it holds cross-sprint `DECISIONS.md` that no single sprint owns.
 
 ### What this rule authorizes
 
@@ -121,6 +123,6 @@ a `.gitignore` would communicate permanence it does not have.
 - `docs/infra/sprint.md` — phase gates and sprint lifecycle. Points here for
   channel layout and pruning.
 - `docs/INDEX.md` — the authoritative retrieval index. Routes
-  crash-recovery to `untracked/msg/<epic>/<sprint>/STATE.md`.
+  cold resume to `bin/managent resume` + the newest `docs/status/RESUME-*.md`.
 - `docs/infra/agent-identity-and-worker-channel.md` — identity scheme and
   channel protocol for agents.

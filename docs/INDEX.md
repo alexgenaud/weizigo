@@ -20,7 +20,7 @@ file a bug.
 → `bin/managent resume` — the composed resume surface (in flight, what landed, gate status; read at invocation, nothing stored)
 → `docs/status/HANDOVER.md` — tactical session-continuity snapshot
 → `docs/epistemic/PROGRESS.md` — strategic truth: what we know, what we need to know
-→ `untracked/msg/<epic>/<sprint>/STATE.md` — crash-recovery anchor for live cross-agent traffic
+→ newest `docs/status/RESUME-*.md` (wildcard glob — never updated) — hand-over narrative; `bin/managent resume` composes the live surface
 → `docs/infra/channel.md` — channel layout, pruning rule, and addressee convention
 
 ## What is known / what failed / what's open?

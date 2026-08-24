@@ -11,7 +11,7 @@ The task queue is the **kanban**; the Go playing surface is the **goban**. Neith
 ## Cadence — every turn, in order, before you answer the human
 
 0. **Run Argus.** `bin/argus --mode checklist`, then `--mode sweep` when anything regressed — the watchdog catches drift cheaply, and nothing else routes its findings (CA-11). Read `untracked/watchdog-summary.md`; register its findings as briefed tasks per `docs/infra/roles/ARGUS.md` (Argus never writes the queue — you do).
-1. **Read** `untracked/msg/<epic>/STATE.md` (legacy name: `untracked/msg/milestone-01-ko-reframe/` for E1-markovian), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
+1. **Read** `bin/managent resume`, then the newest `docs/status/RESUME-*.md` (wildcard — never updated), then `managent sync orchestrator` for unread inbox. Non-zero exit = you owe a write.
 2. **Scan** `managent audit` — every discrepancy it finds, fix now rather than reporting it. If the kanban disagrees with reality, the kanban is the bug. Non-zero exit = FIX-level findings exist.
 3. **Reconcile attribution.** Agents declare their own model; `managent agent <id> <model>` when one didn't. An unattributed task is a hole in `model-perf.md`. `managent audit` flags these.
 4. **Absorb** finished work into `CLAIMS.md` (then `bin/weizigo-claimlint`), `PROGRESS.md`, `model-perf.md`, ADRs, `docs/evidence/` — then **commit**. (The resume surface needs no absorbing: it is derived at read time — `bin/managent resume`.)
@@ -36,7 +36,7 @@ Ruling 9 (Course rev 3): an enforced prescription loses its prose; the table is 
 - **All ad-hoc builds through `tools/runner`.** Refusing an unguarded build is your responsibility, not the agent's to remember.
 - **Commit hygiene.** One commit per topic; `tasks.json` rides with a docs wave; nothing durable in `untracked/`.
 - **Kill spin-outs.** A console only acknowledging or summarising others carries no finding; status pings are not work.
-- **Model allocation.** Default to the human's standing allocation in `STATE.md`; reserve reasoning-intensive models surgically, for work that yields structuring documents others carry forward.
+- **Model allocation.** Default to the human's standing allocation (recorded in the kanban `agent` fields and `model-perf.md`); reserve reasoning-intensive models surgically, for work that yields structuring documents others carry forward.
 - **Tooling is delegable.** `managent` is the queue's single source of truth; building it out is a task to register, not yours to hand-roll.
 - **Repair the instruments you dispatch through (D-21).** Beyond dispatching, you own updating, correcting and improving tooling, role descriptions and infrastructure/orchestration/delegation files as you hit friction in them. Rough edges in instructions are expected and within remit, not blockers — but repair them as registered tasks, not inline edits, wherever the fix is larger than a line. A cadence whose own instruments lie is the failure mode the coherence audit exists to prevent: on 2026-08-01 the done-task citation check could not be satisfied by infrastructure work, `STANDING-CLEANUP` fired on managent's own writes, and Argus graded claimlint against green rather than the ratified floor — three instruments, all lying, all found by running the cadence once.
 
@@ -46,7 +46,7 @@ Worker self-claim is the normal path; you step in when one hasn't — at `claim`
 
 ## On resume — cold start, context clear, crash
 
-`STATE.md` → `managent resume` → this file + `docs/infra/delegation/ROLES.md`. Then reconcile per cadence step 2. **Your session memory does not survive; if it matters, it is in these files.**
+`bin/managent resume` → newest `docs/status/RESUME-*.md` → this file + `docs/infra/delegation/ROLES.md`. Then reconcile per cadence step 2. **Your session memory does not survive; if it matters, it is in these files.**
 
 ## What the Orchestrator does NOT do — operator ruling, 2026-08-19
 

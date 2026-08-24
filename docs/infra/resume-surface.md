@@ -37,7 +37,7 @@ The command reads, at invocation, from:
 | `bin/weizigo-claimlint` summary | gate counts (C1a/C1b/C2/C6) against the recorded floor (`tools/hooks/claimlint-floor.json`) | no — recomputed at invocation |
 | `git config core.hooksPath` | is the pre-commit gate installed | no — read at invocation |
 | `git status --porcelain` | is the tree clean | no — read at invocation |
-| `untracked/msg/*/STATE.md` | the narrative headline, **by reference** | yes — it is prose (see §4) |
+| newest `docs/status/RESUME-*.md` | the hand-over narrative, **by reference** (wildcard glob, never updated — 2026-08-24 ruling) | no — the glob always names the newest file; legacy channel `STATE.md` files are also listed by reference when present |
 
 Nothing is cached, nothing is written. `managent resume` is a pure reader: it
 never mutates `tasks.json`, never writes a file, never registers a task.
@@ -87,9 +87,9 @@ docs/epistemic/CLAIMS.md    ← the register (one owner — do not race it)
 For a session resuming from the channel, the chain is:
 
 ```
-untracked/msg/<epic>/STATE.md  ← crash-recovery anchor (read first)
-managent resume                ← the composed surface
-docs/epistemic/PROGRESS.md     ← the durable hub
+newest docs/status/RESUME-*.md  ← hand-over narrative (wildcard — never updated)
+managent resume                 ← the composed surface
+docs/epistemic/PROGRESS.md      ← the durable hub
 ```
 
 Pointers fixed (T286, count reported in the findings file):
@@ -122,16 +122,15 @@ go stale.
 
 Everything mechanical is derivable: the kanban, the commit list, the gate
 counts, the hook install state, the tree dirt. **The narrative is not.** "Here is
-what happened and why it matters" is human/agent prose, and the channel
-`STATE.md` already holds it — that is its job ("Overwritten in place; always
-current", channel.md).
+what happened and why it matters" is human/agent prose.
 
-So `managent resume` **includes the prose by reference, never by duplication**:
-it prints the path of every `untracked/msg/*/STATE.md`, its last-updated line
-and its first `## ` heading — enough to orient, and a hard pointer to the file
-for the actual narrative. If the prose is stale, the stale line is printed *as
-stale* (its own date), and the mechanical sections above it do not depend on it
-at all.
+Since the operator's 2026-08-24 ruling retired the channel `STATE.md` (a
+hand-maintained anchor nobody was compelled to update; it went 19 days stale
+while AGENTS.md still directed cold readers at it), the hand-over narrative
+lives in git as dated files: **the newest `docs/status/RESUME-*.md`**. The
+surface names it as a **wildcard** — deliberately never updated, so it can never
+stale. Legacy `STATE.md` files under `untracked/msg/`, where any survive, are
+still listed by reference with their own date.
 
 ## 4. A staleness impossibility argument — the honest residual
 
@@ -144,8 +143,9 @@ structurally gone: nothing is refreshed, because nothing is stored.
 
 The residual, stated plainly:
 
-- **STATE.md is prose and can be stale.** The command does not fix that; it
-  prints the prose's own date so the reader can judge. An honest residual beats a
+- **The narrative pointer is a wildcard, not a file check.** The surface prints
+  the glob without verifying a RESUME file exists; the reader follows it and,
+  finding none or many, reads the newest by date. An honest residual beats a
   claimed guarantee.
 - **tasks.json can disagree with the real world** (a console alive but not
   claimed, or a claimed task whose console died). That is the kanban's known
@@ -168,7 +168,8 @@ task and the file.
   surface. The gate section says "NOT RUN here — run `zig build test` yourself".
 - **Does not write `_standing`-style metadata** (unlike `managent standing`,
   which persists trigger state). Resume is a pure reader by design.
-- **Does not read or copy the body of STATE.md** beyond the headline.
+- **Does not read or copy the body of any narrative file** beyond a legacy
+  headline.
 
 ## Retired in the same ruling — the `ephemeral/` indirection
 

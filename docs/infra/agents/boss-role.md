@@ -3,8 +3,7 @@
 The orchestrator's job is now **`docs/infra/delegation/DELEGATOR.md`** (how to write a task
 nobody can execute wrongly: the nine-line brief header, costing the method, a test that can
 fail, a named reviewer, heartbeats, model fit) plus **`docs/infra/dispatch/README.md`** (the
-live experiment graph, concurrency rules, definition of done, escalation) and the roles table in
-`untracked/msg/<milestone>/STATE.md` (user-set, 2026-07-28).
+live experiment graph, concurrency rules, definition of done, escalation) and the seat allocation in the kanban `agent` fields + `model-perf.md`.
 
 **Dropped as obsolete** — if any of this is still wanted, say so:
 the `B<NN>`/`T<NN>` bundle-filename convention and its migration policy; the one-line ~50-char

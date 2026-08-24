@@ -17,7 +17,7 @@ startup reading list again.
 
 `managent orient` (≤150-line worker preamble from AGENTS.md / DELEGATEE.md / sprint.md /
 DIRECTION.md + kanban + activity) and `managent resume` (resume surface from tasks.json + git +
-claimlint + STATE.md). The composition mechanism is right; the **sources** and **role fit** are
+claimlint + the RESUME-* handover pointer). The composition mechanism is right; the **sources** and **role fit** are
 unaudited.
 
 ## 3. The work

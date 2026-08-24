@@ -379,13 +379,15 @@ Sections, each from a source that cannot be stale:
 - **gate** — `core.hooksPath` installed? claimlint counts (C1a/C1b/C2/C6)
   against the recorded floor (`tools/hooks/claimlint-floor.json`)? `zig build
   test` is deliberately NOT run (minutes of sweeps).
-- **narrative** — every `untracked/msg/*/STATE.md` by reference: path,
-  last-updated line, first `## ` heading. The prose is never copied.
+- **narrative** — the hand-over pointer: `newest docs/status/RESUME-*.md`
+  (wildcard, never updated — 2026-08-24 ruling). Legacy channel `STATE.md`
+  files, where any survive, by reference: path, last-updated line, first
+  `## ` heading. The prose is never copied.
 - **tree** — `git status --porcelain` (kanban-store writes excluded).
 - **verdict** — nothing-in-flight + clean tree, or a pointer to what is.
 
 Degradation is explicit, never silent: unbuilt claimlint prints
-`claimlint: unavailable`; a fresh clone with no channel prints `none (...)`.
+`claimlint: unavailable`.
 
 Regression controls: `tools/regression-managent-resume.sh` (null control —
 empty kanban + clean tree says NOTHING IN FLIGHT; seeded control — a task in
@@ -395,7 +397,7 @@ progress and its held file both appear), wired into `zig build test`.
 $ managent resume
 
   === resume surface — composed at read time; nothing stored ===
-  composed 2026-08-03T00:10:00Z from tasks.json · git log/config/status · claimlint · STATE.md
+  composed 2026-08-03T00:10:00Z from tasks.json · git log/config/status · claimlint
 
   kanban (live):
     in_progress (1)
@@ -411,7 +413,7 @@ $ managent resume
 Generates the **worker preamble** at read time (T353) — a ≤150-line surface
 that replaces the ~1,524-line reading list a worker otherwise wades through
 before its own brief (`AGENTS.md` + `DELEGATEE.md` + `sprint.md` +
-`DIRECTION.md` + `WAYPOINTS.md` + `STATE.md`). Pure reader: never writes
+`DIRECTION.md` + `WAYPOINTS.md` + the RESUME-*.md handover glob). Pure reader: never writes
 `tasks.json`. Follows the `resume` pattern — nothing is stored, nothing can
 rot — so a stale preamble is structurally impossible.
 

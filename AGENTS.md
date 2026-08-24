@@ -152,8 +152,7 @@ Settled — reopening one wastes a session. To overturn one, write an ADR supers
 | after the living overview | `docs/epistemic/PROGRESS.md` — the durable hub. The two dated docs below are depth it is meant to absorb; if they disagree with it, PROGRESS is stale and that is a bug to file |
 | after which ruleset we solve, and how | `docs/epistemic/roadmap-2026-07-28.md` |
 | after what is known-wrong | `docs/epistemic/critique-2026-07-28.md` (§4 especially) |
-| resuming cold (durable in git) | `bin/managent resume` (composed surface), then `docs/epistemic/PROGRESS.md` |
-| resuming from the channel (durable + untracked) | `untracked/msg/<epic>/STATE.md` (read first), then `bin/managent resume` |
+| resuming cold (durable in git) | `bin/managent resume` (composed surface), then the newest `docs/status/RESUME-*.md` (wildcard glob — never updated), then `docs/epistemic/PROGRESS.md` |
 | running an ad-hoc build | `docs/infra/runner.md`, then `tools/runner -- <command>` |
 | delegating to a DeepSeek subagent | `docs/infra/agents/subdelegation.md` — `odeeppi` (Pro) and `oflashpi` (Flash) shell commands |
 | editing engine code | `docs/engine/ARCHITECTURE.md` + the relevant `docs/decisions/000N-*.md` |
@@ -390,9 +389,9 @@ Agent-to-agent comms and task state belong in `untracked/`, under documented sub
 - `untracked/*.wzo` — large oracle artifacts that are cited but not in git (hashes recorded in `docs/evidence/README.md`)
 
 ## Agent-to-agent communication
-Cross-agent traffic lives in `untracked/msg/<epic>/` (max two live): `STATE.md` is the crash-recovery anchor
-(read first; always current, overwritten in place), `NNN-<from>-to-<to>.md` are append-only numbered messages
-(never edit an old one), `DECISIONS.md` records every ruling with its promotion target in `docs/`. **Delete the
+Cross-agent traffic lives in `untracked/msg/<epic>/` (max two live): `NNN-<from>-to-<to>.md` are append-only numbered messages
+(never edit an old one), `DECISIONS.md` records every ruling with its promotion target in `docs/`. Hand-over narrative
+lives in git: the newest `docs/status/RESUME-*.md` (wildcard — never updated). **Delete the
 directory only once every decision is promoted** — `untracked/` is git-ignored, so it dies on a fresh clone; that
 is how T13's evidence was destroyed. Promotion is the gate, not tidiness.
 
