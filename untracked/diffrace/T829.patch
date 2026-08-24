@@ -1,0 +1,28 @@
+--- /tmp/dispatch_verify_base.py	2026-08-24 08:50:27
++++ tools/dispatch_verify.py	2026-08-24 08:49:56
+@@ -1070,9 +1070,23 @@
+                 details, (task_id, model, worker_report, "fail", "findings"))
+ 
+     if not nonce_ok:
++        # Nonce echo missing.  Distinguish between:
++        # - protocol failure: work was done (deliverables verified) but nonce not echoed
++        # - work failure: work was not done (would have caught earlier if deliverables required)
++        #
++        # At this point we've verified deliverables (lines 1053-1059 would have caught
++        # missing required deliverables), so nonce-missing here means the worker READ
++        # the instructions (proved by the work) but failed to ECHO the nonce token.
++        # This is a protocol failure (proof-of-reading check failed), distinct from
++        # a work failure (proof-of-work check failed).  The fail_check="nonce" here
++        # (vs fail_check="deliverables" at lines 1053-1059) names the distinction.
+         return (2,
+-                "worker reported %s; verification FAILED: nonce echo missing" % worker_report,
+-                details, (task_id, model, worker_report, "fail", "nonce"))
++                "worker reported %s; verification FAILED: nonce echo missing "
++                "(protocol failure: work done, nonce not echoed)" % worker_report,
++                details + ["FAIL nonce: the worker did not echo the injected token — "
++                           "protocol failure (work completed, proof-of-reading token not echoed); "
++                           "compare with deliverables failure (work not completed)"],
++                (task_id, model, worker_report, "fail", "nonce"))
+ 
+     if dl_missing:
+         details.append("NOTE deliverables absent (expected for %s)" % verdict)
