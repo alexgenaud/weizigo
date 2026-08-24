@@ -8,9 +8,15 @@
 #
 #   null control   a legit single-task commit succeeds and contains EXACTLY
 #                  the named paths (nothing more, nothing less)
-#   seeded control incident 1 reproduced — two staged sets, one commit — the
-#                  wrapper REFUSES, names the foreign path, and leaves both
-#                  staged sets untouched (content intact, still staged)
+#   seeded control incident 1 reproduced — two staged sets, one commit. Until
+#                  T902 the wrapper REFUSED here, naming the foreign path: it
+#                  could see another console's staged work, so it had to stop.
+#                  It now stages into a PRIVATE index (GIT_INDEX_FILE), so the
+#                  foreign path is invisible instead of merely refused — the
+#                  commit lands with the named path alone and the foreign
+#                  staged set survives untouched. The stronger property: the
+#                  shared index can no longer either capture a commit or block
+#                  one (b47c248, 2026-08-24).
 #   explicit arm   the Orchestrator mode: foreign staged content present, the
 #                  commit is path-limited and cannot absorb it
 #   scope arm      naming a path outside the declared deliverables is refused
@@ -67,26 +73,27 @@ echo "  2. seeded control: incident 1 — two staged sets, one commit"
 mkdir -p src
 echo "T272 staged work" > src/claimlint.zig
 git add src/claimlint.zig            # staged set 1: another console's work
-echo more > docs/amendment2.md
+echo more > docs/amendment2.md       # left unstaged for the explicit arm below
+printf '<!--managent set=C deliverables=docs/isolated.md-->\n' > T902-bundle.md
+echo isolated > docs/isolated.md     # staged set 2: this console's own work
 COMMITS_BEFORE=$(git rev-list --count HEAD)
-OUT=$("$WRAP" --bundle T268-bundle.md docs/amendment2.md -m "T268 second" 2>&1)
+OUT=$("$WRAP" --bundle T902-bundle.md docs/isolated.md -m "T268 second" 2>&1)
 RC=$?
 COMMITS_AFTER=$(git rev-list --count HEAD)
-if [ "$RC" -eq 0 ]; then
-    echo "    FAIL: wrapper committed despite a foreign staged path (RC=0)"
-    FAIL=1
-elif echo "$OUT" | grep -q "src/claimlint.zig" && [ "$COMMITS_AFTER" -eq "$COMMITS_BEFORE" ]; then
-    echo "    PASS: refused, named src/claimlint.zig, no commit created"
+IN_COMMIT=$(git show --format= --name-only HEAD | grep -v '^$')
+if [ "$RC" -eq 0 ] && [ "$IN_COMMIT" = "docs/isolated.md" ] && [ "$COMMITS_AFTER" -eq $((COMMITS_BEFORE + 1)) ]; then
+    echo "    PASS: committed docs/isolated.md alone — the foreign staged path was invisible, not absorbed (T902)"
 else
-    echo "    FAIL: refusal or naming wrong (RC=$RC, commits $COMMITS_BEFORE->$COMMITS_AFTER)"
+    echo "    FAIL: RC=$RC, commit='$IN_COMMIT', commits $COMMITS_BEFORE->$COMMITS_AFTER"
     echo "$OUT"
     FAIL=1
 fi
-# both staged sets must survive untouched
+# the foreign staged set must survive untouched, and the wrapper must not
+# have left its own path staged in the SHARED index (the private index is
+# reconciled back to HEAD for the paths it committed)
 STAGED=$(git diff --cached --name-only)
-if [ "$STAGED" = "docs/amendment2.md
-src/claimlint.zig" ] && grep -q "T272 staged work" src/claimlint.zig; then
-    echo "    PASS: both staged sets intact, foreign content untouched"
+if [ "$STAGED" = "src/claimlint.zig" ] && grep -q "T272 staged work" src/claimlint.zig; then
+    echo "    PASS: foreign staged set intact and untouched; shared index carries nothing of ours"
 else
     echo "    FAIL: staged set changed: '$STAGED'"
     FAIL=1

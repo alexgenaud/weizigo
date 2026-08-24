@@ -953,6 +953,26 @@ pub fn build(b: *std.Build) void {
     commit_concurrency_regression.cwd = b.path(".");
     test_step.dependOn(&commit_concurrency_regression.step);
 
+    // ── T902: commit index-isolation controls ────────────────────────
+    // The T547 mutex serialises COMMITTERS; it does not isolate the
+    // INDEX. Only wrapper invocations take the lock, so a bare
+    // `git add -- <paths>` from any console lands in the shared
+    // .git/index whenever it likes — including inside the lock holder's
+    // verify→commit window, whose `git commit` then commits the whole
+    // index. That is b47c248 (2026-08-24): T891 staged four files by
+    // name, T901 committed, T891's work landed under T901's message.
+    // Controls: a bare `git add` parked inside the wrapper's commit
+    // window (3 runs — a race that reproduces sometimes is not fixed by
+    // a test that runs it once) → the commit must contain only its own
+    // paths and the foreign staging must survive; foreign staged content
+    // must no longer BLOCK a correct commit either; the pre-commit
+    // backstop must judge the index the commit is built from; plus null
+    // controls for a lone console, the healthy no-op, a missing path,
+    // and the shared index still agreeing with HEAD afterwards.
+    const commit_isolation_regression = b.addSystemCommand(&.{ "sh", "tools/regression-commit-isolation.sh" });
+    commit_isolation_regression.cwd = b.path(".");
+    test_step.dependOn(&commit_isolation_regression.step);
+
     // ── T450: pilot-gate scratch-and-verify controls ─────────────────
     // The gate's whole value is that a failing run leaves nothing
     // behind (T447 found four races where it wrote live tracked
@@ -1185,6 +1205,22 @@ pub fn build(b: *std.Build) void {
     const bundle_header_parse_regression = b.addSystemCommand(&.{ "sh", "tools/regression-bundle-header-parse.sh" });
     bundle_header_parse_regression.cwd = b.path(".");
     test_step.dependOn(&bundle_header_parse_regression.step);
+
+    // ── T906: the 40-char title gate at registration ────────────────
+    // bin/dispatch refused a title over 40 chars (DELEGATOR.md §Task
+    // titles) but rows are CREATED by `managent add`/`suggest`, which
+    // enforced nothing: 271 of 726 briefs (37%) carried a longer title
+    // and the operator read them one line per lane.  Controls: a
+    // 60-char title is refused at add naming title+length, a legal
+    // short title registers with the title recorded on the row (a
+    // deleted brief cannot erase the row's name), a bundle with no
+    // title line is refused for THAT reason (a different message than
+    // the over-long case), exactly 40 passes / exactly 41 is refused
+    // (off-by-one pin), suggest gates the slug (the sibling
+    // registration path), and add --auto (the mint path) refuses too.
+    const title_gate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-title-gate.sh" });
+    title_gate_regression.cwd = b.path(".");
+    test_step.dependOn(&title_gate_regression.step);
 
     // ── T542: grand-race bake-off gate controls (G1/G2/G3/G4) ─────
     // G5 already held; G6 is T522's. Controls pin: G1 tokens (trailer

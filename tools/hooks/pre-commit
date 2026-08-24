@@ -9,6 +9,15 @@
 # truncated 2,556 files to 4, and the task store was overwritten with a
 # stale snapshot. Unset the inherited git environment before running
 # anything, so a child's `git init` cannot reach back into this repo.
+# T902: GIT_INDEX_FILE is not only inherited noise — for this hook it is
+# LOAD-BEARING. git points it at the index the commit is actually being built
+# from: tools/git-commit-mine's private index, or the temporary index of a
+# `git commit -- <pathspec>`. Unsetting it made gate 2 judge the SHARED
+# .git/index instead, so a foreign path staged by another console read as a
+# scope violation by THIS commit — refusing a correct commit for content that
+# could not enter it. Save it for gate 2's staged-set read; everything the
+# hook RUNS still runs with the git env cleared.
+WZ_COMMIT_INDEX="${GIT_INDEX_FILE:-}"
 unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_NAMESPACE
 # ── end isolation ────────────────────────────────────────────────────────
 
@@ -62,6 +71,24 @@ FLOOR_FILE="${FLOOR_FILE:-tools/hooks/claimlint-floor.json}"
 CLAIMLINT_BIN="bin/weizigo-claimlint"
 
 # ── guard: can we run at all? ──────────────────────────────────────────
+# T902: claimlint runs `git diff --cached` itself to decide which evidence
+# citations are NEW (the C10 ratchet, gated through the C2 summary number).
+# With GIT_INDEX_FILE unset by the isolation block above it read the SHARED
+# .git/index, so another console's staged file failed THIS commit for a
+# citation this commit does not contain — measured: T863's staged
+# docs/infra/races/protocol-compliance.md blocked T902's landing with
+# "C2 regressed: 1 > floor 0". Same defect as gate 2's staged-set read, same
+# fix: give claimlint the index the commit is built from. ONLY claimlint gets
+# it — gate 3 runs regression scripts that `git init` scratch repos, and a
+# stray GIT_INDEX_FILE would point their git at this commit's index (T849).
+wz_claimlint() {
+    if [ -n "$WZ_COMMIT_INDEX" ] && [ -f "$WZ_COMMIT_INDEX" ]; then
+        GIT_INDEX_FILE="$WZ_COMMIT_INDEX" "$CLAIMLINT_BIN" "$@"
+    else
+        "$CLAIMLINT_BIN" "$@"
+    fi
+}
+
 if ! command -v "$CLAIMLINT_BIN" >/dev/null 2>&1; then
     echo "pre-commit: $CLAIMLINT_BIN not found — blocking commit"
     echo "  build it: zig build && cp zig-out/bin/weizigo-claimlint bin/"
@@ -77,7 +104,15 @@ fi
 # Runs before claimlint: it is cheaper and the refusal is the relevant one
 # when a foreign path is staged. Scope resolution shares the wrapper's
 # implementation (tools/git-commit-mine-lib.sh) — one copy of the parsing.
-STAGED_PATHS=$(git diff --cached --name-only 2>/dev/null || true)
+# T902: read the commit's own index (WZ_COMMIT_INDEX, saved above) when git
+# named one; fall back to the repository index otherwise (a plain
+# `git commit` from a console, and the hook's own regression harness, which
+# stages into .git/index and invokes the hook directly with no git env).
+if [ -n "$WZ_COMMIT_INDEX" ] && [ -f "$WZ_COMMIT_INDEX" ]; then
+    STAGED_PATHS=$(GIT_INDEX_FILE="$WZ_COMMIT_INDEX" git diff --cached --name-only 2>/dev/null || true)
+else
+    STAGED_PATHS=$(git diff --cached --name-only 2>/dev/null || true)
+fi
 if [ -n "$STAGED_PATHS" ]; then
     list_staged() {
         echo "$STAGED_PATHS" | while IFS= read -r sp; do
@@ -212,9 +247,9 @@ fi
 # worse than none). set -e is suspended for the capture only.
 set +e
 if [ -n "$CLAIMS_PATH" ]; then
-    OUTPUT=$("$CLAIMLINT_BIN" "$CLAIMS_PATH" 2>&1)
+    OUTPUT=$(wz_claimlint "$CLAIMS_PATH" 2>&1)
 else
-    OUTPUT=$("$CLAIMLINT_BIN" 2>&1)
+    OUTPUT=$(wz_claimlint 2>&1)
 fi
 CLAIMLINT_EXIT=$?
 set -e

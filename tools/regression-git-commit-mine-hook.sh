@@ -28,6 +28,17 @@
 # Task: T282 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-03
 
 set -u
+# Test determinism (T902): this script VARIES GIT_MINE_EXPLICIT, MANAGENT_TASK_ID
+# and MANAGENT_STORE per arm and reads each back with ${VAR:-default}, so an
+# inherited value silently rewrites the arm's own fixture. It is not a
+# hypothetical: tools/git-commit-mine exports GIT_MINE_EXPLICIT=1 for every
+# --explicit commit, the pre-commit hook's fast test tier runs this script as a
+# child of that commit, and 6 of 7 arms then read the explicit branch instead of
+# the one they set up — a red that says nothing about the code under test. A
+# check whose verdict depends on the caller's environment is not a check.
+unset GIT_MINE_EXPLICIT MANAGENT_TASK_ID MANAGENT_STORE 2>/dev/null || true
+# ...and the git env, so a scratch `git init` can never reach the real repo (T849).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_NAMESPACE 2>/dev/null || true
 HERE="$(cd "$(dirname "$0")" && pwd)"
 LIVE="$(cd "$HERE/.." && pwd)"
 HOOK="$LIVE/tools/hooks/pre-commit"

@@ -18,12 +18,27 @@ _wz_guard() {
         echo "  then verify 'git rev-parse --show-toplevel' before retrying." >&2
         return 1
     fi
-    local before; before=$(git ls-tree -r --name-only HEAD 2>/dev/null | wc -l | tr -d " ")
-    if [ "${before:-0}" -lt 2000 ]; then
-        echo "git-commit-mine: REFUSED — HEAD holds only ${before} files." >&2
-        echo "  A healthy tree here is >2000. HEAD is truncated; do not commit onto it." >&2
-        echo "  Find the newest intact commit and reset the branch to it first." >&2
-        return 1
+    # Invariant 2 is about THIS repository being truncated, so it must only
+    # fire in THIS repository. Keyed on the tree SIZE alone it fired in every
+    # scratch repo too (T902, 2026-08-24): a fixture repo legitimately holds
+    # one file, so the floor refused every arm of
+    # regression-commit-concurrency.sh, regression-git-commit-mine.sh,
+    # regression-git-commit-mine-hook.sh, regression-claim-lifecycle.sh and
+    # regression-precommit.sh — the wrapper's entire mechanical test surface
+    # went dark the day the guard landed, which is why the b47c248 sweep had
+    # no failing control to catch it. Gate on repository IDENTITY instead:
+    # weizigo's root commit. A truncated live repo still has that root
+    # (truncation is a commit on top of it), so the guard keeps every bit of
+    # its coverage; a `git init` fixture has a different root and is exempt.
+    local root; root=$(git rev-list --max-parents=0 HEAD 2>/dev/null | head -1)
+    if [ "$root" = "ef58d0f45fd453fc850b9638d5527354c40f9f6f" ]; then
+        local before; before=$(git ls-tree -r --name-only HEAD 2>/dev/null | wc -l | tr -d " ")
+        if [ "${before:-0}" -lt 2000 ]; then
+            echo "git-commit-mine: REFUSED — HEAD holds only ${before} files." >&2
+            echo "  A healthy tree here is >2000. HEAD is truncated; do not commit onto it." >&2
+            echo "  Find the newest intact commit and reset the branch to it first." >&2
+            return 1
+        fi
     fi
     return 0
 }
@@ -32,7 +47,8 @@ _wz_guard || exit 1
 
 # git-commit-mine — path-limited commit wrapper for the shared-index fleet (T278)
 #
-# Every console shares one .git/index. `git add -A` / `git commit` stage and
+# Every console shares one .git/index (until T902 gave each invocation its
+# own — see the private-index block below). `git add -A` / `git commit` stage and
 # commit whatever another console has staged, and it lands in your commit under
 # your message. That happened three times on 2026-08-02 (T268 absorbed T272's
 # staged claimlint work; the Orchestrator's `git add -A docs/` swept T266's
@@ -43,7 +59,9 @@ _wz_guard || exit 1
 #   2. stages ONLY the named paths, verifies the staged set contains nothing
 #      outside (your declared scope ∪ the named paths), and refuses otherwise,
 #      naming the foreign paths — T268's exact incident is the seeded fixture;
-#   3. commits with plain `git commit` only after the index has been verified;
+#   3. stages into a PRIVATE index (GIT_INDEX_FILE, T902) so another console's
+#      staged paths are invisible rather than merely refused, and commits only
+#      after that index has been verified;
 #   4. verifies the resulting commit contains exactly the named paths — and
 #      distinguishes the three cases (T282 defect 1): path committed by THIS
 #      invocation; path already committed and unchanged (a healthy no-op,
@@ -174,13 +192,16 @@ fi
 
 # ── scope resolution ──────────────────────────────────────────────────────
 SCOPE_FILE=$(mktemp "${TMPDIR:-/tmp}/git-commit-mine-scope-XXXXXX")
+PRIVATE_INDEX=""
 # T547: fd 9 is the commit mutex (an exclusive flock held across
 # stage→verify→commit). The EXIT trap releases it on every exit path;
 # flock(2) is also kernel-released when the process dies for ANY reason
 # (crash, SIGKILL, exit 1), so this trap is belt-and-braces, not the only
 # release. exec 9>&- on a never-opened fd is a harmless no-op, so the trap
 # is safe on the early-exit paths that never acquired the lock.
-trap 'rm -f "$SCOPE_FILE"; exec 9>&- 2>/dev/null || true' EXIT
+# T902: PRIVATE_INDEX is created later (after the mutex); rm -f on an empty
+# variable expansion is a harmless no-op on the early-exit paths.
+trap 'rm -f "$SCOPE_FILE" ${PRIVATE_INDEX:+"$PRIVATE_INDEX"}; exec 9>&- 2>/dev/null || true' EXIT
 
 declare_scope() {  # add a path to the scope
     [ -n "$1" ] && printf '%s\n' "$1" >> "$SCOPE_FILE"
@@ -371,8 +392,64 @@ else:
 PYEOF
 [ $? -ne 0 ] && exit 1
 
-# ── stage only the named paths ───────────────────────────────────────────
 cd "$REPO" || exit 2
+
+# ── private index (T902) ─────────────────────────────────────────────────
+# The mutex above serialises COMMITTERS; it does not isolate the INDEX. All
+# consoles share one .git/index, and only wrapper invocations take the lock,
+# so a bare `git add -- <paths>` from any console (or any tool that is not
+# this wrapper) lands in the shared index whenever it likes — including
+# inside the lock holder's verify->commit window. The holder's `git commit`
+# then commits the whole index, foreign paths and all, with every one of the
+# four guarantees above satisfied on the way in: it named its paths, it
+# verified the staged set, it checked scope. The verification simply happened
+# before the foreign content arrived. That is b47c248 (2026-08-24): T891
+# staged its four files by name, T901 committed, and T891's work landed under
+# T901's message. Serialising access to shared mutable state is not the same
+# as not sharing it.
+#
+# So: stage into a PRIVATE index, seeded from HEAD. Another console's staging
+# is then not merely refused, it is invisible — structurally incapable of
+# entering this commit. `git commit` builds its tree from GIT_INDEX_FILE, and
+# git passes the variable through to the hooks, so the pre-commit backstop
+# judges the index the commit is actually built from (tools/hooks/pre-commit
+# reads it back for exactly this reason).
+#
+# Isolation that silently degrades is worse than none: if the private index
+# cannot be created the wrapper REFUSES rather than falling back to the
+# shared index.
+PRIVATE_INDEX=$(mktemp "${TMPDIR:-/tmp}/git-commit-mine-index-XXXXXX") || {
+    echo "git-commit-mine: REFUSED — cannot create a private index file." >&2
+    echo "  Staging into the shared .git/index would expose this commit to" >&2
+    echo "  another console's staged paths (T902); refusing rather than" >&2
+    echo "  degrading to the shared index." >&2
+    exit 2
+}
+# git wants to create the index itself; an existing zero-byte file is not a
+# valid index. Unlink the mktemp placeholder and keep the name.
+rm -f "$PRIVATE_INDEX"
+if git rev-parse --verify -q HEAD >/dev/null 2>&1; then
+    GIT_INDEX_FILE="$PRIVATE_INDEX" git read-tree HEAD || {
+        echo "git-commit-mine: REFUSED — cannot seed the private index from HEAD." >&2
+        exit 2
+    }
+else
+    # unborn HEAD (a fresh repo's first commit): the private index starts empty
+    GIT_INDEX_FILE="$PRIVATE_INDEX" git read-tree --empty || {
+        echo "git-commit-mine: REFUSED — cannot initialise the private index." >&2
+        exit 2
+    }
+fi
+
+# Which of the named paths were ALREADY staged in the shared index before we
+# touched anything. Read it now, while the shared index is still the one git
+# resolves — the post-commit reconcile below must leave those alone (they are
+# somebody's staging, not our stale entry).
+SHARED_PRESTAGED=$(git diff --cached --name-only -- "${PATHS[@]}" 2>/dev/null || true)
+
+export GIT_INDEX_FILE="$PRIVATE_INDEX"
+
+# ── stage only the named paths ───────────────────────────────────────────
 NAMES_ABS=()
 NAMES_REL=()
 for p in "${PATHS[@]}"; do
@@ -497,6 +574,35 @@ else
 fi
 RC=$?
 [ "$RC" -ne 0 ] && exit "$RC"
+
+# ── reconcile the shared index (T902) ────────────────────────────────────
+# The commit was built from the private index, so the SHARED index still
+# holds each named path at its pre-commit blob. Left that way the path reads
+# as "staged for reversion" against the new HEAD, and the next plain
+# `git commit` by anyone would revert our work — an isolation fix that
+# manufactures a second sweep hazard is not a fix. Reset the shared index to
+# HEAD for our named paths only.
+#
+# Paths another console had ALREADY staged before we started are skipped:
+# that entry is their staging, not our stale one, and unstaging it is exactly
+# the "do NOT touch another console's work" rule this wrapper exists to
+# enforce. (Under --explicit we may have just committed their content; their
+# entry then equals HEAD anyway and needs nothing.) Done while the mutex is
+# still held, so two wrappers never contend for .git/index.lock.
+RECONCILE=()
+for p in "${NAMES_REL[@]}"; do
+    if printf '%s\n' "$SHARED_PRESTAGED" | grep -Fxq "$p"; then continue; fi
+    RECONCILE+=("$p")
+done
+if [ "${#RECONCILE[@]}" -gt 0 ]; then
+    env -u GIT_INDEX_FILE git reset -q -- "${RECONCILE[@]}" 2>/dev/null || \
+        echo "git-commit-mine: NOTE — could not refresh the shared index for: ${RECONCILE[*]}" >&2
+fi
+# The commit has landed; the verification below is read-only and belongs on
+# the repository's real index.
+unset GIT_INDEX_FILE
+rm -f "$PRIVATE_INDEX"
+PRIVATE_INDEX=""
 
 # T547: release the commit mutex as soon as the commit lands — the
 # post-commit verification below is read-only and must not extend the held
