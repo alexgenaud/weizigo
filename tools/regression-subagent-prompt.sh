@@ -51,7 +51,7 @@ if [ -e "$BUNDLE" ]; then
     echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
     exit 3
 fi
-printf '<!--managent set=C deliverables=findings/T995-test.json-->\n# T995 — test bundle\n' > "$BUNDLE"
+printf '<!--managent set=C type=infra deliverables=findings/T995-test.json-->\n# T995 — test bundle\n' > "$BUNDLE"
 # T448: trap on EXIT/INT/TERM/HUP — previously EXIT only. The startup
 # check above is the load-bearing guard; this trap is the safety net.
 cleanup() { rm -f "$BUNDLE" 2>/dev/null || true; }

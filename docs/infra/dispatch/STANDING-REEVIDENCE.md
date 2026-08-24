@@ -1,4 +1,4 @@
-<!--managent set=H-->
+<!--managent set=H type=infra-->
 # STANDING-REEVIDENCE — re-evidence claims with growing C3 debt
 
 Auto-registered standing task. Trigger: `claimlint` C3 debt grew since last measurement.

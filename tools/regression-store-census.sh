@@ -90,7 +90,7 @@ census_field() { # $1 = json key; echo its value (or NOTFOUND)
     python3 -c "import sys,json; d=json.load(open('$CENSUS')); print(d.get('$1','NOTFOUND'))" 2>/dev/null || echo NOTFOUND
 }
 mkbundle() { # $1 = id  $2 = slug
-    printf '<!--managent set=A-->\n# %s — %s\n**Landmark:** none directly; unblocks T9000\n' "$1" "$2" > "untracked/$1-$2.md"
+    printf '<!--managent set=A type=infra-->\n# %s — %s\n**Landmark:** none directly; unblocks T9000\n' "$1" "$2" > "untracked/$1-$2.md"
 }
 seed_empty() {
     cat > "$STORE" <<'JSONEOF'

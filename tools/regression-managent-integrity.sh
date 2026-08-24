@@ -80,6 +80,10 @@ echo "# T105 — important experiment" > "$TMPDIR/$EXISTING_BUNDLE"
 # Record the bundle content hash for survival check
 BUNDLE_HASH_BEFORE="$(sha256sum "$TMPDIR/$EXISTING_BUNDLE" | cut -d' ' -f1)"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {
   "T105": {
@@ -104,6 +108,7 @@ cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
   }
 }
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 
 echo ""
 echo "  T204 regression: managent integrity"
@@ -116,7 +121,7 @@ echo "           tasks before suggest: $ORIG_TASK_COUNT"
 
 # Run suggest — note: this will try to read state_path from the repo root,
 # but the binary finds repo root from cwd. We run from TMPDIR.
-(cd "$TMPDIR" && "$MG" suggest "test-slug" 2>/dev/null) || true
+(cd "$TMPDIR" && "$MG" suggest "test-slug" --type infra 2>/dev/null) || true
 
 TASK_COUNT_AFTER=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d))" 2>/dev/null)
 echo "           tasks after suggest: $TASK_COUNT_AFTER"
@@ -147,6 +152,10 @@ fi
 echo "        3. parseStateJson auto-corrects next_id ≤ max(T-ID)"
 
 # Seed a fresh state with the collision
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {
   "T105": {
@@ -171,9 +180,10 @@ cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
   }
 }
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 
 # Running suggest should auto-correct and mint T106, not T100 or T105
-SUGGEST_OUT=$(cd "$TMPDIR" && "$MG" suggest "auto-correct-test" 2>/dev/null)
+SUGGEST_OUT=$(cd "$TMPDIR" && "$MG" suggest "auto-correct-test" --type infra 2>/dev/null)
 echo "           suggest output: $SUGGEST_OUT"
 
 if echo "$SUGGEST_OUT" | grep -q "T106"; then
@@ -205,7 +215,7 @@ fi
 # ── Check 4: T209 — suggest output is minimal dispatch line ────────────────
 echo "        4. T209: suggest prints minimal dispatch line"
 
-SUGGEST_OUT2=$(cd "$TMPDIR" && "$MG" suggest "t209-test" --model DSPro 2>/dev/null)
+SUGGEST_OUT2=$(cd "$TMPDIR" && "$MG" suggest "t209-test" --model DSPro --type infra 2>/dev/null)
 echo "           suggest output: $SUGGEST_OUT2"
 
 if echo "$SUGGEST_OUT2" | grep -qE '^Follow untracked/T[0-9]+-t209-test\.md$'; then
@@ -233,7 +243,7 @@ fi
 echo "        6. T213: done --status pass (default verdict)"
 
 # Create a task, claim it, and done it with default verdict
-SUGGEST_OUT3=$(cd "$TMPDIR" && "$MG" suggest "t213-pass" --model DSPro 2>/dev/null)
+SUGGEST_OUT3=$(cd "$TMPDIR" && "$MG" suggest "t213-pass" --model DSPro --type infra 2>/dev/null)
 T213_TID=$(echo "$SUGGEST_OUT3" | sed 's/.*T\([0-9]*\).*/\1/')
 # Create deliverable file so done-check passes
 BUNDLE_PATH="$TMPDIR/untracked/T${T213_TID}-t213-pass.md"
@@ -254,7 +264,7 @@ fi
 # ── Check 7: T213 — done --fail backward compat ────────────────────────────
 echo "        7. T213: done --fail backward compat sets verdict=blocked"
 
-SUGGEST_OUT4=$(cd "$TMPDIR" && "$MG" suggest "t213-fail" --model DSPro 2>/dev/null)
+SUGGEST_OUT4=$(cd "$TMPDIR" && "$MG" suggest "t213-fail" --model DSPro --type infra 2>/dev/null)
 T213_TID2=$(echo "$SUGGEST_OUT4" | sed 's/.*T\([0-9]*\).*/\1/')
 BUNDLE_PATH2="$TMPDIR/untracked/T${T213_TID2}-t213-fail.md"
 echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH2"
@@ -272,7 +282,7 @@ fi
 # ── Check 8: T213 — reject non-pass without --note ─────────────────────────
 echo "        8. T213: reject non-pass verdict without --note"
 
-SUGGEST_OUT5=$(cd "$TMPDIR" && "$MG" suggest "t213-nonote" --model DSPro 2>/dev/null)
+SUGGEST_OUT5=$(cd "$TMPDIR" && "$MG" suggest "t213-nonote" --model DSPro --type infra 2>/dev/null)
 T213_TID3=$(echo "$SUGGEST_OUT5" | sed 's/.*T\([0-9]*\).*/\1/')
 BUNDLE_PATH3="$TMPDIR/untracked/T${T213_TID3}-t213-nonote.md"
 echo "<!--managent set=A deliverables=-->" > "$BUNDLE_PATH3"
@@ -307,9 +317,14 @@ cat > "$TMPDIR/untracked/TA217-pass-test.md" <<'BEOF'
 # TA217 — acceptance pass test
 BEOF
 # Seed task directly with acceptance field set
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA217":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"true","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 DONE_OUT10=$(cd "$TMPDIR" && "$MG" done TA217 --impression "TA217 control" 2>&1)
 if echo "$DONE_OUT10" | grep -q 'verdict: pass' && echo "$DONE_OUT10" | grep -q 'acceptance: true OK'; then
     echo "           PASS: acceptance executed and task closed with pass"
@@ -321,9 +336,14 @@ fi
 # ── Check 11: T217 — done with acceptance=false (failing command) ──────────
 echo "        11. T217: acceptance=false rejects and task stays in_progress"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA218":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 if (cd "$TMPDIR" && "$MG" done TA218 --impression "TA218 control" 2>&1); then
     echo "           FAIL: acceptance=false should have REJECTED"
     FAIL=1
@@ -334,9 +354,14 @@ fi
 # ── Check 12: T217 — --skip-acceptance bypasses acceptance ────────────────
 echo "        12. T217: --skip-acceptance bypasses command and closes task"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA219":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"false","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 DONE_OUT12=$(cd "$TMPDIR" && "$MG" done TA219 --impression "TA219 control" --skip-acceptance "acceptance run takes 4 hours" 2>&1)
 if echo "$DONE_OUT12" | grep -q 'ACCEPTANCE SKIPPED' && echo "$DONE_OUT12" | grep -q 'verdict: pass'; then
     echo "           PASS: --skip-acceptance recorded reason and closed task"
@@ -348,9 +373,14 @@ fi
 # ── Check 13: T217 — audit flags done task with no acceptance= ────────────
 echo "        13. T217: audit warns on done task with no acceptance= declared"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA220":{"status":"done","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 AUDIT_T217=$(cd "$TMPDIR" && "$MG" audit 2>&1)
 if echo "$AUDIT_T217" | grep -q "no acceptance= declared"; then
     echo "           PASS: audit warned about missing acceptance"
@@ -362,9 +392,14 @@ fi
 # ── Check 14: T295 — acceptance with nonexistent cmd reports CANNOT RUN ──
 echo "        14. T295: nonexistent acceptance command reports CANNOT RUN (not FAILED)"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA221":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"nonexistent-command-T295-seeded","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 DONE_OUT14=$(cd "$TMPDIR" && "$MG" done TA221 --impression "TA221 control" 2>&1) || true
 if echo "$DONE_OUT14" | grep -q "CANNOT RUN" && echo "$DONE_OUT14" | grep -q "infrastructure fault"; then
     echo "           PASS: nonexistent acceptance reports CANNOT RUN + infrastructure fault"
@@ -376,9 +411,14 @@ fi
 # ── Check 15: T295 — acceptance with exit-1 command reports ACCEPTANCE FAILED ──
 echo "        15. T295: failing acceptance command reports ACCEPTANCE FAILED"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA222":{"status":"in_progress","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"acceptance":"exit 1","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 DONE_OUT15=$(cd "$TMPDIR" && "$MG" done TA222 --impression "TA222 control" 2>&1) || true
 if echo "$DONE_OUT15" | grep -q "ACCEPTANCE FAILED" && echo "$DONE_OUT15" | grep -q "exited with code 1"; then
     echo "           PASS: failing acceptance reports ACCEPTANCE FAILED with exit code"
@@ -390,9 +430,14 @@ fi
 # ── Check 16: T295 — audit surfaces skip-acceptance uses ────────────────────
 echo "        16. T295: audit surfaces --skip-acceptance uses"
 
+# T848: a DIRECT store write bypasses managent, so the S10 store-loss
+# census would read the next managent invocation as a shrink and refuse
+# it.  Reset the census (the scratch-repo.sh remedy) after every direct
+# write so the fixture sees the store the way the fixture made it.
 cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 {"TA223":{"status":"done","agent":"test","bundle":"untracked/TA217-pass-test.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-01T00:00:01Z","done":"2026-08-01T00:00:02Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","acceptance":"true","skip_acceptance_reason":"test skip reason","claim_count":1}}
 JSONEOF
+rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 AUDIT_T295=$(cd "$TMPDIR" && "$MG" audit 2>&1)
 if echo "$AUDIT_T295" | grep -q "closed with --skip-acceptance" && echo "$AUDIT_T295" | grep -q "test skip reason"; then
     echo "           PASS: audit surfaced skip-acceptance with reason"
@@ -424,6 +469,7 @@ t464_inprog() { # $1=id  $2=agent
 }
 t464_seed() { # $1 = comma-joined task records
     printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$TMPDIR/docs/infra/managent/tasks.json"
+    rm -f "$TMPDIR/docs/infra/managent/store-census.json"  # T848: reset census after direct write
 }
 t464_assert() { # $1=assertion-id $2=row $3=status
     printf '{"id":"%s","ts":"2026-08-18T17:10:20Z","actor":"test","verb":"asserted","object":"%s","basis":"performed","meta":{"status":"%s","note":"seeded regression"}}\n' "$1" "$2" "$3" >> "$LEDGER"

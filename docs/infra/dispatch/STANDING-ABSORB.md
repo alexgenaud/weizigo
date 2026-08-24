@@ -1,4 +1,4 @@
-<!--managent set=H-->
+<!--managent set=H type=infra-->
 # STANDING-ABSORB — absorb the closed partition
 
 **Landmark:** advances `L4 (the ledger is clean)` — crisis-triggered absorption pass for findings on closed tasks; a non-zero reading means someone went around the close gate (absorption-spec §8, T481).

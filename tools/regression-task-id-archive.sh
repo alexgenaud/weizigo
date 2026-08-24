@@ -72,7 +72,7 @@ PYEOF
 # ── write a minimal add-able bundle (valid landmark, T682 gate) ───────────
 make_bundle() {  # $1 = slug
     cat > "untracked/$1-bundle.md" <<EOF
-<!--managent set=A deliverables=docs/x.md-->
+<!--managent set=A type=infra deliverables=docs/x.md-->
 # $1 — test
 
 **Landmark:** advances \`L4 (the ledger is clean)\` — a test.

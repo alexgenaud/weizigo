@@ -74,12 +74,12 @@ export MANAGENT_STORE="$STORE"
 # arms — blocked verdict and set/claim/dispatch skip acceptance); T701 has no
 # deliverables/acceptance so the done gate has nothing to refuse.
 cat > "$TMPDIR/untracked/T700-bundle.md" <<'BEOF'
-<!--managent set=A acceptance=printf 'ok — → é'-->
+<!--managent set=A type=infra acceptance=printf 'ok — → é'-->
 # T700 — store-write UTF-8 control (add/claim/dispatch/set arms)
 **Landmark:** none directly; unblocks regression fixture
 BEOF
 cat > "$TMPDIR/untracked/T701-bundle.md" <<'BEOF'
-<!--managent set=A-->
+<!--managent set=A type=infra-->
 # T701 — store-write UTF-8 control (done/amend arm)
 **Landmark:** none directly; unblocks regression fixture
 BEOF

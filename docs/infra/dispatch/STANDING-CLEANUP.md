@@ -1,4 +1,4 @@
-<!--managent set=H-->
+<!--managent set=H type=infra-->
 # STANDING-CLEANUP — absorption and cleanup pass
 
 **Landmark:** advances `L4 (the ledger is clean)` — standing cleanup keeps the working tree clean and the resume surface honest; the floor must match what claimlint actually sees.

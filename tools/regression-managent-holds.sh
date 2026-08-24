@@ -83,7 +83,7 @@ mg() {
 # "<!--managent " (may be empty).
 write_bundle() {
     local id="$1" slug="$2" meta="$3"
-    printf '<!--managent %s-->\n# %s — %s\n' "$meta" "$id" "$slug" > "$REPO/untracked/$id-$slug.md"
+    printf '<!--managent %s-->\n# %s — %s\n**Landmark:** none directly; unblocks T539\n' "$meta" "$id" "$slug" > "$REPO/untracked/$id-$slug.md"
 }
 
 # store_holds <id> → the holds JSON array for a row (or the literal "MISSING").
@@ -103,7 +103,7 @@ echo "  T539 regression: holds= gets a writer, --sync reconciles, vacuous case i
 
 # ── Arm 1: seeded writer — single-file holds from the bundle header ────────
 echo "    1. add from bundle holds=a.zig stores [\"a.zig\"]"
-write_bundle T539W1 w1 'set=A holds=a.zig'
+write_bundle T539W1 w1 'set=A type=infra holds=a.zig'
 mg add T539W1 >/dev/null 2>&1 || { echo "       FAIL: add T539W1 exited non-zero"; FAIL=1; }
 if [ "$(store_holds T539W1)" = '["a.zig"]' ]; then
     echo "       PASS: store holds == [\"a.zig\"]"
@@ -114,7 +114,7 @@ fi
 
 # ── Arm 2: seeded writer — comma-separated holds split into elements ───────
 echo "    2. add from bundle holds=a.zig,b.zig stores TWO elements (comma-split)"
-write_bundle T539W2 w2 'set=A holds=a.zig,b.zig'
+write_bundle T539W2 w2 'set=A type=infra holds=a.zig,b.zig'
 mg add T539W2 >/dev/null 2>&1 || { echo "       FAIL: add T539W2 exited non-zero"; FAIL=1; }
 H2="$(store_holds T539W2)"
 if [ "$H2" = '["a.zig", "b.zig"]' ]; then
@@ -126,7 +126,7 @@ fi
 
 # ── Arm 3: seeded writer — explicit --holds flag on a no-holds bundle ──────
 echo "    3. add --holds x.sh,y.sh on a no-holds bundle stores [\"x.sh\",\"y.sh\"]"
-write_bundle T539W3 w3 'set=A'
+write_bundle T539W3 w3 'set=A type=infra'
 mg add T539W3 --holds x.sh,y.sh >/dev/null 2>&1 || { echo "       FAIL: add T539W3 exited non-zero"; FAIL=1; }
 H3="$(store_holds T539W3)"
 if [ "$H3" = '["x.sh", "y.sh"]' ]; then
@@ -138,8 +138,8 @@ fi
 
 # ── Arm 4: seeded conflict — vacuous case refuses and names the holder ─────
 echo "    4. claim whose store holds is empty but bundle declares a held file is REFUSED"
-write_bundle T539HOLDER holder 'set=A holds=src/held.zig'
-write_bundle T539CAND cand 'set=A holds=src/held.zig'
+write_bundle T539HOLDER holder 'set=A type=infra holds=src/held.zig'
+write_bundle T539CAND cand 'set=A type=infra holds=src/held.zig'
 mg add T539HOLDER >/dev/null 2>&1
 mg add T539CAND >/dev/null 2>&1
 mg claim T539HOLDER --agent deepseek-v4-pro >/dev/null 2>&1 || { echo "       FAIL: claim T539HOLDER exited non-zero"; FAIL=1; }
@@ -183,7 +183,7 @@ fi
 
 # ── Arm 5: null conflict — non-conflicting claim succeeds ─────────────────
 echo "    5. claim declaring b.zig succeeds (mechanism does not brake non-conflicting work)"
-write_bundle T539NULL null 'set=A holds=src/other.zig'
+write_bundle T539NULL null 'set=A type=infra holds=src/other.zig'
 mg add T539NULL >/dev/null 2>&1
 CLAIM5_OUT="$(mg claim T539NULL --agent deepseek-v4-flash 2>&1 || true)"
 if echo "$CLAIM5_OUT" | grep -q 'claimed T539NULL'; then
@@ -202,8 +202,8 @@ fi
 
 # ── Arm 6: seeded sync — two stale rows filled, diff printed, idempotent ──
 echo "    6. holds --sync fills two stale rows, prints the diff, and is idempotent"
-write_bundle T539S1 s1 'set=A holds=tools/one.sh'
-write_bundle T539S2 s2 'set=A holds=tools/two.sh,tools/three.sh'
+write_bundle T539S1 s1 'set=A type=infra holds=tools/one.sh'
+write_bundle T539S2 s2 'set=A type=infra holds=tools/two.sh,tools/three.sh'
 mg add T539S1 >/dev/null 2>&1
 mg add T539S2 >/dev/null 2>&1
 # Make both stale: bundle declares holds, store has none.
@@ -247,7 +247,7 @@ fi
 
 # ── Arm 7: null no-holds — a bundle with no holds= stays [] and add exits 0 ─
 echo "    7. bundle with no holds= leaves the store row [] and add exits 0"
-write_bundle T539NOB nob 'set=A'
+write_bundle T539NOB nob 'set=A type=infra'
 mg add T539NOB >/dev/null 2>&1 || { echo "       FAIL: add T539NOB exited non-zero"; FAIL=1; }
 if [ "$(store_holds T539NOB)" = '[]' ]; then
     echo "       PASS: store holds == [] for a no-holds bundle"
@@ -258,7 +258,7 @@ fi
 
 # ── Arm 8: dispatch warning — vacuous case is loud at dispatch too ────────
 echo "    8. dispatch of a bundle-declared-holds / empty-store row warns on stderr"
-write_bundle T539DISP disp 'set=A holds=tools/disp.sh'
+write_bundle T539DISP disp 'set=A type=infra holds=tools/disp.sh'
 mg add T539DISP >/dev/null 2>&1
 python3 - "$SCRATCH_STORE" <<'PYEOF'
 import json, sys

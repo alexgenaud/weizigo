@@ -72,7 +72,7 @@ echo "=== managent landmark gate regression (T682) ==="
 
 # ── seeded 1: no landmark line -> refused, naming file + expected form ────
 cat > "$WORK/untracked/T682NO-bundle.md" <<'EOF'
-<!--managent set=A deliverables=docs/x.md-->
+<!--managent set=A type=infra deliverables=docs/x.md-->
 # T682NO — no landmark
 
 Work that declares no landmark at all.
@@ -123,7 +123,7 @@ fi
 
 # ── seeded 3: L99 -> refused, listing the valid set ──────────────────────
 cat > "$WORK/untracked/T682L99-bundle.md" <<'EOF'
-<!--managent set=A deliverables=docs/y.md-->
+<!--managent set=A type=infra deliverables=docs/y.md-->
 # T682L99 — bogus id
 
 **Landmark:** advances `L99 (bogus)` — not a real landmark.
@@ -138,7 +138,7 @@ fi
 
 # ── null: valid declarations register unchanged ───────────────────────────
 cat > "$WORK/untracked/T682OK-bundle.md" <<'EOF'
-<!--managent set=A deliverables=docs/z.md-->
+<!--managent set=A type=infra deliverables=docs/z.md-->
 # T682OK — valid landmark
 
 **Landmark:** advances `L1 (the dashboard tells the truth)` — a gate that trips on good input is worse than no gate.
@@ -150,7 +150,7 @@ else
     echo "    FAIL: rc=$RC; valid landmark refused: $OUT"; FAIL=1
 fi
 cat > "$WORK/untracked/T682NONE-bundle.md" <<'EOF'
-<!--managent set=A deliverables=docs/w.md-->
+<!--managent set=A type=infra deliverables=docs/w.md-->
 # T682NONE — sanctioned no-landmark form
 
 **Landmark:** none directly; unblocks T352
@@ -165,13 +165,16 @@ fi
 # ── null 2: the real corpus — every bundle whose declaration is valid ────
 # registers unchanged.  Read-only over the live untracked/ (scratch store);
 # malformed declarations are expected refusals, reported not swept.
+# T786: legacy bundles predate the type= key, so the sweep passes
+# `--type infra` (the flag rescues a missing key by design) — the arm tests
+# the LANDMARK gate, not the type gate.
 swept=0; refused=0; census=0
 for f in "$PROJECT"/untracked/*.md; do
     [ -f "$f" ] || continue
     if ! grep -q '\*\*Landmark:\*\*' "$f"; then census=$((census+1)); continue; fi
     if ! head -50 "$f" | grep -q '<!--managent .*set='; then continue; fi
     bid="T682SWEEP-$(basename "$f" | tr -c '[:alnum:]' '_' | cut -c1-24)"
-    if "$MG" add "$bid" --bundle "$f" >/dev/null 2>&1; then
+    if "$MG" add "$bid" --bundle "$f" --type infra >/dev/null 2>&1; then
         swept=$((swept+1))
     else
         refused=$((refused+1))
@@ -184,7 +187,7 @@ if [ "$refused" -gt 0 ]; then
 fi
 
 # ── suggest: template carries the line; created bundle is add-able ────────
-OUT=$("$MG" suggest t682-suggest-ctl --set A 2>&1); RC=$?
+OUT=$("$MG" suggest t682-suggest-ctl --set A --type infra 2>&1); RC=$?
 if [ "$RC" -eq 0 ]; then
     DISPATCH_LINE=$(echo "$OUT" | tail -1)
     BUNDLE="${DISPATCH_LINE#Follow }"

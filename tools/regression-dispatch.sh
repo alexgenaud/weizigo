@@ -145,7 +145,7 @@ STUBEOF
 chmod +x "$WORK/stub.py"
 
 seed_task() {  # $1=id  $2=deliverable
-    printf '<!--managent set=C deliverables=%s-->\n# %s — T476 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
+    printf '<!--managent set=C type=infra deliverables=%s-->\n# %s — T476 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
@@ -154,7 +154,7 @@ seed_task() {  # $1=id  $2=deliverable
 # line).  The title is the text after ` — `; the 40-char limit (DELEGATOR.md
 # §Task titles) applies to that portion, not the whole `# T<id> —` line.
 seed_task_titled() {  # $1=id  $2=deliverable  $3=title
-    printf '<!--managent set=C deliverables=%s-->\n# %s — %s\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" "$3" \
+    printf '<!--managent set=C type=infra deliverables=%s-->\n# %s — %s\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" "$3" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }
@@ -611,7 +611,7 @@ if [ -e "$WORK/untracked/log/t996.log" ]; then
 fi
 
 echo " 18. T505 seeded: brief with no `# T<id> — title` line refuses dispatch"
-printf '<!--managent set=C deliverables=docs/T997-x.txt-->\nno title line here\n**Landmark:** none directly; unblocks regression fixture\n' \
+printf '<!--managent set=C type=infra deliverables=docs/T997-x.txt-->\nno title line here\n**Landmark:** none directly; unblocks regression fixture\n' \
     > "$WORK/untracked/T997-bundle.md"
 "$MG" add T997 >/dev/null 2>&1
 OUT=$(cd "$ROOT" && "$DISPATCH" T997 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
@@ -632,7 +632,7 @@ fi
 # (worked example in the refusal, not a lecture).  RED against the pre-fix
 # bin/dispatch (no landmark check at dispatch).
 echo " 18a. T747 null: bundle with a valid L<n> landmark dispatches (dry-run)"
-printf '<!--managent set=C deliverables=findings/T998-result.json-->\n# T998 — T747 valid-landmark fixture\n**Landmark:** advances `L2 (proven 4x4 values)` — fixture\n' \
+printf '<!--managent set=C type=infra deliverables=findings/T998-result.json-->\n# T998 — T747 valid-landmark fixture\n**Landmark:** advances `L2 (proven 4x4 values)` — fixture\n' \
     > "$WORK/untracked/T998-bundle.md"
 "$MG" add T998 >/dev/null 2>&1 || { echo "    FAIL: managent add T998"; FAIL=1; }
 OUT=$(cd "$ROOT" && "$DISPATCH" T998 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
@@ -646,7 +646,7 @@ fi
 
 echo " 18b. T747 seeded: bundle with no **Landmark:** line refuses dispatch"
 seed_task T999 findings/T999-result.json
-printf '<!--managent set=C deliverables=findings/T999-result.json-->\n# T999 — T747 no-landmark fixture\n' \
+printf '<!--managent set=C type=infra deliverables=findings/T999-result.json-->\n# T999 — T747 no-landmark fixture\n' \
     > "$WORK/untracked/T999-bundle.md"
 OUT=$(cd "$ROOT" && "$DISPATCH" T999 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
 RC=$?
@@ -662,7 +662,7 @@ fi
 
 echo " 18c. T747 seeded: bundle with an unknown landmark id refuses dispatch"
 seed_task T1001 findings/T1001-result.json
-printf '<!--managent set=C deliverables=findings/T1001-result.json-->\n# T1001 — T747 bad-landmark fixture\n**Landmark:** L99 (does not exist)\n' \
+printf '<!--managent set=C type=infra deliverables=findings/T1001-result.json-->\n# T1001 — T747 bad-landmark fixture\n**Landmark:** L99 (does not exist)\n' \
     > "$WORK/untracked/T1001-bundle.md"
 OUT=$(cd "$ROOT" && "$DISPATCH" T1001 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
 RC=$?

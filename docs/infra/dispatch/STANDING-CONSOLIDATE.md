@@ -1,4 +1,4 @@
-<!--managent set=H-->
+<!--managent set=H type=infra-->
 # STANDING-CONSOLIDATE — what-did-we-learn after a falsification
 
 Auto-registered standing task. Trigger: new `FALSE-AS-SCOPED` status appeared in `CLAIMS.md`.

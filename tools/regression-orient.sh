@@ -177,7 +177,7 @@ cat > docs/epistemic/CLAIMS.md <<'CLAIMS_EOF'
 CLAIMS_EOF
 mkdir -p "$WORK/untracked"
 cat > "$WORK/untracked/T353SEED-bundle.md" <<'MDEOF'
-<!--managent set=C-->
+<!--managent set=C type=infra-->
 # T353SEED — synthetic orient control row
 **Landmark:** none directly; unblocks regression fixture
 MDEOF

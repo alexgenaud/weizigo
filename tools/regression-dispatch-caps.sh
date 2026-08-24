@@ -102,7 +102,7 @@ chmod +x "$WORK/stub.py"
 export FLEET_TEST_WORKER="$WORK/stub.py"
 
 seed_task() {  # $1=id  $2=deliverable  $3=holds(optional)
-    local meta="set=A deliverables=$2"
+    local meta="set=A type=infra deliverables=$2"
     [ -n "${3:-}" ] && meta="$meta holds=$3"
     printf '<!--managent %s-->\n# %s — T845 caps regression bundle\n**Landmark:** advances `L1 (dispatch tooling)` — fixture\n' "$meta" "$1" \
         > "$WORK/untracked/$1-bundle.md"

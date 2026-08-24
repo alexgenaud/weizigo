@@ -197,9 +197,185 @@ const TaskState = struct {
     scope_targets: [][]const u8 = &.{},
     scope_enumerable: ?bool = null,
     scope_note: ?[]const u8 = null,
+    // T786: frozen taxonomy fields.  task_type is one of the 9 legal values
+    // (valid_task_types); null = UNKNOWN (a legacy row predating the field,
+    // or a corpus-UNKNOWN row the backfill left absent — never guessed).
+    // scope_class is the S1..S5 bin from the mechanical rule in
+    // computeScopeClass; null = UNKNOWN (named residue R1/R2).  Capabilities
+    // are NOT a kanban field: a capability reading is earned by a graded task
+    // (T900 dimension set, docs/infra/races/capability-metrics.md), never
+    // inferred from a brief's verbs — rows without graded evidence carry none.
+    task_type: ?[]const u8 = null,
+    scope_class: ?[]const u8 = null,
 };
 
 const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
+
+// ── T786: the frozen task taxonomy ───────────────────────────────────────
+// The corpus run (docs/infra/task-corpus.jsonl, T817 brief-aware, T818/T820
+// blind, T819 adjudication) measured the law this vocabulary encodes: where
+// the vocabulary was closed, agreement was computable and a deterministic
+// reader was perfect (27/27 on the hold-out); where it was open, two models
+// produced answers that could not even be compared.  So the 9-value type
+// list is FROZEN — `add`/`suggest` refuse a row without one, and the error
+// names the legal values.  UNKNOWN is a legal value (never a fill): a row
+// whose dispatcher genuinely cannot classify may declare it, and the corpus
+// backfill propagates corpus-UNKNOWN as absence (null) rather than guessing.
+// Order matches the brief: audit, infra, orchestration, implement, battery,
+// integration, research, spec, UNKNOWN.
+const valid_task_types = [_][]const u8{
+    "audit",        "infra",  "orchestration", "implement", "battery",
+    "integration",  "research", "spec",       "UNKNOWN",
+};
+
+fn isValidTaskType(s: []const u8) bool {
+    for (valid_task_types) |t| {
+        if (std.mem.eql(u8, t, s)) return true;
+    }
+    return false;
+}
+
+/// Print the frozen type set to stderr — used in rejection messages so the
+/// caller sees what is accepted without reading source (mirrors
+/// printCanonicalModels).
+fn printValidTaskTypes(w: Writers) void {
+    w.diag("  legal types: ", .{});
+    for (valid_task_types, 0..) |t, i| {
+        if (i > 0) w.diag(", ", .{});
+        w.diag("{s}", .{t});
+    }
+    w.diag("\n", .{});
+}
+
+// ── T786: the frozen scope binning rule ──────────────────────────────────
+// The S1..S5 classes come from the S07 delegation lattice (adopted by the
+// corpus, docs/infra/task-corpus.md §3); the RULE here is the mechanical,
+// store-recomputable compression the brief demands ("a scope that cannot be
+// recomputed from the store is not a scope").  Inputs are the row's own
+// facts only: declared deliverables, declared holds, stored type, and the
+// id + title for the console bin.  UNKNOWN is a named residue, never a
+// forced bin.  Published in docs/infra/task-taxonomy.md — the rule and the
+// doc must not drift.
+const valid_scope_classes = [_][]const u8{ "S1", "S2", "S3", "S4", "S5" };
+
+/// The corpus's engine-file set for the S3 "holds names >1 engine file"
+/// clause (task-corpus.md §3): the four retrograde engine files.
+const engine_files = [_][]const u8{
+    "src/retro.zig", "src/oracle.zig", "src/rules.zig", "src/solve.zig",
+};
+
+/// S07/corpus amendment 1: non-src code writes count as code writes for
+/// S2/S3 (tools/, bin/, build.zig, tests/ alongside src/).
+fn isCodeWritePath(p: []const u8) bool {
+    return std.mem.startsWith(u8, p, "src/") or
+        std.mem.startsWith(u8, p, "tools/") or
+        std.mem.startsWith(u8, p, "bin/") or
+        std.mem.startsWith(u8, p, "tests/") or
+        std.mem.eql(u8, p, "build.zig");
+}
+
+/// A root-level non-code file (config, AXIOMS, rename — corpus S1's "root
+/// file" case): no directory, not a code write.
+fn isRootNonCodePath(p: []const u8) bool {
+    return std.mem.indexOfScalar(u8, p, '/') == null and !isCodeWritePath(p);
+}
+
+/// Read-only output paths (corpus S4: "deliverables are findings/docs only
+/// (read-only output)"): findings/, docs/, or a root non-code file.
+fn isReadOnlyPath(p: []const u8) bool {
+    return std.mem.startsWith(u8, p, "findings/") or
+        std.mem.startsWith(u8, p, "docs/") or
+        isRootNonCodePath(p);
+}
+
+/// S5's console words: corpus S5 = "orchestration type + console/seat/triage/
+/// inbox/landmark words in slug/title".
+fn hasConsoleWord(s: []const u8) bool {
+    const words = [_][]const u8{ "console", "seat", "triage", "inbox", "landmark" };
+    for (words) |wd| {
+        if (std.mem.indexOf(u8, s, wd) != null) return true;
+    }
+    return false;
+}
+
+/// T786: compute the S1–S5 scope class from the row's own facts.
+/// D = unique declared deliverables; H = declared holds; T = stored type;
+/// id+title feed the S5 console bin.  Deterministic: same facts, same bin,
+/// every run (the regression's null control re-runs the backfill and asserts
+/// byte-identical bins).  Returns null = UNKNOWN, one of two named residues:
+/// R1 no declared deliverables at all; R2 deliverables that fit no bin
+/// (mixed read-only + unrecognised paths with no code write).
+fn computeScopeClass(id: []const u8, title: []const u8, task_type: ?[]const u8, dels: []const []const u8, holds: []const []const u8) ?[]const u8 {
+    // Unique deliverables (a path listed twice is one fact).
+    var uniq = std.ArrayList([]const u8).empty;
+    defer uniq.deinit(alloc);
+    for (dels) |d| {
+        var seen = false;
+        for (uniq.items) |u| {
+            if (std.mem.eql(u8, u, d)) {
+                seen = true;
+                break;
+            }
+        }
+        if (!seen) uniq.append(alloc, d) catch {};
+    }
+    const D = uniq.items;
+
+    if (D.len == 0) return null; // residue R1: no declared deliverables
+
+    var code_count: usize = 0;
+    var src_count: usize = 0;
+    var engine_hold_count: usize = 0;
+    for (D) |p| {
+        if (isCodeWritePath(p)) code_count += 1;
+        if (std.mem.startsWith(u8, p, "src/")) src_count += 1;
+    }
+    for (holds) |h| {
+        for (engine_files) |ef| {
+            if (std.mem.eql(u8, h, ef)) {
+                engine_hold_count += 1;
+                break;
+            }
+        }
+    }
+
+    var all_read_only = true;
+    for (D) |p| {
+        if (!isReadOnlyPath(p)) {
+            all_read_only = false;
+            break;
+        }
+    }
+
+    // S5: console — orchestration type + console/seat/triage/inbox/landmark
+    // words in id or title.  Checked first: a console row is console-shaped
+    // regardless of its deliverable footprint (corpus S5 basis).
+    if (task_type) |t| {
+        if (std.mem.eql(u8, t, "orchestration") and (hasConsoleWord(id) or hasConsoleWord(title))) {
+            return "S5";
+        }
+    }
+
+    // S3: feature — ≥2 src/ writes, or ≥3 code writes, or holds names >1
+    // engine file (corpus §3, exactly).
+    if (src_count >= 2 or code_count >= 3 or engine_hold_count >= 2) return "S3";
+
+    // S2: leaf — 1–2 code writes.
+    if (code_count >= 1) return "S2";
+
+    if (all_read_only) {
+        // S1: atom — a single non-code write (lone docs/ or root file).
+        // A lone findings file is S4, not S1 (corpus §3 amendment 2).
+        if (D.len == 1 and !std.mem.startsWith(u8, D[0], "findings/")) return "S1";
+        // S4: sweep — findings/docs-only output.
+        return "S4";
+    }
+
+    // Residue R2: mixed deliverables that fit no bin (e.g. findings/ plus an
+    // unrecognised non-code path, with no code write to make it a leaf).
+    return null;
+}
+
 
 // ── T317: canonical model labels — single source of truth ────────────────
 // Every model the project recognizes.  agents / claim / done / ollama-subagent
@@ -1209,7 +1385,7 @@ const mutating_verbs = [_][]const u8{
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
     "standing", "assert", "retire", "duty", "reap", "assign", "shape",
-    "lanes",
+    "lanes", "backfill-taxonomy",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -1486,6 +1662,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdSync(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "holds")) {
         try cmdHolds(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "backfill-taxonomy")) {
+        try cmdBackfillTaxonomy(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "tell")) {
         try cmdTell(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "assert")) {
@@ -1565,6 +1743,10 @@ const BundleMeta = struct {
     needs: [][]const u8,
     caps: [][]const u8,
     acceptance: ?[]const u8 = null,
+    // T786: the frozen task type (one of valid_task_types).  Required at
+    // registration, like set= — a row cannot be created without a type; the
+    // error names the legal values.  null = not declared (add refuses).
+    task_type: ?[]const u8 = null,
     // T478: `duty` key marks the row a duty; `due_after` overrides the
     // default closes-until-due (5).
     duty: bool = false,
@@ -1620,7 +1802,7 @@ fn findBundle(w: Writers, io: std.Io, repo_root: []const u8, id: []const u8) ![]
     return result;
 }
 
-fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override: ?[]const u8, needs_extra: ?[]const u8) !BundleMeta {
+fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override: ?[]const u8, type_override: ?[]const u8, needs_extra: ?[]const u8) !BundleMeta {
     const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_path, alloc, .unlimited) catch |err| {
         w.diag("error: cannot read bundle {s}: {}\n", .{ bundle_path, err });
         std.process.exit(1);
@@ -1743,6 +1925,17 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
                 std.process.exit(1);
             }
             result.shape = try alloc.dupe(u8, value);
+        } else if (std.mem.eql(u8, key, "type")) {
+            // T786: the frozen type vocabulary.  A row cannot be created
+            // without a legal type; the error names the legal values.  This
+            // is the "assert at registration" half of the taxonomy gate —
+            // UNKNOWN is a legal declared value, never a silent fill.
+            if (!isValidTaskType(value)) {
+                w.diag("error: invalid type '{s}' in metadata (frozen 9-value taxonomy)\n", .{value});
+                printValidTaskTypes(w);
+                std.process.exit(1);
+            }
+            result.task_type = try alloc.dupe(u8, value);
         } else if (std.mem.eql(u8, key, "context")) {
             w.diag("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
             std.process.exit(1);
@@ -1775,6 +1968,32 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
 
     if (!set_found) {
         w.diag("error: metadata missing required 'set' key in {s}\n", .{bundle_path});
+        std.process.exit(1);
+    }
+
+    // T786: --type supplies OR overrides the bundle's type= key.  Mirrors
+    // --set over set=, with one difference: a legacy bundle that predates
+    // the type= key (pre-T786) may be typed by the flag alone — the flag
+    // rescues a missing key, because a brand-new required key cannot
+    // retroactively be present.  A bogus value is refused, naming the legal
+    // values, whether it came from the flag or the bundle.
+    if (type_override) |tv| {
+        if (!isValidTaskType(tv)) {
+            w.diag("error: invalid type '{s}' (frozen 9-value taxonomy)\n", .{tv});
+            printValidTaskTypes(w);
+            std.process.exit(1);
+        }
+        result.task_type = try alloc.dupe(u8, tv);
+    }
+
+    // T786: type is required at registration — a row without a type is a
+    // row whose column would be guessed later, which is the exact defect the
+    // corpus measured.  The error names the legal values (mirrors the set=
+    // gate, with the vocabulary attached).  The flag or the bundle must have
+    // supplied it by now.
+    if (result.task_type == null) {
+        w.diag("error: metadata missing required 'type' key in {s} (frozen 9-value taxonomy)\n", .{bundle_path});
+        printValidTaskTypes(w);
         std.process.exit(1);
     }
 
@@ -1859,7 +2078,7 @@ fn validateNeedsExist(w: Writers, state: *const StateMap, needs: []const []const
 /// following key (`holds=a.zig acceptance=cmd`), never at any token
 /// containing '=' — a path like `docs/foo=bar.md` is a list item, not a key.
 fn isKnownMetaKey(key: []const u8) bool {
-    const keys = [_][]const u8{ "set", "holds", "needs", "caps", "deliverables", "acceptance", "accepts", "duty", "due_after", "shape", "context", "exclude", "priority", "waiting" };
+    const keys = [_][]const u8{ "set", "holds", "needs", "caps", "deliverables", "acceptance", "accepts", "duty", "due_after", "shape", "type", "context", "exclude", "priority", "waiting" };
     for (keys) |k| {
         if (std.mem.eql(u8, k, key)) return true;
     }
@@ -3009,6 +3228,14 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("scope_note")) |sn| {
             if (sn == .string) ts.scope_note = try alloc.dupe(u8, sn.string);
         }
+        // T786: frozen taxonomy fields.  A missing value is UNKNOWN (null),
+        // never a guessed type or a zero bin.
+        if (obj.object.get("task_type")) |tt| {
+            if (tt == .string) ts.task_type = try alloc.dupe(u8, tt.string);
+        }
+        if (obj.object.get("scope_class")) |sc| {
+            if (sc == .string) ts.scope_class = try alloc.dupe(u8, sc.string);
+        }
 
         try state.put(alloc, task_id, ts);
     }
@@ -3290,6 +3517,20 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, sn);
         } else {
             try buf.appendSlice(alloc, ",\n    \"scope_note\": null");
+        }
+
+        // T786: frozen taxonomy fields (null = UNKNOWN, never guessed).
+        if (ts.task_type) |tt| {
+            try buf.appendSlice(alloc, ",\n    \"task_type\": ");
+            try writeJsonString(buf, tt);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"task_type\": null");
+        }
+        if (ts.scope_class) |sc| {
+            try buf.appendSlice(alloc, ",\n    \"scope_class\": ");
+            try writeJsonString(buf, sc);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"scope_class\": null");
         }
 
         try buf.appendSlice(alloc, "\n  }");
@@ -3620,8 +3861,9 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const use_auto = hasFlag(args, "--auto");
 
     if (!use_auto and args.len < 3) {
-        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--needs <id,...>] [--holds a,b] [--model <name>] [--note <text>] [--allow-unregistered-needs <reason>]\n", .{});
+        w.diag("usage: managent add <id> [--auto] [--bundle <path>] [--set <A-Z>] [--type <T>] [--needs <id,...>] [--holds a,b] [--model <name>] [--note <text>] [--allow-unregistered-needs <reason>]\n", .{});
         w.diag("       managent add --auto --bundle <path>  (mint opaque T<N> ID)\n", .{});
+        w.diag("       --type: one of the frozen 9 (audit, infra, orchestration, implement, battery, integration, research, spec, UNKNOWN); overrides the bundle's type= key\n", .{});
         std.process.exit(1);
     }
     if (use_auto and args.len >= 3 and args[2].len > 0 and !std.mem.startsWith(u8, args[2], "-")) {
@@ -3630,6 +3872,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
 
     const bundle_override = getFlagValue(args, "--bundle");
     const set_override = getFlagValue(args, "--set");
+    const type_override = getFlagValue(args, "--type");
     const needs_extra = getFlagValue(args, "--needs");
     const model_flag = getFlagValue(args, "--model");
     // T539: --holds a,b is the explicit writer for rows whose bundle header
@@ -3706,7 +3949,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         };
         defer alloc.free(bundle_path);
 
-        var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+        var meta = try parseBundleMeta(w, io, bundle_path, set_override, type_override, needs_extra);
         try mergeHoldsFlag(&meta, holds_flag);
         // T682: refuse a bundle whose brief declares no (or an unknown)
         // landmark — the T592 defect multiplied five ways by brief-cloning.
@@ -3726,6 +3969,13 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         const now = try nowTimestamp();
         // T636: honest default — a new row with no declared shape is solo.
         const shape = meta.shape orelse try alloc.dupe(u8, "solo");
+        // T786: scope_class is computed from the row's own facts at
+        // registration (deliverables= ∪ holds= + type + title).  Computed
+        // once, stored on the row, recomputed by backfill-taxonomy — never
+        // asked of a worker.
+        var _residue: ScopeResidue = .none;
+        const scope_class = try scopeClassForBundle(w, io, id, bundle_path, meta.task_type, meta.holds, &_residue);
+        defer if (scope_class) |sc| alloc.free(sc);
 
         const ts = TaskState{
             .status = initial_status,
@@ -3746,6 +3996,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .done = null,
             .note = note_for_task,
             .amendments = amendments,
+            .task_type = meta.task_type,
+            .scope_class = scope_class,
         };
 
         try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -3818,7 +4070,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const owned_bundle = bundle_override == null;
     defer if (owned_bundle) alloc.free(bundle_path);
 
-    var meta = try parseBundleMeta(w, io, bundle_path, set_override, needs_extra);
+    var meta = try parseBundleMeta(w, io, bundle_path, set_override, type_override, needs_extra);
     try mergeHoldsFlag(&meta, holds_flag);
     // T682: refuse a bundle whose brief declares no (or an unknown)
     // landmark — the T592 defect multiplied five ways by brief-cloning.
@@ -3838,6 +4090,12 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     const now = try nowTimestamp();
     // T636: honest default — a new row with no declared shape is solo.
     const shape = meta.shape orelse try alloc.dupe(u8, "solo");
+    // T786: scope_class is computed from the row's own facts at registration
+    // (deliverables= ∪ holds= + type + title).  Computed once, stored on the
+    // row, recomputed by backfill-taxonomy — never asked of a worker.
+    var _residue: ScopeResidue = .none;
+    const scope_class = try scopeClassForBundle(w, io, id, bundle_path, meta.task_type, meta.holds, &_residue);
+    defer if (scope_class) |sc| alloc.free(sc);
 
     const ts = TaskState{
         .status = initial_status,
@@ -3858,6 +4116,8 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .done = null,
         .note = note_for_task,
         .amendments = amendments,
+        .task_type = meta.task_type,
+        .scope_class = scope_class,
     };
 
     try state.put(alloc, try alloc.dupe(u8, id), ts);
@@ -4253,12 +4513,30 @@ fn cmdDispatch(w: Writers, io: std.Io, state_path: []const u8, args: [][]const u
 
 fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     if (args.len < 3) {
-        w.diag("usage: managent suggest <slug> [--model <name>] [--set <A-Z>]\n", .{});
+        w.diag("usage: managent suggest <slug> [--model <name>] [--set <A-Z>] [--type <T>]\n", .{});
         w.diag("       prints a one-line dispatch: 'Follow untracked/T<ID>-<slug>.md'\n", .{});
         w.diag("       --model is stored on the task; claim picks it up automatically\n", .{});
+        w.diag("       --type is REQUIRED: one of the frozen 9 (audit, infra, orchestration, implement, battery, integration, research, spec, UNKNOWN)\n", .{});
         std.process.exit(1);
     }
     const slug = args[2];
+
+    // T786: suggest CREATES a row, so it carries the same registration gate
+    // as add — a row cannot be created without a legal type; the error names
+    // the legal values.
+    const type_override = getFlagValue(args, "--type");
+    const suggest_type: []const u8 = if (type_override) |tv| blk: {
+        if (!isValidTaskType(tv)) {
+            w.diag("error: invalid type '{s}' (frozen 9-value taxonomy)\n", .{tv});
+            printValidTaskTypes(w);
+            std.process.exit(1);
+        }
+        break :blk tv;
+    } else {
+        w.diag("error: suggest requires --type <T> (frozen 9-value taxonomy)\n", .{});
+        printValidTaskTypes(w);
+        std.process.exit(1);
+    };
 
     // Model: --model flag, or PI_MODEL env var, or "unknown"
     const model_flag = getFlagValue(args, "--model");
@@ -4315,7 +4593,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     {
         const file = try std.Io.Dir.cwd().createFile(io, bundle_path, .{});
         defer file.close(io);
-        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c} deliverables= holds=-->\n", .{set});
+        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c} type={s} deliverables= holds=-->\n", .{ set, suggest_type });
         defer alloc.free(meta);
         try file.writeStreamingAll(io, meta);
         const heading = try std.fmt.allocPrint(alloc, "# {s} — {s}\n", .{ id, slug });
@@ -4354,6 +4632,11 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         .added = now,
         .claimed = null,
         .done = null,
+        .task_type = try alloc.dupe(u8, suggest_type),
+        // scope_class is UNKNOWN at suggest time: the template's deliverables=
+        // is empty by design (the seat fills the brief).  Honest UNKNOWN,
+        // never a guess; backfill-taxonomy recomputes it once the brief is real.
+        .scope_class = null,
     };
     try state.put(alloc, try alloc.dupe(u8, id), ts);
     sys_next_id = mint_base + 1;
@@ -4368,6 +4651,92 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
 }
 
 // ── parseDeliverablesFromBundle — extract deliverable paths from bundle body ─
+
+/// T786: the brief's title line — `# T<n> — <title>` — used by the S5
+/// scope bin (console/seat/triage/inbox/landmark words in title, mirroring
+/// the corpus's "slug/title" check).  The meta comment line may precede the
+/// title (the suggest template's shape), so it is skipped, not treated as
+/// the first non-empty line.  Returns null when the bundle is unreadable or
+/// has no title line; the bin rule treats that as no words.
+fn readBundleTitle(io: std.Io, bundle_abs: []const u8) ?[]const u8 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (trimmed.len == 0) continue;
+        if (std.mem.startsWith(u8, trimmed, "# ")) {
+            return alloc.dupe(u8, trimmed[2..]) catch null;
+        }
+        if (std.mem.startsWith(u8, trimmed, "<!--")) continue; // meta header
+        return null; // some other first line — not a title
+    }
+    return null;
+}
+
+/// T786: the scope residue taxonomy — R1 the row declares no deliverables;
+/// R2 the deliverables fit no bin.  Named, never forced.
+const ScopeResidue = enum { none, r1_no_deliverables, r2_mixed };
+
+/// T786: compute and own the row's scope_class from its bundle facts at
+/// registration/backfill time.  Returns an owned string (or null for the
+/// UNKNOWN residues, with the residue named in `residue`).  The caller frees.
+fn scopeClassForBundle(w: Writers, io: std.Io, id: []const u8, bundle_abs: ?[]const u8, task_type: ?[]const u8, holds: []const []const u8, residue: *ScopeResidue) !?[]const u8 {
+    residue.* = .none;
+    const abs = bundle_abs orelse {
+        residue.* = .r1_no_deliverables;
+        return null;
+    };
+    const dels = try parseDeliverablesFromBundle(w, io, abs, holds);
+    defer {
+        for (dels) |d| alloc.free(d);
+        alloc.free(dels);
+    }
+    if (dels.len == 0) {
+        residue.* = .r1_no_deliverables;
+        return null;
+    }
+    const title = readBundleTitle(io, abs);
+    defer if (title) |t| alloc.free(t);
+    const cls = computeScopeClass(id, title orelse "", task_type, dels, holds) orelse {
+        residue.* = .r2_mixed;
+        return null;
+    };
+    return try alloc.dupe(u8, cls);
+}
+
+/// T786: read the bundle meta header's `type=` key WITHOUT the exit(1)
+/// behavior of parseBundleMeta (mirrors readBundleHolds/readBundleExclusions
+/// — the backfill must not die on one malformed legacy bundle).  Returns null
+/// when the file is unreadable, declares no type= key, or declares an
+/// illegal value (a malformed declaration is not a type).
+fn readBundleType(io: std.Io, bundle_abs: []const u8) ?[]const u8 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+    const marker = "<!--managent ";
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    var line_count: usize = 0;
+    while (lines.next()) |line| : (line_count += 1) {
+        if (line_count >= 50) break;
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (std.mem.startsWith(u8, trimmed, marker)) {
+            const key = "type=";
+            const idx = std.mem.indexOf(u8, trimmed, key) orelse return null;
+            const val_start = idx + key.len;
+            var val_end = val_start;
+            while (val_end < trimmed.len and trimmed[val_end] != ' ' and trimmed[val_end] != '\t' and trimmed[val_end] != '\r') : (val_end += 1) {}
+            if (val_end == val_start) return null;
+            var value = std.mem.trim(u8, trimmed[val_start..val_end], " \t\r");
+            if (std.mem.endsWith(u8, value, "-->")) {
+                value = value[0 .. value.len - 3];
+            }
+            value = std.mem.trim(u8, value, " \t\r");
+            if (value.len == 0 or !isValidTaskType(value)) return null;
+            return alloc.dupe(u8, value) catch null;
+        }
+    }
+    return null;
+}
 
 fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, holds: []const []const u8) ![]const []const u8 {
     _ = w;
@@ -6307,6 +6676,21 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
             }
             try buf.appendSlice(alloc, "]");
         }
+        // T786: the frozen taxonomy columns, always emitted — null is
+        // UNKNOWN (legacy row or corpus-UNKNOWN), never omitted and never
+        // guessed.  Dashboards render null as UNKNOWN, not as absent.
+        try buf.appendSlice(alloc, ",\"task_type\":");
+        if (ts.task_type) |tt| {
+            try writeJsonString(&buf, tt);
+        } else {
+            try buf.appendSlice(alloc, "null");
+        }
+        try buf.appendSlice(alloc, ",\"scope_class\":");
+        if (ts.scope_class) |sc| {
+            try writeJsonString(&buf, sc);
+        } else {
+            try buf.appendSlice(alloc, "null");
+        }
         if (ts.agent) |_| {
             const ident = agentIdentifier(ts, entry.key_ptr.*) catch entry.key_ptr.*;
             try buf.appendSlice(alloc, ",\"identifier\":");
@@ -7413,6 +7797,17 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     } else {
         w.data("    scope: UNKNOWN\n", .{});
     }
+    // T786: frozen taxonomy fields — null renders UNKNOWN, never 0/"none".
+    if (ts.task_type) |tt| {
+        w.data("    type: {s}\n", .{tt});
+    } else {
+        w.data("    type: UNKNOWN\n", .{});
+    }
+    if (ts.scope_class) |sc| {
+        w.data("    scope_class: {s}\n", .{sc});
+    } else {
+        w.data("    scope_class: UNKNOWN\n", .{});
+    }
     if (ts.amendments.len > 0) {
         w.data("    amendments ({d}):\n", .{ts.amendments.len});
         for (ts.amendments) |am| {
@@ -8107,6 +8502,8 @@ fn printHelp(w: Writers) void {
         \\  managent models [--json]   print the canonical model list (T317 single source; --json for machine output)
         \\  managent assign <id>       mechanized model assignment (ruling 33; --model/--exclude/--dry-run/--json)
         \\  managent whoami <id>       resolve agent identifier for a task
+        \\  managent holds --sync      reconcile every row's bundle-declared holds= into the store
+        \\  managent backfill-taxonomy  one-time corpus join (type) + scope recompute; UNKNOWN propagates, never guessed
         \\  managent tell <target>    send a directive to a worker (pause/resume/kill/amend/question)
         \\  managent assert <row> <status> [--note]  assert a row's status to the assertion ledger (T441)
         \\  managent inbox [<target>] [--ack]  show pending directives; --ack marks them as read (T352)
@@ -9637,6 +10034,174 @@ fn cmdHolds(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
     w.data("holds --sync: {d} updated, {d} unchanged, {d} no-bundle, {d} no-declared-holds\n", .{ updated, unchanged, no_bundle, no_declared });
 }
 
+// ── 3. backfill-taxonomy — the one-time corpus join + scope recompute ──────
+// T786: freezes the taxonomy onto every existing row, once.  Two sources of
+// truth, both mechanical: (1) the committed corpus's type.brief
+// (docs/infra/task-corpus.jsonl — the T817/T818/T820/T819 derivation), joined
+// onto rows that carry no type; (2) each row's own bundle facts, from which
+// scope_class is recomputed by the same rule `add` uses.  UNKNOWN propagates:
+// corpus-UNKNOWN and absent-from-corpus rows stay null (renders UNKNOWN);
+// a stored type is never overwritten and never blanked on corpus disagreement
+// (the disagreement is reported, not guessed around).  Idempotent: re-running
+// reproduces every row's type and bin exactly (the regression's null control).
+// Lock → read → modify → writeLocked → unlock (same lost-update pattern as
+// holds --sync).
+fn cmdBackfillTaxonomy(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const corpus_flag = getFlagValue(args, "--corpus");
+    const corpus_path = if (corpus_flag) |cp|
+        try alloc.dupe(u8, cp)
+    else
+        try std.fs.path.join(alloc, &.{ repo_root, "docs", "infra", "task-corpus.jsonl" });
+    defer alloc.free(corpus_path);
+
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    // Read the corpus: one JSON object per line; fields id + type.brief.
+    const content = std.Io.Dir.cwd().readFileAlloc(io, corpus_path, alloc, .unlimited) catch {
+        w.diag("error: cannot read corpus {s}\n", .{corpus_path});
+        std.process.exit(1);
+    };
+    defer alloc.free(content);
+    var corpus = std.StringHashMapUnmanaged([]const u8).empty;
+    defer {
+        var it = corpus.iterator();
+        while (it.next()) |e| {
+            alloc.free(e.key_ptr.*);
+            alloc.free(e.value_ptr.*);
+        }
+        corpus.deinit(alloc);
+    }
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        if (line.len == 0) continue;
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, line, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+        if (parsed.value != .object) continue;
+        const idv = parsed.value.object.get("id") orelse continue;
+        const type_obj = parsed.value.object.get("type") orelse continue;
+        if (idv != .string or type_obj != .object) continue;
+        const brief = type_obj.object.get("brief") orelse continue;
+        if (brief != .string) continue;
+        corpus.put(alloc, try alloc.dupe(u8, idv.string), try alloc.dupe(u8, brief.string)) catch {};
+    }
+
+    var corpus_typed: u32 = 0;
+    var bundle_typed: u32 = 0;
+    var already_typed: u32 = 0;
+    var left_unknown_corpus: u32 = 0;
+    var left_unknown_bundle: u32 = 0;
+    var left_unknown_absent: u32 = 0;
+    var disagreements: u32 = 0;
+    var scope_binned: u32 = 0;
+    var scope_counts = [_]u32{ 0, 0, 0, 0, 0 }; // S1..S5
+    var scope_r1: u32 = 0;
+    var scope_r2: u32 = 0;
+    var changed = false;
+
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        if (std.mem.eql(u8, entry.key_ptr.*, "_sys")) continue;
+        const id = entry.key_ptr.*;
+        const ts = entry.value_ptr.*;
+
+        // ── type: stored wins, bundle-real-type wins, corpus fills, ─────
+        // UNKNOWN propagates.  A bundle declaring UNKNOWN is the dispatcher
+        // saying "I do not know" — it falls through to the corpus, whose
+        // derivation is the point of the join; only when neither source has
+        // a real type does the row stay UNKNOWN (named by which source said
+        // so).  A stored type is never overwritten and never blanked on
+        // corpus disagreement — the conflict is reported, not guessed around.
+        if (ts.task_type != null) {
+            already_typed += 1;
+            if (corpus.get(id)) |ct| {
+                if (!std.mem.eql(u8, ct, ts.task_type.?)) disagreements += 1;
+            }
+        } else {
+            const abs = bundleAbsFor(io, repo_root, id, ts.bundle);
+            const bt = if (abs) |a| readBundleType(io, a) else null;
+            defer if (bt) |v| alloc.free(v);
+            const ct = corpus.get(id);
+            if (bt) |v| {
+                if (!std.mem.eql(u8, v, "UNKNOWN")) {
+                    entry.value_ptr.task_type = try alloc.dupe(u8, v);
+                    bundle_typed += 1;
+                    changed = true;
+                    w.data("type: {s} {s} (bundle declaration)\n", .{ id, v });
+                } else if (ct) |c2| {
+                    if (std.mem.eql(u8, c2, "UNKNOWN")) {
+                        left_unknown_bundle += 1;
+                        w.data("type: {s} UNKNOWN (bundle and corpus both say UNKNOWN)\n", .{id});
+                    } else {
+                        entry.value_ptr.task_type = try alloc.dupe(u8, c2);
+                        corpus_typed += 1;
+                        changed = true;
+                        w.data("type: {s} {s} (corpus)\n", .{ id, c2 });
+                    }
+                } else {
+                    left_unknown_bundle += 1;
+                    w.data("type: {s} UNKNOWN (bundle says UNKNOWN, absent from corpus)\n", .{id});
+                }
+            } else if (ct) |c2| {
+                if (std.mem.eql(u8, c2, "UNKNOWN")) {
+                    left_unknown_corpus += 1;
+                    w.data("type: {s} UNKNOWN (corpus says UNKNOWN)\n", .{id});
+                } else {
+                    entry.value_ptr.task_type = try alloc.dupe(u8, c2);
+                    corpus_typed += 1;
+                    changed = true;
+                    w.data("type: {s} {s} (corpus)\n", .{ id, c2 });
+                }
+            } else {
+                left_unknown_absent += 1;
+                w.data("type: {s} UNKNOWN (absent from corpus snapshot)\n", .{id});
+            }
+        }
+
+        // ── scope: recompute from the row's own facts (same rule as add) ──
+        // Reads the row's task_type from the STORE pointer, not the pre-loop
+        // copy `ts`, so rows typed in this same pass (bundle/corpus) get the
+        // S5 orchestration bin when their type says orchestration.
+        const abs2 = bundleAbsFor(io, repo_root, id, ts.bundle);
+        var residue: ScopeResidue = .none;
+        const sc = try scopeClassForBundle(w, io, id, abs2, entry.value_ptr.task_type, ts.holds, &residue);
+        defer if (sc) |v| alloc.free(v);
+        const same = if (sc) |v| (ts.scope_class != null and std.mem.eql(u8, ts.scope_class.?, v)) else ts.scope_class == null;
+        if (!same) {
+            if (ts.scope_class) |o| alloc.free(o);
+            entry.value_ptr.scope_class = if (sc) |v| (try alloc.dupe(u8, v)) else null;
+            changed = true;
+            if (sc) |v| {
+                w.data("scope: {s} {s}\n", .{ id, v });
+            } else {
+                w.data("scope: {s} UNKNOWN\n", .{id});
+            }
+        }
+        if (sc) |v| {
+            scope_binned += 1;
+            for (valid_scope_classes, 0..) |cls, i| {
+                if (std.mem.eql(u8, cls, v)) {
+                    scope_counts[i] += 1;
+                    break;
+                }
+            }
+        } else {
+            switch (residue) {
+                .none => {},
+                .r1_no_deliverables => scope_r1 += 1,
+                .r2_mixed => scope_r2 += 1,
+            }
+        }
+    }
+
+    if (changed) {
+        try writeStateLocked(io, state_path, &state);
+    }
+    w.data("backfill-taxonomy: type corpus-typed {d}, bundle-typed {d}, already-typed {d}, left-UNKNOWN {d} ({d} corpus-UNKNOWN, {d} bundle-UNKNOWN, {d} absent from corpus), stored-vs-corpus disagreements {d}\n", .{ corpus_typed, bundle_typed, already_typed, left_unknown_corpus + left_unknown_bundle + left_unknown_absent, left_unknown_corpus, left_unknown_bundle, left_unknown_absent, disagreements });
+    w.data("backfill-taxonomy: scope binned {d} (S1 {d}, S2 {d}, S3 {d}, S4 {d}, S5 {d}), residue {d} (R1 no-deliverables {d}, R2 mixed {d})\n", .{ scope_binned, scope_counts[0], scope_counts[1], scope_counts[2], scope_counts[3], scope_counts[4], scope_r1 + scope_r2, scope_r1, scope_r2 });
+}
+
 // ── 2. audit — cross-check kanban against reality ───────────────────────────
 
 fn cmdAudit(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
@@ -10836,6 +11401,10 @@ fn registerStanding(
         .holds = &.{},
         .needs = &.{},
         .caps = &.{},
+        // T786: standing maintenance is tooling work — infra, self-declared
+        // (the corpus classified the standing rows UNKNOWN only because their
+        // thin briefs declared nothing; a declared type beats a classifier).
+        .task_type = try alloc.dupe(u8, "infra"),
         .shape = try alloc.dupe(u8, "solo"),
         .added = now,
         .claimed = null,
@@ -13530,11 +14099,11 @@ test "add: --needs a,b,c splits into three needs (T760)" {
             return error.TestFailed;
         };
         defer file.close(io);
-        try file.writeStreamingAll(io, "<!--managent set=A -->\n# T760 test bundle\n");
+        try file.writeStreamingAll(io, "<!--managent set=A type=infra type=infra -->\n# T760 test bundle\n");
     }
     defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
 
-    const meta = try parseBundleMeta(w, io, path, null, "T754,T755,T756");
+    const meta = try parseBundleMeta(w, io, path, null, null, "T754,T755,T756");
     try std.testing.expectEqual(@as(usize, 3), meta.needs.len);
     try std.testing.expectEqualStrings("T754", meta.needs[0]);
     try std.testing.expectEqualStrings("T755", meta.needs[1]);
@@ -13607,34 +14176,34 @@ test "T880: holds= header accepts space-separated and mixed lists" {
     const w = Writers{ .io = io };
 
     // Space-separated: all three must land.
-    const path1 = t880Bundle(io, "<!--managent set=A holds=a.zig b.zig c.zig-->");
+    const path1 = t880Bundle(io, "<!--managent set=A type=infra holds=a.zig b.zig c.zig-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path1) catch {};
-    const meta1 = try parseBundleMeta(w, io, path1, null, null);
+    const meta1 = try parseBundleMeta(w, io, path1, null, null, null);
     try std.testing.expectEqual(@as(usize, 3), meta1.holds.len);
     try std.testing.expectEqualStrings("a.zig", meta1.holds[0]);
     try std.testing.expectEqualStrings("b.zig", meta1.holds[1]);
     try std.testing.expectEqualStrings("c.zig", meta1.holds[2]);
 
     // Mixed comma + space: all three must land.
-    const path2 = t880Bundle(io, "<!--managent set=A holds=a.zig,b.zig c.zig-->");
+    const path2 = t880Bundle(io, "<!--managent set=A type=infra holds=a.zig,b.zig c.zig-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path2) catch {};
-    const meta2 = try parseBundleMeta(w, io, path2, null, null);
+    const meta2 = try parseBundleMeta(w, io, path2, null, null, null);
     try std.testing.expectEqual(@as(usize, 3), meta2.holds.len);
     try std.testing.expectEqualStrings("a.zig", meta2.holds[0]);
     try std.testing.expectEqualStrings("b.zig", meta2.holds[1]);
     try std.testing.expectEqualStrings("c.zig", meta2.holds[2]);
 
     // Comma list still works (regression guard).
-    const path3 = t880Bundle(io, "<!--managent set=A holds=a.zig,b.zig,c.zig-->");
+    const path3 = t880Bundle(io, "<!--managent set=A type=infra holds=a.zig,b.zig,c.zig-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path3) catch {};
-    const meta3 = try parseBundleMeta(w, io, path3, null, null);
+    const meta3 = try parseBundleMeta(w, io, path3, null, null, null);
     try std.testing.expectEqual(@as(usize, 3), meta3.holds.len);
 
     // A following key= token ends the list; its bare tokens are not holds
     // (acceptance= owns the rest of the line — T217).
-    const path4 = t880Bundle(io, "<!--managent set=A holds=docs/one.md acceptance=sh tools/run.sh-->");
+    const path4 = t880Bundle(io, "<!--managent set=A type=infra holds=docs/one.md acceptance=sh tools/run.sh-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path4) catch {};
-    const meta4 = try parseBundleMeta(w, io, path4, null, null);
+    const meta4 = try parseBundleMeta(w, io, path4, null, null, null);
     try std.testing.expectEqual(@as(usize, 1), meta4.holds.len);
     try std.testing.expectEqualStrings("docs/one.md", meta4.holds[0]);
 
@@ -13642,21 +14211,21 @@ test "T880: holds= header accepts space-separated and mixed lists" {
     // fleet-keeper reads them), never held files — a following key must not
     // be absorbed as a hold.  The first sync run polluted 26 rows with
     // "priority=99" holds before this was pinned.
-    const path5 = t880Bundle(io, "<!--managent set=A holds=docs/one.md priority=99-->");
+    const path5 = t880Bundle(io, "<!--managent set=A type=infra holds=docs/one.md priority=99-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path5) catch {};
-    const meta5 = try parseBundleMeta(w, io, path5, null, null);
+    const meta5 = try parseBundleMeta(w, io, path5, null, null, null);
     try std.testing.expectEqual(@as(usize, 1), meta5.holds.len);
     try std.testing.expectEqualStrings("docs/one.md", meta5.holds[0]);
 
-    const path6 = t880Bundle(io, "<!--managent set=A holds=docs/one.md waiting=1-->");
+    const path6 = t880Bundle(io, "<!--managent set=A type=infra holds=docs/one.md waiting=1-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path6) catch {};
-    const meta6 = try parseBundleMeta(w, io, path6, null, null);
+    const meta6 = try parseBundleMeta(w, io, path6, null, null, null);
     try std.testing.expectEqual(@as(usize, 1), meta6.holds.len);
     try std.testing.expectEqualStrings("docs/one.md", meta6.holds[0]);
 
     // The sync path (readBundleHolds) must agree — it is what reconciled the
     // live store.
-    const path7 = t880Bundle(io, "<!--managent set=A holds=docs/one.md priority=99-->");
+    const path7 = t880Bundle(io, "<!--managent set=A type=infra holds=docs/one.md priority=99-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path7) catch {};
     const rb7 = readBundleHolds(io, path7).?;
     defer alloc.free(rb7);
@@ -13670,9 +14239,9 @@ test "T880: needs= header accepts space-separated lists (same token loop)" {
     const io = threaded.io();
     const w = Writers{ .io = io };
 
-    const path = t880Bundle(io, "<!--managent set=A needs=T880A1 T880A2-->");
+    const path = t880Bundle(io, "<!--managent set=A type=infra needs=T880A1 T880A2-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
-    const meta = try parseBundleMeta(w, io, path, null, null);
+    const meta = try parseBundleMeta(w, io, path, null, null, null);
     try std.testing.expectEqual(@as(usize, 2), meta.needs.len);
     try std.testing.expectEqualStrings("T880A1", meta.needs[0]);
     try std.testing.expectEqualStrings("T880A2", meta.needs[1]);
@@ -13684,7 +14253,7 @@ test "T880: deliverables= header accepts space-separated lists" {
     const io = threaded.io();
     const w = Writers{ .io = io };
 
-    const path = t880Bundle(io, "<!--managent set=A deliverables=a.zig b.zig-->");
+    const path = t880Bundle(io, "<!--managent set=A type=infra deliverables=a.zig b.zig-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
     const dels = try parseDeliverablesFromBundle(w, io, path, &.{});
     defer {
@@ -13697,7 +14266,7 @@ test "T880: deliverables= header accepts space-separated lists" {
 
     // Comma list still works, and a stray `holds=` placeholder after
     // deliverables= must NOT leak as a deliverable path.
-    const path2 = t880Bundle(io, "<!--managent set=A deliverables=a.zig,b.zig holds=-->");
+    const path2 = t880Bundle(io, "<!--managent set=A type=infra deliverables=a.zig,b.zig holds=-->");
     defer std.Io.Dir.deleteFileAbsolute(io, path2) catch {};
     const dels2 = try parseDeliverablesFromBundle(w, io, path2, &.{});
     defer {
@@ -13707,4 +14276,99 @@ test "T880: deliverables= header accepts space-separated lists" {
     try std.testing.expectEqual(@as(usize, 2), dels2.len);
     try std.testing.expectEqualStrings("a.zig", dels2[0]);
     try std.testing.expectEqualStrings("b.zig", dels2[1]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T786 tests — the frozen taxonomy: type vocabulary, scope binning, backfill
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "taxonomy: the 9-value type vocabulary is closed and case-exact" {
+    // The corpus (docs/infra/task-corpus.jsonl, T817) measured 9 closed
+    // values; the brief freezes them.  Every value round-trips; anything
+    // else — including a near-miss spelling — is not a type.
+    const expect = [_][]const u8{
+        "audit", "infra", "orchestration", "implement", "battery",
+        "integration", "research", "spec", "UNKNOWN",
+    };
+    for (expect) |t| {
+        try std.testing.expect(isValidTaskType(t));
+    }
+    try std.testing.expectEqual(@as(usize, 9), valid_task_types.len);
+    try std.testing.expect(!isValidTaskType("bogus"));
+    try std.testing.expect(!isValidTaskType("implement "));
+    try std.testing.expect(!isValidTaskType("IMPLEMENT"));
+    try std.testing.expect(!isValidTaskType(""));
+}
+
+test "taxonomy: scope binning — the mechanical rule on materially different facts" {
+    // The rule's own null control: materially different facts must land in
+    // different bins.  One row per bin shape, deliverables + holds + type +
+    // title words are the ONLY inputs.
+    // S4: findings-only deliverables
+    try std.testing.expectEqualStrings("S4", computeScopeClass("T1", "", null, &.{ "findings/x.json" }, &.{}).?);
+    // S1: a lone non-code (docs) deliverable
+    try std.testing.expectEqualStrings("S1", computeScopeClass("T2", "", null, &.{ "docs/a.md" }, &.{}).?);
+    // S3: two src deliverables
+    try std.testing.expectEqualStrings("S3", computeScopeClass("T3", "", null, &.{ "src/a.zig", "src/b.zig" }, &.{}).?);
+    // S3: three code writes
+    try std.testing.expectEqualStrings("S3", computeScopeClass("T4", "", null, &.{ "src/a.zig", "tools/b.sh", "bin/c" }, &.{}).?);
+    // S3: holds names more than one engine file
+    try std.testing.expectEqualStrings("S3", computeScopeClass("T5", "", null, &.{ "docs/n.md" }, &.{ "src/retro.zig", "src/oracle.zig" }).?);
+    // S4: docs + findings
+    try std.testing.expectEqualStrings("S4", computeScopeClass("T6", "", null, &.{ "docs/d.md", "findings/T6.json" }, &.{}).?);
+    // S2: a single code deliverable (leaf)
+    try std.testing.expectEqualStrings("S2", computeScopeClass("T7", "", null, &.{ "src/leaf.zig", "findings/T7.json" }, &.{}).?);
+    // S5: orchestration type + seat word in the title
+    try std.testing.expectEqualStrings("S5", computeScopeClass("T8", "seat triage", "orchestration", &.{ "docs/e.md" }, &.{}).?);
+    // UNKNOWN: no deliverables at all — the named residue, never a forced bin
+    try std.testing.expect(computeScopeClass("T9", "", null, &.{}, &.{}) == null);
+    // UNKNOWN: mixed un-binnable facts (a non-docs non-code deliverable)
+    try std.testing.expect(computeScopeClass("T10", "", null, &.{ "findings/x.json", "notes/y.md" }, &.{}) == null);
+    // S5 does not fire without the orchestration type
+    try std.testing.expectEqualStrings("S1", computeScopeClass("T11", "seat triage", "audit", &.{ "docs/e.md" }, &.{}).?);
+    // S5 does not fire without the seat word
+    try std.testing.expectEqualStrings("S1", computeScopeClass("T12", "plain title", "orchestration", &.{ "docs/e.md" }, &.{}).?);
+}
+
+test "taxonomy: type + scope_class round-trip serialize → parse" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-24T00:00:00Z",
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-24T00:00:00Z");
+    ts.task_type = try alloc.dupe(u8, "infra");
+    ts.scope_class = try alloc.dupe(u8, "S2");
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqualStrings("infra", p.task_type.?);
+    try std.testing.expectEqualStrings("S2", p.scope_class.?);
+}
+
+test "taxonomy: legacy row without type/scope fields parses to UNKNOWN (null, not guessed)" {
+    const content =
+        \\{
+        \\  "TX": {"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/TX-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var state = try parseStateJson(content);
+    defer freeState(&state);
+    const ts = state.get("TX").?;
+    // Absence is UNKNOWN — old rows predate the field, and a missing value
+    // must never be read as a guessed type or a zero bin.
+    try std.testing.expect(ts.task_type == null);
+    try std.testing.expect(ts.scope_class == null);
 }

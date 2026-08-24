@@ -105,7 +105,7 @@ row_status() {  # $1=id — status word from `managent show`'s second line
 }
 
 seed_task() {  # $1=id  $2=deliverable
-    printf '<!--managent set=C deliverables=%s holds=-->\n# %s — T862 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
+    printf '<!--managent set=C type=infra deliverables=%s holds=-->\n# %s — T862 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
         > "untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }

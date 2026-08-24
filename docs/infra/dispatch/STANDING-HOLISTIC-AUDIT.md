@@ -1,4 +1,4 @@
-<!--managent set=H-->
+<!--managent set=H type=infra-->
 # STANDING-HOLISTIC-AUDIT — holistic audit of the current milestone
 
 Auto-registered standing task. Trigger: milestone shape changed (new message directory appeared in `untracked/msg/`).

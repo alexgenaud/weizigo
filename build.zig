@@ -1147,6 +1147,18 @@ pub fn build(b: *std.Build) void {
     landmark_regression.cwd = b.path(".");
     test_step.dependOn(&landmark_regression.step);
 
+    // ── T786: the frozen taxonomy gate (type required at add, scope ──
+    // binned by the mechanical rule, corpus backfill).  The corpus run
+    // (T817/T818/T820/T819) measured the law this gate encodes: closed
+    // vocabulary → agreement computable; open vocabulary → incomparable.
+    // Controls: add/suggest refuse without a legal type (naming the legal
+    // values), the S1–S5 binning matrix, the corpus join (UNKNOWN
+    // propagates, never guessed), and the null control (discrimination +
+    // idempotence: re-running the backfill reproduces every bin exactly).
+    const taxonomy_regression = b.addSystemCommand(&.{ "sh", "tools/regression-task-taxonomy.sh" });
+    taxonomy_regression.cwd = b.path(".");
+    test_step.dependOn(&taxonomy_regression.step);
+
     // ── T539: holds= writer + --sync + vacuous-case controls ────────
     // The one-writer invariant was vacuous: 34 of 49 rows whose bundle
     // declared holds= had "holds": [] in the store, so holdsConflict
@@ -1272,6 +1284,23 @@ pub fn build(b: *std.Build) void {
     const claimlint_volatile_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-volatile.sh" });
     claimlint_volatile_regression.cwd = b.path(".");
     test_step.dependOn(&claimlint_volatile_regression.step);
+
+    // ── T764: claimlint C15 BRIEF-CITATIONS controls ──────────────
+    // C15 BRIEF-CITATIONS: a fixture brief (untracked/T*.md) citing a
+    // NONEXISTENT docs/ or findings/-shaped path must be reported as
+    // UNCOMMITTED (the ruling-class warning — DELEGATOR.md says "a brief
+    // cites committed paths"), the run's exit status must not change
+    // (report-only — a display/taste gate is a warning, not a refusal,
+    // seed ruling 6), and the output must be byte-identical to baseline
+    // once the fixture is removed. The fixture is staged into untracked/
+    // for the seeded-defect arm (the scanner walks the working tree, so
+    // the brief must reach it) and removed before the null arm. The
+    // fixture pattern mirrors C10's (T421), with the scratch store under
+    // /tmp/weizigo/c15-seeded/ (per AGENTS.md §"Untracked directories").
+    // SKIPs loudly when no claimlint binary in zig-out/bin/.
+    const claimlint_brief_citations_regression = b.addSystemCommand(&.{ "sh", "tools/regression-claimlint-brief-citations.sh" });
+    claimlint_brief_citations_regression.cwd = b.path(".");
+    test_step.dependOn(&claimlint_brief_citations_regression.step);
 
     // ── T482: claimlint c7 --json controls ─────────────────────
     // The `c7 --json` verb is the spec §7 machine-readable consumption

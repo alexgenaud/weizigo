@@ -281,7 +281,7 @@ chmod +x "$WORK/stub.py"
 
 # ── synthetic tasks on the scratch kanban ─────────────────────────────────
 seed_task() {  # $1=id  $2=deliverable
-    printf '<!--managent set=A deliverables=%s-->\n# %s — T411 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
+    printf '<!--managent set=A type=infra deliverables=%s-->\n# %s — T411 regression bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$2" "$1" \
         > "$WORK/untracked/$1-bundle.md"
     "$MG" add "$1" >/dev/null 2>&1 || { echo "    FAIL: managent add $1"; FAIL=1; }
 }

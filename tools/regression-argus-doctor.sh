@@ -442,7 +442,7 @@ SEED_BUNDLE="$PROJECT/$SEED_BUNDLE_REL"
 ARM2_ROW_ID="T425-DOCTOR-2-$(basename "$WORK")"
 rm -f "$SEED_BUNDLE"
 cat > "$SEED_BUNDLE" <<'EOF'
-<!--managent set=G-->
+<!--managent set=G type=infra-->
 # T425 doctor arm 2 — bundle
 **Landmark:** none directly; unblocks regression fixture
 EOF
@@ -550,7 +550,7 @@ ARM7_BUNDLE="$PROJECT/$ARM7_BUNDLE_REL"
 rm -f "$ARM7_BUNDLE"
 track_fixture "$ARM7_BUNDLE"   # T448: trap must remove on signal
 cat > "$ARM7_BUNDLE" <<'EOF'
-<!--managent set=A-->
+<!--managent set=A type=infra-->
 # T425 doctor arm 7
 **Landmark:** none directly; unblocks regression fixture
 EOF
@@ -669,7 +669,7 @@ cp "$LIVE_STORE" "$FAKE/docs/infra/managent/tasks.json"
 # store is exempt, e.g. T424's claim-lifecycle regression).
 git -C "$FAKE" add docs/infra/managent/tasks.json
 cat > "$FAKE/tools/regression-argus-doctor-fixture.md" <<'EOF'
-<!--managent set=G-->
+<!--managent set=G type=infra-->
 # T427 guard fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
@@ -688,7 +688,7 @@ rc_b=$?
 ARM12_C="$ARM12_BASE-c"
 GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
 cat > "$GUARD_FIXTURE" <<'EOF'
-<!--managent set=G-->
+<!--managent set=G type=infra-->
 # T427 guard fixture (scratch positive control)
 **Landmark:** none directly; unblocks regression fixture
 EOF
@@ -727,7 +727,7 @@ rc_a2=$?
 #     their substrate)
 GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
 cat > "$GUARD_FIXTURE" <<'EOF'
-<!--managent set=G-->
+<!--managent set=G type=infra-->
 # T427 guard fixture (scratch positive control)
 **Landmark:** none directly; unblocks regression fixture
 EOF
@@ -1082,7 +1082,7 @@ git -C "$FAKE" add docs/infra/managent/tasks.json
 ARM24_ID="T430LIVE-OK-$(date +%s)$$"
 ARM24_BUNDLE="$FAKE/untracked/T430-live-ok-bundle.md"
 cat > "$ARM24_BUNDLE" <<'EOF'
-<!--managent set=G-->
+<!--managent set=G type=infra-->
 # T430 live-add positive control
 **Landmark:** none directly; unblocks regression fixture
 EOF
