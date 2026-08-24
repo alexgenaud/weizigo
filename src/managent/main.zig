@@ -1360,6 +1360,12 @@ pub fn main(init: std.process.Init.Minimal) !void {
     // Determine command (first non-flag arg, or "status")
     const cmd: []const u8 = if (args.len >= 2 and !std.mem.startsWith(u8, args[1], "-")) args[1] else "status";
 
+    // S10 store-loss detector: record the verb for the census's written_by, and
+    // parse the reasoned escape once, centrally (honored only by the write path,
+    // so a read-only verb passing it is a harmless no-op).
+    current_cmd = cmd;
+    reconcile_reason = getFlagValue(args, "--reconcile-store-loss");
+
     // Help flags — short-circuit BEFORE any side effect (T210 D3)
     // Match: managent help, managent standing --help, managent --help, etc.
     if (std.mem.eql(u8, cmd, "help")) {
@@ -1383,6 +1389,17 @@ pub fn main(init: std.process.Init.Minimal) !void {
             std.process.exit(3);
         };
         return;
+    }
+
+    // S10-STORE-3: read-time census check on the read-only surfaces.  Alarms on
+    // stderr (naming the gap, the missing ids, the census) and marks read_shrunk
+    // so the process exits non-zero AFTER the surface has rendered — the next
+    // `orient` says so instead of the next lucky error.
+    var read_shrunk = false;
+    if (std.mem.eql(u8, cmd, "orient") or std.mem.eql(u8, cmd, "status") or
+        std.mem.eql(u8, cmd, "resume") or std.mem.eql(u8, cmd, "audit"))
+    {
+        read_shrunk = checkCensusRead(io, state_path) catch false;
     }
 
     // Migration: on every invocation, re-derive dispatchable/blocked statuses.
@@ -1505,6 +1522,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
     }
+
+    if (read_shrunk) std.process.exit(1);
 }
 
 // ── repo root ───────────────────────────────────────────────────────────────
@@ -2311,6 +2330,26 @@ fn writeStateLocked(io: std.Io, state_path: []const u8, state: *StateMap) !void 
         check.deinit();
     }
 
+    // S10 store-loss detector (T848): the census rides the live kanban store
+    // (basename tasks.json) only — archive.json and any other sibling written
+    // through this same call (e.g. cmdArchive's second write) carry no census.
+    const live_store = std.mem.eql(u8, std.fs.path.basename(state_path), "tasks.json");
+
+    // S10-STORE-2: write-time check — refuse an unexplained shrink BEFORE this
+    // write (fail-closed: committing on top of a reverted store makes the loss
+    // harder to reconstruct).  A shrink explained by this write's own
+    // retirement bookkeeping (purge/archive/retire) or by the reasoned escape
+    // (--reconcile-store-loss) proceeds.
+    if (live_store) try checkCensusBeforeWrite(io, state_path);
+
+    // S10-STORE-1: write the census BEFORE the store, in the same lock hold
+    // and the same code path (one writer, one place).  Census-first means a
+    // crash between the two renames leaves the census AHEAD of the store —
+    // the next write sees live >= census (no shrink) and heals silently.  The
+    // store-first order would leave the census BEHIND and a legitimate purge's
+    // next write would read as a false shrink.
+    if (live_store) try writeCensus(io, state_path, state, buf.items);
+
     const dirname = std.fs.path.dirname(state_path) orelse ".";
     const basename = std.fs.path.basename(state_path);
 
@@ -2346,11 +2385,298 @@ fn writeState(io: std.Io, state_path: []const u8, state: *StateMap) !void {
     try writeStateLocked(io, state_path, state);
 }
 
+// ── S10 store-loss detector (T848) ──────────────────────────────────────────
+// A committed census (docs/infra/managent/store-census.json beside the live
+// store, or a sibling of a scratch MANAGENT_STORE) records the live row count,
+// a digest of the store bytes, the ids, and the command that wrote it — updated
+// on every write of the live store (tasks.json), in the same lock hold and the
+// same code path, so a checkout of one wave gets a consistent pair.
+//
+// Known limitation, stated honestly (spec S10 §2.4): a wholesale `git checkout`
+// of an old commit reverts store AND census together — the pair stays internally
+// consistent and this detector cannot see it.  It catches the measured failure:
+// a silent single-file revert of tasks.json alone, where the census would still
+// reflect the larger store.
+
+fn censusPathFor(state_path: []const u8) ![]u8 {
+    const dirname = std.fs.path.dirname(state_path) orelse ".";
+    return std.fs.path.join(alloc, &.{ dirname, "store-census.json" });
+}
+
+fn storeDigestHex(content: []const u8) [64]u8 {
+    var digest: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(content, &digest, .{});
+    const hex_chars = "0123456789abcdef";
+    var out: [64]u8 = undefined;
+    for (0..32) |i| {
+        out[i * 2] = hex_chars[digest[i] >> 4];
+        out[i * 2 + 1] = hex_chars[digest[i] & 0xF];
+    }
+    return out;
+}
+
+const Census = struct {
+    present: bool = false,
+    row_count: u64 = 0,
+    ids: []const []const u8 = &.{},
+};
+
+fn readCensusAt(io: std.Io, census_path: []const u8) !Census {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, census_path, alloc, .unlimited) catch |err| {
+        if (err == error.FileNotFound) return Census{};
+        return err;
+    };
+    defer alloc.free(content);
+
+    var parsed = std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always }) catch {
+        std.debug.print("WARNING: store census unparseable ({s}) — treated as absent; the next write rewrites it\n", .{census_path});
+        return Census{};
+    };
+    defer parsed.deinit();
+
+    if (parsed.value != .object) return Census{};
+    var c = Census{ .present = true };
+    if (parsed.value.object.get("row_count")) |v| {
+        if (v == .integer) c.row_count = @intCast(v.integer);
+    }
+    if (parsed.value.object.get("ids")) |v| {
+        if (v == .array) {
+            var list = std.ArrayList([]const u8).empty;
+            for (v.array.items) |item| {
+                if (item == .string) list.append(alloc, try alloc.dupe(u8, item.string)) catch {};
+            }
+            c.ids = try list.toOwnedSlice(alloc);
+        }
+    }
+    return c;
+}
+
+/// Side-effect-free count of the task rows in raw store bytes (keys not
+/// prefixed with `_`).  Unlike readState/parseStateJson this does NOT touch the
+/// sys_* globals, so it is safe to call from the write path after the caller has
+/// already loaded and modified the in-memory state.
+fn countTaskIds(content: []const u8) ![]const []const u8 {
+    const trimmed = std.mem.trim(u8, content, " \t\n\r");
+    if (trimmed.len == 0 or std.mem.eql(u8, trimmed, "{}")) return &.{};
+    var parsed = try std.json.parseFromSlice(std.json.Value, alloc, content, .{ .allocate = .alloc_always });
+    defer parsed.deinit();
+    if (parsed.value != .object) return &.{};
+    var list = std.ArrayList([]const u8).empty;
+    var it = parsed.value.object.iterator();
+    while (it.next()) |entry| {
+        const key = entry.key_ptr.*;
+        if (std.mem.startsWith(u8, key, "_")) continue;
+        list.append(alloc, try alloc.dupe(u8, key)) catch {};
+    }
+    return list.toOwnedSlice(alloc);
+}
+
+fn subsetOf(a: []const []const u8, b: []const []const u8) bool {
+    for (a) |x| {
+        var found = false;
+        for (b) |y| {
+            if (std.mem.eql(u8, x, y)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) return false;
+    }
+    return true;
+}
+
+fn printMissingIds(missing: []const []const u8) void {
+    for (missing, 0..) |m, i| {
+        if (i > 0) std.debug.print(" ", .{});
+        std.debug.print("{s}", .{m});
+    }
+}
+
+fn refuseStoreShrink(live_count: usize, census_count: u64, missing: []const []const u8, census_path: []const u8) noreturn {
+    std.debug.print("\n  REFUSED: store-loss detector — the live store is smaller than the committed census.\n", .{});
+    std.debug.print("  live rows: {d}  census rows: {d}  (shrink of {d})\n", .{ live_count, census_count, census_count - @as(u64, @intCast(live_count)) });
+    std.debug.print("  missing ids: ", .{});
+    printMissingIds(missing);
+    std.debug.print("\n  census: {s}\n", .{census_path});
+    std.debug.print("  Committing on top of a reverted store makes the loss harder to reconstruct.\n", .{});
+    std.debug.print("  Accept by fiat: re-run with --reconcile-store-loss \"<reason>\".\n", .{});
+    std.debug.print("  Or restore: git checkout the last good tasks.json (store AND census) first.\n", .{});
+    std.process.exit(1);
+}
+
+fn alarmReadShrink(live_count: usize, census_count: u64, missing: []const []const u8, census_path: []const u8) void {
+    std.debug.print("\n  ALARM: store-loss detector — live store ({d} rows) is smaller than the committed census ({d} rows).\n", .{ live_count, census_count });
+    std.debug.print("  missing ids: ", .{});
+    printMissingIds(missing);
+    std.debug.print("\n  census: {s}\n", .{census_path});
+    std.debug.print("  This is exactly how the 2026-08-24 59-task loss looked; verify before mutating.\n", .{});
+}
+
+fn checkCensusBeforeWrite(io: std.Io, state_path: []const u8) !void {
+    const census_path = try censusPathFor(state_path);
+    defer alloc.free(census_path);
+    const census = try readCensusAt(io, census_path);
+    if (!census.present) return; // no census yet — this write creates it
+
+    const live_ids = blk: {
+        const content = std.Io.Dir.cwd().readFileAlloc(io, state_path, alloc, .unlimited) catch |err| {
+            if (err == error.FileNotFound) break :blk &.{};
+            return err;
+        };
+        defer alloc.free(content);
+        break :blk try countTaskIds(content);
+    };
+
+    if (live_ids.len >= census.row_count) return; // no shrink
+
+    var missing = std.ArrayList([]const u8).empty;
+    defer missing.deinit(alloc);
+    for (census.ids) |cid| {
+        var found = false;
+        for (live_ids) |lid| {
+            if (std.mem.eql(u8, cid, lid)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) missing.append(alloc, cid) catch {};
+    }
+
+    const explained = reconcile_reason != null or (retiring_ids.len > 0 and subsetOf(missing.items, retiring_ids));
+    if (explained) {
+        std.debug.print("\n  store-loss detector: shrink of {d} explained by {s}\n", .{
+            census.row_count - @as(u64, @intCast(live_ids.len)),
+            if (reconcile_reason) |r| r else "this command's retirement bookkeeping",
+        });
+        return;
+    }
+
+    refuseStoreShrink(live_ids.len, census.row_count, missing.items, census_path);
+}
+
+fn checkCensusRead(io: std.Io, state_path: []const u8) !bool {
+    const census_path = try censusPathFor(state_path);
+    defer alloc.free(census_path);
+    const census = try readCensusAt(io, census_path);
+    if (!census.present) return false;
+
+    const live_ids = blk: {
+        const content = std.Io.Dir.cwd().readFileAlloc(io, state_path, alloc, .unlimited) catch |err| {
+            if (err == error.FileNotFound) break :blk &.{};
+            return err;
+        };
+        defer alloc.free(content);
+        break :blk try countTaskIds(content);
+    };
+
+    if (live_ids.len >= census.row_count) return false;
+
+    var missing = std.ArrayList([]const u8).empty;
+    defer missing.deinit(alloc);
+    for (census.ids) |cid| {
+        var found = false;
+        for (live_ids) |lid| {
+            if (std.mem.eql(u8, cid, lid)) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) missing.append(alloc, cid) catch {};
+    }
+
+    alarmReadShrink(live_ids.len, census.row_count, missing.items, census_path);
+    return true;
+}
+
+fn writeCensus(io: std.Io, state_path: []const u8, state: *StateMap, store_bytes: []const u8) !void {
+    const census_path = try censusPathFor(state_path);
+    defer alloc.free(census_path);
+    try ensureStateDir(io, census_path);
+
+    const digest = storeDigestHex(store_bytes);
+    const now = try nowTimestamp();
+    defer alloc.free(now);
+
+    // Sorted id list — deterministic output, and the set the write-time check
+    // diffs against to name the missing ids.
+    var id_list = std.ArrayList([]const u8).empty;
+    defer id_list.deinit(alloc);
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| try id_list.append(alloc, entry.key_ptr.*);
+    }
+    const sortFn = struct {
+        fn lt(_: void, a: []const u8, b: []const u8) bool {
+            return std.mem.lessThan(u8, a, b);
+        }
+    }.lt;
+    std.mem.sort([]const u8, id_list.items, {}, sortFn);
+
+    var buf: std.ArrayList(u8) = .empty;
+    defer buf.deinit(alloc);
+    try buf.appendSlice(alloc, "{\n  \"row_count\": ");
+    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{state.count()}));
+    try buf.appendSlice(alloc, ",\n  \"digest\": \"");
+    try buf.appendSlice(alloc, &digest);
+    try buf.appendSlice(alloc, "\",\n  \"written_by\": ");
+
+    // written_by carries the verb plus any retirement/reconcile note, so a
+    // legitimate shrink is recorded where the census itself lives.
+    var wb: std.ArrayList(u8) = .empty;
+    defer wb.deinit(alloc);
+    try wb.appendSlice(alloc, current_cmd);
+    if (retiring_ids.len > 0) {
+        try wb.appendSlice(alloc, " (retired:");
+        for (retiring_ids) |rid| try wb.appendSlice(alloc, try std.fmt.allocPrint(alloc, " {s}", .{rid}));
+        try wb.appendSlice(alloc, ")");
+    }
+    if (reconcile_reason) |r| {
+        try wb.appendSlice(alloc, " [reconcile-store-loss: ");
+        try wb.appendSlice(alloc, r);
+        try wb.appendSlice(alloc, "]");
+    }
+    try writeJsonString(&buf, wb.items);
+
+    try buf.appendSlice(alloc, ",\n  \"updated\": ");
+    try writeJsonString(&buf, now);
+    try buf.appendSlice(alloc, ",\n  \"ids\": [");
+    for (id_list.items, 0..) |id, i| {
+        if (i > 0) try buf.appendSlice(alloc, ", ");
+        try writeJsonString(&buf, id);
+    }
+    try buf.appendSlice(alloc, "]\n}\n");
+
+    // Atomic write — the same tmp+fsync+rename pattern as the store itself.
+    const dirname = std.fs.path.dirname(census_path) orelse ".";
+    const basename = std.fs.path.basename(census_path);
+    var tmp_name_buf: [256]u8 = undefined;
+    const tmp_name = try std.fmt.bufPrint(&tmp_name_buf, "{s}.tmp.{d}", .{ basename, nowMs() });
+    const tmp_path = try std.fs.path.join(alloc, &.{ dirname, tmp_name });
+    defer alloc.free(tmp_path);
+    {
+        const tmp_file = try std.Io.Dir.cwd().createFile(io, tmp_path, .{});
+        defer tmp_file.close(io);
+        try tmp_file.writeStreamingAll(io, buf.items);
+        try tmp_file.sync(io);
+    }
+    const dir = try std.Io.Dir.cwd().openDir(io, dirname, .{});
+    defer dir.close(io);
+    try dir.rename(tmp_name, dir, basename, io);
+}
+
 var sys_next_id: u32 = 100; // monotonic task-ID counter, loaded from _sys
 var sys_directive_next: u32 = 1; // monotonic directive-ID counter, loaded from _sys
 var sys_assertion_next: u32 = 1; // monotonic assertion-ID counter, loaded from _sys
 var sys_closes: u64 = 0; // T478: total task closes, loaded from _sys (duty due-count)
 var sys_duty_migrated: bool = false; // T478: one-time duty-flag migration marker
+
+// S10 store-loss detector globals (T848).  current_cmd is the verb this
+// invocation runs (set in main); retiring_ids names the rows THIS write
+// retires (set by purge/archive/retire) so an explained shrink is not a false
+// alarm; reconcile_reason is the --reconcile-store-loss <reason> escape.
+var current_cmd: []const u8 = "";
+var retiring_ids: []const []const u8 = &.{};
+var reconcile_reason: ?[]const u8 = null;
 
 fn parseStateJson(content: []const u8) !StateMap {
     const trimmed = std.mem.trim(u8, content, " \t\n\r");
@@ -4976,7 +5302,11 @@ fn cmdPurge(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         _ = state.remove(p);
     }
 
+    // S10-STORE-4: record the ids this write retires so the write-time check
+    // can tell a legitimate shrink from a reverted store.
+    retiring_ids = purged.items;
     try writeStateLocked(io, state_path, &state);
+    retiring_ids = &.{};
 
     w.diag("\n  purged {d} task(s):", .{purged.items.len});
     for (purged.items) |p| w.diag(" {s}", .{p});
@@ -5235,7 +5565,10 @@ fn cmdArchive(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     }
 
     // Write both stores atomically.
+    // S10-STORE-4: name the ids this write retires (legitimate shrink, no alarm).
+    retiring_ids = to_archive.items;
     try writeStateLocked(io, state_path, &state);
+    retiring_ids = &.{};
     try writeStateLocked(io, archive_path, &archive_state);
 
     w.diag("\n  archived {d} row(s):", .{archived_count});
@@ -5319,7 +5652,11 @@ fn cmdRetire(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     }
 
     // Write both stores atomically.
+    // S10-STORE-4: name the id this write retires (legitimate shrink, no alarm).
+    const retire_ids = [_][]const u8{id};
+    retiring_ids = &retire_ids;
     try writeStateLocked(io, state_path, &state);
+    retiring_ids = &.{};
     try writeStateLocked(io, archive_path, &archive_state);
 
     w.diag("\n  retired {s}  [set: {c}]  (archived with epitaph)\n", .{ id, ts.set });
