@@ -371,3 +371,34 @@ frame showing a real rate, show UNKNOWN still appears for a genuinely transcript
 openrouter lane has neither `--session` nor `--mode json`, so UNKNOWN is *correct* there), and
 cross-check the rendered rate against hand arithmetic on the same transcript. Seeing a number is not
 the test; seeing the right number is.
+
+## B-new-12. The rate winner is landed and verified in the operator's own terms — 2026-08-24
+
+`T853` (`claude-sonnet-5`) applied `T839`'s patch **verbatim** — 402 `+` lines in the working-tree diff
+matching 402 in the patch, no rebase, no reimplementation. Regression arm **O went FAIL → PASS**: that
+is the UNKNOWN-forever defect closing.
+
+**`T853` could not run the live demonstration and refused to fake one.** At the time no pi-lane task was
+alive (only its own claude lane), `pgrep` could not see its own process tree from inside the sandbox, and
+Claude Code's native transcript format does not match the envelope the reader expects. Rather than
+render a plausible frame it exercised T839's real code against a real completed transcript and said so.
+**That refusal is the correct call** — fabricating the frame would have been the T840 failure in a new
+costume — but it left the acceptance test unmet, so the seat ran it.
+
+**Seat verification, sampled with a live task running (`T854`, deepseek lane):**
+
+| what | value |
+|---|---|
+| rendered frame | `T854  L1  dspro  2'02  53.0/s  35s` |
+| hand arithmetic | SUM(per-turn `output`) = **6,465**, elapsed **122 s** |
+| SUM ÷ elapsed | **53.0/s** — exactly the rendered figure |
+| MAX ÷ elapsed (the T840 method) | 23.2/s — *not* what is rendered |
+
+So the column shows a **right** number, not merely a non-empty one, and it demonstrably aggregates by
+sum. The freshness slot also renders (`35s`).
+
+| # | still open after this landing | detail |
+|---|---|---|
+| B49 | **`claude` lanes will still read UNKNOWN, and that is now a known format gap, not a mystery.** Claude Code writes its own per-session transcript with `usage` nested as `message.usage.output_tokens`, which is not the envelope the reader parses. Combined with B27 (the claude lane is dispatched with no `--session` at all), claude lanes remain unmeasured and unobservable. The fix covers the `deepseek` and `ollama` lanes. | T853's findings |
+| B50 | **Three watch-fleet arms are red at base and unchanged by the landing — including the exact-fill invariant.** Arms C, F and N fail identically before and after. Arm **N** is the exact-fill check, and it renders **1 line instead of the expected 22/38/58** — "a drastic pre-existing failure, not an off-by-one". **The invariant every rate-race brief treated as load-bearing has an arm that has not been passing**, so no entrant's claim to preserve it was ever actually tested. | base-vs-patched runs, same host |
+| B51 | **The deployed managent binary has drifted from what several regression scripts assert** (e.g. `lanes` "not clean on a null store", duty "next did not claim"), which forced T851 to revert otherwise-valid conversions to keep its batch all-green. The drift is a task in itself; T854 is asked to enumerate every script it blocks. | T851's findings |
