@@ -423,3 +423,28 @@ T854's 10, plus the helper's own arm file), including all three pre-commit pool 
 repository's identity. T854 reports only **seven** cleanly-green mechanical candidates remained before it
 started, so the mechanical phase is nearly exhausted; what is left is the named resisters, the multi-init
 scripts, and the drift-blocked five — none of which proceed without the seat's sign-off or `T855`.
+
+## B-new-14. The fixture drift is fixed without weakening the gate — T855, audited 2026-08-24
+
+**`src/managent/main.zig` was not touched.** The detector's logic is therefore *provably* unchanged —
+the strongest possible answer to the risk this row carried, which was that it might pass by disabling
+the protection. It fixed the fixtures, not the gate, exactly as scoped.
+
+| check | result |
+|---|---|
+| the five previously-red scripts | **all five exit 0** (duty, done-two-phase, ledger-board-seam, lanes, store-pollution) |
+| the detector still has teeth | **yes** — seeded revert still gives `orient alarmed (rc=1) naming T9002 + census path` and `add refused (rc=1); store still 1 row` |
+| all four census arms | pass |
+| detector logic changed? | **no** — zero lines of `main.zig` in the commit |
+
+**The one live-file change is legitimate and was the real risk.** `tools/runner`'s automatic close ran
+`managent done <task>` with neither `--impression` nor `--impression-waiver`, which the impression gate
+now refuses. Rather than fabricate an impression for a lane where no model narrated one, it now **waives
+by name**: *"worker-channel auto-done on exit 0 — no model ran to narrate an impression"*. That is the
+honest option, and it is the gate working as designed rather than being worked around.
+
+**Applying B53's lesson, with one honest gap.** The risk here was a live file every dispatch reads, so I
+verified it the way that counts: dispatched a real task and confirmed it claimed, stayed alive, and grew
+its transcript to 175 KB. **My attempt at a broad script sweep exceeded its time limit and did not
+complete**, so "nothing else broke" is supported by a real dispatch and the five named scripts, not by an
+exhaustive pass. Stated rather than implied.
