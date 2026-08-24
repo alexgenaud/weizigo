@@ -1,0 +1,4261 @@
+{
+  "task_id": "T868",
+  "date": "2026-08-24",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Harvested from docs/infra/managent/tasks.json. Scope UNKNOWN when files_in_scope is null.",
+  "harvested": {
+    "closed_rows": 461,
+    "closed_with_model": 271,
+    "closed_with_non_empty_impression": 153,
+    "closed_with_both_model_and_impression": 147,
+    "harvested_for_classification": 142,
+    "discarded": 5,
+    "discarded_rows": [
+      {
+        "task_id": "T774",
+        "reason": "impression reconstructed by T771, not a worker impression"
+      },
+      {
+        "task_id": "T781",
+        "reason": "impression reconstructed by T771, not a worker impression"
+      },
+      {
+        "task_id": "T783",
+        "reason": "impression reconstructed by T771, not a worker impression"
+      },
+      {
+        "task_id": "T776",
+        "reason": "impression reconstructed by T771, not a worker impression"
+      },
+      {
+        "task_id": "T780",
+        "reason": "impression reconstructed by T771, not a worker impression"
+      }
+    ],
+    "not_harvested_lacked_model_or_impression": 314
+  },
+  "vocabularies": {
+    "task_type": {
+      "values": [
+        "audit",
+        "census-harvest",
+        "cleanup-hygiene",
+        "design-spec",
+        "grade",
+        "onboarding-land",
+        "race",
+        "science-probe",
+        "terminology-refactor",
+        "tooling-fix"
+      ],
+      "derivation": "Derived from the bundle-name and impression corpus. Race tasks include all \"race-*\" lanes plus diffrace/ratrace. Audit tasks check specs/claims/whatis. Grade tasks are grader, judge, or arbiter lanes. Tooling-fix tasks change code with tests or instruments. Design-spec tasks draft specs or design decisions. Census-harvest tasks collect counts or surveys. Cleanup-hygiene tasks remove stale binaries/docs. Terminology-refactor tasks rename or consolidate terms. Onboarding-land tasks bring new models or merge race winners. Science-probe tasks run controlled reproductions."
+    },
+    "scope": {
+      "values": [
+        "single-script",
+        "small-module",
+        "large-module",
+        "whole-project",
+        "UNKNOWN"
+      ],
+      "derivation": "Based on files_in_scope when recorded, with thresholds justified by the observed distribution: 1 file = single-script, 2-3 files = small-module, 4-9 files = large-module, >=10 files = whole-project. Rows with no files_in_scope recorded are UNKNOWN."
+    },
+    "capability": {
+      "values": [
+        "clean-implementation",
+        "design-spec",
+        "discernment",
+        "independent-verification",
+        "noise-resilience",
+        "root-cause",
+        "synthesis",
+        "test-first",
+        "thorough-audit",
+        "verify-before-act"
+      ],
+      "derivation": "Read from the impressions first. verify-before-act = refuses to fabricate and checks repo state first. test-first = red/green regression or controls. root-cause = traced mechanism or sensor. thorough-audit = wide citation/ruling coverage. independent-verification = primary-source or reproduced. discernment = grading/arbitration/judgment on ambiguous cases. clean-implementation = mechanical/land cleanly. synthesis = cross-doc or cross-lane synthesis. noise-resilience = provider/harness/watchdog failure not model failure. design-spec = architectural/spec reasoning."
+    }
+  },
+  "cells": [
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "discernment",
+      "n": 9,
+      "models": [
+        "claude-fable-5",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Controls unanimous; separation is S3 consistency + evidence quality \u2014 scorer-3 applies rubric mechanically on S3, sco...",
+        "Lane-1 is the expert despite 19/25 count: uniquely correct on real register errors",
+        "The status axis came out degenerate \u2014 nothing was wrong, so correct-out-of-25 gave a near five-way tie and all the si..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act",
+      "n": 9,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Discernment probe: correct move on all three triggers was verify-before-act, refusing to fabricate a fix, a gate reac...",
+        "Probe correctly rewards verify-before-act; two of three trigger premises (S1 stale citation, S2 failing gate) were fa...",
+        "Probe scenarios investigated; none required explicit action"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "test-first",
+      "n": 9,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "reproduced the stall, test-first regression red->green, real-dispatch proof clean",
+        "Per-harness fuse derived from data, red-then-green controls, pi path byte-identical \u2014 the T616 coin-flip is closed",
+        "structural pin + loud needs-manual-heal marker, test-first, 15-arm regression green; found+fixed pre-existing T522 st..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "test-first",
+      "n": 9,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "T711: host guard now subtracts the resident model server's footprint (ollama runner --mlx-engine RSS or WEIZIGO_HOST_...",
+        "Regression test validates removal; all 15 controls PASS",
+        "mechanical gate work, clean test-first pass"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "design-spec",
+      "n": 6,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "Designing blind was clarifying: all eight symptoms reduce to one root \u2014 a two-valued world forced to encode a third c...",
+        "sprint-spec console: read all ground-truth docs, produced a complete testable spec with correct citations",
+        "Spec translated eight DECIDED rulings into a ratifiable spec with counted migration order (75 regression scripts, 17 ..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 6,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "mechanical conversions went cleanly first-try; drift surfaced and enumerated rather than worked around",
+        "Clean mechanical fix; census surfaced same-class unvalidated path in cmdNeeds --add worth a follow-up",
+        "Trivial config change (one enum line + prose + tests); the shared-checkout store revert and commit churn made it disp..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "root-cause",
+      "n": 6,
+      "models": [
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "defect was a wrong sensor, not a wrong model; session mtime is the honest liveness signal",
+        "The 8 KiB window was the wrong shape, not the wrong size \u2014 per-family harness evidence (runner diagnostic / client ap...",
+        "Traced the T674-T695 row-loss mechanism to the uncommitted-working-tree clobber, built a tested bidirectional census ..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "discernment",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "key mechanical S1-S3; field converges",
+        "The brief's load-bearing input did not exist, and the most valuable thing I could do was rule blind anyway and then m...",
+        "The key is mechanical and the field converged: S2 (the failure-prone axis) was 6/6 for all four entrants, so the rank..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Race F adjudication",
+        "Race G claim-doubt lane, anchor seat",
+        "Race G claim-doubt lane; 25 verdicts complete (24 verified, 1 unverifiable-at-head)"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit",
+      "n": 4,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "The spec is substantively sound: the 25/129=19.4% scope, mechanical verb boundary, F4/F6/F7 folds and AUTOPILOT-5H ga...",
+        "Spec covers core reconciler verbs well; ruling coverage incomplete (missing 6 rulings from table) and two critical me...",
+        "S04 spec's mechanism content is sound (19.4% scope math, F4/F6/F7 all correctly mapped, all citations resolve); its o..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "The waypoint is decomposable with existing instruments \u2014 the real debt is one unreconciled number (the kill rate) gat...",
+        "Decomposition depth good; OPEN items 1-9 name the only unverifiable assumptions (mutation re-ruling, regen feasibilit...",
+        "Thorough cross-doc synthesis; correctly read T430 label as OPEN"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "test-first",
+      "n": 4,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "clean tooling fix; D085 was the surprise \u2014 a substring nonce check over stdout is harness-confounded by JSON-mode pro...",
+        "Helper isolates the git env before git init; seeded-defect arm reproduced the 2026-08-24 incident against a throwaway...",
+        "Display work was quick; the real find was git-commit-mine failing on tracked files under ignored dirs \u2014 fixed test-fi..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 3,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-5",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "T839 (flash) aggregates correctly (SUM per-turn), handles late-claim sessions, renders live rates, superior presentation",
+        "The mechanical headline flatters T826/T831 (172/172 by closing an unrelated recorded defect); a hermetic harness expo...",
+        "Isolating each patch in a real git worktree (not scratch git-init) and rebuilding managent from source at the pinned ..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "discernment",
+      "n": 3,
+      "models": [
+        "claude-fable-5",
+        "claude-opus-5",
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "adjudication rewards artifact re-verification: the set's most severe item was single-lane, and two multi-checked 'no ...",
+        "The sealed rubric graded three fixtures that were never planted \u2014 the race measured premise-checking instead of proac...",
+        "Rubric's S1 amendment and S3 prescribed command both needed judgment calls beyond the literal text \u2014 documented as ru..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "independent-verification",
+      "n": 3,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Tier A cascade-risk claims hold with fresh evidence; Tier B PROVEN verified by source; Tier C FALSE confirmed at stat...",
+        "Adversarial stance held: source reads caught the stale-PROVEN rows, no fabricated refutations",
+        "Found the seeded defects via primary-source verification (git history, source, findings JSONs) rather than the contam..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "noise-resilience",
+      "n": 3,
+      "models": [
+        "glm-5.2",
+        "kimi-k2.7",
+        "minimax-m3"
+      ],
+      "recurring_language": [
+        "kimi-k2.7 held a rate-race lane ~48 min at exit=1 and produced zero deliverables; nothing usable reached disk.",
+        "glm-5.2 produced a complete 25.8 KB patch plus findings on a script-editing race lane in ~49 min and delivered both b...",
+        "minimax-m3 held a rate-race lane ~48 min at exit=1 and produced zero deliverables; nothing usable reached disk."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation",
+      "n": 3,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Careful work; the reader census and the three extra re-keys (T544 x2, T616 re-dispatch) are the honest parts, not the...",
+        "Loop-level build on a mature file; only friction was the bundle's deliverables= omitting the wired test and the launc...",
+        "verified and completed an inherited T635.1 build; controls green end-to-end \u2014 clean"
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "The T634/T643 per-harness pattern is right but incomplete \u2014 ollama never got the streaming flag, silent branch lacks ...",
+        "audit thorough: 12 findings, every \u00a77c ruling checked, citations re-opened; 2 major on the spec"
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "deepseek-v4-pro",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "audit task: no model ran engine code; verified citations by reading 12 source sites + 3 live reproductions; no intros...",
+        "mechanical register harvest; citations verified not re-derived, as briefed"
+      ]
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "deepseek-v4-pro: census + spec complete and correct; verified the prior helper census's load-bearing findings indepen...",
+        "Methodical verifier \u2014 reproduced every load-bearing figure, caught 6 citation drifts, no over-claiming"
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Docs-hygiene task; README index now matches the post-T701-T704 tree",
+        "docs/engine/ left with one canonical doc (ARCHITECTURE.md map) + archive/TODO.md, zero self-contradiction; foreign C7..."
+      ]
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "claude-sonnet-5",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "clean land \u2014 patch applied verbatim, arm has teeth, control arm guards over-recovery",
+        "Landing races blind to a byte-identical diff is straightforward; proving liveness honestly when the sandbox itself ca..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Systematic epistemic work: T13 falsification (154/508), ADR-0015 unanimous, WZO2 builder verified, evidence integrity...",
+        "Ruled all 25 top-cascade claims; re-ran T13 probe + colex test and read source at HEAD for the code claims"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Every refutation was a stale row, not a wrong belief \u2014 the register's beliefs held up and its bookkeeping did not; ni...",
+        "The traps that actually caught me were the unstated ones: the pre-commit hook refused the proactive commit S1 demande..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Code-defect PROVEN rows go stale when their fix lands; status drift is the dominant defect class in batch 2",
+        "Six of the 25 target rows were rewritten by T731 hours before this lane read them, each naming the Race G verdict tha..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "The T707 race proved the coordination hazard: its round-1 re-seal landed before the T708 delta existed, so folding + ...",
+        "The always-UNKNOWN rate was a data-source gap, not a display bug \u2014 tokens were in the transcripts all along; the real..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "design-spec",
+      "n": 2,
+      "models": [
+        "claude-fable-5",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "Discussion-delegate protocol with the operator: all 9 items to standing decisions in two rounds; operator overturned ...",
+        "terminology console: 5 decisions ratified, 5 rows queued (Race W lanes + refactor console + uniqueness defect)"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "claude-sonnet-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "mechanism scaled cleanly; shared-index interleave with T844 recovered and documented",
+        "the claude envelope's num_turns field (present even on is_error attempts) was the key unlock \u2014 it made a per-dispatch..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "well-structured spec, sound architecture; worked examples and coverage claims lag same-day rulings by hours -- cheap ..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "kimi-k2.7"
+      ],
+      "recurring_language": [
+        "The two-experiment split was the right call: it shows the type axis is not stable enough to build the delegation latt..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "thorough, every citation verified to resolve; found the concrete defects this scope needs a baseline for"
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deleting the stale binary was trivial; the load-bearing finding is that the fleet's commit gate was red for hours fro..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "test-first",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "root-caused the Debug default cleanly (byte-identical __text proof) and pinned ReleaseSafe test-first RED-to-GREEN; n..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Census delete dispositions are clean and ratifiable; only conflict is race-c-prepare.py whose master-census verdict i..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "design-spec",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Arm B commits to one mechanism (a sealed Known/Unknown/Refused sum type) and leans on known-good/known-bad controls t..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "claude-opus-5 as a discussion console: the useful move was distrusting the ledger's own missing_reason ('the pi sessi..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Merged orchestrator + discussion seat 12:24Z-21:50Z"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean spec pass \u2014 every cited fact traced to source; concern-channel disposition verified by inspection"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Flash-consolidation: two blind arms read fully, convergence verified real, choices recorded not averaged"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Race C all-grade-all lane"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "The verdict-field schema itself has no agreed convention across lanes (does 'verified' mean 'label accurate' or 'orig..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Race G is bimodal: one lane reproduces the tree, four verify on the claim's own citations; a majority vote of five wo..."
+      ]
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean onboarding edit; controls passed first try; no rework"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "PHASES.md and register-tree-map.md lag committed T383/T475/T530 evidence by weeks - a stale-doc sweep should be a sta..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "self-contained leaf patch, verified apply-check + regression + frame"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "discernment",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Resolved three contested key defects cleanly; flagged the out-of-scope battery.md \u00a7S1 gap and the round-2 shared-inde..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Reading five specs beat reading one: two lanes quoted the same claimlint run to opposite conclusions, and chasing tha..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "cache reads are 99.997% of meter used; one ground-truth pair consistent with full-weight pricing \u2014 second pair settle..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Sprint owned end-to-end; two external blockers (Claude 5h window, orphaned T718 findings) kept the measurement from c..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "delegation trio was cuttable but the six mandated keeps ate most of the budget; landed 64% not 50%, reported the gap ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The T737 census that scoped my sweep was wrong about 10 of its 22 files and missed 3 live carriers - a census is an i..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Clean drop-in prose; cited only paths that exist at HEAD"
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "The waypoint rename is clean because the collision was purely lexical: once the ladder word changed, every CONFLICTS ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "verify-before-act",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The brief's claimlint-clean-at-HEAD bar collides with its own PHASES.md->WAYPOINTS.md rename \u2014 a lane cannot cite the..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "clean glossary task; the three-ladder collision was real and is now pinned with a rename proposal the operator can ra..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Solid verification: traced the inherited 870-line harness end-to-end and found only the ledger's mislabelled kill reason"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Deliverable clean; found the real root cause of the documented F/G red -- a harness env leak, not a live-file defect"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deterministic reductions are clean to build and test; the real work was honest transcription (50 merge mappings, key-..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "close-out verification of already-committed split \u2014 controls all green, no rework"
+      ]
+    }
+  ],
+  "cells_n_ge_3": [
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "discernment",
+      "n": 9,
+      "models": [
+        "claude-fable-5",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Controls unanimous; separation is S3 consistency + evidence quality \u2014 scorer-3 applies rubric mechanically on S3, sco...",
+        "Lane-1 is the expert despite 19/25 count: uniquely correct on real register errors",
+        "The status axis came out degenerate \u2014 nothing was wrong, so correct-out-of-25 gave a near five-way tie and all the si..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act",
+      "n": 9,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Discernment probe: correct move on all three triggers was verify-before-act, refusing to fabricate a fix, a gate reac...",
+        "Probe correctly rewards verify-before-act; two of three trigger premises (S1 stale citation, S2 failing gate) were fa...",
+        "Probe scenarios investigated; none required explicit action"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "test-first",
+      "n": 9,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "reproduced the stall, test-first regression red->green, real-dispatch proof clean",
+        "Per-harness fuse derived from data, red-then-green controls, pi path byte-identical \u2014 the T616 coin-flip is closed",
+        "structural pin + loud needs-manual-heal marker, test-first, 15-arm regression green; found+fixed pre-existing T522 st..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "test-first",
+      "n": 9,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "T711: host guard now subtracts the resident model server's footprint (ollama runner --mlx-engine RSS or WEIZIGO_HOST_...",
+        "Regression test validates removal; all 15 controls PASS",
+        "mechanical gate work, clean test-first pass"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "design-spec",
+      "n": 6,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "Designing blind was clarifying: all eight symptoms reduce to one root \u2014 a two-valued world forced to encode a third c...",
+        "sprint-spec console: read all ground-truth docs, produced a complete testable spec with correct citations",
+        "Spec translated eight DECIDED rulings into a ratifiable spec with counted migration order (75 regression scripts, 17 ..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 6,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "mechanical conversions went cleanly first-try; drift surfaced and enumerated rather than worked around",
+        "Clean mechanical fix; census surfaced same-class unvalidated path in cmdNeeds --add worth a follow-up",
+        "Trivial config change (one enum line + prose + tests); the shared-checkout store revert and commit churn made it disp..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "root-cause",
+      "n": 6,
+      "models": [
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "defect was a wrong sensor, not a wrong model; session mtime is the honest liveness signal",
+        "The 8 KiB window was the wrong shape, not the wrong size \u2014 per-family harness evidence (runner diagnostic / client ap...",
+        "Traced the T674-T695 row-loss mechanism to the uncommitted-working-tree clobber, built a tested bidirectional census ..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "discernment",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "key mechanical S1-S3; field converges",
+        "The brief's load-bearing input did not exist, and the most valuable thing I could do was rule blind anyway and then m...",
+        "The key is mechanical and the field converged: S2 (the failure-prone axis) was 6/6 for all four entrants, so the rank..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "claude-sonnet-5",
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Race F adjudication",
+        "Race G claim-doubt lane, anchor seat",
+        "Race G claim-doubt lane; 25 verdicts complete (24 verified, 1 unverifiable-at-head)"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit",
+      "n": 4,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "The spec is substantively sound: the 25/129=19.4% scope, mechanical verb boundary, F4/F6/F7 folds and AUTOPILOT-5H ga...",
+        "Spec covers core reconciler verbs well; ruling coverage incomplete (missing 6 rulings from table) and two critical me...",
+        "S04 spec's mechanism content is sound (19.4% scope math, F4/F6/F7 all correctly mapped, all citations resolve); its o..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 4,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "The waypoint is decomposable with existing instruments \u2014 the real debt is one unreconciled number (the kill rate) gat...",
+        "Decomposition depth good; OPEN items 1-9 name the only unverifiable assumptions (mutation re-ruling, regen feasibilit...",
+        "Thorough cross-doc synthesis; correctly read T430 label as OPEN"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "test-first",
+      "n": 4,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "clean tooling fix; D085 was the surprise \u2014 a substring nonce check over stdout is harness-confounded by JSON-mode pro...",
+        "Helper isolates the git env before git init; seeded-defect arm reproduced the 2026-08-24 incident against a throwaway...",
+        "Display work was quick; the real find was git-commit-mine failing on tracked files under ignored dirs \u2014 fixed test-fi..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 3,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-5",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "T839 (flash) aggregates correctly (SUM per-turn), handles late-claim sessions, renders live rates, superior presentation",
+        "The mechanical headline flatters T826/T831 (172/172 by closing an unrelated recorded defect); a hermetic harness expo...",
+        "Isolating each patch in a real git worktree (not scratch git-init) and rebuilding managent from source at the pinned ..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "discernment",
+      "n": 3,
+      "models": [
+        "claude-fable-5",
+        "claude-opus-5",
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "adjudication rewards artifact re-verification: the set's most severe item was single-lane, and two multi-checked 'no ...",
+        "The sealed rubric graded three fixtures that were never planted \u2014 the race measured premise-checking instead of proac...",
+        "Rubric's S1 amendment and S3 prescribed command both needed judgment calls beyond the literal text \u2014 documented as ru..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "independent-verification",
+      "n": 3,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Tier A cascade-risk claims hold with fresh evidence; Tier B PROVEN verified by source; Tier C FALSE confirmed at stat...",
+        "Adversarial stance held: source reads caught the stale-PROVEN rows, no fabricated refutations",
+        "Found the seeded defects via primary-source verification (git history, source, findings JSONs) rather than the contam..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "noise-resilience",
+      "n": 3,
+      "models": [
+        "glm-5.2",
+        "kimi-k2.7",
+        "minimax-m3"
+      ],
+      "recurring_language": [
+        "kimi-k2.7 held a rate-race lane ~48 min at exit=1 and produced zero deliverables; nothing usable reached disk.",
+        "glm-5.2 produced a complete 25.8 KB patch plus findings on a script-editing race lane in ~49 min and delivered both b...",
+        "minimax-m3 held a rate-race lane ~48 min at exit=1 and produced zero deliverables; nothing usable reached disk."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation",
+      "n": 3,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Careful work; the reader census and the three extra re-keys (T544 x2, T616 re-dispatch) are the honest parts, not the...",
+        "Loop-level build on a mature file; only friction was the bundle's deliverables= omitting the wired test and the launc...",
+        "verified and completed an inherited T635.1 build; controls green end-to-end \u2014 clean"
+      ]
+    }
+  ],
+  "cells_n_eq_1": [
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "well-structured spec, sound architecture; worked examples and coverage claims lag same-day rulings by hours -- cheap ..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "kimi-k2.7"
+      ],
+      "recurring_language": [
+        "The two-experiment split was the right call: it shows the type axis is not stable enough to build the delegation latt..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "thorough, every citation verified to resolve; found the concrete defects this scope needs a baseline for"
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deleting the stale binary was trivial; the load-bearing finding is that the fleet's commit gate was red for hours fro..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "test-first",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "root-caused the Debug default cleanly (byte-identical __text proof) and pinned ReleaseSafe test-first RED-to-GREEN; n..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Census delete dispositions are clean and ratifiable; only conflict is race-c-prepare.py whose master-census verdict i..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "design-spec",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Arm B commits to one mechanism (a sealed Known/Unknown/Refused sum type) and leans on known-good/known-bad controls t..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "claude-opus-5 as a discussion console: the useful move was distrusting the ledger's own missing_reason ('the pi sessi..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Merged orchestrator + discussion seat 12:24Z-21:50Z"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean spec pass \u2014 every cited fact traced to source; concern-channel disposition verified by inspection"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Flash-consolidation: two blind arms read fully, convergence verified real, choices recorded not averaged"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Race C all-grade-all lane"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "The verdict-field schema itself has no agreed convention across lanes (does 'verified' mean 'label accurate' or 'orig..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Race G is bimodal: one lane reproduces the tree, four verify on the claim's own citations; a majority vote of five wo..."
+      ]
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean onboarding edit; controls passed first try; no rework"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "PHASES.md and register-tree-map.md lag committed T383/T475/T530 evidence by weeks - a stale-doc sweep should be a sta..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "self-contained leaf patch, verified apply-check + regression + frame"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "discernment",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Resolved three contested key defects cleanly; flagged the out-of-scope battery.md \u00a7S1 gap and the round-2 shared-inde..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Reading five specs beat reading one: two lanes quoted the same claimlint run to opposite conclusions, and chasing tha..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "cache reads are 99.997% of meter used; one ground-truth pair consistent with full-weight pricing \u2014 second pair settle..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Sprint owned end-to-end; two external blockers (Claude 5h window, orphaned T718 findings) kept the measurement from c..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "delegation trio was cuttable but the six mandated keeps ate most of the budget; landed 64% not 50%, reported the gap ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The T737 census that scoped my sweep was wrong about 10 of its 22 files and missed 3 live carriers - a census is an i..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Clean drop-in prose; cited only paths that exist at HEAD"
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "The waypoint rename is clean because the collision was purely lexical: once the ladder word changed, every CONFLICTS ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "verify-before-act",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The brief's claimlint-clean-at-HEAD bar collides with its own PHASES.md->WAYPOINTS.md rename \u2014 a lane cannot cite the..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "clean glossary task; the three-ladder collision was real and is now pinned with a rename proposal the operator can ra..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Solid verification: traced the inherited 870-line harness end-to-end and found only the ledger's mislabelled kill reason"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Deliverable clean; found the real root cause of the documented F/G red -- a harness env leak, not a live-file defect"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deterministic reductions are clean to build and test; the real work was honest transcription (50 merge mappings, key-..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "close-out verification of already-committed split \u2014 controls all green, no rework"
+      ]
+    }
+  ],
+  "cells_n_le_2": [
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "The T634/T643 per-harness pattern is right but incomplete \u2014 ollama never got the streaming flag, silent branch lacks ...",
+        "audit thorough: 12 findings, every \u00a77c ruling checked, citations re-opened; 2 major on the spec"
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "deepseek-v4-pro",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "audit task: no model ran engine code; verified citations by reading 12 source sites + 3 live reproductions; no intros...",
+        "mechanical register harvest; citations verified not re-derived, as briefed"
+      ]
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "deepseek-v4-pro: census + spec complete and correct; verified the prior helper census's load-bearing findings indepen...",
+        "Methodical verifier \u2014 reproduced every load-bearing figure, caught 6 citation drifts, no over-claiming"
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Docs-hygiene task; README index now matches the post-T701-T704 tree",
+        "docs/engine/ left with one canonical doc (ARCHITECTURE.md map) + archive/TODO.md, zero self-contradiction; foreign C7..."
+      ]
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "claude-sonnet-5",
+        "glm-5.2"
+      ],
+      "recurring_language": [
+        "clean land \u2014 patch applied verbatim, arm has teeth, control arm guards over-recovery",
+        "Landing races blind to a byte-identical diff is straightforward; proving liveness honestly when the sandbox itself ca..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification",
+      "n": 2,
+      "models": [
+        "claude-haiku-4-5-20251001",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Systematic epistemic work: T13 falsification (154/508), ADR-0015 unanimous, WZO2 builder verified, evidence integrity...",
+        "Ruled all 25 top-cascade claims; re-ran T13 probe + colex test and read source at HEAD for the code claims"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Every refutation was a stale row, not a wrong belief \u2014 the register's beliefs held up and its bookkeeping did not; ni...",
+        "The traps that actually caught me were the unstated ones: the pre-commit hook refused the proactive commit S1 demande..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "claude-opus-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Code-defect PROVEN rows go stale when their fix lands; status drift is the dominant defect class in batch 2",
+        "Six of the 25 target rows were rewritten by T731 hours before this lane read them, each naming the Race G verdict tha..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "root-cause",
+      "n": 2,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "The T707 race proved the coordination hazard: its round-1 re-seal landed before the T708 delta existed, so folding + ...",
+        "The always-UNKNOWN rate was a data-source gap, not a display bug \u2014 tokens were in the transcripts all along; the real..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "design-spec",
+      "n": 2,
+      "models": [
+        "claude-fable-5",
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "Discussion-delegate protocol with the operator: all 9 items to standing decisions in two rounds; operator overturned ...",
+        "terminology console: 5 decisions ratified, 5 rows queued (Race W lanes + refactor console + uniqueness defect)"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 2,
+      "models": [
+        "claude-sonnet-5",
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "mechanism scaled cleanly; shared-index interleave with T844 recovered and documented",
+        "the claude envelope's num_turns field (present even on is_error attempts) was the key unlock \u2014 it made a per-dispatch..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "well-structured spec, sound architecture; worked examples and coverage claims lag same-day rulings by hours -- cheap ..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "kimi-k2.7"
+      ],
+      "recurring_language": [
+        "The two-experiment split was the right call: it shows the type axis is not stable enough to build the delegation latt..."
+      ]
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "thorough, every citation verified to resolve; found the concrete defects this scope needs a baseline for"
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deleting the stale binary was trivial; the load-bearing finding is that the fleet's commit gate was red for hours fro..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "test-first",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "root-caused the Debug default cleanly (byte-identical __text proof) and pinned ReleaseSafe test-first RED-to-GREEN; n..."
+      ]
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Census delete dispositions are clean and ratifiable; only conflict is race-c-prepare.py whose master-census verdict i..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "design-spec",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Arm B commits to one mechanism (a sealed Known/Unknown/Refused sum type) and leans on known-good/known-bad controls t..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "claude-opus-5 as a discussion console: the useful move was distrusting the ledger's own missing_reason ('the pi sessi..."
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Merged orchestrator + discussion seat 12:24Z-21:50Z"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean spec pass \u2014 every cited fact traced to source; concern-channel disposition verified by inspection"
+      ]
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Flash-consolidation: two blind arms read fully, convergence verified real, choices recorded not averaged"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Race C all-grade-all lane"
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "The verdict-field schema itself has no agreed convention across lanes (does 'verified' mean 'label accurate' or 'orig..."
+      ]
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Race G is bimodal: one lane reproduces the tree, four verify on the claim's own citations; a majority vote of five wo..."
+      ]
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "clean onboarding edit; controls passed first try; no rework"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "thorough-audit",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "PHASES.md and register-tree-map.md lag committed T383/T475/T530 evidence by weeks - a stale-doc sweep should be a sta..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "self-contained leaf patch, verified apply-check + regression + frame"
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "discernment",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Resolved three contested key defects cleanly; flagged the out-of-scope battery.md \u00a7S1 gap and the round-2 shared-inde..."
+      ]
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "Reading five specs beat reading one: two lanes quoted the same claimlint run to opposite conclusions, and chasing tha..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "cache reads are 99.997% of meter used; one ground-truth pair consistent with full-weight pricing \u2014 second pair settle..."
+      ]
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "noise-resilience",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Sprint owned end-to-end; two external blockers (Claude 5h window, orphaned T718 findings) kept the measurement from c..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "claude-sonnet-5"
+      ],
+      "recurring_language": [
+        "delegation trio was cuttable but the six mandated keeps ate most of the budget; landed 64% not 50%, reported the gap ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The T737 census that scoped my sweep was wrong about 10 of its 22 files and missed 3 live carriers - a census is an i..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Clean drop-in prose; cited only paths that exist at HEAD"
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "ox-alpha"
+      ],
+      "recurring_language": [
+        "The waypoint rename is clean because the collision was purely lexical: once the ladder word changed, every CONFLICTS ..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "verify-before-act",
+      "n": 1,
+      "models": [
+        "claude-opus-5"
+      ],
+      "recurring_language": [
+        "The brief's claimlint-clean-at-HEAD bar collides with its own PHASES.md->WAYPOINTS.md rename \u2014 a lane cannot cite the..."
+      ]
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "clean glossary task; the three-ladder collision was real and is now pinned with a rename proposal the operator can ra..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Solid verification: traced the inherited 870-line harness end-to-end and found only the ledger's mislabelled kill reason"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "root-cause",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "Deliverable clean; found the real root cause of the documented F/G red -- a harness env leak, not a live-file defect"
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "synthesis",
+      "n": 1,
+      "models": [
+        "deepseek-v4-flash"
+      ],
+      "recurring_language": [
+        "Deterministic reductions are clean to build and test; the real work was honest transcription (50 merge mappings, key-..."
+      ]
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "clean-implementation",
+      "n": 1,
+      "models": [
+        "deepseek-v4-pro"
+      ],
+      "recurring_language": [
+        "close-out verification of already-committed split \u2014 controls all green, no rework"
+      ]
+    }
+  ],
+  "empty_cells": [
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "audit",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "audit",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "audit",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "audit",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "audit",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "census-harvest",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "cleanup-hygiene",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "design-spec",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "design-spec",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "design-spec",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "design-spec",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "design-spec",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "grade",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "grade",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "grade",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "grade",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "grade",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "onboarding-land",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "race",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "race",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "race",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "race",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "race",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "science-probe",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "science-probe",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "science-probe",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "science-probe",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "science-probe",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "test-first"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "root-cause"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "synthesis"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "test-first"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "terminology-refactor",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "clean-implementation"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "design-spec"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "discernment"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "root-cause"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "synthesis"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "test-first"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "single-script",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "small-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "design-spec"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "discernment"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "root-cause"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "synthesis"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "large-module",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "design-spec"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "discernment"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "independent-verification"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "root-cause"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "synthesis"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "test-first"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "whole-project",
+      "capability": "verify-before-act"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "design-spec"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "discernment"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "noise-resilience"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "thorough-audit"
+    },
+    {
+      "type": "tooling-fix",
+      "scope": "UNKNOWN",
+      "capability": "verify-before-act"
+    }
+  ],
+  "unclassifiable_counts": {
+    "task_type_unknown": 0,
+    "scope_unknown": 53,
+    "capability_unknown": 0
+  }
+}
