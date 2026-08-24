@@ -262,3 +262,32 @@ checked citations individually at file:line and **reproduced claimlint's C3 exac
 | B38 | **Five citation line-references have drifted** (`src/rules.zig:1024-1027`→667, `SOLUTION-TREE.md:63`→53, `:65`→60, `:113`→109, `GLOSSARY.md:424`→425), each with the command that shows it. Individually trivial; collectively they mean commit-pinned line refs are decaying faster than they are maintained. | the project's citation discipline depends on these resolving |
 
 **Census headline worth carrying forward:** the PROVEN fraction falls monotonically with board size, and **4×4 has 1 of 11 cells PROVEN**, with its `KO_SENSITIVE` column (3,455,412 entries, 3.49%, including the root bracket) UNTRUSTWORTHY pending Track A.
+
+## B-new-8. The diff race is judged — T832, audited by the seat, 2026-08-24
+
+**Ruling: `T827` (deepseek-v4-flash) wins; `T828` (claude-sonnet-5) second.** Then `T831` (ox-alpha),
+`T826` (deepseek-v4-pro), `T829` (claude-haiku-4-5-20251001) failed, `T830` (qwen) never ran.
+
+**Why the mechanical headline was wrong, which is the valuable part.** `T826` and `T831` score a
+perfect 172/172 by turning the two recorded-defect arms green — but those arms test the
+*empty-deliverables* defect, **not** the T818 nonce-vs-no-work wound the race exists to fix. Under the
+actual incident shape (an open row, rc=0, deliverables present, nonce not echoed) both still return
+the exact `fail=row` the race was called to abolish. In xfail semantics their fix reads as
+"unexpected success = FAILED", so the raw suite output flatters them and the design harness exposes
+them. The judge caught this and ranked on the concrete T818 case instead, which is what the handover
+named as the decisive test.
+
+**Verified independently by the seat:**
+- **The disqualification rule holds.** Every patch touches only `tools/dispatch_verify.py`; the test
+  file is byte-identical to base under all five, so nothing was disqualified and nothing was graded
+  against arms fitted to it.
+- **`T829` really is unusable.** Its patch diffs against an absolute scratch-copy path under the system temp directory rather than against `a/tools/dispatch_verify.py`, so it has no valid path
+  prefixes and will not apply — haiku patched a temp copy. The `fail` is correct.
+- **All six ledger rows landed** in `docs/infra/model-task-metrics.jsonl`, including `T830` recorded as
+  **`no-show`** rather than omitted. This is the first race to write its own cells, which is a partial
+  answer to B1 — still per-race instruction, not yet a mechanism.
+
+| # | follow-up this ruling creates | why |
+|---|---|---|
+| B39 | **Land `T827`'s patch and pin the T818 open-row case as a test arm.** The judge's own "where I would not bet" names it: with that arm pinned, `T826` and `T831` would turn a green arm red — the outcome the brief ranks worst. Until it exists, the suite cannot tell a real fix from a flattering one. | the race produced a winner; the value is only realised when it lands |
+| B40 | **The full suite carries 3 failures and 7 errors at base**, identical across base and every patch — pre-existing cwd/path artifacts in the `token_capture`, `dispatch` and `s06` modules, unrelated to any patch. Noted so they are not mistaken for race damage, and because a suite with 10 known-bad results at base is a weak oracle. | measured from every worktree |
