@@ -1,0 +1,48 @@
+{
+  "task_id": "T850",
+  "date": "2026-08-24",
+  "model": "claude-sonnet-5",
+  "identifier": "claude-sonnet-5/T850",
+  "type": "measurement-instrument",
+  "instrument": "tools/request-accounting.py + tools/regression-request-accounting.sh + docs/infra/request-accounting.md — report-only, no epistemic claim rows",
+  "claims": [],
+  "new_rows": [],
+  "headline": "Nothing in the repo counted provider requests; it does now, per model and per rolling window, joined from the two harnesses' own stamped fields (claude: num_turns in the teed envelope; pi: assistant-role messages in the session transcript) — and the ollama '100% of the window consumed' note is corrected to a brief, 1.3%-refusal ceiling, not a window-long exhaustion.",
+  "arm_count": 8,
+  "facts_confirmed_or_corrected": {
+    "fact_1_nothing_counts_requests": "CONFIRMED — grep -rln \"request_count|requests_used|n_requests|request budget\" tools/ bin/ still returns nothing (re-run 2026-08-24 09:2xZ).",
+    "fact_2_one_dispatch_is_hundreds_of_requests": "CONFIRMED, and it is the design's crux: a claude dispatch's teed envelope carries num_turns independent of success/error (verified on untracked/tokens/T836...claude.stdout.log, an is_error attempt with num_turns=53); a pi/ollama session transcript carries one assistant-role message per completed model reply. Neither was read anywhere in the repo before this row.",
+    "fact_3_session_transcripts_are_attributable": "CONFIRMED for lanes dispatched with --session (run_record.session_path, T662) — verified the real predicate against untracked/tokens/sessions/T849....jsonl: type==\"message\" && message.role==\"assistant\" is the request; role==\"toolResult\" and role==\"user\" are not requests to the provider.",
+    "fact_4_ollama_server_log_insufficient_alone": "CONFIRMED — [GIN] lines carry status/duration but no model field (it lives in the request body), and the log also counts non-chat endpoints (/api/status, /api/tags, /api/me). Used only as a cross-check on the ollama family's known total, never as an attribution source; the two numbers are reported side by side, never reconciled (docs/infra/request-accounting.md).",
+    "fact_5_ollama_100pct_consumed_corrected": "CORRECTED — docs/status/RESUME-orcha.md states '100% of the 5-hour window consumed' for 2026-08-24. Measured 2026-08-24 09:19Z: that UTC date shows 936 [GIN] lines through 09:19Z, 923 status-200, 12 status-429 (1.3% refusal) — a brief ceiling, not a window-long exhaustion. 2026-08-20 is the actually-saturated comparator: 4,734 lines, 331 refusals, 1,848 in the single 13:00 hour. Both corrected figures and methodology are recorded in docs/infra/request-accounting.md; RESUME-orcha.md itself is not edited (not a declared deliverable of this row).",
+    "fact_6_some_lanes_unattributable": "CONFIRMED — a pi/openrouter/local lane with no --session at dispatch (session_path is null on the run record; the ox-alpha shape) is reported UNKNOWN with the run record's own reason, never folded into 0 or the total. The default cwd-slug session directory (~/.pi/agent/sessions/<cwd-slug>/) that could sometimes recover these is deliberately NOT scanned here — that is tools/token-backfill.py's (T746) existing, more careful retroactive-recovery machinery (tolerance + corroboration against run records); duplicating a narrower version of it here would repeat this project's own 'two implementations of one idea' defect class."
+  },
+  "measured_last_full_window": {
+    "window_start": "2026-08-24T04:27:08Z",
+    "window_end": "2026-08-24T09:27:08Z",
+    "window_seconds": 18000,
+    "note": "window length is imported from tools/window_policy.WINDOW_SECONDS (5h), not a second literal (T850 constraint) — see docs/infra/request-accounting.md \"The window\"",
+    "fleet_total_requests_known": 1929,
+    "fleet_unattributable_attempts": 13,
+    "per_model": {
+      "claude-haiku-4-5-20251001": {"family": "claude", "requests": 140, "share_of_family_pct": 26.5, "share_of_fleet_pct": 7.3, "unattributable_attempts": 0},
+      "claude-opus-5": {"family": "claude", "requests": 53, "share_of_family_pct": 10.0, "share_of_fleet_pct": 2.7, "unattributable_attempts": 0},
+      "claude-sonnet-5": {"family": "claude", "requests": 336, "share_of_family_pct": 63.5, "share_of_fleet_pct": 17.4, "unattributable_attempts": 1},
+      "deepseek-v4-flash": {"family": "deepseek", "requests": 264, "share_of_family_pct": 44.0, "share_of_fleet_pct": 13.7, "unattributable_attempts": 2},
+      "deepseek-v4-pro": {"family": "deepseek", "requests": 336, "share_of_family_pct": 56.0, "share_of_fleet_pct": 17.4, "unattributable_attempts": 4},
+      "glm-5.2": {"family": "ollama", "requests": 275, "share_of_family_pct": 34.4, "share_of_fleet_pct": 14.3, "unattributable_attempts": 1},
+      "kimi-k2.7": {"family": "ollama", "requests": 230, "share_of_family_pct": 28.8, "share_of_fleet_pct": 11.9, "unattributable_attempts": 0},
+      "minimax-m3": {"family": "ollama", "requests": 295, "share_of_family_pct": 36.9, "share_of_fleet_pct": 15.3, "unattributable_attempts": 0},
+      "ox-alpha": {"family": "other", "requests": 0, "share_of_family_pct": null, "share_of_fleet_pct": 0.0, "unattributable_attempts": 5}
+    },
+    "starvation_flag_this_window": "none — max family share observed is minimax-m3 at 36.9% of ollama, well under the 80% threshold; the live fleet in this window is NOT in the starved shape the brief describes, which is itself useful: the instrument now exists before the next incident, not after it.",
+    "ollama_cross_check": {"gin_total_requests": 897, "gin_status_429": 12, "ollama_family_known_requests": 800, "discrepancy": 97, "note": "the 97-request gap is expected — [GIN] counts non-chat endpoints (status/tags/me polling) the session-transcript join never sees; never reconciled into one number, per design."}
+  },
+  "what_remains_unmeasurable": [
+    "pi/ollama/openrouter/local lanes dispatched without --session (no session_path on the run record) — UNKNOWN, by design (see fact_6 above); recoverable in principle only by tools/token-backfill.py's separate retroactive scan, not reproduced here.",
+    "claude attempts whose stdout tee is missing, unreadable, or whose envelope lacks num_turns (an older CLI, or a lane killed before any stdout capture) — UNKNOWN, with the specific reason recorded per attempt.",
+    "any lane dispatched through a harness that is neither `claude -p` nor `pi ...` in its command string — UNKNOWN; no join is attempted rather than guessed.",
+    "sub-dispatch turns inside a single provider call (e.g. a claude tool-use round that itself fans out to a cheaper model, visible in the T836 envelope's own modelUsage.claude-haiku-4-5-20251001 entry inside an opus dispatch) are folded into the DISPATCHED model's num_turns, not separately attributed — the envelope reports it, but this row's join does not split it out; noted as a real but out-of-scope refinement, not silently dropped."
+  ],
+  "notes": "MEASURES ONLY, per the brief's explicit boundary — no dispatch gate, no cap, no change to bin/dispatch/tools/fleet_caps.py/tools/window_policy.py/tools/runner. Inbox checked empty at claim and before this close (bin/managent inbox T850 --ack, no directives). Regression run twice: RED with tools/request-accounting.py moved aside (all 8 arms fail/error), GREEN restored (all 8 pass) — both runs observed directly in this session, not asserted from memory."
+}
