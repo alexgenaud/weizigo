@@ -20,7 +20,7 @@ OUT=$(zig test src/differential.zig \
     --test-filter "null control: same impl twice" \
     --test-filter "seeded-defect control: mutant caught" \
     --test-filter "known-bad fixture" 2>&1) || true
-if echo "$OUT" | grep -q "All 3 tests passed"; then
+if [ "${OUT#*All 3 tests passed}" != "$OUT" ]; then
     echo "PASS"
 else
     echo "FAIL"
@@ -32,7 +32,7 @@ fi
 # `\|` alternation matched zero tests and passed vacuously. Count asserted.
 printf '  rules dispatchers: '
 OUT=$(zig test src/rules.zig --test-filter "areaScore runtime" --test-filter "neighborsRt runtime" 2>&1) || true
-if echo "$OUT" | grep -q "All 2 tests passed"; then
+if [ "${OUT#*All 2 tests passed}" != "$OUT" ]; then
     echo "PASS"
 else
     echo "FAIL"
@@ -42,7 +42,7 @@ fi
 # 3. Area score differential run: 2x2 exhaustive (81 boards, <0.2s)
 printf '  area_score 2x2: '
 OUT=$(tools/runner -- zig run src/differential.zig 2>&1) || true
-if echo "$OUT" | grep -q "81/81 agree"; then
+if [ "${OUT#*81/81 agree}" != "$OUT" ]; then
     echo "PASS"
 else
     echo "FAIL"
@@ -113,7 +113,7 @@ deploy_check() {
         FAIL=1
         return
     fi
-    touched=$(git log --oneline "$built_sha..HEAD" -- $srcs 2>/dev/null | head -1)
+    touched=$(git log --oneline "$built_sha..HEAD" -- $srcs 2>/dev/null | head -1 || true)
     if [ -n "$touched" ]; then
         # T295: staleness is NOT VERIFIED, not broken. Print a loud warning
         # but do not increment FAIL — a stale binary from a build.zig-only
