@@ -784,6 +784,21 @@ pub fn build(b: *std.Build) void {
     store_census_regression.cwd = b.path(".");
     test_step.dependOn(&store_census_regression.step);
 
+    // ── T864: status docs must agree with the task store ────────────────
+    // Sprint planning documents (docs/epics/**/STATUS.md) are a module with no
+    // suite, and one of them lied twice in a single session (S11: ambiguous
+    // RUN label, then two arms shown in flight after both closed).  Four arms:
+    // (A) RED against real history — the 2efaac3 S11 revision labels T859/T860
+    // ACTIVE while the store has both done, and the check must fail there
+    // naming both rows and both states; (B) GREEN at HEAD with the census
+    // (documents, rows cross-checked, no-legend documents reported as unknown
+    // rather than failed); (C) seeded control — one label change in a scratch
+    // copy goes red; (D) silence control — a genuinely-matching document is
+    // silent.  Sub-second wall; reads the live store, never writes it.
+    const status_doc_truth_regression = b.addSystemCommand(&.{ "sh", "tools/regression-status-doc-truth.sh" });
+    status_doc_truth_regression.cwd = b.path(".");
+    test_step.dependOn(&status_doc_truth_regression.step);
+
     // ── T352: T227 acceptance-check regression controls ────────────────
     // The 2026-08-01 T227 regression timed out (>120s) and was deferred by
     // T322 and T337 S5.  T352 diagnosed the hang (pre-flock mkdir mutex
