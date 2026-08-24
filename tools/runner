@@ -2124,6 +2124,93 @@ def _declared_deliverables(task_identity, repo_root):
     return []
 
 
+def _auto_done_net(managent, task_identity, repo_root, stderr_out):
+    """T862 one-dispatch-path: the auto-close safety net.
+
+    A worker that exits 0 without closing its row left the row open — the
+    measured defect (1,325 s of work, a 27,743-byte deliverable committed,
+    exit 0, row stayed open; 40+ hand-closes in one day).  The net closes on
+    EVIDENCE — exit 0 plus every declared deliverable present — and SAYS SO
+    when it declines, so a silent net (the worse failure: it looks like
+    coverage) is impossible.
+
+    T862 \u00b71 (one identity resolution): the caller passes the ONE resolved
+    `task_identity` (--task-id OR MANAGENT_TASK_ID), never the raw --task-id
+    flag.  Lanes dispatched with --arbiter-id take identity from the env, so
+    the old `args.task_id` gate never fired for them — the net was silent.
+    T862 \u00b73 (refuse on missing evidence): a declared deliverable absent
+    from the filesystem is a real failure, not a protocol slip — the net
+    declines loudly and leaves the row for a human, never calls done.
+    T862 \u00b74 (no fabrication): the net waives the impression by name and
+    records in --note that the close was automatic and the worker reported
+    nothing; it does not invent a verdict beyond exit-0+deliverables (the
+    managent default `pass`, attributed to the harness, not to the worker)
+    or an impression.
+
+    Declines (row left open, a log line states why) when the row is not in
+    the store, is not in_progress (already closed by the worker, never
+    claimed, killed+healed), a declared deliverable is absent, or
+    `managent done` itself refuses (claim-at-close, deliverable not
+    committed, absorption gate).  Closes (row \u2192 done) when the row is
+    in_progress and every declared deliverable is present."""
+    import fleet_caps  # stdlib-only; on sys.path[0] (tools/) when runner runs
+    rows = fleet_caps.read_rows(repo_root) if repo_root else None
+    row = None
+    if rows:
+        for r in rows:
+            if r.get("id") == task_identity:
+                row = r
+                break
+    if row is None:
+        print(f"[runner] auto-close net: declined \u2014 task {task_identity} not "
+              f"in the store; no row to close (T862 \u00b73)", file=stderr_out)
+        return
+    status = row.get("status")
+    if status == "done":
+        print(f"[runner] auto-close net: not needed \u2014 {task_identity} already "
+              f"closed by the worker (T862)", file=stderr_out)
+        return
+    if status != "in_progress":
+        print(f"[runner] auto-close net: declined \u2014 {task_identity} is "
+              f"{status!r}, not in_progress; no open row to close "
+              f"(T862 \u00b73)", file=stderr_out)
+        return
+    # \u2014 evidence: every declared deliverable present on the filesystem \u2014
+    deliverables = _declared_deliverables(task_identity, repo_root)
+    missing = []
+    for d in deliverables:
+        abs_d = d if os.path.isabs(d) else os.path.join(repo_root, d)
+        if not os.path.exists(abs_d):
+            missing.append(d)
+    if missing:
+        print(f"[runner] auto-close net: DECLINED \u2014 {task_identity} exited 0 "
+              f"but declared deliverable(s) absent: {', '.join(missing)}; "
+              f"row left open for a human (T862 \u00b73 \u2014 missing evidence "
+              f"is a real failure, not a protocol slip)", file=stderr_out)
+        return
+    # \u2014 close on evidence, no fabrication \u2014
+    note = ("tools/runner auto-close: worker exited 0 without closing; all "
+            "declared deliverables present; the worker reported no status and "
+            "no impression \u2014 this close is automatic, on process evidence "
+            "(exit 0 + deliverables present), not a worker-reported verdict "
+            "(T862 \u00b74).")
+    waiver = ("tools/runner auto-close on exit 0 \u2014 no model ran to narrate "
+              "an impression; the worker reported nothing (T862 \u00b74).")
+    result = subprocess.run(
+        [managent, "done", task_identity, "--note", note,
+         "--impression-waiver", waiver],
+        capture_output=True, text=True)
+    if result.returncode == 0:
+        print(f"[runner] auto-close net: CLOSED {task_identity} automatically "
+              f"(worker exited 0 without closing; all {len(deliverables)} "
+              f"declared deliverable(s) present) (T862)", file=stderr_out)
+        return
+    stderr_text = result.stderr.strip() or result.stdout.strip()
+    print(f"[runner] auto-close net: declined \u2014 managent done refused "
+          f"{task_identity} (exit {result.returncode}): {stderr_text}; "
+          f"row left open (T862)", file=stderr_out)
+
+
 def _claude_sensor_max_mtime(deliverables, transcript_dir, launch_epoch):
     """Max wall-clock mtime across the claude liveness sensor set.
 
@@ -3871,24 +3958,34 @@ def main():
     _print_tokens_trailer(tok)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
 
-    # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────
-    if ret == 0 and args.task_id:
-        managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
-        # T855: `done` now refuses a close with neither --impression nor
-        # --impression-waiver (T522). This auto-done runs after a bare lane
-        # exit with no model narrative to attribute, so it waives by name
-        # rather than fabricating an impression.
-        result = subprocess.run(
-            [managent, "done", args.task_id, "--impression-waiver",
-             "tools/runner worker-channel auto-done on exit 0 — no model ran to narrate an impression"],
-            capture_output=True, text=True)
-        if result.returncode != 0:
-            stderr_text = result.stderr.strip()
-            if not stderr_text:
-                stderr_text = result.stdout.strip()
-            print(f"[runner] manage done FAILED (exit {result.returncode}): {stderr_text}", file=sys.stderr)
-            print(f"[runner] exit 1 (manage done rejected)", file=sys.stderr)
-            sys.exit(1)
+    # ── WORKER-CHANNEL: auto-done on success (T862 one-dispatch-path) ────────
+    # The safety net: a worker that exits 0 without closing its row left the
+    # row open (measured 40+ hand-closes in one day).  The net closes on
+    # EVIDENCE (exit 0 + every declared deliverable present), never on a
+    # guess, and says so when it declines so a silent net is impossible.
+    #
+    # T862 §1 (one identity resolution): the net uses the ONE resolved
+    # `task_identity` (--task-id OR MANAGENT_TASK_ID), not the raw --task-id
+    # flag.  Lanes dispatched with --arbiter-id take identity from the env,
+    # so the old `args.task_id` gate never fired for them — the net was
+    # silent.  A degraded run (no identity, pid form) is NOT a row: the net
+    # says so and declines.
+    # T862 §4 (no fabrication): the net waives the impression by name and
+    # records in --note that the close was automatic and the worker reported
+    # nothing; it does not invent a verdict beyond exit-0+deliverables (the
+    # managent default `pass`, attributed to the harness) or an impression.
+    # T862 §3 (refuse on missing evidence): a declared deliverable absent is
+    # a real failure, not a protocol slip — the net declines loudly and
+    # leaves the row for a human, never calls done.
+    if ret == 0 and not identity_degraded:
+        managent = (os.path.join(repo_root, "bin", "managent")
+                    if repo_root else "bin/managent")
+        _auto_done_net(managent, task_identity, repo_root, stderr_out=sys.stderr)
+    elif ret == 0 and identity_degraded:
+        # The net cannot close what has no row: say so, never skip silent.
+        print(f"[runner] auto-close net: declined — no task identity "
+              f"(degraded run '{task_identity}'); no row to close "
+              f"(T862 §3 — the net never declines silently)", file=sys.stderr)
 
     sys.exit(ret)
 

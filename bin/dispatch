@@ -648,9 +648,17 @@ def main(argv):
         return 0
 
     # ── detach (the nohup convention, done with explicit fd redirection) ─
+    # T862 §1 (one identity resolution): dispatch is the door — it stamps
+    # the task identity into the environment ONCE here, so the chain
+    # (bin/subagent → tools/runner → the worker) inherits it from a single
+    # source even before subagent re-resolves it from the positional.  The
+    # runner's auto-close net reads this same env var when the lane is
+    # dispatched with --arbiter-id (no --task-id); stamping it at the door
+    # is what makes the net fire for every lane, not just the --task-id one.
     os.makedirs(os.path.dirname(log_path), exist_ok=True)
     env = dict(os.environ)
     env[DEPTH_VAR] = str(depth + 1)
+    env["MANAGENT_TASK_ID"] = task_id
     with open(log_path, "ab") as logf, open(os.devnull, "rb") as devnull:
         proc = subprocess.Popen(cmd, cwd=root, env=env,
                                 stdin=devnull, stdout=logf, stderr=subprocess.STDOUT,

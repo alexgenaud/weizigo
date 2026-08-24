@@ -483,6 +483,26 @@ pub fn build(b: *std.Build) void {
     runner_taskid_regression.cwd = b.path(".");
     test_step.dependOn(&runner_taskid_regression.step);
 
+    // ── T862: one dispatch path — session + identity, and the auto-close net ──
+    // Two defects, one cause: lanes constructed differently.  Defect 1: two of
+    // four lanes got no session/transcript handle, losing throughput+liveness
+    // together (the runner side fixed here — every lane records a handle or
+    // declares itself unmeasurable with a stated reason, never a blank cell;
+    // the lane-CONSTRUCTION --session attachment lives in bin/subagent, out of
+    // this task's deliverables).  Defect 2: the auto-close safety net was gated
+    // on `args.task_id`, which is None for lanes dispatched with --arbiter-id
+    // (identity from MANAGENT_TASK_ID), so the net NEVER FIRED and said
+    // nothing — 40+ hand-closes in one day.  The fix: the net uses the ONE
+    // resolved task_identity, closes on EVIDENCE (exit 0 + every declared
+    // deliverable present), says so when it declines, refuses on a missing
+    // deliverable, and waives the impression by name (no fabricated verdict /
+    // impression).  Arms: net closes on env identity, net refuses on missing
+    // deliverable, no fabrication, net not-needed when the worker closed,
+    // degraded declines out loud, lane handle vs declared-unmeasurable.
+    const one_dispatch_path_regression = b.addSystemCommand(&.{ "sh", "tools/regression-one-dispatch-path.sh" });
+    one_dispatch_path_regression.cwd = b.path(".");
+    test_step.dependOn(&one_dispatch_path_regression.step);
+
     // ── T650: run records are NEVER overwritten ────────────────────────
     // A re-dispatch of the same task used to REWRITE untracked/runs/<task>.json,
     // destroying the previous attempt's evidence (its wall, its exit, its kill
