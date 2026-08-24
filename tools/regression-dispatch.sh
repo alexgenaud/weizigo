@@ -58,8 +58,11 @@ SUBAGENT="$ROOT/bin/subagent"
 MG="$ROOT/bin/managent"
 FAIL=0
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t476-dispatch-XXXXXX)" || { echo "regression-dispatch.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$ROOT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo t476-dispatch WORK   # T849: isolated scratch repo
 trap 'rm -rf "$WORK"' EXIT
 
 # A stale depth stamp from a worker-run suite would trip the cap control.
@@ -67,7 +70,6 @@ unset WEIZIGO_AGENT_DEPTH || true
 
 # ── scratch repo + store (the e2e stub commits its deliverable) ──────────
 cd "$WORK"
-git init -q
 git config user.email t476@test
 git config user.name T476
 echo base > README.md
