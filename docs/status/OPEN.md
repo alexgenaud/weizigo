@@ -117,3 +117,18 @@ appetite table a structural blocker when `bin/dispatch <task> <model>` never con
 glm/kimi/minimax were usable the whole time. And a log-grep of mine reported "session limit" and
 "rate limit" hits that were **documentation strings inside task output**, which is precisely the
 T677 incident (a cooldown once armed from a quoted document). I nearly repeated it as a diagnosis.
+
+## B-new-2. Found and acted on 2026-08-24 by the incoming orchestration seat
+
+| # | issue | disposition |
+|---|---|---|
+| B14 | **The store repair left 36 completed tasks reading `dispatchable`, which silently blocked four race judgments.** Of the 43 rows re-registered from briefs after the 59-task loss, 36 carried a three-signal evidence set — committed findings **and** a run record with `exit=0` **and** a recovered model label **and** a real wall (265 s–4891 s). Because the entrant rows could never close, `needs` was never satisfied and the diff race, the rate race and the corpus three-way sat `blocked` indefinitely. Nobody would have noticed except a human asking why the races were never judged. | **RESOLVED.** 33 closed `pass` and 2 (`T841` kimi-k2.7, `T842` minimax-m3) closed `abandoned` — each on evidence, each noting that the grade was *not* re-derived. `T832` auto-unblocked. Remainder below. |
+| B15 | **`managent lanes` is blind to this drift class.** It censuses findings-without-a-row and rows-without-findings, but not **row exists + `dispatchable` + findings already on disk** — the class that cost 36 rows. A census reporting two of three classes reads as "no drift" for the third. | open — needs an owner |
+| B16 | **A dependency edge can outlive the evidence that satisfies it.** `needs` pointing at a row that can never close is the same falsehood as a destroyed verdict, in a different field. Closing the rows cleared it this time; nothing prevents a recurrence. | open — belongs in S10 |
+| B17 | **Partial-delivery preservation, live instance.** `T840` (glm-5.2) exited 1 after 2929 s with **both** declared deliverables on disk, and was self-healed back to `dispatchable` carrying no record that usable work existed. Recovery works; preservation does not. | evidence for S10 |
+| B18 | **Closing on evidence is gated on that evidence being committed**, which is correct — and it is why five rows remain open: `T799`, `T804`, `T823` (a shared deliverable has uncommitted modifications), `T840` and `T818` (findings files untracked). `T818` additionally trips `C11` — a tier-A status change with no `audited_by`. | open — bounded, named |
+| B19 | **claimlint's summary prints a false red.** `C2 dangling evidence paths 5 (FAILS)` while C2's own detail section reports `total: 0` and states that those 5 bulk `.wzo` items do **not** fail. A false red in the instrument that gates every commit is how bypasses get learned. | open — needs an owner |
+
+**Genuinely never ran, correctly `dispatchable`:** `T786`, `T787`, `T796`, `T798`, `T825`, and `T836` (whose run record shows `exit=1` — the provider-429, so the model was never reached).
+
+**Method note, recorded because it nearly misled me.** `untracked/runs/<id>.json` — the bare file — is authoritative and holds the latest real attempt; the numbered siblings are mostly sub-2-second stubs. A glob that sorts `T814.1.json` ahead of `T814.json` reads `wall=1.0 s, model=None` for a run that actually took 4891 s on `deepseek-v4-pro`. Any future reconciliation must read the bare record, never a sorted glob.
