@@ -303,55 +303,11 @@ pub fn build(b: *std.Build) void {
     runner_regression.cwd = b.path(".");
     test_step.dependOn(&runner_regression.step);
 
-    // ── fleet-aware memory guard controls (T362) ───────────────────────
-    // The runner's RSS cap is per-process and absolute; T362 adds a
-    // host-pressure guard that reads system-wide available memory and,
-    // below a danger floor derived from hw.memsize, SIGKILLs the LARGEST
-    // member of the process group.  Four arms: null (small job untouched),
-    // seeded (host guard fires on the composition case via an injected
-    // reading, per-process cap does NOT), seeded (progress watchdog still
-    // bites — that guard is unchanged), guard-bite (per-process cap still
-    // bites).  `zig build test` is the T362 acceptance gate.
-    const runner_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-guard.sh" });
-    runner_guard_regression.cwd = b.path(".");
-    test_step.dependOn(&runner_guard_regression.step);
-
-    // ── declared-tenant host guard controls (T714, test-first) ────────
-    // T626/T700 kill chain: the T362 host guard reads system-wide available
-    // memory and, below the floor, SIGKILLs the largest member of its OWN
-    // group — but the resident MLX/Ollama model server is a named tenant
-    // OUTSIDE every group, so its ~15–20 GB makes the host read red and the
-    // kill lands on an innocent lane.  T711 teaches the guard to subtract a
-    // DECLARED TENANT reservation; this is the controls, written FIRST.
-    //   null control: injected qwen-resident pressure + declared-tenant
-    //     reservation — five concurrent guarded lanes must COMPLETE.  RED
-    //     against HEAD (no tenant subtraction); GREEN after T711.
-    //   seeded-defect: a true runaway still dies with killed_by=rss (the
-    //     per-group RSS cap still enforces the 2026-07-29 panic floor).
-    // The null-control arm is EXPECTED-RED until T711 lands — that red is
-    // the fleet-level test-first gate the blocked T711/T712/T713 turn green.
-    const runner_host_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-runner-host-guard.sh" });
-    runner_host_guard_regression.cwd = b.path(".");
-    test_step.dependOn(&runner_host_guard_regression.step);
-
-    // ── resident-aware memory-budget gate controls (T713, test-first) ────
-    // The runner's guard (T362/T711) protects the panic floor; the DISPATCH
-    // side is still missing: when the resident MLX/Ollama model server is
-    // present, the dispatcher (bin/subagent — the launch chokepoint) must
-    // know the reduced memory budget and size concurrent memory-heavy lanes
-    // accordingly, instead of launching a local-model lane the host cannot
-    // take and letting the guard kill a running lane (fratricide).
-    // Controls: cloud-API lanes (deepseek/claude/pi/:cloud tags) dispatch
-    // freely under qwen-resident pressure (null); a local-model lane is
-    // REFUSED with the list-wait directive (seeded); admitted when the
-    // budget fits, with the reduced budget reported (null); no tenant ⇒
-    // inactive; unmeasurable ⇒ inert; exact-threshold boundary; the
-    // recorded override escape; :cloud classification; bare override flag
-    // refuses.  All fixtures inject the reading/tenant — the floor is never
-    // tested by exhausting the host.
-    const subagent_resident_gate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-subagent-resident-gate.sh" });
-    subagent_resident_gate_regression.cwd = b.path(".");
-    test_step.dependOn(&subagent_resident_gate_regression.step);
+    // T872 green-up (S11 stream2b): three memory-guard checks deleted.
+    // runner-guard (T362 host-pressure guard), runner-host-guard (T714
+    // declared-tenant) and subagent-resident-gate (T713) all tested the
+    // T821-deleted guard/gate mechanisms; the replacement coverage is
+    // tools/regression-arbiter.sh (wired by a later stream2b wave).
 
     // ── startup-liveness controls (T586) ────────────────────────────
     // The nonce-stall failure mode: a dispatched pi/deepseek worker
