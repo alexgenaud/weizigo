@@ -1,4 +1,17 @@
 #!/bin/sh
+
+# ── WEIZIGO_GITENV_ISOLATION (T771, 2026-08-24) ──────────────────────────
+# git sets GIT_DIR (and friends) for hooks. This hook runs regression
+# scripts, and 58 of them create scratch repos with `git init` while none
+# unset GIT_DIR — so a scratch init could reinitialize THIS repository and
+# leave core.worktree pointed at /tmp. That happened twice on 2026-08-24:
+# every console's git then resolved against the wrong tree, commits
+# truncated 2,556 files to 4, and the task store was overwritten with a
+# stale snapshot. Unset the inherited git environment before running
+# anything, so a child's `git init` cannot reach back into this repo.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_NAMESPACE
+# ── end isolation ────────────────────────────────────────────────────────
+
 # pre-commit hook for weizigo — two gates:
 #   1. claimlint regressions against the recorded honest-debt floor, not
 #      "green" (green is unreachable today) — T272, installed by T280.

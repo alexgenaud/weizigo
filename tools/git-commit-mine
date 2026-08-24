@@ -1,4 +1,35 @@
 #!/usr/bin/env bash
+
+# ── WEIZIGO_WORKTREE_GUARD (T771, 2026-08-24) ────────────────────────────
+# A worker repointed the whole repository twice in thirty minutes by leaving
+# core.worktree set to its scratch directory; every console's git then
+# resolved paths against the wrong tree, commits truncated 2,556 files to 4,
+# and the task store was silently overwritten with a stale snapshot. That is
+# the mechanism behind the recurring "tasks vanished" incidents.
+# Two cheap invariants, checked before anything is staged:
+#   1. the repo must point at itself;
+#   2. a commit must not shrink the tree by more than the paths it names.
+_wz_guard() {
+    local wt; wt=$(git config --get core.worktree 2>/dev/null || true)
+    if [ -n "$wt" ]; then
+        echo "git-commit-mine: REFUSED — core.worktree is set to '$wt'." >&2
+        echo "  The repository is pointed at another directory; committing now would" >&2
+        echo "  write against the wrong tree. Run: git config --unset core.worktree" >&2
+        echo "  then verify 'git rev-parse --show-toplevel' before retrying." >&2
+        return 1
+    fi
+    local before; before=$(git ls-tree -r --name-only HEAD 2>/dev/null | wc -l | tr -d " ")
+    if [ "${before:-0}" -lt 2000 ]; then
+        echo "git-commit-mine: REFUSED — HEAD holds only ${before} files." >&2
+        echo "  A healthy tree here is >2000. HEAD is truncated; do not commit onto it." >&2
+        echo "  Find the newest intact commit and reset the branch to it first." >&2
+        return 1
+    fi
+    return 0
+}
+_wz_guard || exit 1
+# ── end guard ────────────────────────────────────────────────────────────
+
 # git-commit-mine — path-limited commit wrapper for the shared-index fleet (T278)
 #
 # Every console shares one .git/index. `git add -A` / `git commit` stage and
