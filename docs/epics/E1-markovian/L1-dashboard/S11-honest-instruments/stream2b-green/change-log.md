@@ -263,7 +263,23 @@ additive by design — a deletion log is the point of the row — and are not co
 
 ---
 
-## 14. What this wave deliberately did NOT touch
+## 15. `zig build test` (acceptance condition 3)
+
+- `zig build` compiles clean (rc 0) — the build graph is intact after the `build.zig` unwiring:
+  no step references a deleted script (grep of the three memory-guard paths over `build.zig` = 0).
+- `zig test src/vb_fixpoint.zig` → **All 14 tests passed** (I4/I7/I9 anchors; the two deleted I8/I11
+  stub tests are gone, nothing dangles).
+- Full `zig build test` was run to the end of the wired step list: it progressed through compile,
+  the zig module tests, and the wired regression scripts, failing only on the pre-existing known-reds
+  (`regression-task-id-archive.sh` R6, `regression-window-resilience.sh` R19,
+  `regression-dispatch-verification.sh` R17 — all in the classification's red set). It then blocked
+  **indefinitely on `regression-watch-fleet.sh`** (R7): that script launches a live-TUI dashboard that
+  waits for input, and as a wired `addSystemCommand` step it has no watchdog. The same hang is
+  reproduced by several concurrent lanes' builds simultaneously (three other `regression-watch-fleet.sh`
+  processes stuck at the time of the run), so it is pre-existing and unrelated to this wave. The build
+  test was terminated at that point and the block is on record as R7, not a new failure.
+
+## 16. What this wave deliberately did NOT touch
 
 - **R1–R23 (FIX-THE-TEST / FIX-THE-CODE reds)** — untouched. They are T873's and T874's subjects.
 - **V3 (STANDING-REEVIDENCE trigger), V4 (`suite-truth.sh` summary comparisons), V9 (dead FAIL
