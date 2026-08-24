@@ -393,7 +393,12 @@ fi
 echo " 13c. seeded: claude dispatch of an in_progress row refuses (row-state"
 echo "      guard inherited by the claude branch — the T350/T376 fence holds)"
 seed_task T994 findings/T994-result.json
-"$MG" claim T994 --agent claude-fable-5 >/dev/null 2>&1
+# T845: the in_progress fixture is claimed with deepseek-v4-flash, not
+# claude-fable-5 — the arm's contract is that a CLAUDE DISPATCH of an
+# in_progress row refuses, which does not depend on the fixture row's
+# model; a claude-claimed fixture would (correctly) trip the new fable
+# family cap (fable=1) when arm 15 dispatches T989 claude-fable-5.
+"$MG" claim T994 --agent deepseek-v4-flash >/dev/null 2>&1
 OUT=$(cd "$ROOT" && "$DISPATCH" T994 claude-fable-5 --test-root="$WORK" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "in_progress"; then

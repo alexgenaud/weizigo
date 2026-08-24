@@ -609,6 +609,22 @@ pub fn build(b: *std.Build) void {
     dispatch_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_regression.step);
 
+    // ── T845: dispatch fleet-cap regression controls ─────────────────
+    // The keeper read FLEET_CAP / FLEET_FAMILY_CAP and refused over them;
+    // bin/dispatch — the door nearly all work launches through — contained
+    // zero references to either, so 12 workers ran while the keeper sat
+    // refusing at 1.  These controls pin the fix: both caps enforced at
+    // the explicit door from the SAME helper as the keeper
+    // (tools/fleet_caps.py — one counter, one definition), the refusal
+    // naming cap + count + waiting task, the recorded
+    // --override-cap=<reason> escape (an override without a reason is
+    // refused), the one-writer holds check (not overridable), the null
+    // control, and the keeper's unchanged log format with the shared
+    // count.  Scratch store + scratch repo only.
+    const dispatch_caps_regression = b.addSystemCommand(&.{ "sh", "tools/regression-dispatch-caps.sh" });
+    dispatch_caps_regression.cwd = b.path(".");
+    test_step.dependOn(&dispatch_caps_regression.step);
+
     // ── T625: stale-directive dispatch controls ──────────────────────
     // The 2026-08-22 incident: D047, a `pause` whose discharge condition
     // lived in prose inside --note, kept killing fresh T544 dispatches

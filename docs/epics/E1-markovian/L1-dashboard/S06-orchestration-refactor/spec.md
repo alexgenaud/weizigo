@@ -706,7 +706,7 @@ each step committing before the next touches the store (commit → deploy → sm
 6. **Provider seam** (the one-registry-entry onboarding, measured against T732) — last, the
    acceptance demo.
 
-**ORC-PLAN-4 (regression scripts — counted disposition).** 82 `tools/regression-*.sh` at `HEAD`.
+**ORC-PLAN-4 (regression scripts — counted disposition).** 83 `tools/regression-*.sh` at `HEAD`.
 Dispositions: **ABSORB** (coverage re-expressed as `managent` Zig tests, shell script retired at
 phase close), **REWIRE** (script updated to the new mechanism; subject survives), **SURVIVE**
 (out of scope, untouched), **RETIRE** (mechanism deleted, no replacement owed — count is **0**,
@@ -782,7 +782,7 @@ the arbiter this row built) remains owed to whichever pass formally closes P4.2.
 | regression-task-id-archive.sh | P4.4 | task-ID mint consults the archive; re-pointed at the one registration parser (the two-task-stores census row) |
 | regression-runner-host-guard.sh, regression-runner-guard.sh, regression-runner-reap.sh, regression-runner-reporting.sh, regression-runner-run-records.sh, regression-runner-brief-telemetry.sh, regression-runner-taskid.sh, regression-runner-worktree.sh, regression-runner-agent-progress.sh, regression-runner-claude-liveness.sh, regression-runner-harness-p95.sh, regression-runner-startup-liveness.sh, regression-runner-pi-session-liveness.sh | P4.2 | `tools/runner` survives; its arbiter interaction (who sheds load, who writes `killed_by`) is re-pointed at the arbiter |
 
-**SURVIVE — 45** (out of scope; untouched): the 19 remaining `regression-managent-*` scripts
+**SURVIVE — 46** (out of scope; untouched): the 19 remaining `regression-managent-*` scripts
 (assert-store, attribution, build-mode, concurrency, done-git, done-two-phase, duty, holds,
 impression-gate, integrity, lanes, ledger-board-seam, lock, memory-safety, resume, standing,
 status-json, store-pollution, store-write-utf8) — they already test the `managent` binary that
@@ -790,13 +790,16 @@ grows, and are extended in place, not absorbed; plus the out-of-scope domains: c
 (c7-json, c7-scope, output, promotion, volatile, claim-lifecycle), absorption-machinery,
 argus-doctor, orphan-reaper, bakeoff-gates, battery-baselines, battery-sweep, complementarity,
 model-profiles, race-p0, race-collect, gtp-boardsize, T227, suite-surfaces, commit-concurrency, git-commit-mine,
-git-commit-mine-hook, process-ownership, pilot-gate, orcha-acceptance, precommit. `orcha-
+git-commit-mine-hook, process-ownership, pilot-gate, orcha-acceptance, precommit,
+regression-dispatch-caps.sh (new, T845 — the fleet-cap gate's own controls: cap-2 fixture,
+per-family, recorded override, null, shared-counter, one-writer). `orcha-
 acceptance.sh` survives as the bar itself (it is the P5 gate, not a thing under test).
 
 **ORC-PLAN-5 (silent truncation is a defect — now mechanized).** The disposition table's counts
 sum to **80**, the `ls tools/regression-*.sh | wc -l` at `8c00704`; the T801 addition brought the
-live count to **81**, and the T821 amendment (one new SURVIVE script, two early discharges of
-already-listed entries) brings it to **82** (see the ORC-PLAN-4 amendments). If a later phase retires a
+live count to **81**, the T821 amendment (one new SURVIVE script, two early discharges of
+already-listed entries) brought it to **82**, and the T845 amendment (one new SURVIVE script,
+`regression-dispatch-caps.sh`) brings it to **83** (see the ORC-PLAN-4 amendments). If a later phase retires a
 script not listed here, the plan is amended; a script left off the table is a spec defect, not a
 reader's problem. **Amended T802:** that sentence is now enforced by
 `tests/unit/test_s06_conformance.py::TestDispositionCount`, which fails the moment the declared

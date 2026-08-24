@@ -4,8 +4,12 @@
 # A shell loop (NOT a managent engine change — src/managent/main.zig is
 # serial-held by T485/T486/T487).  Everything it needs already exists:
 # `bin/managent status --json` (read the queue), `bin/dispatch <id> <model>`
-# (fire a worker), and a configurable fleet cap (default 5, the operator's
-# ruling of 2026-08-19).  The graceful stop is a FILE flag
+# (fire a worker), and a configurable fleet cap (default 4 — T845's
+# proposal, sharing the number with bin/dispatch via tools/fleet_caps.py;
+# the 2026-08-19 ruling committed 5 for the keeper alone, the 2026-08-24
+# ruling asks for more serial execution, and the explicit door now enforces
+# the same number; derivations in tools/fleet_caps.py).  The graceful stop
+# is a FILE flag
 # (untracked/fleet-keeper.cooldown, set by tools/fleet-cooldown.sh) — no
 # store change, no engine change; works for the human and the Orchestrator.
 #
@@ -62,7 +66,8 @@
 #
 # Env:
 #   FLEET_INTERVAL       seconds between iterations (default 10)
-#   FLEET_CAP            max in_progress workers (default 5)
+#   FLEET_CAP            max in_progress workers (default 4 — T845 proposal,
+#                        shared with bin/dispatch via tools/fleet_caps.py)
 #   FLEET_DEFAULT_MODEL  model for rows with no stored model.  NOT a free
 #                        default: when unset, a model-less row gets the
 #                        LEAST-DATA model (min per-model task count, ties by
@@ -105,8 +110,10 @@
 #                        the D036 default deny (model-level), not appetite.
 #   FLEET_FAMILY_CAP     per-family concurrent-lane cap "family=N" (T651;
 #                        §7c.33 enforcement at dispatch — T628 owns the meter
-#                        that sizes it).  Default: claude=3,fable=1; unlisted
-#                        = uncapped.
+#                        that sizes it).  Default: claude=3,fable=1,ollama=5
+#                        (T845 — ollama's cap is the provider's recorded
+#                        five-worker ceiling; derivations in
+#                        tools/fleet_caps.py); unlisted = uncapped.
 #
 #   --once               run exactly one iteration and exit (test hook).
 #   -h, --help            print usage and exit.  ANY other argument refuses
@@ -294,7 +301,14 @@ import calendar, glob, json, os, re, subprocess, sys, time
 
 REAL_ROOT = sys.argv[1]
 ONCE = sys.argv[2] == "1"
-CAP = int(os.environ.get("FLEET_CAP", "5"))
+# T845: the caps/counters live in ONE shared helper with bin/dispatch —
+# one counter, one definition, so the two doors cannot disagree about how
+# full the fleet is (bin/dispatch imports the same module).  The keeper's
+# own log lines and loop behaviour are unchanged; only the source of the
+# numbers moved.
+sys.path.insert(0, os.path.join(REAL_ROOT, "tools"))
+import fleet_caps  # noqa: E402
+CAP = fleet_caps.total_cap()
 DEFAULT_MODEL = os.environ.get("FLEET_DEFAULT_MODEL", "glm-5.2")
 FLEET_ROOT = os.environ.get("FLEET_ROOT") or REAL_ROOT
 TEST_WORKER = os.environ.get("FLEET_TEST_WORKER")
@@ -319,13 +333,9 @@ DENY = {m for m in (_deny_env if _deny_env is not None else DEFAULT_DENY).split(
 # concurrent-lane cap.  ollama's §1 "OFF→SPEND" is expressed by the D036
 # default deny above (model-level), not here, so the appetite default is SPEND
 # and the deny still refuses the three ollama models while the quota is out.
-FAMILY = {
-    "claude-opus-5": "claude", "claude-sonnet-5": "claude",
-    "claude-haiku-4-5-20251001": "claude", "claude-fable-5": "fable",
-    "deepseek-v4-pro": "deepseek", "deepseek-v4-flash": "deepseek",
-    "glm-5.2": "ollama", "minimax-m3": "ollama", "kimi-k2.7": "ollama",
-    "qwen3.8:27b-mlx": "local",
-}
+# T845: the FAMILY map, the FLEET_FAMILY_CAP defaults and family_of now come
+# from tools/fleet_caps.py (shared with bin/dispatch); the appetite map stays
+# keeper-local (it is the loop's own gate).
 
 def _kv_map(env, default):
     m = dict(default)
@@ -339,20 +349,13 @@ def _kv_map(env, default):
 DEFAULT_APPETITE = {"claude": "SPEND", "fable": "RESERVED", "deepseek": "SPEND",
                     "ollama": "SPEND", "local": "PROBE"}
 APPETITE = _kv_map("FLEET_APPETITE", DEFAULT_APPETITE)
-DEFAULT_FAMILY_CAP = {"claude": 3, "fable": 1}  # §7c.33: one race's worth; Fable alone
-FAMILY_CAP = _kv_map("FLEET_FAMILY_CAP", DEFAULT_FAMILY_CAP)
+FAMILY_CAP = fleet_caps.family_caps()  # defaults live in fleet_caps (T845 §4)
 
 def family_of(model):
-    return FAMILY.get((model or "").split(":")[0], "other")
+    return fleet_caps.family_of(model)
 
 def family_cap(family):
-    v = FAMILY_CAP.get(family)
-    if v in (None, ""):
-        return None  # uncapped
-    try:
-        return int(v)
-    except ValueError:
-        return None
+    return fleet_caps.family_cap(family, FAMILY_CAP)
 
 def appetite_allows(model):
     fam = family_of(model)
@@ -971,11 +974,10 @@ def main():
 
     # The set of holds currently held by a RUNNING task (the only holds that
     # block — a done holder is no holder).  managent's own holdsConflict
-    # (src/managent/main.zig) enforces this at claim time too.
-    inprog_holds = set()
-    for r in in_prog_rows:
-        for h in (r.get("holds") or []):
-            inprog_holds.add(h)
+    # (src/managent/main.zig) enforces this at claim time too.  T845: the
+    # union is computed by the shared helper (tools/fleet_caps.py) — the
+    # same definition bin/dispatch's one-writer gate uses.
+    inprog_holds = fleet_caps.inprog_holds(rows)
     elig = []
     for r in rows:
         rid = r.get("id") or ""
@@ -1132,11 +1134,10 @@ def main():
     for r in in_prog_rows:
         for h in (r.get("holds") or []):
             holder_of.setdefault(h, r.get("id"))
-    family_inprog = {}
-    for r in in_prog_rows:
-        m = r.get("model") or (r.get("identifier") or "").split("/")[0] or ""
-        fam = family_of(m)
-        family_inprog[fam] = family_inprog.get(fam, 0) + 1
+    # T845: the per-family in_progress counts come from the shared helper
+    # (tools/fleet_caps.py) — the same definition bin/dispatch's family-cap
+    # gate uses, so both doors report the same number for the same fleet.
+    family_inprog = fleet_caps.family_inprog(rows)
     candidates = []
     for e in elig:
         fam = family_of(e["model"])

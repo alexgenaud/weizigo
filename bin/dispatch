@@ -5,6 +5,7 @@ Usage:
   bin/dispatch <T-id> <model> [--wall=N] [--dry-run]
                [--test-root=<dir>] [--test-worker=<cmd>]
                [--override-window-cooldown=<reason>]
+               [--override-cap=<reason>]
 
   <model>   a canonical model label (src/managent/main.zig
             canonical_models[], T317) or a dispatch tag that canonicalizes
@@ -35,6 +36,19 @@ Usage:
               reason is mandatory: the flag exists for "I have checked the
               provider myself; proceed", not for convenience.
 
+  --override-cap=<reason>
+              bypass the T845 fleet caps (FLEET_CAP total and
+              FLEET_FAMILY_CAP per-family) for THIS dispatch only, with
+              the operator's reason REQUIRED and recorded (append-only,
+              untracked/fleet-cap-overrides.jsonl — the fleet-window
+              override's sibling).  It does NOT bypass the one-writer
+              holds check (T500, the operator's non-negotiable — D022's
+              'dispatch-anyway after a wait' escape was REJECTED on
+              2026-08-20).  The keeper's automated loop does not get this
+              override; only a human dispatch does.  A reason is
+              mandatory: the flag exists for "I have checked the fleet
+              myself; proceed", not for convenience.
+
   test-only flags (T476 — the regression uses them; production never does):
   --test-root=<dir>    resolve bundle and log from <dir> (scratch repo)
   --test-worker=<cmd>  forwarded to bin/subagent (stub worker for the
@@ -51,6 +65,15 @@ Refuses (exit 1, message on stderr), in order:
   * a task with no single untracked/T<id>-*.md bundle — the worker
     cannot follow a brief that does not exist, and two bundles is a
     name collision
+  * a fleet at the total cap (FLEET_CAP, T845) — the refusal names the
+    cap, the current in_progress count, and the tasks to wait on; an
+    in_progress count is never exceeded (idle is acceptable, killing a
+    running task is not)
+  * a family at its per-family cap (FLEET_FAMILY_CAP, T845) — same
+    shape, naming the family's running lanes
+  * a task whose holds intersect a running task's holds (T500, the
+    one-writer doctrine — now enforced at the door, not by the seat
+    noticing; NEVER overridable)
 
 On success it DETACHES the worker (new session, stdout+stderr into
 untracked/log/t<id>.log — the nohup convention the Orchestrator practised
@@ -85,6 +108,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import directive_policy  # noqa: E402
 import window_policy  # noqa: E402
+import fleet_caps  # noqa: E402
 DEPTH_VAR = "WEIZIGO_AGENT_DEPTH"
 MAX_DEPTH = 3
 DEFAULT_WALL = 2700
@@ -142,31 +166,6 @@ def resolve_model(raw: str):
         f"(T317, src/managent/main.zig).\n"
         f"  dispatchable here: {', '.join(sorted(MODELS))}\n"
         f"  (kimi-k2.7-code and any :cloud tag are accepted and canonicalized)"), None, None
-
-
-def row_state(root: str, task_id: str):
-    """→ (status, identifier, store_path); (None, None, store) when absent.
-    The managent binary always comes from the real repo (ROOT); --test-root
-    only relocates bundle/log/store-default, never the tooling."""
-    store = os.environ.get("MANAGENT_STORE") or os.path.join(
-        root, "docs", "infra", "managent", "tasks.json")
-    env = dict(os.environ)
-    if os.environ.get("MANAGENT_STORE") is None:
-        env["MANAGENT_STORE"] = store
-    try:
-        out = subprocess.run(
-            [os.path.join(ROOT, "bin", "managent"), "status", "--json"],
-            capture_output=True, text=True, env=env, timeout=20).stdout
-    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        sys.exit(f"dispatch: cannot read kanban status --json: {e}")
-    try:
-        rows = json.loads(out)
-    except json.JSONDecodeError:
-        sys.exit(f"dispatch: kanban status --json was not JSON (store {store})")
-    for r in rows:
-        if r.get("id") == task_id:
-            return r.get("status"), r.get("identifier"), store
-    return None, None, store
 
 
 # ── T747 landmark backstop ───────────────────────────────────────────────
@@ -229,6 +228,7 @@ def main(argv):
     test_root = None
     test_worker = None
     override_reason = None
+    cap_override_reason = None
 
     for a in argv:
         if a == "--dry-run":
@@ -255,6 +255,18 @@ def main(argv):
             sys.exit("dispatch: --override-window-cooldown requires a reason: "
                      "--override-window-cooldown=<reason> (T677).\n"
                      "  The flag exists for 'I have checked the provider myself; "
+                     "proceed', not for convenience.")
+        elif a.startswith("--override-cap="):
+            cap_override_reason = a.split("=", 1)[1].strip()
+            if not cap_override_reason:
+                sys.exit("dispatch: --override-cap requires a reason: "
+                         "--override-cap=<reason> (T845).\n"
+                         "  The flag exists for 'I have checked the fleet myself; "
+                         "proceed', not for convenience.")
+        elif a == "--override-cap":
+            sys.exit("dispatch: --override-cap requires a reason: "
+                     "--override-cap=<reason> (T845).\n"
+                     "  The flag exists for 'I have checked the fleet myself; "
                      "proceed', not for convenience.")
         elif a.startswith("--"):
             sys.exit(__doc__)
@@ -287,8 +299,28 @@ def main(argv):
 
     root = os.path.abspath(test_root) if test_root else ROOT
 
+    # ── one kanban snapshot per dispatch (T845) ────────────────────────
+    # The row-state gate, the T628 probe gate and the T845 fleet-cap gate
+    # all read the SAME snapshot, fetched once through the shared helper
+    # (tools/fleet_caps.py) — the same store resolution bin/dispatch's
+    # row_state always used (MANAGENT_STORE env, else root default), the
+    # same `managent status --json` the keeper reads.  The gates cannot
+    # disagree with each other about how full the fleet is.
+    rows = fleet_caps.read_rows(root)
+    if rows is None:
+        sys.exit("dispatch: cannot read kanban status --json (tools/fleet_caps.read_rows)")
+    store = fleet_caps.store_path(root)
+    status = None
+    identifier = None
+    target_holds = set()
+    for r in rows:
+        if r.get("id") == task_id:
+            status = r.get("status")
+            identifier = r.get("identifier")
+            target_holds = set(r.get("holds") or [])
+            break
+
     # ── row state (refuses anything not dispatchable) ────────────────────
-    status, identifier, store = row_state(root, task_id)
     if status is None:
         sys.exit(f"dispatch: task {task_id} not found in store {store}\n"
                  f"  register it first (bin/managent add {task_id} --auto ...)")
@@ -468,14 +500,8 @@ def main(argv):
                     f"--override-window-cooldown=<reason>."
                     + fallback_note)
         # probe-first: after a window reset, one lane at a time — a second
-        # concurrent lane while the probe is in flight is refused.
-        rows = None
-        try:
-            rows = json.loads(subprocess.run(
-                [os.path.join(ROOT, "bin", "managent"), "status", "--json"],
-                capture_output=True, text=True, timeout=20).stdout)
-        except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError):
-            rows = None
+        # concurrent lane while the probe is in flight is refused.  The rows
+        # are the dispatch's shared snapshot (fetched once, above).
         if (window_policy.probe_active(fam, root, now) and rows
                 and window_policy.family_inprog_count(fam, rows) >= 1):
             sys.exit(
@@ -484,6 +510,104 @@ def main(argv):
                 f"  The watcher re-checks the provider with a single probe lane before "
                 f"the fleet re-enters; wait for the probe to close or the probe window "
                 f"to elapse.")
+
+    # ── fleet-cap gate (T845) ──────────────────────────────────────────
+    # The keeper reads FLEET_CAP / FLEET_FAMILY_CAP and counts in_progress
+    # rows; this door reads the SAME caps and counts the SAME way, from the
+    # SAME helper (tools/fleet_caps.py) — one counter, one definition, so
+    # the two doors cannot disagree about how full the fleet is.  Refuse —
+    # never queue silently and never kill: idle is acceptable, killing a
+    # running task is not.  The refusal names the cap, the current count,
+    # and which task to wait on.
+    #
+    # --override-cap=<reason> (T845 §3) is the recorded escape hatch,
+    # appended to untracked/fleet-cap-overrides.jsonl exactly the way the
+    # T677 window override appends to fleet-window-overrides.jsonl.  It
+    # bypasses the TOTAL and FAMILY caps for THIS dispatch only — a reason
+    # is mandatory — and a DRY-RUN is not a decision: like the window
+    # override, it is recorded only when a real dispatch executes it.  It
+    # NEVER bypasses the one-writer holds check below (T500, the
+    # operator's non-negotiable: D022's 'dispatch-anyway after a wait'
+    # escape was REJECTED on 2026-08-20, and the keeper has none either).
+    try:
+        total_cap_n = fleet_caps.total_cap()
+    except ValueError as e:
+        sys.exit(f"dispatch: REFUSED — {e} (T845)\n"
+                 f"  A garbage cap must refuse loudly, never silently fall back "
+                 f"(the two-doors-disagree class).")
+    fam_caps = fleet_caps.family_caps()
+    fam = fleet_caps.family_of(canon)
+    fam_cap_n = fleet_caps.family_cap(fam, fam_caps)
+    total = fleet_caps.total_inprog(rows)
+    fam_count = fleet_caps.family_inprog(rows).get(fam, 0)
+    exceeded = []
+    if total >= total_cap_n:
+        exceeded.append("total")
+    if fam_cap_n is not None and fam_count >= fam_cap_n:
+        exceeded.append("family")
+    if exceeded:
+        counts = {"total": total, "total_cap": total_cap_n,
+                  "family": fam, "family_count": fam_count,
+                  "family_cap": fam_cap_n}
+        if cap_override_reason:
+            if not dry_run:
+                rec_path = fleet_caps.record_cap_override(
+                    root, task_id, ",".join(exceeded), counts, cap_override_reason)
+            else:
+                rec_path = None
+            where = (f"recorded in {os.path.relpath(rec_path, root)}"
+                     if rec_path else "(dry-run — override would be recorded on a real dispatch)")
+            print(f"dispatch: WARNING — fleet cap {','.join(exceeded)} OVERRIDDEN "
+                  f"for this dispatch by operator reason {cap_override_reason!r}; "
+                  f"{where} (T845)", file=sys.stderr)
+            if not dry_run and rec_path is None:
+                print("dispatch: WARNING — could not append to "
+                      "untracked/fleet-cap-overrides.jsonl; the override is NOT "
+                      "recorded (T845)", file=sys.stderr)
+        elif "total" in exceeded:
+            wait = ", ".join(sorted(r.get("id") for r in fleet_caps.inprog_rows(rows)))
+            sys.exit(
+                f"dispatch: REFUSED — the fleet is at the total cap: "
+                f"{total}/{total_cap_n} in_progress (FLEET_CAP, T845).\n"
+                f"  Running now: {wait}.\n"
+                f"  Wait for one to finish — idle is acceptable, killing a running "
+                f"task is not — or pass --override-cap=<reason> to exceed the cap "
+                f"for this dispatch only (recorded to untracked/fleet-cap-overrides.jsonl).")
+        else:
+            fam_rows = sorted(
+                r.get("id") for r in fleet_caps.inprog_rows(rows)
+                if fleet_caps.family_of(
+                    r.get("model") or (r.get("identifier") or "").split("/")[0])
+                == fam)
+            sys.exit(
+                f"dispatch: REFUSED — family {fam} is at its cap: "
+                f"{fam_count}/{fam_cap_n} in_progress (FLEET_FAMILY_CAP, T845).\n"
+                f"  Running now: {', '.join(fam_rows)}.\n"
+                f"  Wait for one to finish — idle is acceptable, killing a running "
+                f"task is not — or pass --override-cap=<reason> to exceed the cap "
+                f"for this dispatch only (recorded to untracked/fleet-cap-overrides.jsonl).")
+
+    # ── one-writer holds gate (T500/T845 §5) ────────────────────────────
+    # The one-writer doctrine used to be enforced by the seat noticing; the
+    # door notices now.  A dispatch whose holds intersect a RUNNING task's
+    # holds is refused, naming the file and the holder.  NOT overridable:
+    # D022's 'dispatch-anyway after a wait' escape was REJECTED by the
+    # operator on 2026-08-20 and is gone from the keeper; the door gets no
+    # softer doctrine.
+    inprog_holds = fleet_caps.inprog_holds(rows)
+    clash = target_holds & inprog_holds
+    if clash:
+        holder_of = {}
+        for r in fleet_caps.inprog_rows(rows):
+            for h in (r.get("holds") or []):
+                holder_of.setdefault(h, r.get("id"))
+        held = ", ".join(f"{h}←{holder_of.get(h, '?')}" for h in sorted(clash))
+        sys.exit(
+            f"dispatch: REFUSED — {task_id} holds {{{','.join(sorted(clash))}}} held by "
+            f"a running task ({held}).\n"
+            f"  One writer per engine file (T500): wait for the holder to finish "
+            f"before dispatching.  --override-cap does NOT bypass this — the "
+            f"one-writer doctrine is the operator's non-negotiable.")
 
     # ── construct the subagent command ───────────────────────────────────
     subagent = os.path.join(ROOT, "bin", "subagent")

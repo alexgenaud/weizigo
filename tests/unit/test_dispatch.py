@@ -17,8 +17,12 @@ tools/regression-dispatch.sh's controls (spawned as a process).
  1  canonicalize_model         dispatch tag -> canonical label (aliases,      resolve_model                2026-08-23 T732     NO — every shorthand/cloud/stealth dispatch refuses;
                                :cloud, kimi -code, stealth/)                                                                   the ledger stops attributing (the serving-tag defect)
  2  resolve_model              raw tag -> (canonical, err, provider, flags)   main()                       2026-08-23 T732     NO — no dispatch can name a model; the whole door jams
- 3  row_state                  kanban row -> (status, identifier, store)      main()                       2026-08-19 T476     NO — the T350/T376/T389 duplicate-dispatch hazard
-                               via bin/managent status --json (subprocess)                                                     returns: in_progress rows re-dispatch freely
+ 3  row_state*                kanban rows via bin/managent status --json   main() (as the shared   2026-08-24 T845     NO — the T350/T376/T389 duplicate-dispatch hazard
+                             (subprocess) — *T845 moved the seam to the     snapshot; fleet_caps)                           returns: in_progress rows re-dispatch freely
+                             SHARED helper tools/fleet_caps.read_rows, so
+                             the row-state / probe / caps gates read the
+                             SAME rows; row_state itself is gone from this
+                             file
  4  _contains_valid_landmark_id text contains a valid L<id> token             _landmark_line_verdict       2026-08-23 T747     NO — every Landmark line reads "invalid", every brief
                                                                                                                                 with a valid id refuses; dispatch grinds to a halt
  5  _landmark_line_verdict     one **Landmark:** line -> declared/invalid,    bundle_landmark_verdict      2026-08-23 T747     NO — same halt as #4, one level up
@@ -155,9 +159,20 @@ class EnvIsolatedTestCase(unittest.TestCase):
             # so a fixture root reaches it ONLY through the documented seam.
             if not any(a.startswith("--test-root=") for a in argv):
                 argv = [*argv, "--test-root=%s" % os.path.abspath(root)]
-            ctx.append(mock.patch.object(dp, "row_state",
-                                         return_value=(status, identifier,
-                                                       os.path.join(root, "tasks.json"))))
+            # T845: the kanban snapshot comes from the SHARED helper
+            # (tools/fleet_caps.py) — the row-state, probe and fleet-cap
+            # gates all read the SAME rows; the seam moved there with it.
+            rows = json.loads(rows_json)
+            if status is None:
+                rows = [r for r in rows if r.get("id") != "T9999"]
+            else:
+                rows = [dict(r) for r in rows]
+                for r in rows:
+                    if r.get("id") == "T9999":
+                        r["status"] = status
+                        r["identifier"] = identifier
+            ctx.append(mock.patch.object(dp.fleet_caps, "read_rows",
+                                         return_value=rows))
             ctx.append(mock.patch.object(dp.directive_policy,
                                          "evaluate_directives",
                                          return_value=(
@@ -356,15 +371,19 @@ class TestModelResolution(EnvIsolatedTestCase):
 
 
 # ---------------------------------------------------------------------------
-# 3. row_state — kanban read (subprocess mocked; parsing decided HERE)
+# 3. kanban snapshot — read via the shared helper (T845)
 # ---------------------------------------------------------------------------
 
 class TestRowState(EnvIsolatedTestCase):
-    """SHOULD: read bin/managent status --json, return the matching row's
-    (status, identifier, store); (None, None, store) when the row is absent;
-    die loudly (non-zero, named cause) when the store cannot be read."""
+    """SHOULD: read bin/managent status --json and return the rows; None
+    (not a crash) when the store cannot be read; resolve the store exactly
+    like bin/dispatch's old row_state did (MANAGENT_STORE env, else the
+    root default), forwarding it to the managent subprocess.  T845 moved
+    the seam from bin/dispatch.row_state into the SHARED helper
+    tools/fleet_caps.py — the keeper reads the same function's counters —
+    so this class tests the helper's read path now."""
 
-    def run_row_state(self, stdout, store_env=None):
+    def run_read_rows(self, stdout, store_env=None):
         captured = {}
 
         def fake_run(cmd, capture_output, text, env, timeout):
@@ -376,35 +395,42 @@ class TestRowState(EnvIsolatedTestCase):
         if store_env:
             env["MANAGENT_STORE"] = store_env
         with mock.patch.dict(os.environ, env, clear=False):
-            with mock.patch.object(dp.subprocess, "run", fake_run):
-                return dp.row_state("/tmp/some-root", "T9999")
+            with mock.patch.object(dp.fleet_caps.subprocess, "run", fake_run):
+                rows = dp.fleet_caps.read_rows("/tmp/some-root")
+        return rows, captured
 
-    def test_found_row_returns_status_and_identifier(self):
-        rows = [{"id": "T1234", "status": "in_progress",
-                 "identifier": "deepseek-v4-flash/T350"},
-                {"id": "T9999", "status": "dispatchable",
-                 "identifier": "x"}]
-        status, ident, store = self.run_row_state(json.dumps(rows))
-        self.assertEqual((status, ident), ("dispatchable", "x"))
-        self.assertTrue(store.endswith("tasks.json"))
+    def test_found_rows_returned_in_order(self):
+        rows_json = json.dumps([
+            {"id": "T1234", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T350"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        rows, captured = self.run_read_rows(rows_json)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1]["status"], "dispatchable")
+        self.assertEqual(rows[1]["id"], "T9999")
+        self.assertTrue(captured["cmd"][0].endswith("bin/managent"))
 
-    def test_absent_row_returns_none_pair(self):
-        status, ident, store = self.run_row_state(json.dumps([]))
-        self.assertIsNone(status)
-        self.assertIsNone(ident)
-        self.assertTrue(store)
+    def test_absent_row_just_missing_from_rows(self):
+        rows, _ = self.run_read_rows(json.dumps([]))
+        self.assertEqual(rows, [])
 
-    def test_non_json_store_dies_loudly(self):
-        with self.assertRaises(SystemExit) as cm:
-            self.run_row_state("<html>not json</html>")
-        self.assertIn("not JSON", str(cm.exception))
+    def test_non_json_store_returns_none_not_a_crash(self):
+        rows, _ = self.run_read_rows("<html>not json</html>")
+        self.assertIsNone(rows)
 
     def test_managent_store_env_is_honoured_and_forwarded(self):
-        status, ident, store = self.run_row_state(
+        rows, captured = self.run_read_rows(
             json.dumps([{"id": "T9999", "status": "done"}]),
             store_env="/tmp/alt-store.json")
-        self.assertEqual(status, "done")
-        self.assertEqual(store, "/tmp/alt-store.json")
+        self.assertEqual(rows[0]["status"], "done")
+        self.assertEqual(captured["env"]["MANAGENT_STORE"], "/tmp/alt-store.json")
+
+    def test_store_default_resolves_under_the_root(self):
+        _, captured = self.run_read_rows("[]")
+        self.assertEqual(
+            captured["env"]["MANAGENT_STORE"],
+            os.path.join("/tmp/some-root", "docs", "infra",
+                         "managent", "tasks.json"))
 
 
 # ---------------------------------------------------------------------------
@@ -807,6 +833,170 @@ class TestTestSeam(EnvIsolatedTestCase):
             if ln.strip().startswith("subagent:"):
                 return ln
         self.fail("no subagent line:\n" + out)
+
+
+# ---------------------------------------------------------------------------
+# 7. main — the T845 fleet-cap gate (total cap, family cap, one-writer,
+#    recorded override) — unit level; the E2E controls live in
+#    tools/regression-dispatch-caps.sh
+# ---------------------------------------------------------------------------
+
+class TestFleetCapGate(EnvIsolatedTestCase):
+    """SHOULD: refuse over FLEET_CAP and FLEET_FAMILY_CAP, naming the cap,
+    the current count and the waiting tasks; refuse a holds clash with a
+    running task (NOT overridable); let --override-cap=<reason> bypass the
+    caps for THIS dispatch while recording the reason on a real dispatch.
+    The counts come from the SHARED helper (tools/fleet_caps.py) — the
+    same numbers the keeper sees (one counter, one definition)."""
+
+    def _root(self):
+        root = self.temp_root()
+        self.write_bundle(root)
+        return root
+
+    def test_total_cap_refuses_naming_count_and_waiters(self):
+        rows = json.dumps([
+            {"id": "T100", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T100"},
+            {"id": "T101", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T101"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run"], root=self._root(),
+            rows_json=rows,
+            extra_patches=[mock.patch.dict(os.environ, {"FLEET_CAP": "2"})])
+        self.assertNotEqual(code, 0)
+        self.assertIn("total cap: 2/2", str(code))
+        self.assertIn("T100", str(code))
+        self.assertIn("T101", str(code))
+        self.assertEqual(spawned, [])
+
+    def test_under_the_cap_dispatch_proceeds(self):
+        rows = json.dumps([
+            {"id": "T100", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T100"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run"], root=self._root(),
+            rows_json=rows,
+            extra_patches=[mock.patch.dict(os.environ, {"FLEET_CAP": "2"})])
+        self.assertEqual(code, 0)
+        self.assertIn("dry-run T9999", out)
+        self.assertEqual(spawned, [])
+
+    def test_family_cap_refuses_naming_family_count_and_waiter(self):
+        rows = json.dumps([
+            {"id": "T102", "status": "in_progress",
+             "identifier": "claude-opus-5/T102", "model": "claude-opus-5"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "claude-sonnet-5", "--dry-run"], root=self._root(),
+            rows_json=rows,
+            extra_patches=[mock.patch.dict(
+                os.environ, {"FLEET_FAMILY_CAP": "claude=1"})])
+        self.assertNotEqual(code, 0)
+        self.assertIn("family claude is at its cap: 1/1", str(code))
+        self.assertIn("T102", str(code))
+        self.assertEqual(spawned, [])
+
+    def test_family_cap_other_family_allowed(self):
+        rows = json.dumps([
+            {"id": "T102", "status": "in_progress",
+             "identifier": "claude-opus-5/T102", "model": "claude-opus-5"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run"], root=self._root(),
+            rows_json=rows,
+            extra_patches=[mock.patch.dict(
+                os.environ, {"FLEET_FAMILY_CAP": "claude=1"})])
+        self.assertEqual(code, 0)
+        self.assertIn("dry-run T9999", out)
+        self.assertEqual(spawned, [])
+
+    def test_one_writer_holds_refused_naming_file_and_holder(self):
+        rows = json.dumps([
+            {"id": "T103", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T103",
+             "holds": ["src/retro.zig"]},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x",
+             "holds": ["src/retro.zig"]}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run"], root=self._root(),
+            rows_json=rows)
+        self.assertNotEqual(code, 0)
+        self.assertIn("src/retro.zig", str(code))
+        self.assertIn("T103", str(code))
+        self.assertEqual(spawned, [])
+
+    def test_one_writer_not_bypassed_by_cap_override(self):
+        # D022's 'dispatch-anyway after a wait' escape was REJECTED on
+        # 2026-08-20; the cap override must not resurrect it.
+        rows = json.dumps([
+            {"id": "T103", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T103",
+             "holds": ["src/retro.zig"]},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x",
+             "holds": ["src/retro.zig"]}])
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run",
+             "--override-cap=operator checked"], root=self._root(),
+            rows_json=rows)
+        self.assertNotEqual(code, 0)
+        self.assertIn("src/retro.zig", str(code))
+        self.assertEqual(spawned, [])
+
+    def test_cap_override_requires_a_reason(self):
+        for bad in ("--override-cap", "--override-cap="):
+            with self.subTest(bad=bad):
+                self.assert_refused_quiet(bad)
+
+    def assert_refused_quiet(self, bad_flag):
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run", bad_flag],
+            root=self._root())
+        self.assertNotEqual(code, 0)
+        self.assertIn("requires a reason", str(code))
+        self.assertEqual(spawned, [])
+
+    def test_cap_override_bypasses_in_dry_run_without_recording(self):
+        # a DRY-RUN is not a decision (T677 precedent): the override
+        # bypasses the cap and warns, but records nothing.
+        rows = json.dumps([
+            {"id": "T104", "status": "in_progress",
+             "identifier": "deepseek-v4-flash/T104"},
+            {"id": "T9999", "status": "dispatchable", "identifier": "x"}])
+        root = self._root()
+        code, out, err, spawned = self.run_main(
+            ["T9999", "deepseek-v4-pro", "--dry-run",
+             "--override-cap=operator checked the fleet"], root=root,
+            rows_json=rows,
+            extra_patches=[mock.patch.dict(os.environ, {"FLEET_CAP": "1"})])
+        self.assertEqual(code, 0)
+        self.assertIn("dry-run T9999", out)
+        self.assertIn("OVERRIDDEN", err)
+        self.assertIn("dry-run", err)  # would-be-recorded, not recorded
+        self.assertFalse(os.path.exists(os.path.join(
+            root, "untracked", "fleet-cap-overrides.jsonl")))
+        self.assertEqual(spawned, [])
+
+    def test_record_cap_override_writes_the_ledger(self):
+        # helper-level: the ledger line carries the reason (integration
+        # with the real dispatch path is regression-dispatch-caps.sh arm 3e).
+        root = self.temp_root()
+        p = dp.fleet_caps.record_cap_override(
+            root, "T9999", "total", {"total": 2, "total_cap": 1},
+            "operator checked the fleet")
+        self.assertTrue(p.endswith("fleet-cap-overrides.jsonl"))
+        with open(p, encoding="utf-8") as f:
+            line = json.loads(f.read().strip())
+        self.assertEqual(line["task"], "T9999")
+        self.assertEqual(line["kind"], "total")
+        self.assertEqual(line["reason"], "operator checked the fleet")
+
+    def test_record_cap_override_refuses_without_reason(self):
+        root = self.temp_root()
+        self.assertIsNone(dp.fleet_caps.record_cap_override(
+            root, "T9999", "total", {}, "   "))
 
 
 if __name__ == "__main__":

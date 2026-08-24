@@ -47,6 +47,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 SPEC = "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md"
 KEEPER = "tools/fleet-keeper.sh"
+FLEET_CAPS = "tools/fleet_caps.py"
 MAIN_ZIG = "src/managent/main.zig"
 WATCH = "untracked/watch-fleet.sh"
 WINDOW_POLICY = "tools/window_policy.py"
@@ -74,10 +75,13 @@ def keeper_appetite():
 
 
 def keeper_family_map():
-    """`FAMILY` (canonical model -> family) from the same embedded Python."""
-    m = re.search(r"^FAMILY\s*=\s*\{(.*?)^\}", src(KEEPER), re.S | re.M)
+    """`FAMILY` (canonical model -> family) — T845 moved the map to the
+    SHARED helper tools/fleet_caps.py (the keeper's family_of delegates to
+    it, bin/dispatch's cap gate reads it); parse it where the single
+    definition lives."""
+    m = re.search(r"^FAMILY\s*=\s*\{(.*?)^\}", src(FLEET_CAPS), re.S | re.M)
     if not m:
-        raise AssertionError("FAMILY not found in %s — parser break" % KEEPER)
+        raise AssertionError("FAMILY not found in %s — parser break" % FLEET_CAPS)
     return dict(re.findall(r'"([^"]+)"\s*:\s*"([^"]+)"', m.group(1)))
 
 

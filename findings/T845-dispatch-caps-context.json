@@ -1,0 +1,41 @@
+{
+ "task_id": "T845",
+ "date": "2026-08-24",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T845",
+ "type": "context-dump",
+ "claims": [],
+ "new_rows": [],
+ "what_was_read": [
+  "bin/managent orient (worker preamble, 2026-08-24T07:32Z)",
+  "untracked/T845-dispatch-honours-caps.md (the bundle — operator ruling 2026-08-24, five requirements, five controls)",
+  "bin/dispatch — full file (545 lines at HEAD: gates in order, row_state, window/directive policy usage, dry-run/detach)",
+  "tools/fleet-keeper.sh — full embedded iterate() (family map, FLEET_CAP/FLEET_FAMILY_CAP parsing, in_progress counting, pressure/c_eff, one-writer invariant, family-cap candidate filter, T651/T511/T536 guards)",
+  "tools/window_policy.py — family_of/family_inprog_count/record_override (the T677 override-ledger precedent the cap override mirrors)",
+  "tools/regression-dispatch.sh — full (the T476 control suite: fixture scaffolding, stub worker, isolation arms — the arm-15 breakage analysis)",
+  "tools/regression-fleet-keeper.sh — seeding/stub/arms (T651-5 family-cap arm, FLEET_CAP=5 pin, task_rec store seeding, reset_keeper_state)",
+  "tests/unit/test_dispatch.py — full (T805: run_main seam, TestRowState, gate-composition arms, the 7-function table)",
+  "tests/unit/test_s06_conformance.py — TestDispositionCount + keeper_family_map/kmanagent_model_families parsers + appetite-dial arms",
+  "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md — ORC-PLAN-4/5 disposition count (82), SURVIVE bucket",
+  "docs/infra/fleet-keeper-design.md — env table (§12), FLEET_CAP default 5 commitment (operator 2026-08-19)",
+  "docs/status/OPEN.md C5 — the hand-picked-constants census (the 'do not invent a constant' mandate)",
+  "findings/README.md (schema) + findings/T821-arbiter.json + findings/T806-context.json (findings-file precedents)",
+  "docs/infra/managent/tasks.json + live `managent status --json` (9 in_progress at close; holds census: only T845 holds bin/dispatch + tools/regression-dispatch-caps.sh)"
+ ],
+ "what_was_computed": [
+  "grep -c 'FLEET_CAP|FLEET_FAMILY_CAP' bin/dispatch → 0 (the defect, measured)",
+  "live fleet at close via tools/fleet_caps.py: total 9, claude 1/3, fable 1/1, deepseek 5 uncapped, local 1, other 1 — the qwen3.8:27b-mlx → local fix observed live (old keeper family_of would have said 'other')",
+  "baseline suite counts at HEAD: regression-dispatch.sh ALL PASS; regression-fleet-keeper.sh 50 PASS / 33 FAIL (the 33 = T821's recorded landmark-refusal class, confirmed by grep of the failure text); unit suite 419 tests",
+  "predicted-then-observed: adding the family-cap gate breaks exactly ONE existing arm (regression-dispatch.sh arm 15, T989 claude e2e — refused by the fable cap because arm 13c's T994 fixture stays in_progress claude); companion edit restored ALL PASS",
+  "predicted-then-observed: adding tools/regression-dispatch-caps.sh bumps `ls tools/regression-*.sh` 82 → 83 and TestDispositionCount fails until the spec's ORC-PLAN-4 count is bumped",
+  "the defaults derivation: 4 = claude cap (3) + 1; claude=3 kept (429-at-4 evidence); fable=1 kept; ollama=5 = the provider's recorded ceiling; deepseek/local uncapped (no recorded ceiling — C5)"
+ ],
+ "verification_evidence": [
+  "tools/regression-dispatch-caps.sh: 22/22 PASS (RED against HEAD bin/dispatch before the gate — 12 FAIL / 8 PASS on first run, then 22/22 after implementation + two fixture fixes)",
+  "tools/regression-dispatch.sh: ALL CONTROLS PASSED (after the arm-13c companion edit)",
+  "tools/regression-fleet-keeper.sh: 50 PASS / 33 FAIL — identical to the HEAD baseline (no new failures from the shared-helper switch)",
+  "tests/unit (python3 -m unittest discover -s tests/unit): 430 tests OK, 31 expected failures",
+  "zig build --help: rc=0 (build.zig parses with the new regression wired in)",
+  "tools/fleet_caps.py CLI on the live store: rc=0"
+ ]
+}

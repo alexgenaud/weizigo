@@ -262,7 +262,8 @@ The model gate is applied **inside `eligible`** (D022 item 1), so it binds the p
 
 | Name | Default | Meaning |
 |---|---|---|
-| `FLEET_CAP` | 5 | base cap `C` (the "reset to 10 or 5" — 5 is the committed value, operator's 2026-08-19 ruling). |
+| `FLEET_CAP` | 4 | base cap `C` (5 was the committed value, operator's 2026-08-19 ruling; **T845 proposes 4** — the 2026-08-24 ruling asks for more serial execution, and bin/dispatch now enforces the same number from the shared tools/fleet_caps.py; derivation in that file's docstring, pending operator ratification). |
+| `FLEET_FAMILY_CAP` | `claude=3,fable=1,ollama=5` | per-family concurrent-lane cap `"family=N"` (T651 §7c.33; ollama added T845 — the provider's recorded five-worker ceiling; unlisted = uncapped). |
 | `FLEET_INTERVAL` | 10 | seconds between iterations. |
 | `FLEET_DEFAULT_MODEL` | glm-5.2 | model for rows with no stored model. |
 | `FLEET_MODEL_ALLOW` | unset | comma list of canonical models allowed (unset = all). |
