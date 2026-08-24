@@ -1,0 +1,104 @@
+{
+  "task_id": "T750",
+  "date": "2026-08-24",
+  "model": "minimax-m3",
+  "identifier": "minimax-m3/T750",
+  "claims": [],
+  "new_rows": [],
+  "task_type": "infra",
+  "landmarks_advanced": ["L1 (measurement integrity)"],
+  "deliverables": [
+    "docs/infra/model-task-metrics.schema.md",
+    "docs/infra/model-task-metrics.jsonl (T706 batch 2 backfill: 5 rows added; T557 and T626 rows augmented with fabricated_citations)",
+    "tools/regression-model-task-metrics.sh (new conformance control, wired into zig build test)",
+    "tools/model-profiles.py (docstring update: T750 disposition cited for thoroughness and citation_honesty retirements)",
+    "build.zig (wired the new control into the test step)"
+  ],
+  "defect_fixed": {
+    "name": "audit-headline-as-rubric-total",
+    "where": "docs/infra/model-task-metrics.jsonl",
+    "before": "audit task_type (27% of operator volume) used `correctness` (a rubric total) as the headline; T706's claude-haiku-4-5-20251001 scored 20/25 while landing 0/4 canaries and fabricating citations — one scalar could not separate it from the lane that caught 3/4.",
+    "after": "audit headline is the pair (canary_recall, false_flag_rate) — same two-field discipline already ratified for verdicts. Stored as integer counts (canary_recall_num / canary_recall_den, false_flags / flags_total), never as percentages (methodology §3). fabrication_disqualifier_gate (methodology §5: fabricated_citations == 0) now runs from the ledger, not from a per-doc scan."
+  },
+  "t746_rulings_implemented": [
+    {
+      "ruling": "RETIRE `thoroughness` (D027 dim 3) — RECORD its mechanical successor `canary_recall_num` / `canary_recall_den`",
+      "implemented": "tools/model-profiles.py docstring cites T750 as the disposition (retired-with-successor); schema §2 documents the migration; regression (h) greps the docstring."
+    },
+    {
+      "ruling": "RECORD `citation_honesty` from the race ledger only — `fabricated_citations` integer on race rows; 0 is a reading, null is UNKNOWN",
+      "implemented": "T626 5 rows carry fabricated_citations (4, 2, 2, 2, 9 per the T626 grade); T557 3 rows carry 0 (the grade reported '0 fabricated' globally); T706 5 rows carry null (the grade did not record per-lane integers — UNKNOWN, not 0); regression (c) refuses a 0 without grader evidence."
+    },
+    {
+      "ruling": "`correctness` stays, and stops being the audit headline. The audit headline is the pair (canary_recall, false_flag_rate).",
+      "implemented": "T706 batch 2 backfilled into the JSONL with both pairs; T706 row notes carry the audit-headline interpretation; brief said 'the same two-field discipline already ratified for verdicts' — the JSONL now has both num/den pairs."
+    }
+  ],
+  "fields_added_to_jsonl_schema": [
+    "canary_recall_num (int?) — seeded canaries landed",
+    "canary_recall_den (int?) — seeded canaries present; both-or-neither with _num",
+    "false_flags (int?) — false-precision count",
+    "flags_total (int?) — precision denominator; required when false_flags is set",
+    "fabricated_citations (int?) — race-ledger integer; 0 is a reading, null is UNKNOWN",
+    "unique_catch (array<string>?) — verified dissent; methodology §5 calls this the most valuable output there is",
+    "paths_named (int?) — investigative-effort mechanical signal",
+    "paths_real (int?) — of paths_named, how many resolve to a real file",
+    "median_what_i_checked (int?) — median length of the required 'where I looked' field",
+    "discernment_entropy (float?) — normalised Shannon entropy of the lane's verdict distribution; 1.00 = fully discriminating, 0.00 = same answer regardless of input",
+    "reference (string?) — for race rows where two truths disagree: 'grader_ruling' | 'sealed_key' | 'grader_ruling_sealed_crosschecked'"
+  ],
+  "backfill_summary": {
+    "t706_batch_2": {
+      "rows_added": 5,
+      "lanes": ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash"],
+      "canary_recall": {"claude-opus-5": "3/4", "claude-sonnet-5": "2/4", "claude-haiku-4-5-20251001": "0/4", "deepseek-v4-pro": "1/4", "deepseek-v4-flash": "0/4"},
+      "false_flags_rationale_field": {"claude-opus-5": "7/16", "claude-sonnet-5": "3/9", "claude-haiku-4-5-20251001": "0/2", "deepseek-v4-pro": "0/5", "deepseek-v4-flash": "0/5"},
+      "unique_catch": {"claude-opus-5": ["status:G34", "rationale:G30", "rationale:G43"], "all other lanes": []},
+      "fabricated_citations": "null for all 5 lanes — T706 grader did not record per-lane integer counts; the prose records the haiku fabrications but without a count (rule: 0 is a reading, null is UNKNOWN)"
+    },
+    "t626_variance": {
+      "rows_augmented": 5,
+      "fabricated_citations_by_run": {"T626-ds-r1": 4, "T626-ds-r2": 2, "T626-ds-r3": 2, "T626-ds-r4": 2, "T626-ds-r5": 9},
+      "source": "T626 within-model-variance repeat notes: 'itemized <I> bonuses <B> penalties <P> -F fabricated <F>' per run"
+    },
+    "t557_t447_replication": {
+      "rows_augmented": 3,
+      "fabricated_citations": "0 for all 3 lanes — T557 grader reported '0 fabricated' globally (citations checked ~70 across three lanes, 0 fabricated; 9 off-by-≤2 precision slips)",
+      "race_field_added": "T557-t447-replication (the rows previously had evidence but no race field; needed for the regression (c) grader-evidence check on fabricated_citations=0)"
+    },
+    "race_c3_evidence_triage": {
+      "status": "rows already in the JSONL with paths_named, paths_real, median_what_i_checked, discernment_entropy (the T893 adjudicator's reading of the nine lanes)",
+      "no_change": "the C3 race did not use sealed canaries in the T706 sense; its 42-claim corpus is not the same shape, and the rows correctly do not carry canary_recall_num/den. The investigative_effort and discernment dimensions ARE recorded (they are mechanically computable from any lane's output rows)"
+    }
+  },
+  "regression_control": {
+    "name": "tools/regression-model-task-metrics.sh",
+    "wired_into": "zig build test (build.zig:686-688, immediately after the model-profiles regression; numbered consistent with the surrounding pattern)",
+    "arms": {
+      "a_percent_refused": "any *_pct field on a real row is REJECTED (the field is not in the schema; the control asserts the negative)",
+      "b_pair_required": "canary_recall_num/den both-or-neither; false_flags/flags_total same",
+      "c_null_not_zero": "fabricated_citations=0 only on rows with race or evidence — refuses substituted 0s",
+      "d_reference_present": "race rows whose source is multi-truth (T706 vs sealed key) carry `reference`; warn-only",
+      "e_id_uniqueness": "every (run_id, task_id, model, as_of) tuple is unique",
+      "f_type_roundtrip": "every task_type is mapped; novel values are warned",
+      "g_ledger_vs_source": "for every backfilled row, the source findings file or JSONL notes contain the integers the row carries",
+      "h_retirement_cited": "tools/model-profiles.py docstrings cite T750 for both thoroughness and citation_honesty retirements",
+      "i_schema_doc_self_reference": "schema doc cites T750, names this control, and documents the new fields"
+    },
+    "result": "all 9 arms PASS"
+  },
+  "open_question_answered": {
+    "question": "when a lane's classification is degenerate but defensible under a loose reading of the brief, is that a defect in the model or in the brief?",
+    "answer": "the metric alone cannot say. The race_grading_evidence is the cross-check — the T893 adjudication splits the C3 penalties between 'the brief owned it' (no legal class existed for 19 of the rows; class (d) was added by the adjudicator) and 'the model owned it' (rows with a clean answer that the lane still mis-classified). The ledger carries the metric (paths_real high, discernment_entropy 0.17); the grader carries the attribution.",
+    "generalisation": "the pair (canary_recall, false_flag_rate) is the audit-specific pair; the pair (paths_real, discernment_entropy) is the task-type-general pair. They measure different failure modes and one scalar cannot say so — the two-field discipline the brief insists on, arriving from a second task type. The schema records both pairs.",
+    "where_recorded": "schema §3 'Three generalisations the T750 amendment demands'"
+  },
+  "operator_ruling_2026-08-24": {
+    "quote": "Haiku was just incompetant or lazy. However, it's possible that GLM may have had too-high standards. Technically, even if poor evidence is on disk, they are all strictly re-runnable.",
+    "interpretation": "the operator distinguishes the failure modes: haiku was under-effort (low paths_real, low discernment — the model did not look); glm was over-rigorous (high paths_real, low discernment — the model looked thoroughly then answered wrongly). The ledger records both via the same metric, and a report that wants to attribute the failure has to look at both numbers. One scalar collapses them; two do not.",
+    "where_applied": "the Race C3 glm-5.2 and claude-haiku-4-5-20251001 rows already carry the distinguishing numbers (paths_real 42 vs 14, discernment_entropy 0.17 vs 0.17 — same entropy, different investigative effort). The report reader has the data; the schema refuses to make them average."
+  },
+  "limit_recorded_in_finding": "T706 grader did not record per-lane fabricated_citation integer counts (only haiku's fabrications are named in prose). The 5 T706 rows carry fabricated_citations=null — UNKNOWN per the schema rule, not 0. The race notes carry the prose; the next time a T706-shape race is graded, the rubric SHOULD ask the grader for the per-lane integer (the schema and the regression are now ready for it).",
+  "inbox_check": "bin/managent inbox T750 --ack polled at claim and before close; 0 directives received; no D0NN to record in notes.",
+  "notes": "T750 (record what predicts re-dispatch) — closed. Three T746 rulings implemented; two new dimensions folded into the record (the brief's amendment called them investigative_effort and discernment — already in the C3 race rows, now documented in the schema). The 5-arm schema doc + 9-arm regression control are the standing defence against a future re-introduction of the defect (the T750 brief's explicit concern: 'a cure that does not regress' is test-first, and the test is the regression). T706/T626/T557 backfill is mechanical (counting what the grade already records), not invented; the only invented datum is `reference=grader_ruling_sealed_crosschecked` for the T706 batch 2 rows, and it follows directly from the grade's own note ('I ADOPT the sealed correct_verdict for all 4 canaries'). Race C3 rows already carry the new fields from the T893 adjudicator's reading — no change to those rows. tasks done: claim T750, build schema doc, build regression control (test-first, demonstrated red-then-green on the model-profiles.py docstring update), backfill 5 + 3 + 5 = 13 rows, wire into zig build test, write findings file. Agent: minimax-m3 (operator-assigned). Honest limit: I did not run `zig build test` end-to-end (the 88-regression suite exceeds the wall budget; the two regressions I added (model-profiles unchanged; model-task-metrics new) both pass standalone). The build.zig wiring is mechanical and matches the surrounding pattern verbatim."
+}

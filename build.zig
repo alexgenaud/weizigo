@@ -672,6 +672,21 @@ pub fn build(b: *std.Build) void {
     model_profiles_regression.cwd = b.path(".");
     test_step.dependOn(&model_profiles_regression.step);
 
+    // tools/regression-model-task-metrics.sh — T750.
+    // The schema's conformance control for docs/infra/model-task-metrics.jsonl.
+    // Defends the store-facts / derive-numbers rule: (a) refuses any *_pct
+    // field where a num/den pair belongs, (b) requires the canary_recall
+    // pair to be both-or-neither, (c) refuses a 0 in fabricated_citations
+    // without grader evidence, (d) warns on race rows whose source is
+    // multi-truth but `reference` is null, (e) asserts id-uniqueness,
+    // (f) type-roundtrip warn-only, (g) backfilled integers reproduce from
+    // the source findings, (h) tools/model-profiles.py docstrings carry
+    // the T750 disposition for the two retirements, (i) schema doc
+    // self-references T750 and the control.
+    const model_task_metrics_regression = b.addSystemCommand(&.{ "sh", "tools/regression-model-task-metrics.sh" });
+    model_task_metrics_regression.cwd = b.path(".");
+    test_step.dependOn(&model_task_metrics_regression.step);
+
     // ── T801: one canonicalizer, four implementations ───────────────
     // The serving-tag -> canonical transform used to be implemented ×4 and
     // drifted (token-capture lacked the stealth mapping; the runner did not

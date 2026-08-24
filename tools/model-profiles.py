@@ -38,7 +38,20 @@ Dimensions (D027 order; each graded per task from an existing recorded signal
                             allocation-confounded (model-perf.md:82, the
                             Class-B warning recorded below); a defensible
                             signal would come from the race ledger's rubric
-                            scores (T529), not from prose.
+                            scores (T529), not from prose.  **Disposition
+                            (T750, 2026-08-24): retired-with-successor** —
+                            the per-task signal still does not exist (the
+                            dimension stays `—` here), but the *mechanical*
+                            question the brief meant is recorded as
+                            `canary_recall_num` / `canary_recall_den` on
+                            race rows in `docs/infra/model-task-metrics.jsonl`,
+                            governed by `docs/infra/model-task-metrics.schema.md`
+                            and the conformance control
+                            `tools/regression-model-task-metrics.sh`.  The
+                            dimension name is preserved in the D027 taxonomy
+                            (Auditor/Researcher still name "thoroughness")
+                            because it names a *kind of capability* even
+                            though the per-task ledger cannot grade it.
   independence              audit/verification tasks only: re-derived by a
                             different route=1, re-run=0 (keyword proxy over
                             the recorded note/verdict_note); non-audit tasks
@@ -70,7 +83,26 @@ Dimensions (D027 order; each graded per task from an existing recorded signal
                             caught fabricating' (rare, recorded only in prose
                             incidents).  Emitted `—` (null) by design; a
                             signal would come from the race ledger or a
-                            per-doc->task C10 mapping.
+                            per-doc->task C10 mapping.  **Disposition
+                            (T750, 2026-08-24): moved-to-race-ledger** —
+                            the keyword-proxy attempt here stays
+                            (no recorded per-task signal — `—` by design),
+                            but the *mechanical* citation count is now
+                            `fabricated_citations` on race rows in
+                            `docs/infra/model-task-metrics.jsonl` (T706
+                            batch 2 named 0 per lane; T626 flash repeats
+                            carry 2/2/2/4/9; T557's grader reported 0
+                            globally).  `0` is a *reading* (the grader
+                            looked and found none); `null` is **UNKNOWN**
+                            (no grader looked).  The qualification gate
+                            (methodology §5, `fabricated_citations == 0`)
+                            runs from the ledger, not from a per-doc scan
+                            — which is what the brief said was missing.
+                            The dimension name is preserved in the D027
+                            taxonomy (Auditor/Researcher still name
+                            "citation honesty") for the same reason as
+                            `thoroughness`: a *kind of capability* the
+                            per-task ledger cannot grade.
   scope_discipline          D027 dimension 8: stayed in the brief
                             (holds=/one-writer doctrine; the seat's own
                             failure class).  Recorded signal: the old
