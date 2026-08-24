@@ -39,6 +39,15 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT="$(cd "$HERE/.." && pwd)"
 MG="$PROJECT/bin/managent"
+# T856: the S10 store-loss census (T848) goes stale whenever a fixture writes
+# a scratch tasks.json directly (bypassing managent). weizigo_reset_census
+# (T855, tools/lib/scratch-repo.sh) clears the stale census after every such
+# write so the store returns to the honest "no census yet" state. Without it,
+# arms that re-stage a store with FEWER rows than the last managent-mediated
+# write trip the detector and the next status call REFUSES with an empty frame
+# — arms C and N were red for exactly this since T848 landed (this script was
+# missed by T855's sweep).
+source "$PROJECT/tools/lib/scratch-repo.sh"
 FAIL=0
 
 if [ "${1:-}" = "--build" ]; then
@@ -93,6 +102,7 @@ FRESH=$(date -u -v-5M +%Y-%m-%dT%H:%M:%SZ 2>/dev/null) || FRESH="2026-08-19T11:2
 
 seed() {  # $1 = JSON body of task records (no trailing comma)
     printf '{\n  %s,\n  "_sys": {"next_id": 9900, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$STORE"
+    weizigo_reset_census "$STORE"   # T856/T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 }
 rec_inprog() {  # $1=id $2=agent $3=claimed
     printf '"%s":{"status":"in_progress","agent":"%s","model":"%s","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$2" "$2" "$1" "$3"
@@ -261,6 +271,7 @@ ln -s "$MG" "$WORK2/bin/managent"
 cp "$PROJECT/docs/infra/model-registry.md" "$WORK2/docs/infra/model-registry.md" 2>/dev/null
 STORE2="$WORK2/docs/infra/managent/tasks.json"
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE2"
+weizigo_reset_census "$STORE2"   # T856: direct write bypasses the census
 LIVE_COPY="$WORK2/untracked/watch-fleet-live.sh"
 cp "$LIVE" "$LIVE_COPY" 2>/dev/null
 # brief whose slug contains "watch-fleet" (line 2 = the desc source); a long
@@ -300,6 +311,7 @@ ln -s "$MG" "$WORK3/bin/managent"
 cp "$PROJECT/docs/infra/model-registry.md" "$WORK3/docs/infra/model-registry.md" 2>/dev/null
 STORE3="$WORK3/docs/infra/managent/tasks.json"
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STORE3"
+weizigo_reset_census "$STORE3"   # T856: direct write bypasses the census
 LIVE_COPY3="$WORK3/untracked/watch-fleet-live.sh"
 cp "$LIVE" "$LIVE_COPY3" 2>/dev/null
 printf '<!--managent -->\n# T492 — watch-fleet keypress resets the refresh schedule and a long description here\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORK3/untracked/T492-watch-fleet-keypress-reset.md"
@@ -354,7 +366,7 @@ printf '<!--managent -->\n# T962 — done time test\n\nBody.\n' > "$WORK4/untrac
 rec4() {  # $1=id $2=status $3=done (null | quoted ISO)
     printf '"%s":{"status":"%s","agent":"x","model":"x","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":%s,"dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$2" "$1" "$3"
 }
-seed4() { printf '{\n  %s,\n  "_sys": {"next_id": 9900, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$STORE4"; }
+seed4() { printf '{\n  %s,\n  "_sys": {"next_id": 9900, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$STORE4"; weizigo_reset_census "$STORE4"; }   # T856: direct write bypasses the census
 seed4 "$(rec4 T960 in_progress null),$(rec4 T961 in_progress null),$(rec4 T962 done '"2026-01-02T03:04:05Z"')"
 # one killed lane with a fresh trailer (RECENT must show it, with its mtime),
 # one with a trailer older than 24 h (RECENT must age it out)
@@ -448,6 +460,7 @@ LIVE_COPYI="$WORKI/untracked/watch-fleet-live.sh"
 cp "$LIVE" "$LIVE_COPYI" 2>/dev/null
 printf '<!--managent -->\n# T970 — single surface row\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORKI/untracked/T970-bundle.md"
 printf '{\n  "T970":{"status":"in_progress","agent":"x","model":"x","bundle":"untracked/T970-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STOREI"
+weizigo_reset_census "$STOREI"   # T856: direct write bypasses the census
 bash -c "cd '$WORKI' && exec -a 'pi --provider ollama --model glm-5.2 Follow untracked/T970-bundle.md' sleep 90" &
 PI970=$!
 sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
@@ -481,6 +494,7 @@ printf '%s' "$STRIP_I" | grep -q '^PROGRESS$' || { echo "    FAIL: PROGRESS head
 printf '%s' "$STRIP_I" | grep -q '^  T970 ' || { echo "    FAIL: T970 row missing from PROGRESS:"; printf '%s\n' "$STRIP_I"; i_fail=1; }
 # empty store -> the entire frame must be empty (no heading, no '(none)' stub)
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STOREI"
+weizigo_reset_census "$STOREI"   # T856: direct write bypasses the census
 FRAME_I2=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREI" FLEET_COLS=200 sh "$LIVE_COPYI" </dev/null 2>/dev/null)
 STRIP_I2=$(printf '%s' "$FRAME_I2" | sed $'s/\x1b\[[0-9;]*[A-Za-z]//g' | tr -d ' \t\n')
 if [ -n "$STRIP_I2" ]; then
@@ -509,6 +523,7 @@ cp "$LIVE" "$LIVE_COPYJ" 2>/dev/null
 cp "$PROJECT/docs/infra/model-registry.md" "$WORKJ/docs/infra/model-registry.md" 2>/dev/null
 STOREJ="$WORKJ/docs/infra/managent/tasks.json"
 printf '{"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' > "$STOREJ"
+weizigo_reset_census "$STOREJ"   # T856: direct write bypasses the census
 # one brief per worker so desc() resolves; each argv carries a different model form
 for pair in "T980:canonical-flash" "T981:serving-glm" "T982:alias-flash" "T983:stealth-ox" "T984:canonical-sonnet"; do
     id=${pair%%:*}; slug=${pair##*:}
@@ -600,6 +615,7 @@ for i in range(1,21):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)        # T901..T
 for i in range(21,41): rec(i,"dispatchable",None)                      # T921..T940 OPEN
 json.dump(d,open(store,"w"))
 PYK
+weizigo_reset_census "$STOREK"   # T856: direct write bypasses the census
 FRAME_K=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STOREK" FLEET_LINES=40 FLEET_COLS=200 sh "$LIVE_COPYK" </dev/null 2>/dev/null)
 k_fail=0
 K_DONE=$(printf '%s\n' "$FRAME_K" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T9')
@@ -665,6 +681,7 @@ for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T903..T94
 for i in range(43,83): rec(i,"dispatchable",None)                     # T943..T982 OPEN
 json.dump(d,open(store,"w"))
 PYN
+weizigo_reset_census "$STORE_N"   # T856: direct write bypasses the census
 printf '' > "$WORKN/untracked/bakeoff/fake/fresh-lane/out.md"
 printf 'exit 120\n' > "$WORKN/untracked/bakeoff/fake/fresh-lane/trailer.log"
 printf 'T902\t%s\n' "$(date +%s)" > "$CONCSTATE_N"
@@ -699,6 +716,7 @@ for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T903..T94
 for i in range(43,83): rec(i,"dispatchable",None)                     # T943..T982 OPEN
 json.dump(d,open(store,"w"))
 PYN
+weizigo_reset_census "$STORE_N"   # T856: direct write bypasses the census
 for H in 24 40 60; do
     FR=$(frame_n "$H")
     NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
@@ -722,6 +740,7 @@ for i in range(3,43):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # 40 DONE (
 for i in range(43,60): rec(i,"dispatchable",None)                     # 17 OPEN (all shown)
 json.dump(d,open(store,"w"))
 PYN
+weizigo_reset_census "$STORE_N"   # T856: direct write bypasses the census
 FR=$(frame_n 40)
 NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
 NM=$(printf '%s\n' "$FR" | grep -c 'more')
@@ -742,6 +761,7 @@ for i in range(3,21):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # 18 DONE (
 for i in range(43,60): rec(i,"dispatchable",None)                     # 17 OPEN (all shown)
 json.dump(d,open(store,"w"))
 PYN
+weizigo_reset_census "$STORE_N"   # T856: direct write bypasses the census
 FR=$(frame_n 40)
 NL=$(printf '%s\n' "$FR" | wc -l | tr -d ' ')
 NM=$(printf '%s\n' "$FR" | grep -c 'more')
@@ -822,6 +842,7 @@ for id in T950 T951 T952; do
 done
 printf '{\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
     "$(recO T950 2026-08-23T10:00:00Z)" "$(recO T951 2026-08-23T10:00:00Z)" "$(recO T952 2026-08-23T10:00:00Z)" > "$STORE_O"
+weizigo_reset_census "$STORE_O"   # T856: direct write bypasses the census
 # T950: a reading inside the current claim -> a rate.
 # T951: the meter wrote but carried no usage (tokens_out null) -> UNKNOWN.
 # T952: the only reading predates the claim (previous run of the same id) -> UNKNOWN.
@@ -834,7 +855,7 @@ for id in T950 T951 T952; do
     bash -c "cd '$WORKO' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/$id-bundle.md' sleep 90" &
     eval "PO_$id=\$!"
 done
-sleep 0.5   # arms F/G race: a frame drawn within ms of spawn misses the worker
+sleep 2   # arms F/G race: a frame drawn within ms of spawn misses the worker, and the rate needs a non-zero ps etime (T856: sleep 0.5 raced it — a frame drawn inside the worker's first second rendered UNKNOWN, flaking arm O red)
 FRAME_O=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_O" FLEET_COLS=200 sh "$LIVE_COPY_O" </dev/null 2>/dev/null)
 kill $PO_T950 $PO_T951 $PO_T952 2>/dev/null; wait $PO_T950 $PO_T951 $PO_T952 2>/dev/null
 orate() {  # $1 = task id -> the rate field of its PROGRESS row
@@ -904,6 +925,7 @@ recP() {  # $1=id $2=agent (JSON value: quoted label or null)
 }
 printf '{\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
     "$(recP T940 '"claude-opus-5"')" "$(recP T941 null)" > "$STORE_P"
+weizigo_reset_census "$STORE_P"   # T856: direct write bypasses the census
 # both rows are claimed with NO live process -> CONCERNS; pin first-seen so the
 # times column is deterministic (as arm H does)
 EPOCH_P=$(date -j -f "%Y-%m-%d %H:%M:%S" "2026-01-01 00:00:00" +%s 2>/dev/null)
@@ -968,6 +990,7 @@ for i in range(1,31):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)      # T901..T93
 for i in range(31,40): rec(i,"dispatchable",None)                     # T931..T939 OPEN
 json.dump(d,open(store,"w"))
 PYL
+weizigo_reset_census "$STORE"   # T856: direct write bypasses the census
 OUT_L=$( (sleep 0.5; printf 'q') | script -q /dev/null env -u WATCH_FLEET_SOURCE \
     MANAGENT_STORE="$STORE" FLEET_LINES=24 FLEET_COLS=80 sh "$LIVE_COPYL" 2>/dev/null )
 l_fail=0
@@ -1022,6 +1045,7 @@ LIVE_COPYM="$WORKM/untracked/watch-fleet-live.sh"
 cp "$LIVE" "$LIVE_COPYM" 2>/dev/null
 printf '<!--managent -->\n# T996 — trap path row\n\nBody.\n' > "$WORKM/untracked/T996-bundle.md"
 printf '{\n  "T996":{"status":"done","agent":"x","model":"x","bundle":"untracked/T996-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":"2026-08-19T09:00:00Z","dispatched":null,"dispatched_to":null,"note":null,"verdict":"pass","verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' > "$STORE"
+weizigo_reset_census "$STORE"   # T856: direct write bypasses the census
 # ^C after one frame: the INT trap must fire mid-watch (footer already
 # rendered), restore the cursor and exit 130.
 OUT_M=$( (sleep 1; printf '\003') | script -q /dev/null env -u WATCH_FLEET_SOURCE \
@@ -1078,6 +1102,7 @@ CLAIM_Q=$(date -u -r $((NOW_Q - 3600)) '+%Y-%m-%dT%H:%M:%SZ')
 recQ() { printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1" "$2"; }
 printf '{\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
     "$(recQ T970 "$CLAIM_Q")" "$(recQ T971 "$CLAIM_Q")" "$(recQ T972 "$CLAIM_Q")" > "$STORE_Q"
+weizigo_reset_census "$STORE_Q"   # T856: direct write bypasses the census
 # Q1: current-run transcript — session header 30 s old, one assistant turn
 # with usage.output=1200 (the LIVE late-claim shape: session start precedes
 # the claim, so it must be judged against the process, and 30 s < the 120 s
@@ -1156,7 +1181,16 @@ else
     if ! command -v freshness_of >/dev/null 2>&1; then
         echo "    FAIL freshness_of: undefined (live file not patched)"; r_fail=1
     else
-        NOW_R=$(date +%s)
+        # T856: freshness_of re-reads the wall clock per call, so a boundary
+        # pinned against a reference second captured earlier races the bucket
+        # edge — a 3600 s input lands in the hour bucket once a second has
+        # elapsed (observed flake: "expected 'STALE' got ' 1h'"). Pin the
+        # clock instead: shadow `date` with a fixed second for this block so
+        # every bucket edge is exact and deterministic. Undone before arm S.
+        FAKE_NOW=$(date +%s)
+        date() { if [ "${1:-}" = "+%s" ]; then printf '%s' "$FAKE_NOW"; else command date "$@"; fi; }
+        export -f date
+        NOW_R=$FAKE_NOW
         rcheck() {  # $1=expected  $2=actual  $3=label
             if [ "$1" != "$2" ]; then echo "    FAIL $3: expected '$1' got '$2'"; r_fail=1; fi
         }
@@ -1177,6 +1211,7 @@ else
         for probe in "$(freshness_of "$NOW_R")" "$(freshness_of $((NOW_R-59)))" "$(freshness_of $((NOW_R-900)))" "$(freshness_of $((NOW_R-901)))" "$(freshness_of $((NOW_R-86400)))" "$(freshness_of '')"; do
             [ "${#probe}" -le 5 ] || { echo "    FAIL freshness_of: '$probe' is ${#probe} chars, overflows the 5-char column"; r_fail=1; }
         done
+        unset -f date; unset FAKE_NOW   # the pinned clock must not leak into arms S/T
     fi
 fi
 if [ "$r_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
@@ -1213,6 +1248,7 @@ done
 recS() { printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1"; }
 printf '{\n  %s,\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
     "$(recS T980)" "$(recS T981)" "$(recS T982)" "$(recS T983)" > "$STORE_S"
+weizigo_reset_census "$STORE_S"   # T856: direct write bypasses the census
 NOW_S=$(date +%s)
 # S1: FRESH transcript (last write 30 s ago) -> lived
 TS_S1=$(date -u -r $((NOW_S - 30)) '+%Y-%m-%dT%H:%M:%S.000Z')
