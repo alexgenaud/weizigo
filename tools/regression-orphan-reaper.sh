@@ -72,10 +72,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/orphan-reaper-XXXXXX)" || { echo "regression-orphan-reaper.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo orphan-reaper WORK   # T849: isolated scratch repo
 cd "$WORK"
-git init -q
 git config user.email t364@test
 git config user.name T364
 echo base > README.md
