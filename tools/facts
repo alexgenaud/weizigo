@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""tools/facts — trusted bootstrap: facts without tooling (T867).
+
+Prints a FIXED list of facts about this checkout by reading ONLY the
+filesystem and git. Imports nothing from this repository — no managent,
+no claimlint, no runner, no repo module. No judgement: it reports
+numbers and verbatim output, never healthy/broken/pass/fail. Safe to
+run at any moment, including while other workers are active; it never
+writes inside the repo (the absence-behaviour arm creates its empty
+input fixtures in the OS temp dir and deletes them before exit).
+
+Sections, in order:
+  ROWS          task-store census, read directly from the store JSON
+  TESTS         exit code of every tools/regression-*.sh, as-run
+  DELIVERABLES  for every done row: each declared deliverable's
+                existence and git tracking. "Declared" mirrors managent's
+                own bundle-meta parse (src/managent/main.zig
+                parseDeliverablesFromBundle), so a human can compare
+                the two without trusting this tool.
+  TREE          HEAD file count, core.worktree, top level, .gitignore
+                line count, configured commit author
+  ABSENCE       what each surface in a small fixed list emits when
+                handed no data — captured verbatim, not classified
+
+Exit: 0 when the facts were reported (a missing store or a red
+regression script is a fact, not a tool failure); 2 when not inside a
+git repository.
+
+T867 · deepseek-v4-flash · 2026-08-24
+"""
+
+import glob
+import json
+import os
+import subprocess
+import sys
+import tempfile
+
+TIMEOUT_SECS = float(os.environ.get("FACTS_TEST_TIMEOUT_SECS", "300"))  # 0 = no cap
+
+
+def run(cmd, env=None, timeout=None):
+    """Run a command; return (exit, stdout, stderr). exit is "TIMEOUT" when capped."""
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=timeout)
+        return p.returncode, p.stdout, p.stderr
+    except subprocess.TimeoutExpired as e:
+        return "TIMEOUT", e.stdout or "", e.stderr or ""
+
+
+def git(args):
+    """Run git with no env tampering; return (exit, stdout, stderr)."""
+    return run(["git"] + args)
+
+
+def root():
+    """Repo top level via git, or exit 2."""
+    rc, out, err = git(["rev-parse", "--show-toplevel"])
+    if rc != 0:
+        sys.stderr.write("tools/facts: not inside a git repository: %s" % err)
+        sys.exit(2)
+    return out.strip()
+
+
+def store_file(root):
+    """The store path: MANAGENT_STORE overrides the default."""
+    env = os.environ.get("MANAGENT_STORE")
+    return os.path.abspath(env) if env else os.path.join(root, "docs", "infra", "managent", "tasks.json")
+
+
+def load_rows(store):
+    """Return (rows_dict, error). rows_dict maps id -> row for non-meta keys."""
+    try:
+        with open(store) as f:
+            data = json.load(f)
+    except Exception as e:
+        return None, str(e).splitlines()[0]
+    return {k: v for k, v in data.items() if not k.startswith("_")}, None
+
+
+def fact_rows(store):
+    print("== ROWS ==")
+    print("store_path=%s" % store)
+    rows, err = load_rows(store)
+    if err is not None:
+        print("store_error=%s" % err)
+        return
+    counts = {s: 0 for s in ("done", "dispatchable", "in_progress", "blocked", "failed")}
+    other = with_model = with_agent = 0
+    for v in rows.values():
+        st = v.get("status") if isinstance(v, dict) else None
+        if st in counts:
+            counts[st] += 1
+        else:
+            other += 1
+        if isinstance(v, dict):
+            if v.get("model"):
+                with_model += 1
+            if v.get("agent"):
+                with_agent += 1
+    print("rows_total=%d" % len(rows))
+    for s in ("done", "dispatchable", "in_progress", "blocked", "failed"):
+        print("rows_%s=%d" % (s, counts[s]))
+    print("rows_other=%d" % other)
+    print("rows_with_model=%d" % with_model)
+    print("rows_with_agent=%d" % with_agent)
+
+
+def interpreter_of(path):
+    """Shebang interpreter of a script (for scripts without +x), or None."""
+    try:
+        with open(path) as f:
+            first = f.readline().strip()
+    except Exception:
+        return None
+    if first.startswith("#!"):
+        interp = first[2:].strip()
+        if interp.startswith("/usr/bin/env "):
+            interp = interp.split(None, 1)[1]
+        return interp
+    return None
+
+
+def fact_tests(root):
+    print("== TESTS ==")
+    scripts = sorted(glob.glob(os.path.join(root, "tools", "regression-*.sh")))
+    print("tests_found=%d" % len(scripts))
+    for path in scripts:
+        name = os.path.basename(path)
+        if os.access(path, os.X_OK):
+            cmd = [path]
+        else:
+            cmd = [interpreter_of(path) or "sh", path]
+        timeout = TIMEOUT_SECS if TIMEOUT_SECS > 0 else None
+        rc, _out, _err = run(cmd, timeout=timeout)
+        tag = "exit=TIMEOUT(%ds)" % TIMEOUT_SECS if rc == "TIMEOUT" else "exit=%s" % rc
+        print("test %s %s" % (name, tag), flush=True)
+    print("tests_reported=%d" % len(scripts))
+
+
+def meta_deliverables(text):
+    """Mirror managent's parseDeliverablesFromBundle (src/managent/main.zig:4320)."""
+    out = []
+    if text.startswith("<!--managent "):
+        line = text.split("\n", 1)[0]
+        i = line.find("deliverables=")
+        if i >= 0:
+            val = line[i + len("deliverables="):]
+            j = val.find("-->")
+            if j >= 0:
+                val = val[:j]
+            # Value stops at the first whitespace followed by a key= token
+            # (e.g. "path1,path2 acceptance=cmd" -> "path1,path2").
+            for k in range(len(val)):
+                if val[k] in " \t":
+                    rest = val[k:].lstrip(" \t")
+                    if rest.find("=") > 0:
+                        val = val[:k]
+                        break
+            out = [p.strip() for p in val.split(",") if p.strip()]
+    if out:
+        return out
+    marker = "Deliverables:"
+    i = text.find(marker)
+    if i >= 0:
+        after = text[i + len(marker):].lstrip(" \t\r\n")
+        para_end, consumed = len(after), 0
+        for line in after.split("\n"):
+            consumed += len(line) + 1
+            if line.strip(" \t\r") == "":
+                para_end = consumed - 1
+                break
+        for part in after[:para_end].split(","):
+            part = part.strip()
+            if not part:
+                continue
+            tok = part.split(" ", 1)[0]
+            if len(tok) > 1 and tok.endswith("."):
+                tok = tok[:-1]
+            tok = tok.strip()
+            if tok:
+                out.append(tok)
+    return out
+
+
+def fact_deliverables(root, store):
+    print("== DELIVERABLES ==")
+    rows, err = load_rows(store)
+    if err is not None:
+        print("deliv_error=%s" % err)
+        return
+    rc, ls_out, _ = git(["ls-files"])
+    tracked = set(ls_out.splitlines()) if rc == 0 else None
+    done = sorted(t for t, v in rows.items() if isinstance(v, dict) and v.get("status") == "done")
+    print("deliv_done_rows=%d" % len(done))
+    for tid in done:
+        bundle = rows[tid].get("bundle")
+        if not bundle:
+            print("deliv %s bundle=<none> declared=0" % tid)
+            continue
+        bpath = os.path.join(root, bundle)
+        if not os.path.isfile(bpath):
+            print("deliv %s bundle=%s missing" % (tid, bundle))
+            continue
+        try:
+            with open(bpath, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except Exception as e:
+            print("deliv %s bundle=%s unreadable:%s" % (tid, bundle, str(e).splitlines()[0]))
+            continue
+        declared = meta_deliverables(text)
+        print("deliv %s bundle=%s declared=%d" % (tid, bundle, len(declared)))
+        for d in declared:
+            exists = "y" if os.path.exists(os.path.join(root, d)) else "n"
+            rel = d[2:] if d.startswith("./") else d
+            tracked_yn = "n" if tracked is None else ("y" if rel in tracked else "n")
+            print("deliv %s path=%s exists=%s tracked=%s" % (tid, d, exists, tracked_yn))
+
+
+def fact_tree(root):
+    print("== TREE ==")
+    rc, out, err = git(["ls-tree", "-r", "--name-only", "HEAD"])
+    if rc == 0:
+        print("tree_head_files=%d" % len([l for l in out.splitlines() if l]))
+    else:
+        print("tree_head_files=error:%s" % ((err.splitlines() or ["git failed"])[0]))
+    rc, out, _ = git(["config", "core.worktree"])
+    print("tree_core_worktree=%s" % (out.strip() or "unset"))
+    rc, out, _ = git(["rev-parse", "--show-toplevel"])
+    print("tree_toplevel=%s" % out.strip())
+    gi = os.path.join(root, ".gitignore")
+    if os.path.isfile(gi):
+        with open(gi) as f:
+            print("tree_gitignore_lines=%d" % sum(1 for _ in f))
+    else:
+        print("tree_gitignore_lines=missing")
+    rc, out, _ = git(["config", "user.name"])
+    print("tree_user_name=%s" % (out.strip() or "unset"))
+    rc, out, _ = git(["config", "user.email"])
+    print("tree_user_email=%s" % (out.strip() or "unset"))
+
+
+def fact_absence(root):
+    print("== ABSENCE ==")
+    # Small fixed list of surfaces that consume repo data, each handed no
+    # data. Reproduction commands are in findings/T867-trusted-bootstrap-facts.json.
+    surfaces = [
+        ("managent status (empty store)", "bin/managent", ["status"], "store"),
+        ("managent resume (empty store)", "bin/managent", ["resume"], "store"),
+        ("claimlint (0-byte register)", "bin/weizigo-claimlint", [], "emptyfile"),
+    ]
+    for label, relbin, args, kind in surfaces:
+        binpath = os.path.join(root, relbin)
+        print("abs surface=%s" % label)
+        if not os.path.exists(binpath):
+            print("abs unavailable=%s" % binpath)
+            continue
+        cmd = [binpath] + args
+        tmp_input = tmp_store = None
+        env = dict(os.environ)
+        if kind == "store":
+            fd, tmp_store = tempfile.mkstemp()
+            with os.fdopen(fd, "w") as f:
+                f.write("{}\n")
+            env["MANAGENT_STORE"] = tmp_store
+        else:
+            fd, tmp_input = tempfile.mkstemp()  # 0-byte register
+            os.close(fd)
+            cmd.append(tmp_input)
+        rc, out, err = run(cmd, env=env)
+        print("abs exit=%s" % rc)
+        print("abs stdout begin")
+        if out:
+            sys.stdout.write(out if out.endswith("\n") else out + "\n")
+        print("abs stdout end")
+        if err.strip():
+            print("abs stderr begin")
+            sys.stdout.write(err if err.endswith("\n") else err + "\n")
+            print("abs stderr end")
+        for f in (tmp_input, tmp_store):
+            if f:
+                os.unlink(f)
+
+
+def main():
+    r = root()
+    store = store_file(r)
+    # self-fact: this tool's own size (the brief demands it be small
+    # enough to read in one sitting; the number is the check).
+    with open(os.path.abspath(__file__)) as f:
+        print("self_lines=%d" % sum(1 for _ in f))
+    # FACTS_SECTIONS=ROWS,TREE limits the run (test harness speed); the
+    # default prints the full fixed list.
+    want = [s.strip().upper() for s in os.environ.get("FACTS_SECTIONS", "").split(",") if s.strip()]
+    sections = [
+        ("ROWS", lambda: fact_rows(store)),
+        ("TESTS", lambda: fact_tests(r)),
+        ("DELIVERABLES", lambda: fact_deliverables(r, store)),
+        ("TREE", lambda: fact_tree(r)),
+        ("ABSENCE", lambda: fact_absence(r)),
+    ]
+    for name, fn in sections:
+        if not want or name in want:
+            fn()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
