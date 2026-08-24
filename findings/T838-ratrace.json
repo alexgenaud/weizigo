@@ -1,0 +1,50 @@
+{
+ "task_id": "T838",
+ "date": "2026-08-24",
+ "model": "deepseek-v4-pro",
+ "identifier": "deepseek-v4-pro/T838",
+ "type": "ratrace-entry",
+ "instrument": "patch to untracked/watch-fleet.sh (the operator's fleet dashboard) and tools/regression-watch-fleet.sh — no epistemic claim rows; this is a tooling task, so claims[] and new_rows[] stay empty to keep it out of the absorption census",
+ "claims": [],
+ "new_rows": [],
+ "headline": "The RATE column now reads the live transcript (pi session JSONL + claude transcript dir) instead of the completion-only token ledger, a new LIVE column shows how long since the transcript last recorded, and a no-process task whose declared deliverables are all on disk labels 'finished' instead of 'orphaned'.",
+ "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+ "patch": "untracked/ratrace/T838.patch",
+ "pinned_base": "efa747d",
+ "defect_being_fixed": "watch-fleet rendered UNKNOWN for every running task's tokens-per-second because both harnesses buffer usage to completion (pi buffers stdout; claude -p --output-format json emits its envelope at the end), so the completion ledger untracked/tokens/tokens.jsonl is empty mid-flight. A working console (qwen/T824: 573 KB of session across 25 bash calls) looked dead and was killed as 'produced no output since launch'.",
+ "changes": [
+  {
+   "file": "untracked/watch-fleet.sh",
+   "what": "meter join reads the live transcript. pi sessions at untracked/tokens/sessions/<task>.<ns>[.<pid>.<n>].jsonl (T662's --session) are attributed by the task key in the filename; claude sessions under $WEIZIGO_CLAUDE_TRANSCRIPT_DIR (default ~/.claude/projects/<cwd-slug>/) are attributed by the first user prompt's 'Follow untracked/T<id>'. Output tokens are summed across assistant turns plus summary/compaction entries (pi's `usage.output`, claude's `usage.output_tokens`), and each transcript's mtime is the liveness signal. A transcript whose mtime predates the task's current claim is dropped (never stale); the completion ledger remains as the fallback source.",
+   "rate": "rate_of(tokens_out, elapsed) unchanged in shape, plus one guard: 0 output tokens now renders UNKNOWN (a 0 asserts the worker produced nothing — the 'never 0' half of the brief).",
+   "live_column": "new age_of() helper renders the transcript's last-record age as Ns/Nm/Nh/Nd, '-' when there is no transcript at all. Shown as a new LIVE column in PROGRESS, placed AFTER the rate so the existing alignment contracts are untouched (elapsed still cols 23-28, rate still cols 30-37, holder still cols 30-37 in CONCERNS).",
+   "concerns": "new dels_done() helper checks whether the bundle's declared deliverables= paths all exist on disk; a no-process, not-beating task whose deliverables are all present labels 'finished' (the work is done, only the close failed — the T818 shape) instead of 'orphaned'. A task with no declared deliverable, or a missing one, is still 'orphaned'.",
+   "holder": "unchanged — the holder already came from the store's agent field (T823); only the brief-derived description carried the stale '(fable)' text, which is WHAT not WHO and is correct to keep."
+  },
+  {
+   "file": "tools/regression-watch-fleet.sh",
+   "what": "three new arms: Q (rate + live column from a live pi transcript and a claude transcript, UNKNOWN when none, never-0 when a transcript exists but has no assistant turn yet), R (CONCERNS labels finished work 'finished', not 'orphaned', and keeps 'orphaned' for no-deliverable and missing-deliverable tasks), S (unit arithmetic for age_of, rate_of(0) and dels_done under WATCH_FLEET_SOURCE=1)."
+  }
+ ],
+ "presentation_choices": [
+  "LIVE is a fixed 4-char field (%-4s) so the column never shifts width between refreshes as values change 0s→59s→1m→1h→1d — the no-jitter rule.",
+  "Age units are Ns/Nm/Nh/Nd, never a colon (the file's one rule: a colon is an instant, a duration never contains one).",
+  "'-' (no transcript) is distinct from 0s (a transcript with no assistant turn yet): the first says 'we have no signal', the second says 'alive but nothing produced'.",
+  "Rate formatting is untouched from T823 (%.1f/s below 1000/s, %.0f/s at/above) — that contract is pinned by arm O and I did not relitigate it.",
+  "The rate keeps its column at 30-37 and the new LIVE column goes at 39-42, so arm O's alignment check and arm H's times-at-23-28 check both hold; the exact-fill invariant (printed lines == ROWS) is line-count-neutral, so arms K and N still pin it."
+ ],
+ "verification": {
+  "apply_check": "git apply --check clean against a fresh worktree at efa747d (the pinned base); the patch touches only untracked/watch-fleet.sh and tools/regression-watch-fleet.sh.",
+  "regression": "tools/regression-watch-fleet.sh run against the patched worktree: 19 arms PASS (A-E, G-P, L-N, Q, R, S), arm F FAIL — arm F is the known-red arm owned by T466/T492 ('T991 command with watch-fleet.sh should be HIDDEN'); the brief says report it, do not fix or hide it, so it is left exactly as it was at efa747d. New arms Q, R, S all pass.",
+  "frame": "rendered with FLEET_LINES=40 FLEET_COLS=100 sh untracked/watch-fleet.sh in a scratch repo (one live worker with a transcript, one no-process orphan, one finished-but-unclosed): PROGRESS shows 'T960  L1  glm       0'02   4700/s   2s   transcript rate worker' and CONCERNS shows 'T962  L2  finished' next to 'T961  L1  orphaned'. The 4700/s is the synthetic 2-second elapsed (9400 tokens / 2s), not a real rate.",
+  "helpers": "age_of('')→'-', age_of(1000,1010)→'10s', age_of(1000,87400)→'1d'; rate_of(0,100)→UNKNOWN; dels_done returns 1 only when every declared deliverable exists (present/missing/none all pinned in arm S)."
+ },
+ "what_would_prove_the_approach_wrong": "A transcript that exists on disk but is not being appended (a session file whose mtime is fresh because something touched it, not because the model wrote a turn) would show a live age and a rate that the worker did not earn — mtime, not content, is the liveness signal, which is exactly the tradeoff the runner's own claude fuse (T634) accepts. And a bundle whose deliverables= are pre-planted by a previous run would label 'finished' a task that did no work this run; the deliverables check is existence-only, not provenance. Both are the accepted residual risk of a read-only, no-cross-checks dashboard.",
+ "concerns_about_my_own_patch": [
+  "claude attribution reads the first user prompt of every claude transcript file younger than 24h; with hundreds of historical sessions this is a per-frame scan, bounded by the 24h mtime gate but not free. On a 10s refresh it is a few MB of local reads at worst.",
+  "The rate for a worker with elapsed < 1s (ps etime 00:00) is UNKNOWN even with a transcript, because rate_of guards elapsed<=0 — correct ('no elapsed yet'), but arm Q sleeps 1s to sidestep it; a judge re-running under heavy load may still see the documented sleep-race in arms F/G/H/O/J, which is pre-existing at efa747d, not introduced here.",
+  "dels_done() treats 'every declared deliverable exists' as 'finished' — a task whose bundle declares a deliverable that a previous run already produced would be mislabelled. Acceptable: the bundle header is the single source of truth the dispatcher also uses."
+ ],
+ "inbox": "bin/managent inbox T838 --ack polled at claim and before close; empty each time, no directive ID to record.",
+ "status": "pass-with-findings"
+}
