@@ -155,6 +155,70 @@ MAX_DEPTH = 3
 # ── provider configuration ─────────────────────────────────────────────────
 PROVIDERS = {"deepseek", "ollama", "claude", "pi"}
 
+# T891: per-provider telemetry + argv spec — ONE table, not four drifted
+# builders.  Each provider declares how its lane is constructed and what
+# telemetry it supplies, so the argv and the telemetry annotation come from
+# the same source (scope item 3: the four builders had already drifted
+# twice — deepseek got --mode json + --session, ollama got --session only,
+# pi got neither, claude got --output-format json and no meter).  Fields:
+#   session     'pi_session'  — the lane writes a pi --session JSONL token
+#                              meter (deepseek/ollama/pi); watch-fleet reads
+#                              untracked/tokens/sessions/T\u003cid\u003e.* for the
+#                              in-flight rate, so a --session path is REQUIRED
+#                              for a numeric rate on those lanes.
+#                'claude_env' — the token meter is the claude --output-format
+#                              json envelope captured by the runner at
+#                              completion; the in-flight rate is Unknown until
+#                              the lane closes (claude -p buffers).  No --session.
+#   mode_json   True — pass --mode json so the pi child streams session events
+#                              to stdout in real time (the liveness signal;
+#                              the nonce-stall failure mode was a pi worker
+#                              producing ZERO stdout and being SIGKILLed mid-work).
+#                              False — the harness streams by another path
+#                              (ollama streams via ollama; claude uses its
+#                              envelope).  Not passed when False.
+#   liveness    the stdout-liveness mechanism name (for the telemetry record).
+#   meter_reason a NAMED reason (S11 trivalence: Measured / Unknown(reason) /
+#                Refused(reason)) when the in-flight token meter cannot be a
+#                pi --session JSONL; empty when session == 'pi_session'.
+#                A silent UNKNOWN standing in for "nobody asked" is the defect.
+#   pi_routed   True for providers that run under the `pi` binary and accept
+#                --thinking (deepseek/ollama/pi); False for claude (the Claude
+#                Code harness, which uses --effort, not pi --thinking).
+LANE_SPECS = {
+    "deepseek": {"session": "pi_session", "mode_json": True,
+                  "liveness": "pi-json-stdout+session-mtime",
+                  "meter_reason": "", "pi_routed": True},
+    "ollama":   {"session": "pi_session", "mode_json": False,
+                  "liveness": "ollama-stream+session-mtime",
+                  "meter_reason": "", "pi_routed": True},
+    "pi":       {"session": "pi_session", "mode_json": True,
+                  "liveness": "pi-json-stdout+session-mtime",
+                  "meter_reason": "", "pi_routed": True},
+    "claude":   {"session": "claude_env", "mode_json": False,
+                  "liveness": "claude-transcript-mtime",
+                  "meter_reason": (
+                      "claude -p has no --session flag; per amendment 3 "
+                      "it already writes a growing JSONL transcript to "
+                      "~/.claude/projects/<slug>/<uuid>.jsonl carrying "
+                      "message.usage.output_tokens per assistant turn — the "
+                      "right in-flight meter source, already complete; "
+                      "watch-fleet does NOT read that dir in production "
+                      "(WEIZIGO_CLAUDE_TRANSCRIPT_DIR unset) and its read_tx "
+                      "parses type:'message'/usage.output (pi) or top-level "
+                      "output_tokens, NOT type:'assistant'/message.usage."
+                      "output_tokens, so the in-flight rate is "
+                      "Unknown(unread-transcript) — the smallest fix is a "
+                      "watch-fleet row (default the claude base + parse the "
+                      "assistant shape), not a bin/subagent argv; completion "
+                      "tokens come from the --output-format json envelope"),
+                  "pi_routed": False},
+}
+
+# pi --thinking accepts exactly these levels (pi --help).  An out-of-set
+# value is REFUSED at dispatch so a typo never silently runs at the default.
+PI_THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh", "max")
+
 # DeepSeek model map (flags → canonical labels)
 DS_MODELS = {"--dspro": "deepseek-v4-pro", "--dsflash": "deepseek-v4-flash"}
 
@@ -489,7 +553,7 @@ def parse_argv(argv):
     args, flags, i = [], {}, 0
     while i < len(argv):
         a = argv[i]
-        if a in ("--model", "--wall", "--provider") and i + 1 < len(argv) and not argv[i + 1].startswith("--"):
+        if a in ("--model", "--wall", "--provider", "--thinking") and i + 1 < len(argv) and not argv[i + 1].startswith("--"):
             flags[a.lstrip("-")] = argv[i + 1]
             i += 2
             continue
@@ -573,6 +637,85 @@ def _resolve_model(provider, raw_model, flags):
     return canon, CANONICAL_TO_OLLAMA_TAG[canon], None
 
 
+def _build_lane_argv(provider, model, live_tag, prompt, task_id,
+                         wall, arbiter_flags, rss_mb, thinking_level):
+    """Construct the lane argv + telemetry record from LANE_SPECS (T891).
+
+    Replaces the four per-provider builders that had drifted: deepseek got
+    --mode json + --session, ollama got --session only, pi got NEITHER (the
+    defect — the least observable lane we dispatch), claude got
+    --output-format json and no meter.  One table drives one builder, so the
+    argv and the telemetry annotation cannot drift apart again.
+
+    thinking_level is None (today's default — preserve, no re-baseline) or a
+    pi --thinking level; it is threaded to every pi-routed child and NEVER to
+    claude (claude uses --effort, not pi --thinking).
+
+    Returns (cmd, telemetry): cmd is the full tools/runner argv; telemetry is
+    a dict for the dry-run TELEMETRY line + the stderr reason note.
+    """
+    spec = LANE_SPECS[provider]
+    base = ["tools/runner", "--max-wall", wall, *arbiter_flags]
+    if rss_mb:
+        base.extend(["--rss-cap-mb", rss_mb])
+
+    session_path = None
+    meter_reason = spec["meter_reason"]
+    thinking = thinking_level
+    mode_json = spec["mode_json"]
+
+    if provider == "claude":
+        # The headless Claude Code harness.  Token meter = the
+        # --output-format json envelope (captured by the runner at
+        # completion); no pi --session exists for claude, and the in-flight
+        # rate is Unknown(buffered) — a NAMED reason, never a silent blank
+        # (S11 trivalence).  --thinking is NOT threaded (claude uses --effort).
+        if thinking_level is not None:
+            sys.stderr.write(
+                "[subagent] T891 NOTE: --thinking ignored for claude "
+                "(claude uses --effort, not pi --thinking)\n")
+            thinking = None
+        cmd = [*base, "--",
+               "claude", "-p", prompt, "--model", model,
+               "--allowedTools", CLAUDE_ALLOWED_TOOLS,
+               "--output-format", "json"]
+    elif provider == "ollama":
+        # ollama launch pi — the inner pi gets the --session meter and
+        # (when set) --thinking.  ollama streams stdout itself, so --mode
+        # json is NOT added (spec mode_json=False); the runner's pi-session
+        # mtime sensor (T773) is the liveness signal for these lanes.
+        session_path = _pi_session_path(task_id)
+        inner = ["--session", session_path]
+        if thinking is not None:
+            inner.extend(["--thinking", thinking])
+        inner.extend(["-p", prompt])
+        cmd = [*base, "--",
+               "ollama", "launch", "pi", "--model", live_tag, "-y", "--",
+               *inner]
+    else:  # deepseek or pi (openrouter) — both run the `pi` binary
+        session_path = _pi_session_path(task_id)
+        pi_provider = "deepseek" if provider == "deepseek" else "openrouter"
+        pi_model = model if provider == "deepseek" else live_tag
+        cmd = [*base, "--",
+               "pi", "--provider", pi_provider, "--model", pi_model]
+        if mode_json:
+            cmd.extend(["--mode", "json"])
+        cmd.extend(["--session", session_path])
+        if thinking is not None:
+            cmd.extend(["--thinking", thinking])
+        cmd.extend(["-p", prompt])
+
+    telemetry = {
+        "provider": provider,
+        "mode_json": "yes" if mode_json else "no",
+        "session": session_path if session_path else "-",
+        "thinking": thinking if thinking else "-",
+        "meter_reason": meter_reason,
+        "liveness": spec["liveness"],
+    }
+    return cmd, telemetry
+
+
 def main(argv):
     args, flags = parse_argv(argv)
     provider = flags.get("provider")
@@ -607,6 +750,18 @@ def main(argv):
     test_worker = flags.get("test-worker")
     dry_run = "dry-run" in flags
     root = os.path.abspath(test_root) if test_root else ROOT
+
+    # T891 (amendment 2): --thinking <level>, threaded to every pi-routed
+    # provider (deepseek/ollama/pi); claude is NOT pi-routed (it uses --effort).
+    # Default = None (do not pass --thinking), which preserves today's behaviour
+    # exactly — no re-baselining of existing metrics rows, which were measured
+    # under pi's unexposed internal default.
+    thinking_level = flags.get("thinking")
+    if thinking_level is True or thinking_level in ("", None):
+        thinking_level = None
+    elif thinking_level not in PI_THINKING_LEVELS:
+        sys.exit(f"subagent: REFUSED — --thinking {thinking_level!r} is not a "
+                 f"pi thinking level.  canonical: {', '.join(PI_THINKING_LEVELS)}\n")
 
     # ── Resolve model ──────────────────────────────────────────────────
     model, live_tag, resolve_err = _resolve_model(provider, raw_model, flags)
@@ -830,70 +985,39 @@ def main(argv):
     # ── Build command ──────────────────────────────────────────────────
     if test_worker:
         cmd = [test_worker, prompt]
-    elif provider == "deepseek":
-        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags]
-        if rss_mb:
-            cmd.extend(["--rss-cap-mb", rss_mb])
-        # T586: --mode json makes pi stream its session events (reasoning,
-        # tool calls, usage) to stdout in real time instead of buffering
-        # until the final reply.  That stream is the liveness signal
-        # tools/runner needs to tell a working worker from a hung one — the
-        # nonce-stall failure mode was a pi worker producing ZERO stdout
-        # for its whole run and being SIGKILLed at --max-wall mid-work.
-        # T662: --session <per-lane path> — pi writes its session JSONL
-        # (the token meter) to this exact file, so the runner can read the
-        # usage after the lane closes (T558 made the same change for
-        # bakeoff deepseek lanes).
-        session_rel = _pi_session_path(task_id)
-        cmd.extend(["--", "pi", "--provider", "deepseek", "--model", model,
-                    "--mode", "json", "--session", session_rel, "-p", prompt])
-    elif provider == "claude":
-        # T494: the headless Claude Code harness. The model runs in its own
-        # process (claude -p), never through the Anthropic API from here —
-        # the fence the rule actually draws (subdelegation.md:152-156).
-        # runner supplies the wall/RSS guards the T481 precedent logged.
-        # T521: --output-format json — the usage envelope is the token-
-        # capture source (G1 is run-time, not retroactive); the runner
-        # unwraps the text for verification, so the lane's stdout and the
-        # nonce check are unchanged.
-        # T552: the same envelope carries the resumable session handle;
-        # the runner records it beside the token counts (run record,
-        # lane trailer, ledger line) — null with a reason for the
-        # pi/ollama lanes, which never emit one. The dispatch shape is
-        # unchanged; capture is the wrapper's job.
-        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
-               "claude", "-p", prompt, "--model", model,
-               "--allowedTools", CLAUDE_ALLOWED_TOOLS,
-               "--output-format", "json"]
-    elif provider == "pi":
-        # T732/T890: headless pi against the openrouter backend.  The LIVE
-        # serving tag (live_tag = stealth/ox-alpha, derived from the canonical
-        # label ox-alpha) goes to pi's --model; the canonical label (model =
-        # ox-alpha) is what verification/ledger sees.  Shape is the
-        # operator-verified form
-        # (`pi --provider openrouter --model stealth/ox-alpha -p "<prompt>"`),
-        # wrapped in tools/runner for the wall guard.
-        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
-               "pi", "--provider", "openrouter", "--model", live_tag,
-               "-p", prompt]
-    else:  # ollama
-        # T662/T890: --session <per-lane path> goes to the INNER pi (after
-        # the `--` ollama's separator), so the ollama lane's session JSONL is
-        # a known per-lane file the runner reads after close — the meter works
-        # for local lanes too, not just deepseek.  The LIVE serving tag
-        # (live_tag, derived from the canonical label — T890) is what ollama
-        # launches, never the hand-typed raw_model.
-        session_rel = _pi_session_path(task_id)
-        cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
-               "ollama", "launch", "pi", "--model", live_tag, "-y", "--",
-               "--session", session_rel, "-p", prompt]
+        telemetry = {"provider": provider, "mode_json": "no",
+                     "session": "-", "thinking": "-",
+                     "meter_reason": "test-worker stub: no provider argv (test mode)",
+                     "liveness": "test-worker"}
+    else:
+        cmd, telemetry = _build_lane_argv(
+            provider, model, live_tag, prompt, task_id, wall,
+            arbiter_flags, rss_mb, thinking_level)
 
     if dry_run:
         print(f"{DEPTH_VAR}={depth + 1}")
         if task_id:
             print(f"MANAGENT_TASK_ID={task_id}")
         print(" ".join(repr(c) if "\n" in c else c for c in cmd))
+        # T891: the telemetry annotation records, per provider, what telemetry
+        # the lane supplies and a NAMED reason where it cannot — so a silent
+        # UNKNOWN (the defect) can never stand in for "nobody asked".  The
+        # regression asserts every provider's line; meter_reason is last
+        # because it may carry spaces.
+        print(f"TELEMETRY: provider={telemetry['provider']} "
+              f"mode_json={telemetry['mode_json']} "
+              f"session={telemetry['session']} "
+              f"thinking={telemetry['thinking']} "
+              f"meter_reason={telemetry['meter_reason']}")
         return 0
+
+    # A lane that cannot supply an in-flight session meter says so loudly at
+    # launch (claude).  The on-screen display is a watch-fleet follow-up;
+    # this note is the dispatch-time record that the reason is not a blank.
+    if telemetry["meter_reason"]:
+        print(f"[subagent] T891 TELEMETRY: provider={telemetry['provider']} "
+              f"session={telemetry['session']} "
+              f"meter_reason={telemetry['meter_reason']}", file=sys.stderr)
 
     t_run0 = time.monotonic()
     rc, stdout = run_worker(cmd, root, env)

@@ -621,6 +621,25 @@ pub fn build(b: *std.Build) void {
     serving_tag_regression.cwd = b.path(".");
     test_step.dependOn(&serving_tag_regression.step);
 
+    // ── T891: lane telemetry parity ───────────────────────────────────
+    // T862's unfinished half: the pi/openrouter lane was launched with
+    // neither --mode json (stdout liveness) nor --session (the token meter
+    // the rate column reads), so it reported UNKNOWN on the operator's screen
+    // and ran with no stdout stream — the least observable lane we dispatch.
+    // T862 closed pass-with-findings on Defect 2 (the auto-close net) only;
+    // Defect 1 was never in its scope.  This row finishes that half: every
+    // provider's constructed argv carries the flags its telemetry needs, or
+    // records a NAMED reason where it cannot (S11 trivalence), and
+    // --thinking <level> threads to every pi-routed provider (deepseek/ollama/pi,
+    // not claude) with today's default preserved (no re-baselining).  Dry-run
+    // argv + TELEMETRY-line inspection; no real launch, no API key, no kanban
+    // mutation.  The real-surface acceptance (watch-fleet grep per provider)
+    // is step 4 in the bundle and runs from the operator's console where the
+    // API keys live.
+    const lane_telemetry_regression = b.addSystemCommand(&.{ "sh", "tools/regression-lane-telemetry-parity.sh" });
+    lane_telemetry_regression.cwd = b.path(".");
+    test_step.dependOn(&lane_telemetry_regression.step);
+
 
     // ── T625: stale-directive dispatch controls ──────────────────────
     // The 2026-08-22 incident: D047, a `pause` whose discharge condition

@@ -1,0 +1,260 @@
+# T114 — ADR-0006 eye-prune calibration battery — captured stdout
+# Date: 2026-07-30  Model: Opus 5  Source: src/eyeprune_battery.zig
+# Concatenated in section order; each block was a separate tools/runner
+# invocation. Sections A and B re-print on every invocation and appear
+# once here.
+
+########## Sections A, B, C (to 4x4), G ##########
+=== T114 — ADR-0006 eye-prune calibration battery ===
+Model: Opus 5   Date: 2026-07-30   Source: src/eyeprune_battery.zig
+Rules: area (Chinese) scoring, Black-positive, positional superko
+       (pass exempt), terminal on double pass or is_settled.
+
+=== SECTION A — hand-labelled predicate fixtures ===
+Each row asserts whether the shipped predicate MUST fire (KNOWN-GOOD:
+the eye is genuine and filling it is dominated) or MUST NOT fire
+(KNOWN-BAD: the point is not a genuine eye of an unconditionally
+alive group, so removing the move could remove a needed move).
+
+  [KNOWN-GOOD] 3x3 alive group, single-point eye            cell  1 B  expect prune=true  got=true  PASS
+  [KNOWN-BAD ] 3x3 same group, open-territory point         cell  7 B  expect prune=false got=false PASS
+  [KNOWN-BAD ] 3x3 same board, opponent's view of the eye   cell  1 W  expect prune=false got=false PASS
+  [KNOWN-BAD ] 3x3 alive group, 2-point eye space (left)    cell  1 B  expect prune=false got=false PASS
+  [KNOWN-BAD ] 3x3 alive group, 2-point eye space (right)   cell  2 B  expect prune=false got=false PASS
+  [KNOWN-BAD ] 3x3 FALSE EYE (three unconnected stones)     cell  1 B  expect prune=false got=false PASS
+        ^ naive all-neighbours-own-stones predicate would say: PRUNE (wrong)
+  [KNOWN-GOOD] 3x3 PRUNE-ALL: both eyes of an alive group   cell  1 B  expect prune=true  got=true  PASS
+  [KNOWN-GOOD] 3x3 PRUNE-ALL: second eye                    cell  7 B  expect prune=true  got=true  PASS
+        ^ is_settled = TRUE (search terminates before move generation); Black legal board moves = 2, both pruned;
+          White legal board moves = 0 (both points are suicide).
+  [KNOWN-GOOD] 5x5 two-eye alive group, eye A               cell  1 B  expect prune=true  got=true  PASS
+  [KNOWN-GOOD] 5x5 two-eye alive group, eye B               cell  3 B  expect prune=true  got=true  PASS
+  [KNOWN-BAD ] 5x5 same group, open point below             cell 10 B  expect prune=false got=false PASS
+  [KNOWN-BAD ] 5x5 same board, White's view of eye A        cell  1 W  expect prune=false got=false PASS
+  [KNOWN-BAD ] 5x5 FALSE EYE (cuttable, no Benson chain)    cell  6 B  expect prune=false got=false PASS
+        ^ naive all-neighbours-own-stones predicate would say: PRUNE (wrong)
+  [KNOWN-BAD ] 5x5 ONE-EYE group (not Benson-alive)         cell  1 B  expect prune=false got=false PASS
+        ^ naive all-neighbours-own-stones predicate would say: PRUNE (wrong)
+  [KNOWN-GOOD] 5x5 dead_white (ADR-0006 anchor), eye at 6   cell  6 B  expect prune=true  got=true  PASS
+  [KNOWN-GOOD] 5x5 dead_white, eye at 18                    cell 18 B  expect prune=true  got=true  PASS
+  [KNOWN-BAD ] 5x5 dead_white, capture point at 3           cell  3 B  expect prune=false got=false PASS
+        ^ is_settled(dead_white) = false (the search must actually play)
+
+  fixtures: 17 run, 0 failed
+
+=== SECTION B — solve.zig vs rules.zig predicate (5x5) ===
+  random 5x5 boards: 200000   empty cells compared: 3999936   eyes found: 21828
+  mismatches (rules.zig vs solve.zig transcript): 0  -> AGREE
+
+=== SECTION C — prune class scan (exhaustive per board) ===
+  For every legal position x side: how many legal board moves the
+  shipped prune removes. PRUNE-ALL = self-eye-fill is the ONLY legal
+  board move -- the known-bad class T114 asks for.
+
+  [2x2] legal positions 57, (position,side) pairs 114
+      prune removes nothing : 110
+      prune removes some    : 0
+      PRUNE-ALL             : 4  (settled 4 / NOT settled 0)
+      non-vacuous pairs     : 0  (not settled AND prune removes >=1 root move)
+      settled positions     : 4  (among eye-candidate positions only)
+      positions with >=1 eye: 4  (of which settled: 4 -> comparison vacuous there)
+
+  [3x2] legal positions 489, (position,side) pairs 978
+      prune removes nothing : 918
+      prune removes some    : 40
+      PRUNE-ALL             : 20  (settled 20 / NOT settled 0)
+      non-vacuous pairs     : 32  (not settled AND prune removes >=1 root move)
+      settled positions     : 28  (among eye-candidate positions only)
+      positions with >=1 eye: 60  (of which settled: 28 -> comparison vacuous there)
+
+  [3x3] legal positions 12675, (position,side) pairs 25350
+      prune removes nothing : 24300
+      prune removes some    : 944
+      PRUNE-ALL             : 106  (settled 106 / NOT settled 0)
+      non-vacuous pairs     : 824  (not settled AND prune removes >=1 root move)
+      settled positions     : 226  (among eye-candidate positions only)
+      positions with >=1 eye: 1050  (of which settled: 226 -> comparison vacuous there)
+
+  [4x3] legal positions 321689, (position,side) pairs 643378
+      prune removes nothing : 627244
+      prune removes some    : 15702
+      PRUNE-ALL             : 432  (settled 432 / NOT settled 0)
+      non-vacuous pairs     : 14708  (not settled AND prune removes >=1 root move)
+      settled positions     : 1424  (among eye-candidate positions only)
+      positions with >=1 eye: 16132  (of which settled: 1424 -> comparison vacuous there)
+
+      PRUNE-ALL & NOT settled: .OX./OOOO/XXXX/X.X.  Black to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: X.O./OOOO/XXXX/X.X.  Black to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: .XO./OOOO/XXXX/X.X.  Black to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: .O.X/OOOO/XXXX/X.X.  Black to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: O.O./OOOO/XXXX/O.X.  White to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: .OO./OOOO/XXXX/O.X.  White to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: .O.O/OOOO/XXXX/O.X.  White to move (2 legal, all eyes)
+      PRUNE-ALL & NOT settled: .OX./OOOO/XXXX/.XX.  Black to move (2 legal, all eyes)
+  [4x4] legal positions 24318165, (position,side) pairs 48636330
+      prune removes nothing : 47726466
+      prune removes some    : 907262
+      PRUNE-ALL             : 2602  (settled 2506 / NOT settled 96)
+      non-vacuous pairs     : 893512  (not settled AND prune removes >=1 root move)
+      settled positions     : 16252  (among eye-candidate positions only)
+      positions with >=1 eye: 909540  (of which settled: 16252 -> comparison vacuous there)
+
+
+=== SECTION G — structural lemma battery (exhaustive to 4x4) ===
+  The premises ADR-0006's soundness argument rests on, checked
+  exactly per position with no search. Columns are VIOLATIONS.
+  L1 fill legal for mover | L2 area score invariant | L3 opponent
+  play is suicide | L4 fill captures nothing | L7 fill creates no
+  new unconditional life for the mover | L8 ...nor the opponent.
+
+  board      eye-positions eyes checked    seconds     L1   L2   L3   L4   L7   L8
+  2x2                   4            8        0.0      0    0    0    0    0    0
+  3x2                  60           84        0.0      0    0    0    0    0    0
+  3x3                1050         1414        0.0      0    0    0    0    0    0
+  4x3               16132        24164        0.1      0    0    0    0    0    0
+  4x4              909540      1362424       13.7      0    0    0    0    0    0
+  5x5              745782      1321127       25.9      0    0    0    0    0    0  (SAMPLED, 20000000 draws)
+
+=== battery complete ===
+
+########## Section D — score equivalence vs a sound unpruned control ##########
+=== SECTION D — score equivalence, prune vs no prune ===
+  Denominator: every non-settled (position, side) pair where the prune
+  removes at least one ROOT move. The control (no prune) is exact:
+  history-set-keyed memo, per-root, budget 2M nodes / 2M entries.
+
+  [2x2] checked 0 pairs (of which 0 root-touched)   DISAGREEMENTS 0   unresolved 0   nodes 0/0   0.0s
+  [3x2] checked 32 pairs (of which 32 root-touched)   DISAGREEMENTS 0   unresolved 32   nodes 64000032/128   10.1s
+  [3x3] checked 824 pairs (of which 824 root-touched)   DISAGREEMENTS 0   unresolved 824   nodes 1648000824/384004560   1255.7s
+
+=== battery complete ===
+
+########## Sections E, F ##########
+=== SECTION E — memo soundness of the 2026-07-29 harness ===
+  eyeprune_falsify.zig caches every (pos,side,passes) node under
+  positional superko; solve.zig caches only ko_ref-clean nodes.
+  Does the difference change an answer? (prune arm, per-root memo)
+
+  [2x2] solve.zig ko_ref  vs  2026-07-29 always-cache  checked     0  DIFFERENCES 0  unresolved 0  0.0s
+  [2x2] exact history-set vs  solve.zig ko_ref          checked     0  DIFFERENCES 0  unresolved 0  0.0s
+  [2x2] exact history-set vs  2026-07-29 always-cache   checked     0  DIFFERENCES 0  unresolved 0  0.0s
+  [3x2] solve.zig ko_ref  vs  2026-07-29 always-cache  checked    32  DIFFERENCES 0  unresolved 0  0.0s
+  [3x2] exact history-set vs  solve.zig ko_ref          checked    32  DIFFERENCES 0  unresolved 0  0.0s
+  [3x2] exact history-set vs  2026-07-29 always-cache   checked    32  DIFFERENCES 0  unresolved 0  0.0s
+  [3x3] solve.zig ko_ref  vs  2026-07-29 always-cache  checked   824  DIFFERENCES 0  unresolved 192  267.2s
+  [3x3] exact history-set vs  solve.zig ko_ref          checked   824  DIFFERENCES 0  unresolved 192  477.0s
+  [3x3] exact history-set vs  2026-07-29 always-cache   checked   824  DIFFERENCES 0  unresolved 192  254.4s
+
+=== SECTION F — mutant calibration ===
+  Four PLAUSIBLE wrong predicates, scored against the SHIPPED arm
+  (the no-prune control is not computable -- see Section D).
+  M4 is the deliberate NULL control: it only ever prunes FEWER
+  moves than ADR-0006, so if ADR-0006 is sound M4 must be clean.
+
+  [2x2] M1 naive-eye (no Benson)         checked      0  detected      0 (  0.0%)  unresolved 0  0.0s
+  [2x2] M2 two-liberty 'alive'           checked      0  detected      0 (  0.0%)  unresolved 0  0.0s
+  [2x2] M3 any-alive-neighbour           checked      0  detected      0 (  0.0%)  unresolved 0  0.0s
+  [2x2] M4 interior-only (under-prune)   checked      0  detected      0 (  0.0%)  unresolved 0  0.0s
+
+  [3x2] M1 naive-eye (no Benson)         checked     88  detected      0 (  0.0%)  unresolved 56  18.6s
+  [3x2] M2 two-liberty 'alive'           checked     64  detected      0 (  0.0%)  unresolved 32  18.7s
+  [3x2] M3 any-alive-neighbour           checked     48  detected     48 (100.0%)  unresolved 0  0.0s
+  [3x2] M4 interior-only (under-prune)   checked     32  detected      0 (  0.0%)  unresolved 32  10.9s
+
+
+=== battery complete ===
+
+########## Section I — lemma calibration against mutant predicates ##########
+=== SECTION I — lemma-battery calibration (mutant predicates) ===
+  Section G reports zero violations for the shipped predicate. That
+  is only evidence if the same lemmas FIRE on a wrong predicate.
+  Each mutant is substituted for is_own_eye and rescanned.
+
+  board      predicate                           eye-pos       eyes       L1     L2     L3     L4     L7     L8
+  3x3        ADR-0006 (shipped)                     1050       1414        0      0      0      0      0      0
+  3x3        M1 naive-eye (no Benson)               4120       5032      274      0   1032      0    144     72
+  3x3        M2 two-liberty 'alive'                 3134       3726        0      0      0      0     56     40
+  3x3        M3 any-alive-neighbour                 1050       2846        0   1160    848    744      0      0
+  3x3        M4 interior-only (under-prune)           30         30        0      0      0      0      0      0
+
+  4x3        ADR-0006 (shipped)                    16132      24164        0      0      0      0      0      0
+  4x3        M1 naive-eye (no Benson)             119348     148532     7432      0  30744      0   5148   3864
+  4x3        M2 two-liberty 'alive'                91386     110356        0      0      0      0   2696   2444
+  4x3        M3 any-alive-neighbour                16132      55124        0  24496  20424  13548   1284      0
+  4x3        M4 interior-only (under-prune)         1644       1644        0      0      0      0      0      0
+
+
+=== battery complete ===
+
+########## Section J — the live PRUNE-ALL class at 4x4, valued ##########
+=== SECTION J — the live PRUNE-ALL class at 4x4, valued ===
+  Pairs where the prune removes EVERY legal board move at a node
+  that is NOT an is_settled terminal: the pruned search has only
+  the pass edge there. Valued and compared against the unpruned
+  retrograde table.
+
+      ok  .OX./OOOO/XXXX/X.X.  Black to move  2 legal moves, all pruned -> pass only; both = 0
+      ok  X.O./OOOO/XXXX/X.X.  Black to move  2 legal moves, all pruned -> pass only; both = 0
+      ok  .XO./OOOO/XXXX/X.X.  Black to move  2 legal moves, all pruned -> pass only; both = 0
+      ok  .O.X/OOOO/XXXX/X.X.  Black to move  2 legal moves, all pruned -> pass only; both = 0
+      ok  O.O./OOOO/XXXX/O.X.  White to move  2 legal moves, all pruned -> pass only; both = 0
+      ok  .OO./OOOO/XXXX/O.X.  White to move  2 legal moves, all pruned -> pass only; both = 0
+
+  data/oracle-4x4-parallel.checkpoint.wzo
+    live PRUNE-ALL pairs 96   comparable 96   (UNDEF 0, KO/FROM_FORWARD 0)
+    DISAGREEMENTS 0   unresolved 0   19.8s
+
+=== battery complete ===
+
+########## Section H — retrograde table as the sound control (2x2/3x2/3x3) ##########
+=== SECTION H — retrograde table as a SOUND no-prune control ===
+  The retrograde value iteration (ADR-0009 Decision 3) uses the FULL
+  legal move set. On slots that are not KO_SENSITIVE its stored value
+  is an exact unpruned fresh-start score. Comparing the eye-pruned
+  forward search against those slots is the sound ADR-0006 test --
+  the standing test of ADR-0009:118-123, actually executed.
+
+  artifacts/oracle-2x2.wzo
+    slots 114  (UNDEF 0, KO_SENSITIVE 82, FROM_FORWARD 0 -> excluded, not independent)
+    CHECKED 32 (every non-KO slot)  of which prune-touched at root 4
+    DISAGREEMENTS 0   unresolved 24   forward nodes 48000032   2.8s
+
+  artifacts/oracle-3x2.wzo
+    slots 978  (UNDEF 0, KO_SENSITIVE 378, FROM_FORWARD 0 -> excluded, not independent)
+    CHECKED 600 (every non-KO slot)  of which prune-touched at root 60
+    DISAGREEMENTS 0   unresolved 432   forward nodes 864000704   139.2s
+
+  artifacts/oracle-3x3.wzo
+    slots 25350  (UNDEF 0, KO_SENSITIVE 8698, FROM_FORWARD 0 -> excluded, not independent)
+    CHECKED 1050 (root-touched only)  of which prune-touched at root 1050
+    DISAGREEMENTS 0   unresolved 192   forward nodes 384002190   329.2s
+
+[runner] KILL: wall ceiling 1700s (28:20) reached at 1700.1s elapsed
+[runner] SIGKILL pgid 34975
+[runner] peak RSS by PID: in 1700.1 s
+[runner]   pid   34975      10 MB
+[runner] peak total CPU by PID: in 1700.1 s
+[runner]   pid   34975       26:12 (1572.93s)
+[runner] exit 124 (wall ceiling 1700s (28:20) reached at 1700.1s elapsed) in 1700.1 s
+
+########## Section H — 4x3, 1-in-8 colex sample ##########
+=== SECTION H — retrograde table as a SOUND no-prune control ===
+  The retrograde value iteration (ADR-0009 Decision 3) uses the FULL
+  legal move set. On slots that are not KO_SENSITIVE its stored value
+  is an exact unpruned fresh-start score. Comparing the eye-pruned
+  forward search against those slots is the sound ADR-0006 test --
+  the standing test of ADR-0009:118-123, actually executed.
+
+  artifacts/oracle-4x3.wzo
+    slots 95508  (UNDEF 0, KO_SENSITIVE 22030, FROM_FORWARD 0 -> excluded, not independent)
+    CHECKED 3830 (root-touched only), 1-in-8 colex sample  of which prune-touched at root 3830
+    DISAGREEMENTS 0   unresolved 652   forward nodes 1304035302   452.0s
+
+
+=== battery complete ===
+fixtures failed: 0
+[runner] peak RSS by PID: in 452.8 s
+[runner]   pid   98149      10 MB
+[runner] peak total CPU by PID: in 452.8 s
+[runner]   pid   98149        7:31 (451.61s)
+[runner] exit 0 in 452.8 s
