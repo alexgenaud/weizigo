@@ -1,0 +1,107 @@
+diff --git a/tools/dispatch_verify.py b/tools/dispatch_verify.py
+index f29b29b..e4ae7bc 100755
+--- a/tools/dispatch_verify.py
++++ b/tools/dispatch_verify.py
+@@ -33,6 +33,20 @@ Exit-code contract for the dispatchers:
+     0  verification passed (side effects hold)
+     2  verification FAILED — a loud report names every failing check
+ 
++T831 (2026-08-24): on failure the TWO QUESTIONS are named apart.  The nonce
++is proof-of-READING (did the worker open its instructions); the deliverables
++are proof-of-WORK (did the work happen).  A worker whose declared
++deliverables all exist and parse but that never echoed the token reports
++PROTOCOL FAILURE — a proof-of-reading breach, never to be confused with a
++worker that read its brief and produced nothing (the T818 orphan: a finished
++task read as a failure for two hours because only the nonce arm spoke).
++The graded contract does not move: exit stays 2, verified stays fail,
++fail_check stays nonce/deliverables (model-profiles RECOVERABLE_FAIL grades
++both recoverable — correct, a protocol breach is re-runnable); only the
++human-readable verdict names WHICH question broke.  The same edit closes
++T793's recorded defect: a success-verdict row with NO deliverables declared
++is UNVERIFIABLE, never PASS.
++
+ The verification never trusts the worker's text in either direction: a
+ "success" claim without side effects fails; a "failure" report WITH side
+ effects passes, and the dispatcher says it is believing the work, not the
+@@ -969,10 +983,22 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+             for err in verify_findings_file(p):
+                 findings_bad.append((d, err))
+ 
++    # T831: classify what the nonce failure means BEFORE reporting it, from
++    # evidence already in hand (the deliverable scan ran above).  The detail
++    # line carries the work status so every downstream branch (bare, open row,
++    # closed row) inherits the distinction without repeating it.
+     if not nonce_ok:
++        if dl_missing:
++            work_note = ("work ALSO unverified: %d deliverable(s) missing"
++                         % len(dl_missing))
++        elif findings_bad:
++            work_note = "work present but malformed findings deliverable(s)"
++        else:
++            work_note = ("work PRESENT: all %d declared deliverable(s) "
++                         "verified on disk" % len(deliverables or []))
+         details.append(
+             "FAIL nonce: the reply does not contain the injected token %s — "
+-            "the worker did not read (or echo) the instruction bundle" % nonce)
++            "proof-of-reading breached (%s)" % (nonce, work_note))
+ 
+     # ── bare file dispatch: no kanban row — the nonce is the whole guard ──
+     if task_id is None:
+@@ -982,6 +1008,15 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+                     details + ["FAIL exit: worker did not exit cleanly (rc=%d)" % rc],
+                     _fail_perf(task_id, model, "crash", "exit", unreached, directive_kill))
+         if not nonce_ok:
++            if (deliverables or []) and not dl_missing and not findings_bad:
++                # T831: bare-file protocol failure with the work verified —
++                # named apart from work absent, same graded contract.
++                return (2,
++                        "worker reported success; PROTOCOL FAILURE — nonce echo "
++                        "missing (the work IS verified: all %d declared "
++                        "deliverable(s) present and well-formed)"
++                        % len(deliverables),
++                        details, (task_id, model, "bare", "fail", "nonce"))
+             return (2,
+                     "worker reported success; verification FAILED: nonce echo missing",
+                     details, (task_id, model, "bare", "fail", "nonce"))
+@@ -1070,6 +1105,18 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+                 details, (task_id, model, worker_report, "fail", "findings"))
+ 
+     if not nonce_ok:
++        if deliverables_required and not dl_missing:
++            # T831: every required deliverable exists (findings_bad was already
++            # returned above) — the WORK happened; only the proof-of-reading
++            # token is missing.  This is a PROTOCOL FAILURE and the report says
++            # so distinctly, so a finished task is never again misread as a
++            # worker that produced nothing (the T818 orphan).
++            return (2,
++                    "worker reported %s; PROTOCOL FAILURE — nonce echo missing "
++                    "(the work IS verified: all %d declared deliverable(s) present "
++                    "and well-formed); a proof-of-reading breach, NOT a work failure"
++                    % (worker_report, len(deliverables)),
++                    details, (task_id, model, worker_report, "fail", "nonce"))
+         return (2,
+                 "worker reported %s; verification FAILED: nonce echo missing" % worker_report,
+                 details, (task_id, model, worker_report, "fail", "nonce"))
+@@ -1093,6 +1140,22 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
+         if adv:
+             details.append(adv)
+ 
++    # T793 recorded defect, closed by T831: a row closed under a work-requiring
++    # verdict (success / fail-found) with NO deliverables declared is
++    # UNVERIFIABLE, never PASS — an empty declaration silently disables the
++    # deliverables arm, and a PASS resting on the nonce alone is exactly the
++    # self-report this module refuses to trust.  Verdicts that require no work
++    # (blocked/abandoned/unknown) keep the old behaviour (green arms pin it),
++    # as does the bare-file path (documented contract: the nonce is the whole
++    # guard).  Placed after the wall advisory so the telemetry detail still
++    # surfaces on this path (regression-runner-brief-telemetry arm E reads it).
++    if deliverables_required and not (deliverables or []):
++        return (2,
++                "worker reported %s; verification FAILED: UNVERIFIABLE — no "
++                "deliverables declared, a pass cannot rest on the nonce alone"
++                % worker_report,
++                details, (task_id, model, worker_report, "fail", "deliverables"))
++
+     if worker_report == "success":
+         return (0,
+                 "worker reported success; side effects verified — verification PASSED",
