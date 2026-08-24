@@ -1662,9 +1662,45 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
 
     var set_found = false;
 
+    // T880: list-valued keys (holds=/needs=/caps=) accept space-separated
+    // values as fully as comma-separated ones.  The header is tokenized on
+    // spaces, so `holds=a.zig b.zig` arrives as tokens `holds=a.zig` and
+    // `b.zig` — a bare token following a list key is a continuation of that
+    // list.  Two exceptions: once `acceptance=` appears (its value runs to
+    // the end of the line — T217), bare tokens belong to the acceptance
+    // command; and any other `key=...` token ends the current list.  The
+    // old code silently dropped every continuation token, so
+    // `holds=a.zig b.zig c.zig` registered only a.zig (T872: four declared,
+    // zero stored; T877: three declared, one stored).
+    const ListKey = enum { none, holds, needs, caps };
+    var last_list: ListKey = .none;
+    var acceptance_seen = false;
+
+    var header_holds = std.ArrayList([]const u8).empty;
+    var header_needs = std.ArrayList([]const u8).empty;
+    var header_caps = std.ArrayList([]const u8).empty;
+
     var tokens = std.mem.splitScalar(u8, inner_trimmed, ' ');
     while (tokens.next()) |token| {
         if (token.len == 0) continue;
+
+        // T880: a bare token (no `=`) continues the most recent list value
+        // — the space-separated form of holds=/needs=/caps=.
+        if (std.mem.indexOfScalar(u8, token, '=') == null) {
+            if (!acceptance_seen) {
+                const trimmed = std.mem.trim(u8, token, " \t");
+                if (trimmed.len > 0) {
+                    switch (last_list) {
+                        .holds => try header_holds.append(alloc, try alloc.dupe(u8, trimmed)),
+                        .needs => try header_needs.append(alloc, try alloc.dupe(u8, trimmed)),
+                        .caps => try header_caps.append(alloc, try alloc.dupe(u8, trimmed)),
+                        .none => {},
+                    }
+                }
+            }
+            continue;
+        }
+
         var parts = std.mem.splitScalar(u8, token, '=');
         const key = parts.next() orelse continue;
         const value = parts.next() orelse "";
@@ -1677,45 +1713,20 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
             result.set = value[0];
             set_found = true;
         } else if (std.mem.eql(u8, key, "holds")) {
-            // T539: holds= is comma-separated (like needs).  The old code stored
+            // T539: holds= is a list, not a single path — the old code stored
             // the whole value as ONE element, so a two-file hold became
             // ["a.zig,b.zig"] and the one-writer check compared against a string
             // no real file name could equal — vacuous by construction.
-            if (value.len > 0) {
-                var holds_list = std.ArrayList([]const u8).empty;
-                var holds_split = std.mem.splitScalar(u8, value, ',');
-                while (holds_split.next()) |h| {
-                    const trimmed = std.mem.trim(u8, h, " \t");
-                    if (trimmed.len > 0) {
-                        try holds_list.append(alloc, try alloc.dupe(u8, trimmed));
-                    }
-                }
-                result.holds = try holds_list.toOwnedSlice(alloc);
-            }
+            // T880: split on commas AND whitespace; a space-separated list's
+            // first element lands here, the rest as bare tokens above.
+            last_list = .holds;
+            if (value.len > 0) try splitListValue(value, &header_holds);
         } else if (std.mem.eql(u8, key, "needs")) {
-            if (value.len > 0) {
-                var needs_list = std.ArrayList([]const u8).empty;
-                var needs_split = std.mem.splitScalar(u8, value, ',');
-                while (needs_split.next()) |nid| {
-                    const trimmed = std.mem.trim(u8, nid, " \t");
-                    if (trimmed.len > 0) {
-                        try needs_list.append(alloc, try alloc.dupe(u8, trimmed));
-                    }
-                }
-                result.needs = try needs_list.toOwnedSlice(alloc);
-            }
+            last_list = .needs;
+            if (value.len > 0) try splitListValue(value, &header_needs);
         } else if (std.mem.eql(u8, key, "caps")) {
-            if (value.len > 0) {
-                var caps_list = std.ArrayList([]const u8).empty;
-                var caps_split = std.mem.splitScalar(u8, value, ' ');
-                while (caps_split.next()) |c| {
-                    const trimmed = std.mem.trim(u8, c, " \t");
-                    if (trimmed.len > 0) {
-                        try caps_list.append(alloc, try alloc.dupe(u8, trimmed));
-                    }
-                }
-                result.caps = try caps_list.toOwnedSlice(alloc);
-            }
+            last_list = .caps;
+            if (value.len > 0) try splitListValue(value, &header_caps);
         } else if (std.mem.eql(u8, key, "duty")) {
             // T478: presence of the key marks the duty (value ignored —
             // `duty`, `duty=1`, `duty=true` all mean the same thing).
@@ -1735,8 +1746,19 @@ fn parseBundleMeta(w: Writers, io: std.Io, bundle_path: []const u8, set_override
         } else if (std.mem.eql(u8, key, "context")) {
             w.diag("error: 'context=…' key is rejected (retired 2026-07-28); remove it from {s}\n", .{bundle_path});
             std.process.exit(1);
+        } else if (std.mem.eql(u8, key, "acceptance")) {
+            // T880: everything after acceptance= is the command (T217); bare
+            // tokens must not continue a list from before it.
+            acceptance_seen = true;
+        } else {
+            // Any other key= token ends a space-continuation run.
+            last_list = .none;
         }
     }
+
+    result.holds = try header_holds.toOwnedSlice(alloc);
+    result.needs = try header_needs.toOwnedSlice(alloc);
+    result.caps = try header_caps.toOwnedSlice(alloc);
 
     // T217: acceptance= takes the rest of the meta line (allows spaces in the command).
     // It must be the LAST key in the header.
@@ -1830,6 +1852,55 @@ fn validateNeedsExist(w: Writers, state: *const StateMap, needs: []const []const
     w.diag("  Register the missing task(s) first, or (only for a task registered later in the same batch)\n", .{});
     w.diag("  re-run with --allow-unregistered-needs '<reason>'.\n", .{});
     std.process.exit(1);
+}
+
+/// T880: the bundle meta header's keys.  A rest-of-line list parser
+/// (readBundleHolds / parseDeliverablesFromBundle) must stop at a KNOWN
+/// following key (`holds=a.zig acceptance=cmd`), never at any token
+/// containing '=' — a path like `docs/foo=bar.md` is a list item, not a key.
+fn isKnownMetaKey(key: []const u8) bool {
+    const keys = [_][]const u8{ "set", "holds", "needs", "caps", "deliverables", "acceptance", "accepts", "duty", "due_after", "shape", "context", "exclude", "priority", "waiting" };
+    for (keys) |k| {
+        if (std.mem.eql(u8, k, key)) return true;
+    }
+    return false;
+}
+
+/// T880: split a bundle-header list value on commas AND whitespace, dropping
+/// empties (`holds=a,b c`, `needs=T1 T2`, `deliverables=a b` all share this
+/// shape).  Items are dupe'd strings owned by the page allocator.
+fn splitListValue(value: []const u8, out: *std.ArrayList([]const u8)) !void {
+    var token_start: usize = 0;
+    var i: usize = 0;
+    while (i <= value.len) : (i += 1) {
+        const c: u8 = if (i < value.len) value[i] else ' ';
+        if (c == ',' or c == ' ' or c == '\t' or c == '\r' or c == '\n') {
+            if (i > token_start) {
+                const tok = std.mem.trim(u8, value[token_start..i], " \t\r\n");
+                if (tok.len > 0) try out.append(alloc, try alloc.dupe(u8, tok));
+            }
+            token_start = i + 1;
+        }
+    }
+}
+
+/// T880: the registration confirmation label.  `set: A` with no holds;
+/// `set: A, holds 3 (a.zig, b.zig, c.zig)` — EVERY hold that landed, and the
+/// count.  The old label printed only holds[0], so a space-separated header
+/// that landed three holds read identically to one that landed one — the
+/// only feedback a human gets could not tell the difference.
+fn holdsSetLabel(set: u8, holds: []const []const u8) ![]const u8 {
+    if (holds.len == 0) return std.fmt.allocPrint(alloc, "set: {c}", .{set});
+    var buf = std.ArrayList(u8).empty;
+    const head = try std.fmt.allocPrint(alloc, "set: {c}, holds {d} (", .{ set, holds.len });
+    defer alloc.free(head);
+    try buf.appendSlice(alloc, head);
+    for (holds, 0..) |h, hi| {
+        if (hi > 0) try buf.appendSlice(alloc, ", ");
+        try buf.appendSlice(alloc, h);
+    }
+    try buf.appendSlice(alloc, ")");
+    return buf.toOwnedSlice(alloc);
 }
 
 /// T539: parse a comma-separated list (the `--holds a,b` flag, the `--needs
@@ -1928,19 +1999,24 @@ fn readBundleHolds(io: std.Io, bundle_abs: []const u8) ?[][]const u8 {
     const key = "holds=";
     const idx = std.mem.indexOf(u8, ml, key) orelse return null;
     const val_start = idx + key.len;
-    // Value runs to the next whitespace (or end of line/comment).
-    var val_end = val_start;
-    while (val_end < ml.len and ml[val_end] != ' ' and ml[val_end] != '\t' and ml[val_end] != '\r') : (val_end += 1) {}
-    if (val_end == val_start) return null;
-    var value = std.mem.trim(u8, ml[val_start..val_end], " \t\r");
-    // The header is an HTML comment; when holds= is the last key (no trailing
-    // space before -->) the terminator lands inside the value.  Strip it.
-    if (std.mem.endsWith(u8, value, "-->")) {
-        value = value[0 .. value.len - 3];
+    // T880: the value is a space/comma-separated list running until the next
+    // `key=` token, the `-->` terminator, or end of line.  The old code cut
+    // at the first whitespace, so `holds=a.zig b.zig c.zig` declared three
+    // files but read as one — the sync and the vacuous-case guard saw the
+    // same truncation as add.
+    var rest = ml[val_start..];
+    if (std.mem.indexOf(u8, rest, "-->")) |t| rest = rest[0..t];
+    var out = std.ArrayList([]const u8).empty;
+    var toks = std.mem.tokenizeAny(u8, rest, " \t\r");
+    while (toks.next()) |tok| {
+        // A following key (e.g. `acceptance=`) ends the holds list.
+        if (std.mem.indexOfScalar(u8, tok, '=')) |eq| {
+            if (isKnownMetaKey(tok[0..eq])) break;
+        }
+        splitListValue(tok, &out) catch return null;
     }
-    value = std.mem.trim(u8, value, " \t\r");
-    if (value.len == 0) return null;
-    return parseHoldsList(value) catch null;
+    if (out.items.len == 0) return null;
+    return out.toOwnedSlice(alloc) catch null;
 }
 
 // ── T682: require a **Landmark:** declaration at registration ──────────
@@ -3706,10 +3782,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             std.process.exit(1);
         }
 
-        const set_label = if (meta.holds.len > 0)
-            try std.fmt.allocPrint(alloc, "set: {c}, holds {s}", .{ meta.set, meta.holds[0] })
-        else
-            try std.fmt.allocPrint(alloc, "set: {c}", .{meta.set});
+        const set_label = try holdsSetLabel(meta.set, meta.holds);
         defer alloc.free(set_label);
 
         w.diag("\n  registered {s}  [{s}]  [dispatchable]\n", .{ id, set_label });
@@ -3824,10 +3897,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         std.process.exit(1);
     }
 
-    const set_label = if (meta.holds.len > 0)
-        try std.fmt.allocPrint(alloc, "set: {c}, holds {s}", .{ meta.set, meta.holds[0] })
-    else
-        try std.fmt.allocPrint(alloc, "set: {c}", .{meta.set});
+    const set_label = try holdsSetLabel(meta.set, meta.holds);
     defer alloc.free(set_label);
 
     if (initial_status == .blocked) {
@@ -4245,7 +4315,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
     {
         const file = try std.Io.Dir.cwd().createFile(io, bundle_path, .{});
         defer file.close(io);
-        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c} deliverables=-->\n", .{set});
+        const meta = try std.fmt.allocPrint(alloc, "<!--managent set={c} deliverables= holds=-->\n", .{set});
         defer alloc.free(meta);
         try file.writeStreamingAll(io, meta);
         const heading = try std.fmt.allocPrint(alloc, "# {s} — {s}\n", .{ id, slug });
@@ -4326,49 +4396,34 @@ fn parseDeliverablesFromBundle(w: Writers, io: std.Io, bundle_abs: []const u8, h
         const meta_line = content[0..newline_idx];
         if (std.mem.indexOf(u8, meta_line, dl_key)) |dl_start| {
             const val_start = dl_start + dl_key.len;
-            // Value runs until "-->" or end of line
-            const end_marker = "-->";
-            const val_end = if (std.mem.indexOf(u8, meta_line[val_start..], end_marker)) |em|
-                val_start + em
-            else
-                newline_idx;
-            var dl_value = std.mem.trim(u8, meta_line[val_start..val_end], " \t\r\n");
-            // Defect 2 fix (T227): truncate at next key= token.
-            // The value "path1,path2 acceptance=cmd" should stop at the space
-            // before acceptance=.  Scan for "=" preceded by whitespace.
-            if (dl_value.len > 0) {
-                var truncate_at: ?usize = null;
-                var scan: usize = 0;
-                while (scan < dl_value.len) : (scan += 1) {
-                    if (dl_value[scan] == ' ' or dl_value[scan] == '\t') {
-                        // skip leading whitespace manually (avoid trimStart which may not exist in zig 0.16)
-                        var rest_start: usize = 0;
-                        while (rest_start < dl_value[scan..].len and (dl_value[scan..][rest_start] == ' ' or dl_value[scan..][rest_start] == '\t')) : (rest_start += 1) {}
-                        const rest = dl_value[scan..][rest_start..];
-                        if (std.mem.indexOfScalar(u8, rest, '=')) |eq_idx| {
-                            if (eq_idx > 0) {
-                                truncate_at = scan;
-                                break;
-                            }
-                        }
+            // T880: the value is a space/comma-separated list running until
+            // the next `key=` token, the `-->` terminator, or end of line.
+            // The old code stopped at the first whitespace only when a
+            // following token contained '=', so `deliverables=a.zig b.zig`
+            // became ONE element "a.zig b.zig" — a path that can never exist
+            // — and a stray placeholder (`deliverables= holds=`) leaked as a
+            // deliverable path.
+            var rest = meta_line[val_start..];
+            if (std.mem.indexOf(u8, rest, "-->")) |t| rest = rest[0..t];
+            var got_any = false;
+            var toks = std.mem.tokenizeAny(u8, rest, " \t\r");
+            while (toks.next()) |tok| {
+                // A following key (e.g. `acceptance=`) ends the list.
+                if (std.mem.indexOfScalar(u8, tok, '=')) |eq| {
+                    if (isKnownMetaKey(tok[0..eq])) break;
+                }
+                var parts = std.mem.splitScalar(u8, tok, ',');
+                while (parts.next()) |part| {
+                    const trimmed = std.mem.trim(u8, part, " \t\r\n");
+                    if (trimmed.len > 0) {
+                        try result.append(alloc, try alloc.dupe(u8, trimmed));
+                        got_any = true;
                     }
                 }
-                if (truncate_at) |t| {
-                    dl_value = dl_value[0..t];
-                }
-                if (dl_value.len > 0) {
-                    var parts = std.mem.splitScalar(u8, dl_value, ',');
-                    while (parts.next()) |part| {
-                        const trimmed = std.mem.trim(u8, part, " \t\r\n");
-                        if (trimmed.len > 0) {
-                            try result.append(alloc, try alloc.dupe(u8, trimmed));
-                        }
-                    }
-                    if (result.items.len > 0) {
-                        return try result.toOwnedSlice(alloc);
-                    }
-                }
-            } // close outer dl_value.len > 0 (Defect 2 truncation guard)
+            }
+            if (got_any) {
+                return try result.toOwnedSlice(alloc);
+            }
         }
     }
 
@@ -13396,4 +13451,138 @@ test "add: validateNeedsExist records the escape for a missing need (T760)" {
     try std.testing.expect(std.mem.indexOf(u8, rec, "T754") != null);
     try std.testing.expect(std.mem.indexOf(u8, rec, "T755") != null);
     try std.testing.expect(std.mem.indexOf(u8, rec, "same-batch forward edge") != null);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T880 tests — space-separated list values in bundle headers
+// ═══════════════════════════════════════════════════════════════════════════════
+// The bundle header is tokenized on spaces, so `holds=a.zig b.zig c.zig` used
+// to register only a.zig — two files silently dropped, no warning (T872: four
+// declared, zero stored; T877: three declared, one stored).  These probe the
+// two sibling list-valued fields (needs=, deliverables=) as well: needs= shares
+// the token-loop defect; deliverables= has its own parse in
+// parseDeliverablesFromBundle, which used to fold `deliverables=a.zig b.zig`
+// into ONE element "a.zig b.zig" — a path that can never exist.
+
+// scratch bundle path helper for the T880 parse probes
+fn t880Bundle(io: std.Io, header: []const u8) []const u8 {
+    std.Io.Dir.cwd().createDirPath(io, "/tmp/weizigo") catch {};
+    const path = "/tmp/weizigo/T880-probe-bundle.md";
+    const file = std.Io.Dir.createFileAbsolute(io, path, .{}) catch |err| {
+        std.debug.print("T880 test: cannot create {s}: {}\n", .{ path, err });
+        return "";
+    };
+    defer file.close(io);
+    file.writeStreamingAll(io, header) catch {};
+    file.writeStreamingAll(io, "\n# T880 probe bundle\n") catch {};
+    return path;
+}
+
+test "T880: holds= header accepts space-separated and mixed lists" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    // Space-separated: all three must land.
+    const path1 = t880Bundle(io, "<!--managent set=A holds=a.zig b.zig c.zig-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path1) catch {};
+    const meta1 = try parseBundleMeta(w, io, path1, null, null);
+    try std.testing.expectEqual(@as(usize, 3), meta1.holds.len);
+    try std.testing.expectEqualStrings("a.zig", meta1.holds[0]);
+    try std.testing.expectEqualStrings("b.zig", meta1.holds[1]);
+    try std.testing.expectEqualStrings("c.zig", meta1.holds[2]);
+
+    // Mixed comma + space: all three must land.
+    const path2 = t880Bundle(io, "<!--managent set=A holds=a.zig,b.zig c.zig-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path2) catch {};
+    const meta2 = try parseBundleMeta(w, io, path2, null, null);
+    try std.testing.expectEqual(@as(usize, 3), meta2.holds.len);
+    try std.testing.expectEqualStrings("a.zig", meta2.holds[0]);
+    try std.testing.expectEqualStrings("b.zig", meta2.holds[1]);
+    try std.testing.expectEqualStrings("c.zig", meta2.holds[2]);
+
+    // Comma list still works (regression guard).
+    const path3 = t880Bundle(io, "<!--managent set=A holds=a.zig,b.zig,c.zig-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path3) catch {};
+    const meta3 = try parseBundleMeta(w, io, path3, null, null);
+    try std.testing.expectEqual(@as(usize, 3), meta3.holds.len);
+
+    // A following key= token ends the list; its bare tokens are not holds
+    // (acceptance= owns the rest of the line — T217).
+    const path4 = t880Bundle(io, "<!--managent set=A holds=docs/one.md acceptance=sh tools/run.sh-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path4) catch {};
+    const meta4 = try parseBundleMeta(w, io, path4, null, null);
+    try std.testing.expectEqual(@as(usize, 1), meta4.holds.len);
+    try std.testing.expectEqualStrings("docs/one.md", meta4.holds[0]);
+
+    // T880 (live damage): `priority=N`/`waiting=1` are header KEYS (D022,
+    // fleet-keeper reads them), never held files — a following key must not
+    // be absorbed as a hold.  The first sync run polluted 26 rows with
+    // "priority=99" holds before this was pinned.
+    const path5 = t880Bundle(io, "<!--managent set=A holds=docs/one.md priority=99-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path5) catch {};
+    const meta5 = try parseBundleMeta(w, io, path5, null, null);
+    try std.testing.expectEqual(@as(usize, 1), meta5.holds.len);
+    try std.testing.expectEqualStrings("docs/one.md", meta5.holds[0]);
+
+    const path6 = t880Bundle(io, "<!--managent set=A holds=docs/one.md waiting=1-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path6) catch {};
+    const meta6 = try parseBundleMeta(w, io, path6, null, null);
+    try std.testing.expectEqual(@as(usize, 1), meta6.holds.len);
+    try std.testing.expectEqualStrings("docs/one.md", meta6.holds[0]);
+
+    // The sync path (readBundleHolds) must agree — it is what reconciled the
+    // live store.
+    const path7 = t880Bundle(io, "<!--managent set=A holds=docs/one.md priority=99-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path7) catch {};
+    const rb7 = readBundleHolds(io, path7).?;
+    defer alloc.free(rb7);
+    try std.testing.expectEqual(@as(usize, 1), rb7.len);
+    try std.testing.expectEqualStrings("docs/one.md", rb7[0]);
+}
+
+test "T880: needs= header accepts space-separated lists (same token loop)" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    const path = t880Bundle(io, "<!--managent set=A needs=T880A1 T880A2-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
+    const meta = try parseBundleMeta(w, io, path, null, null);
+    try std.testing.expectEqual(@as(usize, 2), meta.needs.len);
+    try std.testing.expectEqualStrings("T880A1", meta.needs[0]);
+    try std.testing.expectEqualStrings("T880A2", meta.needs[1]);
+}
+
+test "T880: deliverables= header accepts space-separated lists" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+    const w = Writers{ .io = io };
+
+    const path = t880Bundle(io, "<!--managent set=A deliverables=a.zig b.zig-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
+    const dels = try parseDeliverablesFromBundle(w, io, path, &.{});
+    defer {
+        for (dels) |d| alloc.free(d);
+        alloc.free(dels);
+    }
+    try std.testing.expectEqual(@as(usize, 2), dels.len);
+    try std.testing.expectEqualStrings("a.zig", dels[0]);
+    try std.testing.expectEqualStrings("b.zig", dels[1]);
+
+    // Comma list still works, and a stray `holds=` placeholder after
+    // deliverables= must NOT leak as a deliverable path.
+    const path2 = t880Bundle(io, "<!--managent set=A deliverables=a.zig,b.zig holds=-->");
+    defer std.Io.Dir.deleteFileAbsolute(io, path2) catch {};
+    const dels2 = try parseDeliverablesFromBundle(w, io, path2, &.{});
+    defer {
+        for (dels2) |d| alloc.free(d);
+        alloc.free(dels2);
+    }
+    try std.testing.expectEqual(@as(usize, 2), dels2.len);
+    try std.testing.expectEqualStrings("a.zig", dels2[0]);
+    try std.testing.expectEqualStrings("b.zig", dels2[1]);
 }

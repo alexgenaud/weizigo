@@ -1104,6 +1104,21 @@ pub fn build(b: *std.Build) void {
     holds_regression.cwd = b.path(".");
     test_step.dependOn(&holds_regression.step);
 
+    // ── T880: space-separated list values in bundle headers ────────
+    // parseBundleMeta tokenizes the header on spaces, so `holds=a.zig
+    // b.zig c.zig` registered only a.zig — two files silently dropped —
+    // and the confirmation line printed `holds a.zig` whether one hold
+    // or three landed. T872 declared four holds, its store row carries
+    // zero; T877 lost two of three. The one-writer guard protected
+    // nothing it claimed to. Controls: space/comma/mixed holds parse to
+    // all elements, the confirmation names every hold + count, a
+    // conflicting claim on a non-first held file is refused, needs=
+    // space lists parse, and the null one/no-hold cases report exactly
+    // what landed.
+    const bundle_header_parse_regression = b.addSystemCommand(&.{ "sh", "tools/regression-bundle-header-parse.sh" });
+    bundle_header_parse_regression.cwd = b.path(".");
+    test_step.dependOn(&bundle_header_parse_regression.step);
+
     // ── T542: grand-race bake-off gate controls (G1/G2/G3/G4) ─────
     // G5 already held; G6 is T522's. Controls pin: G1 tokens (trailer
     // reading wins over token-capture.py; null + reason when absent; the
