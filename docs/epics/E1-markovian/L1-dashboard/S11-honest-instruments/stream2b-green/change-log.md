@@ -246,9 +246,6 @@ Every other script obeys the superset rule: the four `regression-managent-*` dep
 arm-3 causes documented in §2/§4), and no other previously-green script regressed. The three
 deleted scripts are gone from the glob; `regression-watch-fleet.sh` is `TIMEOUT` on both sides.
 
-<filled: the table above is the complete superset delta; the two excluded/artefact rows are stated
-with both readings, per SWEEP-CONTRACT §4 — never applied silently.>
-
 ---
 
 ## 13. Net-negative lines (acceptance condition 4)
