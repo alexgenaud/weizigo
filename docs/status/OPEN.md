@@ -402,3 +402,24 @@ sum. The freshness slot also renders (`35s`).
 | B49 | **`claude` lanes will still read UNKNOWN, and that is now a known format gap, not a mystery.** Claude Code writes its own per-session transcript with `usage` nested as `message.usage.output_tokens`, which is not the envelope the reader parses. Combined with B27 (the claude lane is dispatched with no `--session` at all), claude lanes remain unmeasured and unobservable. The fix covers the `deepseek` and `ollama` lanes. | T853's findings |
 | B50 | **Three watch-fleet arms are red at base and unchanged by the landing — including the exact-fill invariant.** Arms C, F and N fail identically before and after. Arm **N** is the exact-fill check, and it renders **1 line instead of the expected 22/38/58** — "a drastic pre-existing failure, not an off-by-one". **The invariant every rate-race brief treated as load-bearing has an arm that has not been passing**, so no entrant's claim to preserve it was ever actually tested. | base-vs-patched runs, same host |
 | B51 | **The deployed managent binary has drifted from what several regression scripts assert** (e.g. `lanes` "not clean on a null store", duty "next did not claim"), which forced T851 to revert otherwise-valid conversions to keep its batch all-green. The drift is a task in itself; T854 is asked to enumerate every script it blocks. | T851's findings |
+
+## B-new-13. My audit of T848 was incomplete — the detector breaks fixtures — 2026-08-24
+
+| # | finding | detail |
+|---|---|---|
+| B52 | **T848's store-loss detector is correct on the live store and fires falsely inside test fixtures.** T854 enumerated five regression scripts now RED from binary drift, and **three cite this detector refusing writes**: `regression-managent-duty.sh`, `regression-managent-done-two-phase.sh`, `regression-managent-ledger-board-seam.sh`. Two more are separate drift in the same binary: `regression-managent-lanes.sh` (null-store assertion) and `regression-managent-store-pollution.sh` (its fixture predates `done`'s impression-or-waiver gate). **This is precisely the failure the S10 spec named** — *"the detector's own false positives would teach the bypass that ends it"* — so it is being fixed before anything else, as `T855`. | T854's drift report |
+| B53 | **The seat's audit of T848 was incomplete, and the gap is instructive.** I verified its own four arms, recomputed the census against the live store, and confirmed `orient` stays silent on a healthy store — all true, all still true. **What I did not do was check whether it broke other scripts**, which is the one rule this project states most often: breaking a previously-green arm outranks everything else. An audit that only runs the subject's own tests cannot see a regression it caused elsewhere. **A close audit must include a broader arm sweep, not just the row's own controls.** T848's verdict is not withdrawn — the detector does what it claims on the live store — but it is qualified, and the qualification was found by the next worker rather than by me. | this file |
+
+**`T855` is scoped to fix it without weakening it**, and its acceptance has two halves deliberately: the
+five scripts green, **and** the seeded-defect arm still red-capable on a hand-reverted scratch store. A
+change that makes the arm pass because the detector no longer fires is called out in the brief as worse
+than leaving the scripts red. No blanket bypass flag, no scratch-path heuristic — a store with **no**
+census is an unmeasured store, and the honest handling of an unmeasured quantity here is UNKNOWN, not an
+alarm.
+
+**Scratch-repo consolidation status:** 26 scripts converted across three batches (T849's 5, T851's 10,
+T854's 10, plus the helper's own arm file), including all three pre-commit pool members and
+`regression-managent-landmark` — the script that caused the repointing incident and hijacked this
+repository's identity. T854 reports only **seven** cleanly-green mechanical candidates remained before it
+started, so the mechanical phase is nearly exhausted; what is left is the named resisters, the multi-init
+scripts, and the drift-blocked five — none of which proceed without the seat's sign-off or `T855`.
