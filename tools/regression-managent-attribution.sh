@@ -30,11 +30,14 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 MG="${MANAGENT_BIN:-$PROJECT/bin/managent}"
 FAIL=0
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/managent-attribution-XXXXXX)" || { echo "regression-managent-attribution.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+
+weizigo_scratch_repo managent-attribution WORK   # T849: isolated scratch repo
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
-git init -q
 git config user.email t544@test
 git config user.name T544
 mkdir -p docs/infra/managent
