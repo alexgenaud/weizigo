@@ -62,7 +62,7 @@ Every figure carries a `file:line` citation in the arm, and the author verified 
 | # | count | value |
 |---|---|---|
 | 1 | reporting surfaces inventoried | **30** |
-| 2 | surfaces emitting a value where the honest answer is "cannot determine" | **6** |
+| 2 | surfaces emitting a value where the honest answer is "cannot determine" | **≥12** — see correction below |
 | 3 | checks that cannot fail under any input | **4** |
 | 4 | places that reinterpret unrecognised input as valid | **3** |
 | 5 | jobs with more than one implementation | **7** |
@@ -100,3 +100,16 @@ closed. Recorded here rather than quietly corrected, because a progress surface 
 defect S11 exists to remove, and the sprint's own status file was an instance of it. **The rule now:
 every label states a fact about the present, and the file is corrected at the moment a row closes —
 not at the next convenient edit.**
+
+## Correction to the baseline, 2026-08-24
+
+The figure of **6** above was arm A's, recorded by the seat as "the baseline" **before arm B landed**.
+Arm B independently also found 6 — and **cites a completely disjoint set of sites.** So the floor is
+**at least 12**, and two independent passes finding non-overlapping halves is evidence a third would find
+more. Arm B additionally found a class arm A missed entirely: **8 checks wired to no gate**, which can
+fail but for nobody who would notice.
+
+Recorded plainly because it is the third time in one session this seat reported a number as settled
+before it was: the ambiguous `RUN` label, the two stale arm rows, and now this. **The rule that follows
+and binds the seat: a count from one source is provisional until a second source corroborates it, and it
+must be labelled provisional in the same edit that records it.**

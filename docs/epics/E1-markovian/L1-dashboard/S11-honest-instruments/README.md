@@ -117,3 +117,48 @@ Operator ruling 2026-08-24: at most **2 rows per model**, **5 per family**, **10
 with no expectation of approaching any of them. His reason, recorded because it governs every future
 decision here: parallelism is only a wall-clock optimisation and is often the source of unnecessary
 complexity and failure. The per-model limit has no implementation yet and is enforced by the seat.
+
+
+---
+
+## Revised sequencing — operator ruling, 2026-08-24 (supersedes the stream table's ordering)
+
+**The what-is arms are AUDITED, not graded.** *"I do not think we should penalize either model unless
+they wrote demonstrably false assertions or missed obviously important details."* The question is whether
+the assertions are accurate. Two observers mapping different dead ends is a fact about the terrain:
+*"there are numerous ways to do the same thing — or more accurately, there are numerous ways that should
+work but get nothing done."*
+
+**Grading observers against a messy actuality measures the mess, not the observers.** This is the same
+error class as the protocol-compliance check, which measured our harness rather than the models. So the
+merge of ideal against actual is deferred.
+
+### Order
+
+1. **Ideal**: consolidate the two agreeing designs into one specification. *(T865)*
+2. **What-is audit**: verify assertions, union the findings, resolve each contradiction four ways —
+   arm A right · arm B right · both wrong · a third reading better — and extract a **should-be** where
+   the evidence shows what a mechanism was *trying* to do. *(T866)*
+3. **Green-up**: fix and simplify the actual tooling, eliminate duplicate interfaces, until every test
+   passes — accepting the result is far from ideal.
+4. **What-is round 2** against the simplified actuality, where real agreement becomes possible.
+5. **Merge** the consolidated ideal with the should-be. **Not before.** Reconciling an ideal against a
+   stated intent is more productive than reconciling it against present confusion.
+
+### Two conditions on the green-up, or it produces its own false reading
+
+- **"All green" is dishonest while vacuous checks remain.** Four to five checks cannot fail under any
+  input and eight more are wired to no gate — they can fail, but for nobody who would notice. Every
+  failing and every vacuous check must be classified **delete / fix-the-test / fix-the-code**, and
+  **delete is the expected answer** for anything that tests nothing or tests something that should not
+  exist. Arriving at all-green with the dishonesty intact would be the worst outcome of the exercise.
+- **The green-up must log every change it makes to actuality**, so round 2's disagreements with round 1
+  read as *we changed it* rather than *they saw it differently*. Without that log, round 2 is
+  uninterpretable.
+
+### Risk on record
+
+`ox-alpha` authored two of the four arms and the operator observes it halting early in his own console.
+**Round 2 must not depend on it.** Its reputation for unreliable protocol compliance has separately been
+**retracted** — that was measured by a check which passes on a JSON-mode lane even with an empty reply,
+so it was reading our own prompt back.
