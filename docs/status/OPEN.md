@@ -315,3 +315,42 @@ object, and the two corpora use different id keys.)
 | B41 | **Task-type labels are model-dependent, not objective.** Two capable models given identical instructions over the same 578 tasks agree about a third of the time. **Every "model X suits task type Y" conclusion therefore rests on labels that two models cannot reproduce** — including the task-type frequencies used to argue allocation. This does not say the labels are useless; it says the label is a *judgement*, and any allocation claim built on one needs its inter-rater agreement stated alongside it. | 206/578, plus incompatible scope taxonomies |
 | B42 | **The published legacy-classifier accuracy is wrong.** 78% is the standing figure; measured accuracy on the ground truth is **70.4%**. Whatever rests on the 78% number needs restating. | 19/27 |
 | B43 | **A brief amendment cannot add a deliverable.** The seat's amendment asked T819 to write model-perf ledger cells; the bundle header did not declare `docs/infra/model-task-metrics.jsonl`, so the close gate could not check it and **no ledger rows were written**. Same class as B24 (`suggest` drops `holds=`): the header is the only thing the mechanism reads, and prose asking for more is unenforceable. | 35 ledger rows, none for the corpus lanes |
+
+## B-new-10. The rate race is judged, and the diff race is landed — 2026-08-24
+
+### Rate race (T843, judge `claude-sonnet-5`) — `T839` (deepseek-v4-flash) wins
+
+`T838` (deepseek-v4-pro) is a near-tie: both fix the UNKNOWN-forever rate defect correctly and break
+nothing. `T839` additionally gives CONCERNS a third state so that a live worker `pgrep` cannot see does
+not read as dead — the race's own motivating incident. **Hinge, named as the protocol requires:** if the
+operator judges that third state to be unnecessary complexity (T840 argued explicitly against it), the
+ranking narrows to a near-tie with `T838`. No disqualifications — all three patches applied cleanly at
+the pinned base and touched only the two permitted files. Five ledger rows written, each marked
+provisional at n=1 with no tier emitted per the methodology's emission gate.
+
+| # | finding | evidence |
+|---|---|---|
+| B44 | **The live rates the operator saw were wrong by ~6.5×, and looked plausible.** T840 — the patch that had been sitting applied in the working tree — reads per-message `usage.output` and takes the **MAX**, treating it as a cumulative counter. It is not. The seat verified on a live transcript: successive `output` values run 186, 140, 158, 158, 182, 638, 3693, 2517 — **non-monotonic**, so per-turn — while `usage.totalTokens` climbs monotonically. On that transcript **MAX = 8,164 against SUM = 52,851: the MAX approach reports 15.4% of the true output.** T838 and T839 both sum. This is precisely the "renders a plausible number without reading the transcript correctly is worse than UNKNOWN" hazard the brief warned about, and it is why clearing the contamination was right even though it cost a working-looking column. | the judge's D1, reproduced independently by the seat |
+| B45 | **T840 also silently drops transcript-less orphaned tasks from CONCERNS** — a stray shell `continue`, reproduced 3 of 3 runs, breaking a previously-green holder arm. A dashboard that hides orphans is worse than one that shows UNKNOWN. | the judge's D2 |
+
+**Landing `T839` deliberately waits** on `T844`, the protocol's second independent reading, now running
+on `claude-haiku-4-5-20251001` with an explicit instruction not to read the first ruling before forming
+its own. A split escalates to the operator's panel. Note that the entire ollama family entered this
+race, so neither glm, kimi nor minimax could judge it.
+
+### Diff race landed (T852, `glm-5.2`) — `pass`, and the suite can now tell a real fix from a flattering one
+
+`T827`'s patch was applied **verbatim** — byte-identical, no reimplementation, no rebase needed. The
+T818 open-row case is now a pinned arm, shown **red at HEAD before** the change (`work-present +
+nonce-missing on an open row must NOT be fail=row`) and green after. It ships with a **control** the
+seat did not ask for: work-*absent* + nonce-missing must **still** be `fail=row`, so a fix cannot
+over-broaden into recovering work that was never done.
+
+**The flatterer check confirmed the judge's prediction.** In an isolated worktree at the pinned base,
+`T826`'s patch makes the new arm **RED** while still showing its two "unexpected successes" — the
+flattering 172/172 headline. Seat verified independently at HEAD: **174 tests, OK, expected failures=2**,
+so the two recorded defects remain honestly red rather than papered over.
+
+| # | still open | why |
+|---|---|---|
+| B46 | **`T837` (C3's 42 unbacked proofs) is deliberately NOT dispatched.** Its dependencies (T835, T836) are now met, but it is the one queued row that could change the project's epistemic record, and T836 just found a live document resting on a claim archived BOGUS. Downgrading or backing 42 PROVEN claims is a bookend question, not a seat decision. | held for the operator |
