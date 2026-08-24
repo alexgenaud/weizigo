@@ -601,6 +601,27 @@ pub fn build(b: *std.Build) void {
     dispatch_caps_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_caps_regression.step);
 
+    // ── T890: one serving-tag path (bin/subagent) ─────────────────────
+    // The 2026-08-24 defect: `bin/subagent --provider ollama --model
+    // kimi-k2.7:cloud` was accepted (both kimi tags canonicalize to
+    // kimi-k2.7), launched, and died in 0.9 s — reported as a nonce
+    // failure ("the worker did not read the bundle") when the model was
+    // never reached.  bin/dispatch was immune (it re-derives the live tag
+    // from its MODELS table); the un-gated bin/subagent path walked into
+    // the death.  These controls pin the fix: the dead tag is REFUSED by
+    // name (arm A), both entry points resolve the canonical label to the
+    // same live serving tag (round-trip), a canonical whose live tag the
+    // host does not serve is REFUSED naming the offerings (arm B — the
+    // stops-the-class arm, via the WEIZIGO_OLLAMA_OFFERED injection hook),
+    // every canonical still dispatches by label (null control), and the
+    // live-tag maps ↔ canonicalization ↔ canonical_models[] ↔ dispatch
+    // MODELS agree (one truth, verified not duplicated).  Scratch file
+    // target under /tmp/weizigo; no real ollama launch.
+    const serving_tag_regression = b.addSystemCommand(&.{ "sh", "tools/regression-serving-tag-single-path.sh" });
+    serving_tag_regression.cwd = b.path(".");
+    test_step.dependOn(&serving_tag_regression.step);
+
+
     // ── T625: stale-directive dispatch controls ──────────────────────
     // The 2026-08-22 incident: D047, a `pause` whose discharge condition
     // lived in prose inside --note, kept killing fresh T544 dispatches

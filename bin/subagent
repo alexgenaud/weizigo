@@ -180,7 +180,11 @@ OLLAMA_TAG_TO_CANONICAL = {
     "minimax-m3:cloud": "minimax-m3",
     "kimi-k2.7": "kimi-k2.7",
     "kimi-k2.7-code": "kimi-k2.7",
-    "kimi-k2.7:cloud": "kimi-k2.7",
+    # T890: "kimi-k2.7:cloud" DELETED — it is a dead tag the host does not
+    # serve (model-registry.md: `Error: model 'kimi-k2.7' not found`).  It
+    # canonicalizes to kimi-k2.7 via the generic :cloud strip below, then
+    # arm A refuses it because the derived LIVE tag is kimi-k2.7-code:cloud.
+    # A dead alias map entry is documentation of a bug, not a remedy.
     "kimi-k2.7-code:cloud": "kimi-k2.7",
     "qwen3.8:27b-mlx": "qwen3.8:27b-mlx",
     "qwen3.8:27b-mlx:cloud": "qwen3.8:27b-mlx",
@@ -192,6 +196,66 @@ OLLAMA_TAG_TO_CANONICAL = {
 PI_TAG_TO_CANONICAL = {
     "stealth/ox-alpha": "ox-alpha",
 }
+
+# T890: canonical label → the ONE live serving tag the host dispatches with.
+# This is the single source of truth for the LAUNCH tag — derived from the
+# canonical label, never the hand-typed one.  OLLAMA_TAG_TO_CANONICAL /
+# PI_TAG_TO_CANONICAL above are its input-convenience reverse (a serving tag
+# a human typed → the canonical label); the two are asserted consistent at
+# import (every live tag canonicalizes back to its canonical) and by
+# tools/regression-serving-tag-single-path.sh against bin/dispatch's MODELS
+# table and src/managent/main.zig canonical_models[].  bin/dispatch is
+# immune to the dead-tag defect because it canonicalizes then re-derives
+# the live tag from its MODELS table; this gives bin/subagent the same
+# immunity by deriving the live tag here instead of passing raw_model
+# through.  One truth, verified not duplicated.
+CANONICAL_TO_OLLAMA_TAG = {
+    "glm-5.2": "glm-5.2:cloud",
+    "minimax-m3": "minimax-m3:cloud",
+    "kimi-k2.7": "kimi-k2.7-code:cloud",
+    "qwen3.8:27b-mlx": "qwen3.8:27b-mlx",
+}
+CANONICAL_TO_PI_TAG = {
+    "ox-alpha": "stealth/ox-alpha",
+}
+
+# Load-time consistency: every live tag must canonicalize back to the
+# canonical it is keyed under (the two maps are inverses on their overlap).
+# A drift here is a second source of truth — exactly what T890 forbids.
+for _c, _live in {**CANONICAL_TO_OLLAMA_TAG, **CANONICAL_TO_PI_TAG}.items():
+    _back = (OLLAMA_TAG_TO_CANONICAL if _c in CANONICAL_TO_OLLAMA_TAG
+             else PI_TAG_TO_CANONICAL).get(_live)
+    assert _back == _c, (
+        "bin/subagent: T890 live-tag map drift — %r -> %r but the "
+        "canonicalization map sends %r to %r" % (_c, _live, _live, _back))
+
+
+def _ollama_offered_tags():
+    """The set of ollama tags the host actually serves, or None if
+    unknowable.  WEIZIGO_OLLAMA_OFFERED (comma-separated; the empty string
+    means the host offers nothing) is the test injection hook — the same
+    inject-don't-exhaust family as tools/runner's
+    WEIZIGO_HOST_MEM_AVAIL_MB.  Unset → run `ollama list` and parse the NAME
+    column, returning None if ollama is unreachable so a caller that cannot
+    validate (no ollama daemon, a dry-run on a host without it) may proceed:
+    a real launch surfaces the failure itself, a dry-run previews the
+    command.  T890 arm B."""
+    inj = os.environ.get("WEIZIGO_OLLAMA_OFFERED")
+    if inj is not None:
+        return {t.strip() for t in inj.split(",") if t.strip()}
+    try:
+        out = subprocess.run(["ollama", "list"], capture_output=True,
+                             text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    tags = set()
+    for line in out.stdout.splitlines()[1:]:  # skip the NAME/ID/SIZE header
+        parts = line.split()
+        if parts:
+            tags.add(parts[0])
+    return tags or None
 
 # ── declared-need admission (T821) ─────────────────────────────────────
 # T821 (docs/infra/host/ram-policy.md) replaces the T713 gate — which only
@@ -444,60 +508,69 @@ def parse_argv(argv):
 
 
 def _resolve_model(provider, raw_model, flags):
-    """→ (model, error).  Turn a provider + raw dispatch tag into the
-    canonical label bin/managent's canonical_models[] expects (the same
-    fact surface as docs/infra/model-registry.md and
-    src/managent/main.zig's canonicalizeModelTag).  `error` is None on
-    success and a ready-to-print message (for `sys.exit`) otherwise.
+    """→ (canonical, live_tag, error).  Turn a provider + raw dispatch tag
+    into the canonical label bin/managent's canonical_models[] expects (the
+    same fact surface as docs/infra/model-registry.md and
+    src/managent/main.zig's canonicalizeModelTag), AND the ONE live serving
+    tag the host dispatches with (T890: derived from the canonical, never
+    the hand-typed one).  `error` is None on success and a ready-to-print
+    message (for `sys.exit`) otherwise; on error both canonical and
+    live_tag are None.
 
     A bare `--model` with no value parses as flags['model'] is True
     (parse_argv), not a string; treating that the same as "missing" (T792
     fix) avoids a TypeError crash that `re.sub(..., True)` used to raise
     for the ollama branch below when a caller passed the flag with no tag.
 
-    ollama fallback (T792 finding, not changed here): a tag outside
-    OLLAMA_TAG_TO_CANONICAL is accepted by stripping a trailing `:cloud`
-    rather than refused — the same permissive behaviour as
-    canonicalizeModelTag, so it is not a NEW divergence, but it means a
-    typo'd or retired tag (e.g. `kimi-k2-thinking:cloud`, retired per
-    model-registry.md) silently produces a non-canonical label instead of
-    an error a human would see immediately."""
+    T890 closes the T792 gap the old docstring named: an unrecognized tag
+    (e.g. the retired kimi-k2-thinking:cloud) is now REFUSED — it
+    canonicalizes to a label that is not in the live-tag map, so the
+    boundary says so, instead of silently producing a non-canonical label
+    a human would never see until the lane died in 0.9 s."""
     if raw_model is True:
         raw_model = None
     if provider == "deepseek":
         # DeepSeek: model is chosen from --dspro/--dsflash flags
         chosen_ds = [f"--{k}" for k in ("dspro", "dsflash") if flags.get(k) is True]
         if len(chosen_ds) != 1:
-            return None, "subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash"
-        return DS_MODELS[chosen_ds[0]], None
+            return None, None, "subagent: for --provider deepseek, name exactly one model — --dspro or --dsflash"
+        canon = DS_MODELS[chosen_ds[0]]
+        return canon, canon, None  # no serving tag — the label IS the model
     if provider == "claude":
         # Claude: --model <canonical claude label> is required; the label is
         # passed straight to `claude -p --model`, so it must be canonical.
         if not raw_model:
-            return None, ("subagent: for --provider claude, --model <canonical claude label> "
+            return None, None, ("subagent: for --provider claude, --model <canonical claude label> "
                           "is required\n  canonical: " + ", ".join(sorted(CLAUDE_MODELS)) + "\n")
         if raw_model not in CLAUDE_MODELS:
-            return None, (f"subagent: '{raw_model}' is not a canonical claude label.\n"
+            return None, None, (f"subagent: '{raw_model}' is not a canonical claude label.\n"
                           f"  canonical: {', '.join(sorted(CLAUDE_MODELS))}\n")
-        return raw_model, None
+        return raw_model, raw_model, None  # label IS the model
     if provider == "pi":
-        # T732: pi harness, openrouter backend.  --model is the SERVING tag
-        # (stealth/ox-alpha); model is the canonical label (ox-alpha) so the
-        # serving tag never reaches the ledger.
+        # T732/T890: --model is the serving tag (stealth/ox-alpha) OR the
+        # canonical label (ox-alpha); the canonical label is what the
+        # ledger stores, the live serving tag is what pi launches.  A
+        # hand-typed serving tag is accepted only as input convenience.
         if not raw_model:
-            return None, "subagent: for --provider pi, --model <serving tag> is required\n"
-        model = PI_TAG_TO_CANONICAL.get(raw_model)
-        if model is None:
-            return None, (f"subagent: '{raw_model}' is not a known pi serving tag.\n"
-                          f"  known: {', '.join(sorted(PI_TAG_TO_CANONICAL))}\n")
-        return model, None
+            return None, None, "subagent: for --provider pi, --model <canonical label or serving tag> is required\n"
+        canon = PI_TAG_TO_CANONICAL.get(raw_model)
+        if canon is None and raw_model in CANONICAL_TO_PI_TAG:
+            canon = raw_model  # the caller named the canonical label itself
+        if canon is None:
+            return None, None, (f"subagent: '{raw_model}' is not a known pi canonical label or serving tag.\n"
+                          f"  canonical: {', '.join(sorted(CANONICAL_TO_PI_TAG))}\n")
+        return canon, CANONICAL_TO_PI_TAG[canon], None
     # ollama
     if not raw_model:
-        return None, "subagent: for --provider ollama, --model <tag> is required\n"
-    model = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
-    if model is None:
-        model = re.sub(r":cloud$", "", raw_model)
-    return model, None
+        return None, None, "subagent: for --provider ollama, --model <canonical label or serving tag> is required\n"
+    canon = OLLAMA_TAG_TO_CANONICAL.get(raw_model)
+    if canon is None:
+        canon = re.sub(r":cloud$", "", raw_model)
+    if canon not in CANONICAL_TO_OLLAMA_TAG:
+        return None, None, (f"subagent: REFUSED — '{raw_model}' canonicalizes to '{canon}', "
+                      f"not a known ollama canonical model (T890).\n"
+                      f"  canonical: {', '.join(sorted(CANONICAL_TO_OLLAMA_TAG))}\n")
+    return canon, CANONICAL_TO_OLLAMA_TAG[canon], None
 
 
 def main(argv):
@@ -536,9 +609,32 @@ def main(argv):
     root = os.path.abspath(test_root) if test_root else ROOT
 
     # ── Resolve model ──────────────────────────────────────────────────
-    model, resolve_err = _resolve_model(provider, raw_model, flags)
+    model, live_tag, resolve_err = _resolve_model(provider, raw_model, flags)
     if resolve_err:
         sys.exit(resolve_err)
+
+    # T890 arm A — a hand-typed serving tag must match the derived LIVE tag.
+    # The serving tag used for launch is ALWAYS re-derived from the canonical
+    # label; a hand-typed serving tag is accepted only as input convenience.
+    # If it does not match the derived live tag, it is the dead-tag class
+    # (kimi-k2.7:cloud canonicalizes to kimi-k2.7 but the host serves
+    # kimi-k2.7-code:cloud) — REFUSED by name, before any host check, so the
+    # operator never launches kimi into a 0.9-second death reported as a
+    # nonce failure.  bin/dispatch is immune (it re-derives from its MODELS
+    # table); this gives bin/subagent the same immunity at the launch door.
+    if provider in ("ollama", "pi") and raw_model and raw_model is not True \
+       and raw_model != model and raw_model != live_tag:
+        offered_line = ""
+        if provider == "ollama":
+            _off = _ollama_offered_tags()
+            if _off is not None:
+                offered_line = "\n  host offers: " + ", ".join(sorted(_off))
+        sys.exit(
+            f"subagent: REFUSED — serving tag {raw_model!r} does not match the "
+            f"live serving tag {live_tag!r} for canonical model {model!r} (T890).\n"
+            f"  The serving tag is derived from the canonical label, never the "
+            f"hand-typed one. Name the canonical label {model!r}; the live "
+            f"serving tag {live_tag!r} is what the host dispatches.{offered_line}\n")
 
     # ── declared-need admission (T821, ORC-GD-1/ORC-G5) ──────────────────
     # Every lane declares a peak RSS need and is checked against what
@@ -551,7 +647,11 @@ def main(argv):
     # arbiter").  The real launch below passes --ram-mb/--arbiter-id
     # through on the SAME tools/runner invocation that wraps the worker,
     # so a real refusal there means nothing was ever spawned.
-    ram_mb = _declared_ram_mb(provider, raw_model, flags)
+    # T890: pass live_tag (the derived serving tag), not raw_model, so a
+    # canonical-label input (e.g. kimi-k2.7) declares the CLOUD figure — its
+    # live tag kimi-k2.7-code:cloud carries :cloud — not the resident 18 GB
+    # figure the bare canonical would imply.
+    ram_mb = _declared_ram_mb(provider, live_tag, flags)
     arbiter_id = target  # stable per dispatch: the T-id or the file path
     override_admission = flags.get("override-admission")
     if override_admission is True:   # bare flag, no value
@@ -704,6 +804,29 @@ def main(argv):
     if override_admission:
         arbiter_flags.extend(["--override-admission", override_admission])
 
+    # ── T890 arm B — validate the derived live tag against the host ────
+    # For an ollama lane, the derived live tag is checked against what the
+    # host actually serves BEFORE any child is spawned, and refused by
+    # name if absent — never launch into a 0.9-second death.  The host
+    # offering comes from `ollama list` (WEIZIGO_OLLAMA_OFFERED injects it
+    # for tests, mirroring WEIZIGO_HOST_MEM_AVAIL_MB).  If the offering is
+    # unknowable (ollama unreachable, env unset), the check is SKIPPED: a
+    # real launch surfaces the failure itself, a dry-run previews the
+    # command.  This is the arm that stops the bug class returning — a
+    # model whose tag stopped being served is refused here, not reported
+    # as a nonce failure after a 0.9-second death.
+    if provider == "ollama":
+        _offered = _ollama_offered_tags()
+        if _offered is not None and live_tag not in _offered:
+            sys.exit(
+                f"subagent: REFUSED — model {model!r} resolves to serving tag "
+                f"{live_tag!r}, which the host does not serve (T890).\n"
+                f"  tag tried: {live_tag}\n"
+                f"  host offers: {', '.join(sorted(_offered))}\n"
+                f"  Never launch into a 0.9-second death; name the canonical "
+                f"label {model!r} and let the dispatcher derive a tag the host "
+                f"serves.\n")
+
     # ── Build command ──────────────────────────────────────────────────
     if test_worker:
         cmd = [test_worker, prompt]
@@ -743,23 +866,26 @@ def main(argv):
                "--allowedTools", CLAUDE_ALLOWED_TOOLS,
                "--output-format", "json"]
     elif provider == "pi":
-        # T732: headless pi against the openrouter backend.  The serving tag
-        # (raw_model = stealth/ox-alpha) goes to pi's --model; the canonical
-        # label (model = ox-alpha) is what verification/ledger sees.  Shape
-        # is the operator-verified form
+        # T732/T890: headless pi against the openrouter backend.  The LIVE
+        # serving tag (live_tag = stealth/ox-alpha, derived from the canonical
+        # label ox-alpha) goes to pi's --model; the canonical label (model =
+        # ox-alpha) is what verification/ledger sees.  Shape is the
+        # operator-verified form
         # (`pi --provider openrouter --model stealth/ox-alpha -p "<prompt>"`),
         # wrapped in tools/runner for the wall guard.
         cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
-               "pi", "--provider", "openrouter", "--model", raw_model,
+               "pi", "--provider", "openrouter", "--model", live_tag,
                "-p", prompt]
     else:  # ollama
-        # T662: --session <per-lane path> goes to the INNER pi (after the
-        # `--` ollama's separator), so the ollama lane's session JSONL is
-        # a known per-lane file the runner reads after close — the meter
-        # works for local lanes too, not just deepseek.
+        # T662/T890: --session <per-lane path> goes to the INNER pi (after
+        # the `--` ollama's separator), so the ollama lane's session JSONL is
+        # a known per-lane file the runner reads after close — the meter works
+        # for local lanes too, not just deepseek.  The LIVE serving tag
+        # (live_tag, derived from the canonical label — T890) is what ollama
+        # launches, never the hand-typed raw_model.
         session_rel = _pi_session_path(task_id)
         cmd = ["tools/runner", "--max-wall", wall, *arbiter_flags, "--",
-               "ollama", "launch", "pi", "--model", raw_model, "-y", "--",
+               "ollama", "launch", "pi", "--model", live_tag, "-y", "--",
                "--session", session_rel, "-p", prompt]
 
     if dry_run:
