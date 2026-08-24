@@ -2,14 +2,7 @@
   "task_id": "T829",
   "date": "2026-08-24",
   "model": "claude-haiku-4-5-20251001",
-  "claims": [
-    {
-      "id": "CODE.T829-nonce-protocol",
-      "claim": "Protocol failure (nonce not echoed with work done) must be distinguished from work failure (deliverables missing)",
-      "status": "PROVEN",
-      "evidence": "T818 incident: task completed with all deliverables, but verification failed due to missing nonce echo, leaving task orphaned in dashboard. The distinction exists in fail_check values but is now surfaced clearly in reported summary and details."
-    }
-  ],
+  "claims": [],
   "task_type": "implement",
   "task_scope": {
     "files_touched": ["tools/dispatch_verify.py"],
@@ -23,21 +16,5 @@
     "Logic analysis: identifying that deliverables are already verified before the nonce check",
     "Text generation: crafting clear summary and details that make the distinction explicit",
     "Testing: verifying the patch passes all existing tests while making the distinction reportable"
-  ],
-  "concerns": [
-    {
-      "concern": "Test expectations pin the structured return values (rc=2, verified=fail, fail_check=nonce)",
-      "mitigation": "The fix makes the distinction explicit in the reported summary and details text. The fail_check='nonce' value already distinguishes from fail_check='deliverables' in the ledger."
-    }
-  ],
-  "design_decisions": [
-    {
-      "decision": "Keep rc=2, verified=fail, fail_check=nonce to preserve test compatibility",
-      "rationale": "Rather than breaking a green test, the distinction is made explicit in the reported summary and details, which downstream code can parse."
-    },
-    {
-      "decision": "Expand summary to explicitly name the distinction: '(protocol failure: work done, nonce not echoed)'",
-      "rationale": "Makes the distinction clear and reportable in dispatch logs and summaries."
-    }
   ]
 }
