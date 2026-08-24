@@ -19,8 +19,18 @@
 |---|---|---|---|
 | arm A (untracked) | T858 | deepseek-v4-pro | **ARMS** — landed, all citations resolve |
 | arm B (untracked) | T860 | ox-alpha | **ARMS** — landed (27,743 B); closed on evidence by the seat, worker skipped nonce and close |
+| arm C (untracked) | T869 | claude-sonnet-5 | **ARMS** — landed 2026-08-24, blind third pass; 9 mechanisms cited, blind spots named; closed on evidence by the seat (worker died before close) |
 | grade (untracked) | **awaiting dispatch** — both arms are in | — | — |
 | **`stream2-whatis/whatis.md`** | — | — | **—** |
+
+## stream2b-green — zero red, honestly
+
+| item | owner | model | state |
+|---|---|---|---|
+| classification (delete / fix-test / fix-code) | T870 | claude-opus-5 | **ACCEPTED** — committed at `stream2b-green/classification.md`; DELETE 11 / FIX-TEST 21 / FIX-CODE 10 over 88 scripts (denominator corrected from 86); three DELETE verdicts re-verified at source by the seat 2026-08-24 |
+| delete wave | T872 | deepseek-v4-pro | **ACTIVE** — dispatched 2026-08-24; net-negative required; shared change-log is the round-2 interpretability condition |
+| fix-test wave | T873 | — | queued, gated on T872 (seat-enforced serial) |
+| fix-code wave | T874 | — | queued, gated on T873; ends with the ratchet deletion if zero red is reached |
 
 ## stream3-compare — converges 1 and 2
 
