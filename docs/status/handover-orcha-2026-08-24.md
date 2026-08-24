@@ -111,3 +111,24 @@ roof if the basement is unstable."*
 The outgoing seat will **not** dispatch after this document is committed. If it finds something
 urgent, it records it in `OPEN.md` and says so in its final report rather than acting. When its five
 tasks close, it stands down and the incoming seat owns everything.
+
+---
+
+## REVISED 2026-08-24 (operator ruling) — the outgoing seat keeps nothing
+
+> *"You can remain as read-only and document writing advisor. Relay all further work and
+> suggestions through the new Opus/Orcha."*
+
+This supersedes §1's division. **The incoming seat owns everything**: the queue, all dispatch, all
+judging — including the four race judgments (T832, T843/T844, T819) and closing T818, which the
+outgoing seat had kept.
+
+The outgoing seat is now **read-only advisor and document writer**. It dispatches nothing, claims
+nothing, and closes nothing. Where it has context worth having, it writes it down or says it to the
+incoming seat; it does not act. Its context is heavy and that is precisely why it should not be
+holding live work.
+
+**What the incoming seat should ask it for:** why a race was designed the way it was (T817's brief
+deliberately differs from T818/T820; RACE-X's key is the spec's own armed-count claim; the diff
+races are scored by arms that predate them), and the reasoning behind the S10 direction. Everything
+else is in these three documents.
