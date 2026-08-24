@@ -63,6 +63,29 @@ Known gaps, stated: style fingerprinting is mitigated, not eliminated; the confi
 judge doubles cost exactly when all families compete (rare); pre-registration can miss
 emergent dimensions (handled by note-don't-score).
 
+### 4b. Race protocol v2.1 amendments (operator rulings, 2026-08-24, via the T871 seat)
+
+7. **Panels are odd** (3 or 5), so a bare tie cannot stall a race.
+8. **A split is first read as merge guidance, not as a deadlock.** Judges score
+   per-criterion (rule 4); when a split falls along *dimensions* (one lane wins content,
+   another craft), the default resolution is a merge of the best of both, recorded as
+   such — a manufactured single winner would destroy exactly the information the split
+   carries. Race W Section B is the worked example: the committed hybrid dominates both
+   pure lanes.
+9. **The seat adjudicates stalls from primary sources.** Racing is not a democracy: a
+   tied or stalled race escalates to the reserve seat (Fable when available), which
+   judges the lanes directly and writes its reasons; the operator's panel is the appeal,
+   not the default.
+10. **Two verdicts per race, never one:** the *document* decision (what text/patch is
+    adopted) and the *model-performance* entry (which strengths each lane demonstrated)
+    are separate write-ups. A near-tie with complementary strengths is a legitimate
+    performance verdict even when the document decision names a single base.
+11. **No self-judging, ever** — a lane's author never scores its own race (Race W's
+    original grade was the violation; the blind panel declined to confirm it). And a
+    second independent reading receives **the field only** — never the first reading's
+    hinge or conclusions (the D083 lesson: a supplied hinge turns independence into
+    corroboration).
+
 ## 5. Process rulings (operator, verbatim intent)
 
 - **The long-living Orchestrator role is retired.** The discussion-dispatch protocol

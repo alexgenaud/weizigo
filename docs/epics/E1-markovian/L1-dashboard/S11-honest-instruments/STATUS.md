@@ -1,8 +1,9 @@
 # S11 STATUS — the only progress surface
 
 **A phase is complete when its single final document exists in `docs/` and carries a grade here.**
-`—` not started · `ACTIVE` a worker is executing it right now · `ARMS` arms landed, ungraded · `GRADED` audited ·
-`ACCEPTED` reconciled, final document written. Anything short of ACCEPTED is incomplete.
+`—` not started · `QUEUED` registered, deliberately not yet dispatched · `ACTIVE` a worker is executing it right now ·
+`ARMS` arms landed, ungraded · `GRADED` audited · `ACCEPTED` reconciled, final document written.
+Anything short of ACCEPTED is incomplete.
 
 ## stream1-design — ideal design, blind to the repository
 
@@ -29,8 +30,8 @@
 |---|---|---|---|
 | classification (delete / fix-test / fix-code) | T870 | claude-opus-5 | **ACCEPTED** — committed at `stream2b-green/classification.md`; DELETE 11 / FIX-TEST 21 / FIX-CODE 10 over 88 scripts (denominator corrected from 86); three DELETE verdicts re-verified at source by the seat 2026-08-24 |
 | delete wave | T872 | deepseek-v4-pro | **ACTIVE** — dispatched 2026-08-24; net-negative required; shared change-log is the round-2 interpretability condition |
-| fix-test wave | T873 | — | queued, gated on T872 (seat-enforced serial) |
-| fix-code wave | T874 | — | queued, gated on T873; ends with the ratchet deletion if zero red is reached |
+| fix-test wave | T873 | — | **QUEUED** — gated on the delete wave closing (seat-enforced serial) |
+| fix-code wave | T874 | — | **QUEUED** — gated on the fix-test wave; ends with the ratchet deletion if zero red is reached |
 
 ## stream3-compare — converges 1 and 2
 
