@@ -48,14 +48,37 @@ one is a property of that model.
 3. **reconcile** → the single final document in `docs/`. Disagreements between arms are recorded **as
    disagreements**, never averaged away.
 
-## Exit criterion for the whole sprint
+## Acceptance rule — applies to every change, from a one-line edit to a full sprint
 
-Not "the code changed". A waypoint or pass is complete only when it leaves behind **unit tests and
-regression tests that actually run periodically** and that would catch the defect returning. Today's
-measured baseline: **23 of 86 regression scripts fail**, and nothing runs them on a schedule — the
-daily unattended runner was disabled on 2026-08-24 after running unsupervised. So `stream4-fix` must
-also deliver the periodic run itself, attended and reporting, or the suite it leaves behind is
-decoration.
+**Operator ruling, 2026-08-24.** Not a schedule. The rule is test-driven development plus continuous
+integration, stated as three obligations:
+
+1. **Every module has a test suite.** A *module* is a subset of the project, and in this project a
+   module is not necessarily software. The tooling is software. The **epistemic tree is prose** —
+   claims, evidence, proofs, falsifications, peer review — and it has a suite too. Experiments, tables
+   and engines are software modules and each needs its own suite.
+2. **Every change to a module runs that module's suite before the change is accepted.** No exceptions
+   for size: a single task and a whole sprint obey the same rule.
+3. **Every change starts red.** The test that proves the change is needed is written first and shown
+   failing; acceptance is that same suite passing green.
+
+A nightly full run may be worth having, but it is **not** the requirement and must not be mistaken for
+one. Running everything on a timer does not tell you whether *this* change broke *that* module.
+
+### The mechanism already half-exists, and that is why this rule bites
+
+`tools/hooks/pre-commit` reads a module-test contract and announces *"change-based selection active"*.
+The contract file exists at `docs/epics/E1-markovian/L1-dashboard/S09-module-test-contract/spec.md` and
+declares **zero** `test … covers …` mappings. With no declarations every script's coverage reads empty,
+so the gate runs a **fixed thirteen-script pool** regardless of what changed — and can only ever *narrow*
+that pool, never add a suite from outside it.
+
+**Measured consequence:** a change to `src/managent/main.zig` was accepted after running the fixed pool,
+which does not contain the ~20 `regression-managent-*` scripts that cover it. Three of them broke and the
+commit passed clean. The regression was found a day later by an unrelated worker.
+
+So obligation 2 is not satisfiable today. Populating that contract, and letting the gate *select* rather
+than only *skip*, is a prerequisite for accepting any change in `stream4-fix`.
 
 ## Concurrency, and why it is capped low
 
