@@ -1,0 +1,159 @@
+{
+  "task_id": "T844",
+  "date": "2026-08-24",
+  "grader": "claude-haiku-4-5-20251001",
+  "identifier": "rate-judge-independent-read",
+  "type": "race-judge-findings",
+  "landmark": "L1 (measurement integrity)",
+  "directive_id": "D083",
+  "field_composition": {
+    "entrants": 3,
+    "patches": ["T838", "T839", "T840"],
+    "abandoned": ["T841 (kimi-k2.7)", "T842 (minimax-m3)"],
+    "no_shows": ["ox-alpha"]
+  },
+  "methodology": "Applied each patch in isolation at pinned base efa747d, verified clean apply against expected files (untracked/watch-fleet.sh, tools/regression-watch-fleet.sh only), examined regression test results and rendered frames, and assessed aggregation correctness per D083 directive",
+  "critical_directive_d083": {
+    "requirement": "Verify token aggregation is correct per D083's measured data",
+    "test_case": "Live session transcript with per-message usage.output values (non-monotonic): [186, 140, 158, 158, 182, 638, 3693, 2517]",
+    "correct_approach": "SUM(output) across all post-claim messages = 52851 total tokens",
+    "wrong_approach": "MAX(output) of individual messages = 8164 (only 15.4% of true count)",
+    "hinge_criterion": "This aggregation correctness is the critical hinge for ranking"
+  },
+  "per_patch_analysis": [
+    {
+      "patch": "T838",
+      "model": "deepseek-v4-pro",
+      "applies": true,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_cleanly": "✓ git apply --check passes at efa747d",
+      "aggregation_approach": "SUMS output tokens across assistant turns plus summary/compaction entries",
+      "aggregation_correctness": "✓ CORRECT per D083 — explicitly documents 'summed'",
+      "new_arms": ["Q (rate + live from transcript)", "R (CONCERNS labels finished work)", "S (unit arithmetic)"],
+      "staleness_rule": "Drops transcripts whose mtime predates current task claim",
+      "staleness_issue": "⚠ POTENTIAL: Late-claim shape (T822: session 06:44:25Z, claim 07:12:03Z) may incorrectly drop live sessions",
+      "live_column": "New 4-char field (%-4s): Ns/Nm/Nh/Nd, '-' when no transcript",
+      "concerns_labels": "Adds 'finished' for no-process tasks with all deliverables present",
+      "frame_quality": "Shows synthetic 4700/s rate in test fixture (synthetic test, not demonstrating live rate capability)",
+      "regression_results": "Patch claims: 19 arms PASS (A-E, G-P, L-N, Q, R, S), arm F FAIL (pre-existing)",
+      "presentation_choices": "LIVE is fixed 4-char (%-4s), rate unchanged from T823, column alignment preserved",
+      "acceptance_notes": "status=pass-with-findings per submission",
+      "rank_position": 2,
+      "rank_rationale": "Correct aggregation SUM() gives this entry solid technical foundation. However, staleness rule using claim-date may drop live late-claim sessions (the T822 shape that T839/T840 handle better). Simpler fixture testing (only Q,R,S vs T839's Q,R,S,T) and no live-rate demonstration in frame."
+    },
+    {
+      "patch": "T839",
+      "model": "deepseek-v4-flash",
+      "applies": true,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_cleanly": "✓ git apply --check passes at efa747d; note: working tree had concurrent modifications from other entrants that complicated verification",
+      "aggregation_approach": "SUMS per-turn message.usage.output across assistant turns plus summary/compaction entries; verification: T533 transcript sum 49956 == ledger tokens_out 49956",
+      "aggregation_correctness": "✓ CORRECT per D083 — explicitly documents 'sums' with ledger verification",
+      "new_arms": ["Q (rate + freshness from transcript)", "R (freshness_of arithmetic)", "S (CONCERNS labels)", "T (integration: 1-of-3 fixtures renders rate)"],
+      "staleness_rule": "Process-correlation: drops only transcripts begun >120s before process start (not claim date); handles T822 late-claim shape correctly",
+      "staleness_issue": "✓ RESOLVED — correctly retains live sessions where session start precedes task claim",
+      "live_column": "New 5-char field (right-aligned %5s): ≤59s / ≤15m / STALE (901-3600s) / ≤23h / ≥1d / '-' (no transcript)",
+      "concerns_labels": "Three-state design: 'lived' (fresh transcript), 'finished' (exit-0 run), 'orphaned' (dead/unclosed); 'console' for seat tasks",
+      "frame_quality": "Live frame from repo root shows real rates: T834=38.1/s, T842=50.3/s, T841=17.8/s, T840=42.2/s, T838=36.6/s. Demonstrates capability to render live rates from working tasks.",
+      "regression_results": "Patch claims: A,C,D,E,I,J,K,N,O,P,L,Q,R,S,T PASS; B,H,M pass in most runs (spawn/trap timing flakes at base too); F FAIL (declared red, pre-existing); G FAIL at base on this host (pre-existing spawn race). New arms Q-R-S-T pass every run.",
+      "presentation_choices": "LIVE is 5-char right-aligned, STALE exactly fills the slot (5 chars) to preserve column alignment; freshness renders even when rate is UNKNOWN (if transcript present, no usage yet); CONCERNS uses verbs (lived/finished/orphaned) not nouns",
+      "acceptance_notes": "status=pass per submission; detailed regression documentation and live frame verification",
+      "rank_position": 1,
+      "rank_rationale": "Correct aggregation SUM() paired with better staleness rule (process-correlation instead of claim-date) handles the T822 late-claim shape correctly. Most comprehensive regression arms (Q/R/S/T). Live frame demonstrates real rates being rendered (38-50/s). Better presentation with 5-char freshness. Superior technical design and verification."
+    },
+    {
+      "patch": "T840",
+      "model": "glm-5.2",
+      "applies": true,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_cleanly": "✓ git apply --check passes at efa747d",
+      "aggregation_approach": "Comment states 'highest cumulative output from a post-claim message'; code does: if tk > out: out=tk (TAKES MAXIMUM of individual message outputs)",
+      "aggregation_correctness": "✗ INCORRECT per D083 — takes MAX(output) which reports ~15.4% of true token count vs SUM(output)",
+      "aggregation_detail": "T840's Python code iterates through messages and keeps only the highest single per-message output value. This is mathematically wrong when output is per-turn (non-monotonic). The docstring suggests author believed output is cumulative, but D083 demonstrates output is per-turn.",
+      "new_arms": ["U (pre-claim transcript drop)", "V (LIVE column format)", "W (exact fill with new column)"],
+      "staleness_rule": "Process-correlation: similar to T839, handles T822 late-claim shape correctly",
+      "staleness_issue": "✓ RESOLVED — correctly retains live sessions (same approach as T839)",
+      "live_column": "New 4-char field (%-4s): 12s/4m/2h/STALE (≥15min)/'-' (no transcript)",
+      "concerns_labels": "Two-state: 'lived' (fresh transcript <15min), 'orphaned' (otherwise); keeps section honest per brief ruling",
+      "frame_quality": "Shows PROGRESS rows with rates but all marked STALE because no recent transcript appends in working tree. Cannot assess live-rate rendering capability from this frame.",
+      "regression_results": "Test was still running when checked; claims arms U/V/W added but full results not obtained",
+      "presentation_choices": "LIVE is 4-char (%-4s), rate stays 'NNN.N/s' format, PROGRESS has 7 fields (adds new column)",
+      "operator_measurement": "D083 amendment notes: 'With T840's patch applied to the working tree, live rates rendered — 9.1/s for a deepseek lane and 14.3/s for an ollama lane.' This contradicts the MAX() aggregation if the test data rates are realistic.",
+      "acceptance_notes": "Practical demonstration works (per operator measurement) but technical analysis shows incorrect aggregation logic",
+      "rank_position": 3,
+      "rank_rationale": "HINGE: Aggregation correctness. While the operator measured working rates with this patch, the code implements MAX(output) not SUM(output), which per D083 yields ~15.4% of true count. This is a fundamental correctness defect. The practical demonstration of 9.1/s may be measuring a model that produces few-enough-tokens-per-turn that MAX approximates SUM acceptably (e.g., max_output was 8164 on test data), but this is residual luck not design correctness. The patch's staleness rule (process-correlation) is sound like T839, and presentation is reasonable, but the aggregation error is disqualifying."
+    }
+  ],
+  "exact_fill_invariant": {
+    "test": "FLEET_LINES height at 24/40/60 with two section mixes (PROGRESS only vs all three sections)",
+    "status": "All three patches claim to preserve invariant",
+    "evidence": "T839 explicitly verified at 40 lines; T838/T840 claim preservation via non-row-count-adding changes"
+  },
+  "comparison_table": {
+    "headers": ["Dimension", "T838", "T839", "T840"],
+    "rows": [
+      ["Aggregation", "SUM ✓", "SUM ✓", "MAX ✗"],
+      ["Staleness rule", "Claim-date ⚠", "Process-correlation ✓", "Process-correlation ✓"],
+      ["Live frame demo", "Synthetic only", "Real rates shown ✓", "All STALE (no demo)"],
+      ["Regression arms", "Q,R,S", "Q,R,S,T", "U,V,W"],
+      ["LIVE column width", "4-char %-4s", "5-char %5s", "4-char %-4s"],
+      ["CONCERNS states", "finished-only", "lived/finished/orphaned ✓", "lived/orphaned"],
+      ["Rank", "2", "1", "3"]
+    ]
+  },
+  "judgment": {
+    "winner": "T839 (deepseek-v4-flash)",
+    "runner_up": "T838 (deepseek-v4-pro)",
+    "disqualified": "T840 (glm-5.2) — aggregates per-turn outputs via MAX() instead of SUM(), yielding ~15.4% of true token counts",
+    "hinge": "Aggregation correctness (SUM vs MAX). T838 and T839 both correctly SUM per-turn outputs; T840's MAX approach is mathematically wrong per D083's directive. Between the two correct implementations, T839's process-correlation staleness rule is superior to T838's claim-date rule (handles T822 late-claim shape), T839's regression arms are more comprehensive, T839 demonstrates live rates rendering in practice, and T839's presentation (5-char freshness) is more refined."
+  },
+  "notes_on_operator_reading": {
+    "how_your_later_verdict_applies": "If operator's live testing shows that T840 actually produces correct rates at correct magnitude (9.1/s and 14.3/s are true rather than underestimated), this would suggest that: (a) the per-message output values are actually cumulative-with-overwrite (not per-turn as D083 states), or (b) the test data in D083 is not representative of actual transcripts, or (c) T840's code is not actually being used at runtime. Re-examine T840's aggregation in whatever form it actually runs. If operator finds T838's claim-date staleness rule does drop live late-claim sessions (T822 shape), this validates the concern. If operator prefers T839's 5-char freshness rendering for layout stability, that reinforces T839. This ranking assumes the facts in D083 are accurate; if they diverge from live measurement, the ranking hinges there."
+  },
+  "provisional_ledger_rows": [
+    {
+      "task_type": "infra",
+      "model": "deepseek-v4-pro",
+      "serving_tag": "deepseek-v4-pro/T838",
+      "epoch": "2026-08-24",
+      "score": "2/3 (correct aggregation, suboptimal staleness rule, simpler arms)",
+      "qualified": "provisional (n=1)",
+      "cost_trusted": "N/A (no cost data collected)",
+      "grader": "claude-haiku-4-5-20251001",
+      "blind": "honest (patch filenames carry task IDs, instruction-only at best)",
+      "evidence": "untracked/ratrace/T838.patch + tools/regression-watch-fleet.sh test output"
+    },
+    {
+      "task_type": "infra",
+      "model": "deepseek-v4-flash",
+      "serving_tag": "deepseek-v4-flash/T839",
+      "epoch": "2026-08-24",
+      "score": "3/3 (correct aggregation, sound staleness rule, comprehensive arms, live demo)",
+      "qualified": "provisional (n=1)",
+      "cost_trusted": "N/A (no cost data collected)",
+      "grader": "claude-haiku-4-5-20251001",
+      "blind": "honest (patch filenames carry task IDs, instruction-only at best)",
+      "evidence": "untracked/ratrace/T839.patch + live frame from repo root + regression results"
+    },
+    {
+      "task_type": "infra",
+      "model": "glm-5.2",
+      "serving_tag": "glm-5.2/T840",
+      "epoch": "2026-08-24",
+      "score": "1/3 (incorrect aggregation — fundamental defect, MAX not SUM)",
+      "qualified": "provisional (n=1)",
+      "cost_trusted": "N/A (no cost data collected)",
+      "grader": "claude-haiku-4-5-20251001",
+      "blind": "honest (patch filenames carry task IDs, instruction-only at best)",
+      "evidence": "untracked/ratrace/T840.patch + Python code analysis showing if tk > out: out=tk"
+    }
+  ],
+  "second_round_requirements": [
+    "Verify aggregation against real live-session transcripts with >4 assistant turns",
+    "Test with at least 3 examples of the T822 late-claim shape (session start much earlier than claim)",
+    "Measure actual rendered rates and verify against ledger totals",
+    "Assess layout jitter in LIVE column between refreshes when freshness changes (e.g., 59s → 1m → STALE)"
+  ],
+  "inbox_check": "D083 acked at claim; no additional directives received",
+  "status": "pass-with-findings"
+}
