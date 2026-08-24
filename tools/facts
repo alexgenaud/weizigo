@@ -9,8 +9,19 @@ run at any moment, including while other workers are active; it never
 writes inside the repo (the absence-behaviour arm creates its empty
 input fixtures in the OS temp dir and deletes them before exit).
 
+Provenance (T895): every fact whose source is a file any process on
+this host can overwrite says so, next to the value. A record that any
+process can overwrite is not evidence on its own — the reader is told
+which file carried the number. Where a value cannot be attributed, the
+tool prints UNKNOWN rather than a value it cannot stand behind
+(Measured / Unknown / Refused — the S11 trivalence contract applied to
+these surfaces, not a new one).
+
 Sections, in order:
   ROWS          task-store census, read directly from the store JSON
+  RUNS          run-record census + per-in_progress-row attribution,
+                from untracked/runs/ (host-local, overwritable): which
+                record is the row's DISPATCH record, or UNKNOWN
   TESTS         exit code of every tools/regression-*.sh, as-run
   DELIVERABLES  for every done row: each declared deliverable's
                 existence and git tracking. "Declared" mirrors managent's
@@ -81,6 +92,10 @@ def load_rows(store):
 def fact_rows(store):
     print("== ROWS ==")
     print("store_path=%s" % store)
+    # T895: the store is a plain file any process on this host can rewrite;
+    # a reader of these counts is told that, not left to assume evidence.
+    print("store_provenance=overwritable-file (any process on this host may "
+          "rewrite it; not content-addressed, not git-tracked history)")
     rows, err = load_rows(store)
     if err is not None:
         print("store_error=%s" % err)
@@ -104,6 +119,131 @@ def fact_rows(store):
     print("rows_other=%d" % other)
     print("rows_with_model=%d" % with_model)
     print("rows_with_agent=%d" % with_agent)
+
+
+def pid_alive(pid):
+    """"y" / "n" / "UNKNOWN" for a pid, by the kill(pid, 0) probe. A
+    permission error means the process exists but is not ours to signal —
+    that is "y", not a guess."""
+    try:
+        os.kill(int(pid), 0)
+        return "y"
+    except PermissionError:
+        return "y"
+    except ProcessLookupError:
+        return "n"
+    except (OSError, ValueError, TypeError):
+        return "UNKNOWN"
+
+
+def read_records(runs_dir):
+    """Parse every top-level run record. Returns (records, unparseable) where
+    records is a list of (filename, dict). Nested-namespace records live in
+    runs_dir/nested and are counted separately by the caller — they are, by
+    construction, NOT any row's dispatch record."""
+    recs, bad = [], []
+    try:
+        names = sorted(os.listdir(runs_dir))
+    except OSError:
+        return recs, bad
+    for fn in names:
+        if not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(runs_dir, fn)) as f:
+                d = json.load(f)
+        except (OSError, ValueError) as e:
+            bad.append((fn, str(e).splitlines()[0]))
+            continue
+        if isinstance(d, dict):
+            recs.append((fn, d))
+        else:
+            bad.append((fn, "not a JSON object"))
+    return recs, bad
+
+
+def fact_runs(root, store):
+    """Run records, with their provenance stated and UNKNOWN where a value
+    cannot be attributed (T895).
+
+    Reports, never classifies: this section does not say BACKED or ORPHAN
+    (that is `managent reap`'s verdict, and it is a judgement). It says which
+    file it read, what kind of run the WRITER said produced it, whether the
+    recorded pid answers a signal-0 probe, and UNKNOWN when no record can be
+    attributed to the row's dispatch."""
+    print("== RUNS ==")
+    runs_dir = os.path.join(root, "untracked", "runs")
+    print("runs_source=%s" % runs_dir)
+    print("runs_provenance=overwritable-dir (host-local, not git-tracked, "
+          "any process on this host may write it; a run record is evidence "
+          "only together with the file that carried it)")
+    if not os.path.isdir(runs_dir):
+        print("runs_dir=absent")
+        print("runs_records_dispatch_namespace=0")
+        print("runs_records_nested_namespace=0")
+        print("runs_rows_reported=0")
+        return
+    recs, bad = read_records(runs_dir)
+    nested_dir = os.path.join(runs_dir, "nested")
+    try:
+        nested_n = len([f for f in os.listdir(nested_dir) if f.endswith(".json")])
+    except OSError:
+        nested_n = 0
+    kinds = {}
+    for _fn, d in recs:
+        kinds[d.get("run_kind") or "undeclared"] = kinds.get(d.get("run_kind") or "undeclared", 0) + 1
+    print("runs_records_dispatch_namespace=%d" % len(recs))
+    print("runs_records_nested_namespace=%d" % nested_n)
+    print("runs_records_unparseable=%d" % len(bad))
+    for fn, why in bad:
+        print("runs_unparseable file=%s reason=%s" % (fn, why))
+    for k in sorted(kinds):
+        print("runs_kind_%s=%d" % (k, kinds[k]))
+
+    rows, err = load_rows(store)
+    if err is not None:
+        print("runs_rows_error=%s" % err)
+        print("runs_rows_reported=UNKNOWN")
+        return
+    in_prog = sorted(t for t, v in rows.items()
+                     if isinstance(v, dict) and v.get("status") == "in_progress")
+    print("runs_in_progress_rows=%d" % len(in_prog))
+    for tid in in_prog:
+        mine = [(fn, d) for fn, d in recs if d.get("task") == tid]
+        # A declared-nested record is not the row's dispatch; an undeclared
+        # one is reported as undeclared, never silently promoted.
+        cands = [(fn, d) for fn, d in mine if (d.get("run_kind") or "") != "nested"]
+        if not mine:
+            print("run %s records=0 dispatch_record=UNKNOWN "
+                  "provenance=no-record-for-this-row" % tid)
+            continue
+        if not cands:
+            print("run %s records=%d dispatch_record=UNKNOWN "
+                  "provenance=all-records-declared-nested" % (tid, len(mine)))
+            continue
+        # A separate fact, because "the newest dispatch-namespace record" and
+        # "a record for this row whose run has not finished and whose pid
+        # answers" are different questions, and a row can have one without the
+        # other (T650 displaces a live dispatch record into <id>.<N>.json).
+        live = [fn for fn, d in mine
+                if d.get("exit") is None and d.get("signal") is None
+                and d.get("end") is None and pid_alive(d.get("pid")) == "y"]
+        print("run %s live_unfinalized_records=%s" % (tid, ",".join(live) if live else "none"))
+        fn, d = max(cands, key=lambda t: str(t[1].get("start") or ""))
+        kind = d.get("run_kind") or "undeclared"
+        if d.get("exit") is not None:
+            ended = "exit=%s" % d.get("exit")
+        elif d.get("signal") is not None:
+            ended = "signal=%s" % d.get("signal")
+        elif d.get("end") is not None:
+            ended = "end=%s" % d.get("end")
+        else:
+            ended = "UNKNOWN"
+        print("run %s records=%d dispatch_record=%s kind=%s pid=%s pid_alive=%s "
+              "ended=%s wall=%s"
+              % (tid, len(mine), fn, kind, d.get("pid"), pid_alive(d.get("pid")),
+                 ended, d.get("wall") if d.get("wall") is not None else "UNKNOWN"))
+    print("runs_rows_reported=%d" % len(in_prog))
 
 
 def interpreter_of(path):
@@ -294,6 +434,7 @@ def main():
     want = [s.strip().upper() for s in os.environ.get("FACTS_SECTIONS", "").split(",") if s.strip()]
     sections = [
         ("ROWS", lambda: fact_rows(store)),
+        ("RUNS", lambda: fact_runs(r, store)),
         ("TESTS", lambda: fact_tests(r)),
         ("DELIVERABLES", lambda: fact_deliverables(r, store)),
         ("TREE", lambda: fact_tree(r)),

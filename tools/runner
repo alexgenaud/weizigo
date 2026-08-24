@@ -484,6 +484,168 @@ def _run_record_path(task_identity, repo_root):
     return os.path.join(repo_root, "untracked", "runs", _sanitize_identity(task_identity) + ".json")
 
 
+# ── T895 (2026-08-24): run-record IDENTITY — a dispatch vs a nested run ────
+#
+# The defect: a dispatched worker that invokes this runner for its OWN test
+# runs does so under its OWN task id, so both runs compete for one identity's
+# record slot.  The nested run is NEWER, its pid is a test script's, and it
+# exits in seconds — so `managent reap` read a dead pid with an exit field and
+# called a LIVE worker an orphan.  Caught twice on 2026-08-24 (B57/B58, and
+# T880 at 19:38, reported "[ORPHAN] ... runner pid dead" four minutes into
+# its CPU time).  untracked/runs/T880.*.json is the recorded shape: attempt 1
+# is the `pi` dispatch, attempts 2-29 are `zig build` / regression-*.sh runs
+# from inside it, two attempt numbers are duplicated (concurrent nested runs
+# raced the archive path) and T880.27.json is a torn double-write.  T650 made
+# attempts non-destructive; this row makes them DISTINGUISHABLE.
+#
+# The rule, in order of strength — no command-string regex anywhere (a pattern
+# matched against a free-text field is the `claimlint-green` construction):
+#
+#   1. ENV MARKER (exact).  A dispatch runner exports MANAGENT_RUN_IDENTITY=
+#      <its own identity> into the child's environment before spawning.  Any
+#      runner in that child's process tree that resolves to the SAME identity
+#      is, by construction, running INSIDE that dispatch: nested.  A leaf
+#      dispatched from inside a manager's console carries a DIFFERENT identity,
+#      so the comparison (not the mere presence of the marker) is what decides.
+#   2. PROCESS TREE (structural fallback, for a stripped/unset environment).
+#      The identity's dispatch record is present, un-finalized (no exit/signal/
+#      end) and its pid is alive — and THIS process is inside that pid's
+#      process tree, per the same walker the orphan sweeper uses.  Requiring
+#      containment (not just liveness) is what makes pid reuse harmless: an
+#      unrelated process that inherited the recorded pid is not my ancestor.
+#   3. Otherwise DISPATCH — the status quo.  Note that real dispatches take
+#      their identity from MANAGENT_TASK_ID (bin/subagent sets the env, not
+#      --task-id), so "identity came from the environment" can NOT be used as
+#      the nested test; it would mislabel every fleet dispatch.
+#
+# A nested run writes to untracked/runs/nested/<ident>.<pid>-<epoch>.json and
+# does NOT rotate the dispatch slot.  Consequences: the bare path keeps
+# meaning "this row's dispatch" for every existing reader (dispatch_verify,
+# attribution-backfill, managent reap/resume, the AC7 census — all of which
+# read top-level *.json only, so nested records leave their populations), and
+# a nested record can never occupy an identity's dispatch slot again.  Every
+# record now carries `run_kind` so a reader never has to infer it.
+
+RUN_IDENTITY_ENV = "MANAGENT_RUN_IDENTITY"
+
+
+def _pid_alive(pid):
+    """True when this pid exists.  Conservative on doubt (a permission error
+    means it exists but is not ours to signal) — the same rule managent's
+    reaper uses: never conclude dead without proof."""
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except PermissionError:
+        return True
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def _read_record_file(path):
+    """Parse a run record, or None (missing / torn / not an object)."""
+    try:
+        with open(path) as f:
+            rec = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return rec if isinstance(rec, dict) else None
+
+
+def _record_is_open(rec):
+    """True when a record describes a run that has not been finalized: no
+    exit, no signal, no end.  A finalized record's pid being alive is pid
+    reuse, not a live run."""
+    return (rec.get("exit") is None and rec.get("signal") is None
+            and rec.get("end") is None)
+
+
+def _inside_process_tree(pid):
+    """True when this process is inside pid's process tree (pid included).
+    Uses the platform walker the orphan sweeper already uses."""
+    try:
+        return os.getpid() in _WALKER_FN(int(pid))
+    except Exception:
+        return False
+
+
+def _open_live_records_for(task_identity, repo_root):
+    """This identity's un-finalized records whose pid is alive, newest first,
+    as (pid, filename).
+
+    Scans the bare slot AND every archived attempt: T650 renames the bare
+    record to <ident>.<N>.json when a new attempt starts, so a row whose slot
+    has already been taken by a test run keeps its live dispatch record in a
+    NUMBERED file.  Reading only the bare slot would miss exactly the state
+    the contamination leaves behind."""
+    ident = _sanitize_identity(task_identity)
+    runs_dir = os.path.join(repo_root, "untracked", "runs")
+    rx = re.compile(r"^" + re.escape(ident) + r"\.(\d+)\.json$")
+    try:
+        names = os.listdir(runs_dir)
+    except OSError:
+        return []
+    found = []
+    for fn in names:
+        if fn != ident + ".json" and not rx.match(fn):
+            continue
+        rec = _read_record_file(os.path.join(runs_dir, fn))
+        if rec is None or not _record_is_open(rec):
+            continue
+        if not _pid_alive(rec.get("pid")):
+            continue
+        try:
+            found.append((str(rec.get("start") or ""), int(rec.get("pid")), fn))
+        except (TypeError, ValueError):
+            continue
+    found.sort(reverse=True)
+    return [(pid, fn) for _start, pid, fn in found]
+
+
+def _classify_run_kind(task_identity, repo_root):
+    """Return ("dispatch"|"nested", reason) for THIS invocation.  See the
+    block comment above for the rule and why each layer is there."""
+    marker = os.environ.get(RUN_IDENTITY_ENV)
+    if marker and task_identity and marker == task_identity:
+        return "nested", "%s=%s — this run is inside that dispatch" % (
+            RUN_IDENTITY_ENV, marker)
+    if not repo_root or not task_identity:
+        return "dispatch", "no record store to compare against"
+    live = _open_live_records_for(task_identity, repo_root)
+    for pid, fn in live:
+        if _inside_process_tree(pid):
+            return "nested", ("%s holds a live un-finalized run (pid %d) and "
+                              "this process is inside its process tree"
+                              % (fn, pid))
+    if live:
+        return "dispatch", ("%d live un-finalized record(s) for this identity, "
+                            "none containing this process — a separate dispatch"
+                            % len(live))
+    return "dispatch", "no live un-finalized record holds this identity"
+
+
+def _nested_record_path(task_identity, repo_root, pid, start_epoch):
+    """A nested run's own namespace: never the identity's dispatch slot.
+    The name is a pure function of (identity, pid, start epoch) so the launch
+    write and the finalize write resolve to the SAME file, and pid reuse
+    across seconds cannot collide."""
+    return os.path.join(
+        repo_root, "untracked", "runs", "nested",
+        "%s.%s-%s.json" % (_sanitize_identity(task_identity),
+                           pid if pid is not None else "unknown",
+                           start_epoch if start_epoch is not None else "0"))
+
+
+def _record_path_for(record, repo_root):
+    """The path a record belongs at, derived from the record itself (so both
+    the launch write and the finalize write land in the same place)."""
+    task = record.get("task", "unknown")
+    if record.get("run_kind") == "nested":
+        return _nested_record_path(task, repo_root, record.get("pid"),
+                                   record.get("start_epoch"))
+    return _run_record_path(task, repo_root)
+
+
 def _model_from_argv(argv, canonicalizer=None):
     """The CANONICAL model label from the dispatch command's --model flag, or None.
 
@@ -572,7 +734,7 @@ def _write_run_record(record, repo_root):
     """
     if not repo_root:
         return
-    path = _run_record_path(record.get("task", "unknown"), repo_root)
+    path = _record_path_for(record, repo_root)
     tmp = path + ".tmp"
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -3265,6 +3427,21 @@ def main():
     # _finalize_run_record become no-ops (both early-return on a falsy root).
     record_root = repo_root if not identity_degraded else None
 
+    # ── T895: dispatch or nested? ─────────────────────────────────────────
+    # Decided ONCE, before any record is written, and stamped on every record
+    # this invocation writes.  A nested run keeps its own namespace so it can
+    # never occupy the row's dispatch slot (see the run-record IDENTITY block).
+    run_kind, run_kind_reason = _classify_run_kind(task_identity, record_root)
+    if run_kind == "nested":
+        print(f"[runner] NESTED run under {task_identity}: {run_kind_reason}",
+              file=sys.stderr)
+        print("[runner]   record -> untracked/runs/nested/ ; the row's dispatch "
+              "record is left alone (T895).", file=sys.stderr)
+    # Children — and any runner started inside them — learn which dispatch
+    # they are running in.  This is the exact signal layer 1 reads.
+    if task_identity:
+        os.environ[RUN_IDENTITY_ENV] = task_identity
+
     # ── admission arbiter (T821, ORC-GD-3/INV-3) ────────────────────────
     # A declared need is checked against what is already admitted BEFORE
     # the child is spawned.  Refused = nothing below this point runs; the
@@ -3315,7 +3492,8 @@ def main():
             d = pending_stops[0]
             refused_rec = {
                 "task": task_identity,
-                "attempt": _begin_attempt(task_identity, record_root),
+                "run_kind": run_kind,
+                "run_kind_reason": run_kind_reason,
                 "model": _model_from_argv(argv),
                 "pid": os.getpid(),
                 "launcher_pid": os.getppid(),
@@ -3334,6 +3512,8 @@ def main():
                                str(d.get("directive", "?")).upper(),
                                d.get("from", "?"))),
             }
+            if run_kind != "nested":
+                refused_rec["attempt"] = _begin_attempt(task_identity, record_root)
             _write_run_record(refused_rec, record_root)
         print(f"[runner] exit 124 (directive: {pending_stops[0].get('id', '?')} "
               f"{str(pending_stops[0].get('directive', '?')).upper()} pending at launch)",
@@ -3384,7 +3564,10 @@ def main():
     # stamp the child's fate onto this same record.
     run_record = {
         "task": task_identity,
-        "attempt": _begin_attempt(task_identity, record_root),
+        # T895: what KIND of run this is, stated by the writer — never
+        # inferred by a reader from the command text.
+        "run_kind": run_kind,
+        "run_kind_reason": run_kind_reason,
         "model": _model_from_argv(argv),
         "pid": os.getpid(),
         "pgid": proc.pid,
@@ -3403,6 +3586,10 @@ def main():
         "prompt_bytes": _prompt_bytes(argv),
         "wall_budget": args.max_wall if args.max_wall else None,
     }
+    # A nested run does NOT rotate the dispatch slot: no _begin_attempt, so
+    # the row's dispatch record stays exactly where every reader looks.
+    if run_kind != "nested":
+        run_record["attempt"] = _begin_attempt(task_identity, record_root)
     _write_run_record(run_record, record_root)
 
     # Make stderr + stdout non-blocking for select-based reading

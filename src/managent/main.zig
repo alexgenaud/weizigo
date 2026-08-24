@@ -6699,15 +6699,25 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 
         w.data("\n  fleet stalls (in_progress rows with no live process):\n", .{});
         var n_stall: u32 = 0;
+        var n_unknown_res: u32 = 0;
         if (rows_res) |rr| {
             for (rr.items) |r| {
                 if (!isOrphanReap(r.cls)) continue;
                 n_stall += 1;
                 w.data("    ! {s}  ORPHAN — {s}\n", .{ r.tid, r.evidence });
             }
+            // T895: a row whose records cannot be attributed to a dispatch is
+            // neither backed nor an orphan; say so where the operator looks.
+            for (rr.items) |r| {
+                if (!isUnknownReap(r.cls)) continue;
+                n_unknown_res += 1;
+                w.data("    ? {s}  UNKNOWN — {s}\n", .{ r.tid, r.evidence });
+            }
         }
-        if (n_stall == 0) {
+        if (n_stall == 0 and n_unknown_res == 0) {
             w.data("    -- none --\n", .{});
+        } else if (n_stall == 0) {
+            w.data("    (no orphans; the UNKNOWN row(s) above are not closable)\n", .{});
         } else {
             w.data("    run `managent reap` to report, `managent reap --close` to close as abandoned.\n", .{});
         }
@@ -8842,6 +8852,18 @@ const RunRecord = struct {
     cpu: f64 = 0.0,
     rss_mb: f64 = 0.0,
     killed: ?[]const u8 = null,
+    // T895: the writer's own statement of what KIND of run this was —
+    // "dispatch" (the row's own run) or "nested" (a run started from inside
+    // the dispatch, e.g. the worker's test runs).  Empty = undeclared, which
+    // is every record written before 2026-08-24; those are never back-filled
+    // (a back-filled record is a fabricated one), so a reader must treat
+    // undeclared as "the top-level namespace says dispatch" and SAY so.
+    run_kind: []const u8 = "",
+    attempt: ?i64 = null,
+    // The file this record was read from — the evidence line names it, so a
+    // human can check the instrument's input without guessing which of an
+    // identity's records was selected.
+    source: []const u8 = "",
 };
 
 fn runRecI64(o: std.json.ObjectMap, key: []const u8) i64 {
@@ -8942,6 +8964,9 @@ fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(
             .cpu = runRecF64(obj, "cpu"),
             .rss_mb = runRecF64(obj, "rss_mb"),
             .killed = if (killed) |s| try alloc.dupe(u8, s) else null,
+            .run_kind = try alloc.dupe(u8, runRecStr(obj, "run_kind")),
+            .attempt = runRecOptI64(obj, "attempt"),
+            .source = try alloc.dupe(u8, entry.name),
         });
     }
     if (bad > 0) {
@@ -8971,6 +8996,10 @@ const ReapClass = enum {
     orphan_ended, // runner dead, completed record — run ended, row never closed
     orphan_midflight, // runner dead, launch record only — killed mid-flight
     orphan_no_evidence, // no run record, no fresh heartbeat — nothing backs the row
+    // T895: records exist for this row but none of them is a dispatch record
+    // (all declared nested).  The instrument cannot say whether the row is
+    // backed — that is UNKNOWN, and UNKNOWN is never closable.
+    unknown_no_dispatch,
 };
 
 const ReapRow = struct {
@@ -8979,13 +9008,76 @@ const ReapRow = struct {
     evidence: []const u8,
 };
 
-fn latestRunRecordFor(runs: []const RunRecord, tid: []const u8) ?RunRecord {
+// ── T895: which record backs a row? ───────────────────────────────────────
+//
+// `latestRunRecordFor` picked the NEWEST record for the task id, with no
+// notion of what kind of run produced it.  A worker running its own tests
+// under its own task id therefore wrote a newer record whose pid was a test
+// script's; that script exited in seconds, and reap read a dead pid with an
+// exit field and called a live worker an orphan (B57/B58 and T880, both
+// 2026-08-24).  The reader side is the safety net; tools/runner's namespace
+// split is the root fix.
+//
+// Three rules, in order:
+//   1. LIVENESS over recency.  Any record for this identity — bare, archived
+//      attempt, or nested — that is un-finalized (no exit/signal/end) and
+//      whose pid is alive is proof the row is backed.  This is what makes the
+//      net work on records written BEFORE the writer fix, where the dispatch
+//      record has merely been displaced into <id>.<N>.json.  A finalized
+//      record whose pid happens to be alive is pid reuse, not a live run.
+//   2. The DISPATCH record, not the newest record.  Declared-nested records
+//      are never dispatch evidence.
+//   3. No dispatch record identifiable, but records exist → UNKNOWN, never
+//      ORPHAN.  An unreadable instrument is not a licence to close a row.
+
+/// A record whose run has not been finalized: no exit, no signal, no end.
+fn recordIsOpen(r: RunRecord) bool {
+    return r.exit == null and r.signal == null and r.end == null;
+}
+
+fn recordIsNested(r: RunRecord) bool {
+    return std.mem.eql(u8, r.run_kind, "nested");
+}
+
+fn recordKindLabel(r: RunRecord) []const u8 {
+    return if (r.run_kind.len == 0) "undeclared" else r.run_kind;
+}
+
+/// Rule 1: any un-finalized record for this identity with a live pid.
+/// Prefers a dispatch-kind record when several qualify, so the evidence line
+/// names the row's own run rather than one of its test runs.
+fn liveRunRecordFor(runs: []const RunRecord, tid: []const u8) ?RunRecord {
+    var found: ?RunRecord = null;
+    for (runs) |r| {
+        if (!std.mem.eql(u8, r.task, tid)) continue;
+        if (!recordIsOpen(r)) continue;
+        if (!processAlive(r.pid)) continue;
+        if (found == null) {
+            found = r;
+        } else if (recordIsNested(found.?) and !recordIsNested(r)) {
+            found = r;
+        }
+    }
+    return found;
+}
+
+/// Rule 2: the newest record for this identity that is not declared nested.
+fn dispatchRunRecordFor(runs: []const RunRecord, tid: []const u8) ?RunRecord {
     var latest: ?RunRecord = null;
     for (runs) |r| {
         if (!std.mem.eql(u8, r.task, tid)) continue;
+        if (recordIsNested(r)) continue;
         if (latest == null or std.mem.lessThan(u8, (latest.?).start, r.start)) latest = r;
     }
     return latest;
+}
+
+fn countRunRecordsFor(runs: []const RunRecord, tid: []const u8) usize {
+    var n: usize = 0;
+    for (runs) |r| {
+        if (std.mem.eql(u8, r.task, tid)) n += 1;
+    }
+    return n;
 }
 
 fn latestHeartbeatFor(heartbeats: []const Heartbeat, tid: []const u8) ?Heartbeat {
@@ -9020,6 +9112,8 @@ fn classifyReapRows(
             if (r.end) |s| alloc.free(s);
             alloc.free(r.command);
             if (r.killed) |s| alloc.free(s);
+            alloc.free(r.run_kind);
+            alloc.free(r.source);
         }
         runs.deinit(alloc);
     }
@@ -9037,26 +9131,30 @@ fn classifyReapRows(
         var cls: ReapClass = undefined;
         var evidence: []const u8 = "";
 
-        if (latestRunRecordFor(runs.items, tid)) |rec| {
-            if (processAlive(rec.pid)) {
-                cls = .backed_process;
-                evidence = try std.fmt.allocPrint(alloc,
-                    "runner pid {d} alive (start {s}, command {s}) — row is backed", .{
-                    rec.pid, rec.start, rec.command,
-                });
-            } else if (rec.exit != null or rec.signal != null) {
+        if (liveRunRecordFor(runs.items, tid)) |rec| {
+            // T895 rule 1: a live un-finalized run for this identity backs
+            // the row, whichever record carries it.  The evidence names the
+            // record read and its declared kind — a reader must never have to
+            // guess which of an identity's records the verdict came from.
+            cls = .backed_process;
+            evidence = try std.fmt.allocPrint(alloc,
+                "runner pid {d} alive (record {s}, kind {s}, attempt {?d}, start {s}, command {s}) — row is backed", .{
+                rec.pid, rec.source, recordKindLabel(rec), rec.attempt, rec.start, rec.command,
+            });
+        } else if (dispatchRunRecordFor(runs.items, tid)) |rec| {
+            if (rec.exit != null or rec.signal != null) {
                 // The run COMPLETED (child exited or was killed) but the row
                 // was never closed — the runner is gone.
                 cls = .orphan_ended;
                 if (rec.signal) |sig| {
                     evidence = try std.fmt.allocPrint(alloc,
-                        "no live process — run ended signal={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed", .{
-                        sig, rec.wall, rec.end orelse "?", rec.pid,
+                        "no live process — run ended signal={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed (record {s}, kind {s})", .{
+                        sig, rec.wall, rec.end orelse "?", rec.pid, rec.source, recordKindLabel(rec),
                     });
                 } else {
                     evidence = try std.fmt.allocPrint(alloc,
-                        "no live process — run ended exit={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed", .{
-                        rec.exit orelse -1, rec.wall, rec.end orelse "?", rec.pid,
+                        "no live process — run ended exit={d} wall={d:.1}s at {s}; runner pid {d} dead; row never closed (record {s}, kind {s})", .{
+                        rec.exit orelse -1, rec.wall, rec.end orelse "?", rec.pid, rec.source, recordKindLabel(rec),
                     });
                 }
             } else {
@@ -9064,10 +9162,18 @@ fn classifyReapRows(
                 // killed mid-flight (the 2026-08-04 incident shape).
                 cls = .orphan_midflight;
                 evidence = try std.fmt.allocPrint(alloc,
-                    "no live process — launch record {s} (command {s}) has no exit fields; runner pid {d} dead — killed mid-flight", .{
-                    rec.start, rec.command, rec.pid,
+                    "no live process — launch record {s} (command {s}) has no exit fields; runner pid {d} dead — killed mid-flight (record {s}, kind {s})", .{
+                    rec.start, rec.command, rec.pid, rec.source, recordKindLabel(rec),
                 });
             }
+        } else if (countRunRecordsFor(runs.items, tid) > 0) {
+            // T895 rule 3: records exist, none is a dispatch record.  The
+            // instrument cannot attribute a run to this row — UNKNOWN.
+            cls = .unknown_no_dispatch;
+            evidence = try std.fmt.allocPrint(alloc,
+                "UNKNOWN — {d} run record(s) for this row, none of them a dispatch record (all declared nested); no dispatch evidence to read, so nothing here licenses closing the row", .{
+                countRunRecordsFor(runs.items, tid),
+            });
         } else if (latestHeartbeatFor(heartbeats, tid)) |hb| {
             if (ageSecFromTs(hb.ts, now_unix)) |age| {
                 if (age <= stale_secs) {
@@ -9112,9 +9218,16 @@ fn freeReapRows(rows: *std.ArrayList(ReapRow)) void {
 
 fn isOrphanReap(cls: ReapClass) bool {
     return switch (cls) {
-        .backed_process, .backed_heartbeat => false,
+        // T895: UNKNOWN joins the backed classes on the never-close side.  An
+        // unreadable instrument is not a licence to close a row; reap reports
+        // it separately so it is visible without being actionable.
+        .backed_process, .backed_heartbeat, .unknown_no_dispatch => false,
         else => true,
     };
+}
+
+fn isUnknownReap(cls: ReapClass) bool {
+    return cls == .unknown_no_dispatch;
 }
 
 
@@ -11625,8 +11738,12 @@ fn cmdReap(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     w.data("\n  Reap — in_progress rows vs the process table:\n", .{});
     var n_backed: u32 = 0;
     var n_orphan: u32 = 0;
+    var n_unknown: u32 = 0;
     for (rows.items) |r| {
-        if (isOrphanReap(r.cls)) {
+        if (isUnknownReap(r.cls)) {
+            n_unknown += 1;
+            w.data("    {s}  [UNKNOWN]  {s}\n", .{ r.tid, r.evidence });
+        } else if (isOrphanReap(r.cls)) {
             n_orphan += 1;
             w.data("    {s}  [ORPHAN]   {s}\n", .{ r.tid, r.evidence });
         } else {
@@ -11637,7 +11754,12 @@ fn cmdReap(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     if (rows.items.len == 0) {
         w.data("    -- no in_progress rows --\n", .{});
     }
-    w.data("\n  backed: {d}   orphans: {d}   (stale threshold {d:.1} min)\n", .{ n_backed, n_orphan, stale_min });
+    w.data("\n  backed: {d}   orphans: {d}   unknown: {d}   (stale threshold {d:.1} min)\n", .{ n_backed, n_orphan, n_unknown, stale_min });
+    if (n_unknown > 0) {
+        // T895: UNKNOWN rows are reported and NEVER closed by --close.
+        w.data("  {d} row(s) UNKNOWN: the run records that exist cannot be attributed to a\n", .{n_unknown});
+        w.data("  dispatch.  Not closable — check the process table before touching them.\n", .{});
+    }
     if (n_orphan == 0) {
         w.data("  nothing to reap.\n\n", .{});
         return;
