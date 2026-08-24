@@ -86,8 +86,11 @@ import json;print(sum(1 for r in json.load(open('$S')) if r.get('status')=='disp
 if [ "${inp:-0}" = 0 ] && [ "${dsp:-0}" != 0 ]; then say AC2 FAIL "fleet idle with $dsp dispatchable — dispatch or say why"
 else say AC2 PASS "in_progress=$inp dispatchable=$dsp"; fi
 
-# AC3 — no commit touched a path held by another live task (the hook records refusals)
-say AC3 PASS "enforced by tools/hooks/pre-commit (T455); this check reports, the hook blocks"
+# AC3 removed (T872 green-up): it was an unconditional PASS. The T455
+# holder-collision refusal it pointed at is really covered by
+# regression-precommit.sh and regression-git-commit-mine-hook.sh. The
+# remaining checks keep their original ids (AC4..AC11) so the T537
+# regression (which filters AC6/AC7 by exact id) stays green.
 
 # AC4 — every dispatchable/in-progress task names a landmark
 nolm=0
