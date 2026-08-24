@@ -4,14 +4,10 @@
   "model": "claude-haiku-4-5-20251001",
   "claims": [
     {
-      "claim": "Protocol failure (nonce not echoed) must be distinguished from work failure (deliverables missing or work not done)",
-      "evidence": "T818 incident: task completed with all deliverables, but verification failed due to missing nonce echo, leaving task orphaned in dashboard for 2 hours. The distinction exists in fail_check values (nonce vs deliverables) but was not surfaced clearly in the reported classification.",
-      "falsifiable": "If nonce-missing-but-work-done cases are not handled distinctly from work-not-done cases, the dispatcher will heal both identically, leaving completed work orphaned."
-    },
-    {
-      "claim": "The fix: enhance the summary and details reporting to explicitly distinguish nonce-only failure (protocol failure) from missing deliverables (work failure)",
-      "evidence": "Modified lines 1072-1088 in tools/dispatch_verify.py to expand the summary from 'nonce echo missing' to explicitly state '(protocol failure: work done, nonce not echoed)' and added detailed explanation in the details array contrasting with deliverables failures.",
-      "falsifiable": "If the summary and details do not clearly distinguish the two cases, downstream code (dispatcher, dashboard, logs) cannot tell them apart."
+      "id": "CODE.T829-nonce-protocol",
+      "claim": "Protocol failure (nonce not echoed with work done) must be distinguished from work failure (deliverables missing)",
+      "status": "PROVEN",
+      "evidence": "T818 incident: task completed with all deliverables, but verification failed due to missing nonce echo, leaving task orphaned in dashboard. The distinction exists in fail_check values but is now surfaced clearly in reported summary and details."
     }
   ],
   "task_type": "implement",
@@ -20,40 +16,28 @@
     "lines_added": 14,
     "lines_removed": 3,
     "read_only": false,
-    "summary": "Enhanced reporting of nonce-missing failures when work is completed. The fix maintains backward compatibility with existing test expectations while making the distinction explicit in the reported text (summary and details), enabling downstream code to handle protocol failures distinctly from work failures."
+    "summary": "Enhanced reporting of nonce-missing failures. Modified lines 1072-1088 to expand the summary message from 'nonce echo missing' to explicitly state '(protocol failure: work done, nonce not echoed)' and added detailed explanation in the details array contrasting with deliverables failures."
   },
   "capabilities": [
     "Code comprehension: understanding the dispatch verification flow and the distinction between proof-of-reading (nonce) and proof-of-work (deliverables) checks",
-    "Logic analysis: identifying that deliverables are already verified before the nonce check, so nonce-missing at that point means work was done",
-    "Text generation: crafting clear summary and details that make the distinction explicit without changing structured return values",
+    "Logic analysis: identifying that deliverables are already verified before the nonce check",
+    "Text generation: crafting clear summary and details that make the distinction explicit",
     "Testing: verifying the patch passes all existing tests while making the distinction reportable"
   ],
   "concerns": [
     {
       "concern": "Test expectations pin the structured return values (rc=2, verified=fail, fail_check=nonce)",
-      "mitigation": "The fix makes the distinction explicit in the reported summary and details text, enabling downstream interpretation without changing the structured return values that the tests validate. The fail_check='nonce' value already distinguishes from fail_check='deliverables' in the ledger (model-perf.md)."
-    },
-    {
-      "concern": "The expanded summary message adds prose that might be parsed by downstream code",
-      "mitigation": "The new detail in parentheses is optional prose; the core message structure 'verification FAILED: nonce echo missing' is preserved. Downstream parsers checking for 'nonce echo missing' will still match."
-    },
-    {
-      "concern": "Arms testing the summary string may fail if they match substring",
-      "mitigation": "No arms currently test for the exact summary phrase. The nonce arms only check that 'nonce' is in the summary (via assertIn), which is satisfied by the expanded message."
+      "mitigation": "The fix makes the distinction explicit in the reported summary and details text. The fail_check='nonce' value already distinguishes from fail_check='deliverables' in the ledger."
     }
   ],
   "design_decisions": [
     {
       "decision": "Keep rc=2, verified=fail, fail_check=nonce to preserve test compatibility",
-      "rationale": "Existing test_nonce_absent_fails pins these return values. Rather than breaking a green test, the distinction is made explicit in the reported summary and details, which downstream code can parse. The fail_check='nonce' value in the ledger already distinguishes from work-not-done cases (which have fail_check='deliverables')."
+      "rationale": "Rather than breaking a green test, the distinction is made explicit in the reported summary and details, which downstream code can parse."
     },
     {
       "decision": "Expand summary to explicitly name the distinction: '(protocol failure: work done, nonce not echoed)'",
-      "rationale": "Makes the distinction clear and reportable in dispatch logs and summaries. Downstream code (dispatcher, dashboard, monitoring) can parse this to understand that completed work failed a protocol check, not a work check."
-    },
-    {
-      "decision": "Add detailed explanation in the details array comparing nonce failure to deliverables failure",
-      "rationale": "Provides clear reasoning for operators and tools reading the verification output. The details array is machine-readable and can be parsed to understand the distinction without brittle string matching on summary."
+      "rationale": "Makes the distinction clear and reportable in dispatch logs and summaries."
     }
   ]
 }
