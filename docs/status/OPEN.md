@@ -143,5 +143,23 @@ T677 incident (a cooldown once armed from a quoted document). I nearly repeated 
 
 **Reconciliation outcome.** 39 rows closed on evidence (37 `pass`, 2 `abandoned`). `T819` and `T832` unblocked and are dispatchable. `T843`/`T844` remain blocked on B21. Six rows never ran and are correctly `dispatchable`: `T786`, `T787`, `T796`, `T798`, `T825`, `T836`. Store count unchanged at 479 throughout; every invariant re-verified after each commit.
 
-| B23 | **ox-alpha returned an empty response twice in a row, ~13 s each, exit 0, no nonce and no claim** — on the store-loss detector row, at roughly 09:00Z. Earlier the same day it completed four substantial lanes (the corpus blind pass and three race entries), so this is an availability change, not a capability limit. It bears on the standing order to use ox-alpha liberally: prefer it, but do not put the single highest-priority row on it without a fallback ready. The row went to `deepseek-v4-pro` and started immediately. | `untracked` runner log for that row, two consecutive verification failures |
+| B23 | **ox-alpha returned two empty responses, then probed healthy — the fault was transient, not the model.** Two dispatches of the store-loss detector row came back exit 0 in 13.1 s and 8.8 s with no nonce and no claim, six minutes after the same model had completed a substantial lane on the *identical* provider path. A direct probe immediately afterwards had it read that same brief, echo a nonce, and summarise the task correctly including its arm count. **So this is an availability blip and nothing more.** Recorded here because the seat's first write-up implied ox-alpha was the weaker choice, which the evidence does not support: switching the row to `deepseek-v4-pro` was a liveness decision on n=1, not a capability comparison, and the standing measurement has ox-alpha at the best clean-pass rate. Ranking these two requires a head-to-head on one row. | two attempt records for that row; a direct provider probe; the model's own correct summary of the brief |
 | B24 | **`managent suggest` does not apply the bundle's `holds=` meta.** A row minted by `suggest` before its brief is written keeps `holds: []`, so the file-conflict guard protects nothing even though the brief declares it. Deliverables *are* read from the same header at dispatch, so the parser exists — only `holds` is dropped. `T848` holds `src/managent/main.zig`, the one-writer file, and its row claims to hold nothing. | `T848`'s row versus its own bundle header |
+
+## C-new. Dispatched or queued by the orcha seat, 2026-08-24
+
+- **T848 — store-loss detector (S10 pass 1).** RUNNING on `deepseek-v4-pro`. Scope deliberately
+  narrowed on the operator's ruling (*"robust simplicity rather than flakey complexity… fix root
+  problems"*): the committed census plus write-time refuse, read-time alarm and retirement
+  bookkeeping. The `unverified` verdict class, the computed close, the concern channel and kill
+  history are **deferred, not scheduled** — a sixth verdict state that every scorer and dashboard
+  must handle is not justified while a truthful note in an existing verdict demonstrably works, and
+  part of the computed close already exists and refused three of this seat's own closes correctly.
+- **T849 — scratch-repo fixture.** QUEUED behind T848, deliberately, for steady pace. The root-cause
+  fix the detector only nets: one sourceable helper replacing 77 hand-rolled `git init` calls across
+  58 scripts, converting **five** scripts in this row and no more. Census established: 83 regression
+  scripts, 58 with `git init`, 51 of those with exactly one; scratch roots split 65 `/tmp/weizigo`
+  against 11 `/private/tmp/weizigo`, the same directory through the symlink that has already made
+  git refuse adds. **The material finding: `tools/hooks/pre-commit` is the only file in `tools/` that
+  unsets the git environment**, so every one of these scripts is still unguarded when run directly,
+  by the suite, or by `zig build test`. The hazard is closed for one invocation path, not for the class.
