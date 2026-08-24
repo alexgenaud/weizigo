@@ -37,10 +37,12 @@ FAIL=0
 cleanup() { [ -n "${WORK:-}" ] && rm -rf "$WORK"; }
 trap cleanup EXIT
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t716-lanes-XXXXXX)" || { echo "regression-managent-lanes.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo t716-lanes WORK   # T849: isolated scratch repo
 cd "$WORK"
-git init -q
 git config user.email t716@test
 git config user.name T716
 mkdir -p docs/infra/managent untracked bin findings
