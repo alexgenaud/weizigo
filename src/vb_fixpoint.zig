@@ -18,9 +18,12 @@
 //
 // FIXPOINT INVARIANTS — verify-battery V-8 M3.
 //
-// Implements I4 (Bellman residual), I7 (DTT sanity),
-// I8 (truncation-gap regression, 2×2 only), I9 (anchors),
-// I11 (move-set consistency).
+// Implements I4 (Bellman residual), I7 (DTT sanity), I9 (anchors).
+// I8 (truncation-gap) and I11 (move-set consistency) were deleted by
+// T872 green-up: I8's real coverage is the external Python fixture
+// (docs/evidence/QA-026/calibration-2x2-mismatch.py), and I11's real
+// coverage is the standalone vb_i11.zig module (T346/T473), wired into
+// `zig build test` — not the not_applicable stub deleted here.
 //
 // Author: DSPro/T173 · 2026-07-31
 // Status: DELIVERED — M3 fixpoint invariants
@@ -70,19 +73,6 @@ pub const I7Result = struct {
     err_msg: ?[]const u8 = null,
 };
 
-// I8 — truncation-gap regression (2×2 only)
-pub const I8Result = struct {
-    status: FixpointStatus = .pass,
-    numerator: u64 = 0,
-    denominator: u64 = 0,
-    mismatches: u64 = 0,
-    expected_mismatches: u64 = 0,
-    fixture_states: u64 = 0,
-    citation: []const u8 = "docs/evidence/QA-026/calibration-2x2-mismatch.py",
-    note: []const u8 = "",
-    err_msg: ?[]const u8 = null,
-};
-
 // I9 — anchors
 pub const I9Result = struct {
     status: FixpointStatus = .pass,
@@ -93,17 +83,6 @@ pub const I9Result = struct {
     match: ?bool = null,
     reference_citation: ?[]const u8 = null,
     note: ?[]const u8 = null,
-    err_msg: ?[]const u8 = null,
-};
-
-// I11 — move-set consistency
-pub const I11Result = struct {
-    status: FixpointStatus = .pass,
-    numerator: u64 = 0,
-    denominator: u64 = 0,
-    mismatches: u64 = 0,
-    mismatch_examples: [5]u64 = [_]u64{0} ** 5,
-    note: []const u8 = "I11 dump format undefined (GAP-5). Stubbed — not applicable until format is specified.",
     err_msg: ?[]const u8 = null,
 };
 
@@ -376,35 +355,10 @@ pub fn checkI7(dec: *const vb.WZO1Decoded, gs: vb.GobanSize) I7Result {
     };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// I8 — truncation-gap regression (2×2 only)
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// The 24 formerly-mismatched 2×2 states must agree between the loopy-game
-// fixpoint and exact first-revisit truncation. Expected: 0 mismatches.
-// Fixture and evaluators committed in:
-//   docs/evidence/QA-026/calibration-2x2-mismatch.py
-//
-// This is a regression test against buffer aliasing defects (Opus/T102).
-// At gobans other than 2×2: not_applicable.
-
-pub fn checkI8() I8Result {
-    // The 24-state fixture requires running two evaluators (loopy-game
-    // fixpoint vs. first-revisit truncation) and comparing. The
-    // calibration-2x2-mismatch.py script is the reference.
-    //
-    // This battery module does not re-implement the evaluators; instead
-    // it reports not_applicable at 3×2+ and delegates the 2×2 check to
-    // a separate run of the Python fixture in the fleet (V-13).
-    //
-    // At 2×2: the harness calls this and we report a placeholder pass
-    // with a note that the fixture is verified externally.
-    return I8Result{
-        .status = .not_applicable,
-        .note = "Truncation-gap regression fixture (24 states) verified externally via calibration-2x2-mismatch.py. This module stubs the result; the fleet run (V-13) executes the Python fixture separately.",
-        .citation = "docs/evidence/QA-026/calibration-2x2-mismatch.py",
-    };
-}
+// I8 (truncation-gap regression) — deleted by T872 green-up. Its real
+// coverage is the external Python fixture
+// docs/evidence/QA-026/calibration-2x2-mismatch.py; the battery reports
+// I8 as `external` (see vb_health.runI8 / verify_battery).
 
 // ═══════════════════════════════════════════════════════════════════════════
 // I9 — anchors
@@ -461,22 +415,13 @@ pub fn checkI9(dec: *const vb.WZO1Decoded, gs: vb.GobanSize) I9Result {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// I11 — move-set consistency
-// ═══════════════════════════════════════════════════════════════════════════
-//
-// Compares the battery's independently implemented legal-move set against
-// the solver engine's legal-move set via a solver-side dump file.
-//
-// GAP-5 (T172 blind analysis): dump format is unspecified. This invariant
-// is stubbed until the format is defined.
-
-pub fn checkI11() I11Result {
-    return I11Result{
-        .status = .not_applicable,
-        .note = "I11 dump format unspecified (GAP-5 from T172 blind analysis). Requires solver-side dump utility with defined format before move-set comparison is possible.",
-    };
-}
+// I11 (move-set consistency) — deleted by T872 green-up. The stub reported
+// not_applicable forever (GAP-5, T172), reading as coverage of a check that
+// never ran. The real I11 coverage is the standalone vb_i11.zig module
+// (T346/T473): R8-vs-kernel legal-move-set agreement, wired into `zig build
+// test`. The harness slot now reports `external`, delegating to that module
+// (see vb_health.runI11 / verify_battery). Correction to classification V2:
+// I11 is NOT "genuinely uncovered by anything".
 
 // ─── tests ─────────────────────────────────────────────────────────────────
 
@@ -553,12 +498,3 @@ test "I9 anchors on 3x2 artifact" {
     try testing.expectEqual(@as(i8, 0), result.actual_root);
 }
 
-test "I8 not_applicable stubs" {
-    const result = checkI8();
-    try testing.expectEqual(FixpointStatus.not_applicable, result.status);
-}
-
-test "I11 not_applicable stubs" {
-    const result = checkI11();
-    try testing.expectEqual(FixpointStatus.not_applicable, result.status);
-}

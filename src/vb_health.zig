@@ -180,7 +180,10 @@ fn runI7(ctx: *const Ctx) Status {
 }
 fn runI8(ctx: *const Ctx) Status {
     _ = ctx;
-    return mapFix(vbf.checkI8().status);
+    // T872 green-up: the not_applicable stub is deleted; I8's real coverage
+    // is the external Python fixture
+    // (docs/evidence/QA-026/calibration-2x2-mismatch.py).
+    return .external;
 }
 fn runI9(ctx: *const Ctx) Status {
     return mapFix(vbf.checkI9(&ctx.dec, ctx.gs).status);
@@ -191,7 +194,10 @@ fn runI10(ctx: *const Ctx) Status {
 }
 fn runI11(ctx: *const Ctx) Status {
     _ = ctx;
-    return mapFix(vbf.checkI11().status);
+    // T872 green-up: the not_applicable stub is deleted; I11's real coverage
+    // is the standalone vb_i11.zig module (T346/T473), so the harness slot
+    // reports `external` (delegating to that module).
+    return .external;
 }
 fn runI12(ctx: *const Ctx) Status {
     return mapTable(vbt.checkI12(&ctx.vbt_art).status);

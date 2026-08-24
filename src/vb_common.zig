@@ -77,6 +77,9 @@ pub const CheckStatus = enum {
     @"reference-disagreement",
     skipped,
     @"not-applicable",
+    // Coverage lives outside the battery's own check (a committed external
+    // fixture, or a gap deferred to the change-log / claims register).
+    external,
     @"error",
 };
 
