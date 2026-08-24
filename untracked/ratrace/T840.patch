@@ -1,0 +1,422 @@
+--- a/untracked/watch-fleet.sh	2026-08-24 09:42:13
++++ b/untracked/watch-fleet.sh	2026-08-24 09:28:34
+@@ -55,6 +55,29 @@
+     case "${2:-x}" in ''|*[!0-9]*) echo UNKNOWN; return ;; esac
+     [ "$2" -gt 0 ] || { echo UNKNOWN; return; }
+     awk -v n="$1" -v s="$2" 'BEGIN{r=n/s; printf (r<1000 ? "%.1f/s" : "%.0f/s"), r}'; }
++# Freshness (T840): age of the harness transcript's last record, in a 4-char
++# slot. The RATE column is the answer to "is the worker producing tokens";
++# LIVE is the answer to "is the worker producing anything at all" — the
++# second is independent of the first, because a slow reader can still be
++# alive (large thinking blocks, a thinking-only model) and a fast reader can
++# be silent (waiting on a tool). A 4-char slot: "12s" / "4m" / "2h" / "STALE"
++# / "-". "STALE" is >=15 min: a transcript that has not appended a record in
++# a quarter-hour is a worker that has stopped talking — exactly the
++# condition under which the operator wants to act. "-" is the explicit "no
++# transcript" answer; rendering an empty string would look like a layout
++# bug. Defined here so the regression harness can source it under the
++# WATCH_FLEET_SOURCE=1 guard.
++freshness_of() {  # $1 = mtime (epoch s, 0 = no transcript) -> "12s" | "4m" | "2h" | "STALE" | "-"
++    case "${1:-x}" in ''|*[!0-9]*) printf '%s' '-'; return ;; esac
++    [ "$1" -gt 0 ] || { printf '%s' '-'; return; }
++    now=$(date +%s)
++    age=$(( now - $1 ))
++    [ "$age" -lt 0 ] && age=0
++    if   [ "$age" -ge 900 ];  then printf 'STALE'
++    elif [ "$age" -lt 60 ];   then printf '%2ds' "$age"
++    elif [ "$age" -lt 3600 ]; then printf '%2dm' "$((age/60))"
++    else                        printf '%2dh' "$((age/3600))"
++    fi; }
+ if [ "${WATCH_FLEET_SOURCE:-0}" = "1" ]; then
+     return 2>/dev/null || exit 0
+ fi
+@@ -148,16 +171,32 @@
+ json.dump(auth,open(1,'w'))
+ PYX
+     bin/managent liveness 2>/dev/null > "$T.liveness" || : > "$T.liveness"
+-    # Meter join (T823): task -> its latest output-token reading, and task ->
+-    # its holder. A reading written BEFORE the task's current claim belongs to
+-    # a previous run of the same id, so it is dropped rather than divided by
+-    # this run's elapsed — that is the "never a stale value" half of the rule;
+-    # the "never 0" half is rate_of's. A task with no surviving reading simply
+-    # has no row here and renders UNKNOWN.
+-    python3 - "$T.json" untracked/tokens/tokens.jsonl "$T.agent" > "$T.tok" <<'PYT'
+-import json,sys
++    # Meter join (T823 + T840): task -> (tokens, transcript_mtime). The
++    # completion-time ledger writes at close and is the only signal T823 had;
++    # T840 adds a SECOND source — the in-flight harness transcript, which is
++    # the only signal available WHILE the worker is alive. Both pi (T662's
++    # --session: untracked/tokens/sessions/<task>.<ts>.<pid>.<n>.jsonl, one
++    # record per turn with a `message.usage.output` cumulative count) and
++    # claude (`$WEIZIGO_CLAUDE_TRANSCRIPT_DIR/<task>.*.jsonl`, one record
++    # with `output_tokens`) keep appending, so the file's mtime is the live
++    # freshness anchor. Output shape: <task>\t<tokens>\t<mtime>. A task with
++    # a transcript but no in-ledger reading yet still gets a row: the rate
++    # uses the transcript's tokens, the freshness uses its mtime. A reading
++    # whose mtime is the file's mtime but whose in-file timestamps all
++    # predate the current claim is dropped — that file belongs to a
++    # previous run of the same id, and the rate must not be divided by
++    # this run's elapsed.
++    python3 - "$T.json" untracked/tokens/tokens.jsonl untracked/tokens/sessions "${WEIZIGO_CLAUDE_TRANSCRIPT_DIR:-}" "$T.agent" > "$T.tok" <<'PYT'
++import json,sys,os,time,glob
+ try: store=json.load(open(sys.argv[1]))
+ except Exception: store={}
++def parse_iso(s):
++    if not s: return 0
++    s=s[:19]
++    try: return int(time.mktime(time.strptime(s,'%Y-%m-%dT%H:%M:%S')))
++    except Exception: return 0
++# completion-time ledger: <task> -> (ts, tokens, mtime=0) — best, but T840
++# takes the transcript's tokens/mtime when it has a post-claim record.
+ best={}
+ try: fh=open(sys.argv[2])
+ except Exception: fh=[]
+@@ -171,13 +210,69 @@
+     claimed=(store.get(t) or {}).get('claimed') or ''
+     if claimed and ts and ts < claimed: continue      # a previous run of this id
+     prev=best.get(t)
+-    if prev is None or ts >= prev[0]: best[t]=(ts,n)
+-with open(sys.argv[3],'w') as f:
++    if prev is None or ts >= prev[0]: best[t]=(ts,n,0)
++def read_transcript(task,patterns):
++    """Read every jsonl matching any glob pattern for the task. Return
++    (tokens, mtime) where tokens is the highest cumulative output from a
++    post-claim message and mtime is the latest record's epoch seconds.
++    A transcript whose first message predates the claim is skipped — it
++    belongs to a previous run of the same id (the same defect T823 caught
++    for the completion-time ledger). A transcript with no `usage` block on
++    any record returns (0,0); the absence is the truth and the rate/freshness
++    surfaces UNKNOWN / '-' from the upstream callers."""
++    claimed=(store.get(task) or {}).get('claimed') or ''
++    cepoch=parse_iso(claimed)
++    out=0; mt=0; first_seen=0
++    for pat in patterns:
++        for path in glob.glob(pat):
++            if not os.path.isfile(path): continue
++            try: st=os.stat(path); fm=int(st.st_mtime)
++            except Exception: continue
++            for line in open(path,'r',errors='replace'):
++                line=line.strip()
++                if not line: continue
++                try: d=json.loads(line)
++                except Exception: continue
++                if d.get('type') and d.get('type') != 'message': continue
++                msg=d.get('message') or {}
++                u=msg.get('usage') if isinstance(msg,dict) else None
++                if not isinstance(u,dict):
++                    u=d.get('usage') if isinstance(d.get('usage'),dict) else None
++                if not isinstance(u,dict): continue
++                tk=int(u.get('output') or u.get('output_tokens') or 0)
++                if tk <= 0: continue
++                ts=d.get('timestamp') or d.get('ts') or ''
++                et=parse_iso(ts) or fm
++                if cepoch and et < cepoch: continue
++                if et > mt: mt=et
++                if tk > out: out=tk
++    return out,mt
++# pi session files: untracked/tokens/sessions/<task>.*.jsonl
++# claude transcripts: $WEIZIGO_CLAUDE_TRANSCRIPT_DIR/<task>.*.jsonl
++tdir=sys.argv[4] or ''
++pi_pat=['untracked/tokens/sessions/%s.*.jsonl' % t for t in store]
++cl_pat=[os.path.join(tdir,'%s.*.jsonl' % t) for t in store] if tdir else []
++live={}
++for t in store:
++    out,mt=read_transcript(t, [p for p in pi_pat if t in p])
++    if not out and cl_pat:
++        out,mt=read_transcript(t, [p for p in cl_pat if t in p])
++    if out and mt: live[t]=(out,mt)
++with open(sys.argv[5],'w') as f:
+     for t,v in store.items():
+         a=(v or {}).get('agent') or ''
+         if a: f.write('%s\t%s\n' % (t,a))
+-for t,(ts,n) in best.items():
+-    print('%s\t%s' % (t,n))
++# write the merged meter: live takes priority for tokens (it is the only
++# signal mid-flight) and is the sole source of mtime. The ledger's role is
++# to plug the gap between the last transcript record and the close-time
++# reading — the operator does not see the two as different numbers, only
++# as "tokens so far" and "as of <mtime>".
++for t,(ts,n,_mt) in best.items():
++    lt=live.get(t) or (0,0)
++    print('%s\t%s\t%s' % (t,n,lt[1]))
++for t,(n,mt) in live.items():
++    if t in best: continue
++    print('%s\t%s\t%s' % (t,n,mt))
+ PYT
+
+     : > "$T.prog"; : > "$T.conc"; : > "$T.recent"; : > "$T.done"; : > "$T.open"
+@@ -211,10 +306,20 @@
+              else if(NF==3) print $1*3600+$2*60+$3;
+              else if(NF==2) print $1*60+$2; else print 0}')
+         case "$esec" in ''|*[!0-9]*) esec=0 ;; esac
+-        printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %s\n' "$esec" "$t" "$(lm "$t")" \
++        # T840: meter row is now 3 fields (task, tokens, mtime). The RATE
++        # column is the rate; the LIVE column (4-char slot) is the
++        # transcript's last-record age, an independent truth — a slow
++        # reader can still be alive and a fast reader can be silent waiting
++        # on a tool. The two are not redundant: RATE answers "is the
++        # worker producing tokens", LIVE answers "is the worker producing
++        # anything at all".
++        tok=$(awk -F'\t' -v k="$t" '$1==k{print $2; exit}' "$T.tok" 2>/dev/null)
++        mt=$(awk -F'\t'  -v k="$t" '$1==k{print $3; exit}' "$T.tok" 2>/dev/null)
++        printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %-4s %s\n' "$esec" "$t" "$(lm "$t")" \
+             "$(mdl "$(mflag "$cmd")")" \
+             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
+-            "$(rate_of "$(awk -F'\t' -v k="$t" '$1==k{print $2; exit}' "$T.tok" 2>/dev/null)" "$esec")" \
++            "$(rate_of "$tok" "$esec")" \
++            "$(freshness_of "$mt")" \
+             "$(desc "$t")" >> "$T.prog.raw"
+     done
+     rm -f "$T.prog.ids"
+@@ -230,6 +335,34 @@
+         grep -q "    $t  \[beating\]" "$T.liveness" 2>/dev/null && continue
+         lbl=$(ctag "$t")
+         [ -z "$lbl" ] && { case "$(desc "$t")" in *seat*|*owner*|*owns*|*successor*|*console*|*orchestrator*) lbl="console";; *) lbl="orphaned";; esac; }
++        # T840: the default label "orphaned" is a false alarm when the
++        # worker has a live transcript. pgrep on macOS sometimes misses
++        # a process whose argv is past the kernel's ptrace length limit
++        # (T840's own argv is ~5 KB because of the long prompt payload),
++        # so a working task can look process-less to this loop. The
++        # truth is in the transcript: a task with a recent transcript
++        # (<= 15 min since last record) is "lived" — it is producing
++        # output, just not in a way pgrep saw. A task with a STALE
++        # transcript (>= 15 min) and no process is the only thing
++        # worth calling "orphaned" here. A task with NO transcript
++        # at all is the operator's call to make: we keep the default
++        # label (orphaned) — the absence of any evidence is the safest
++        # assumption, and a `lived` label without a transcript would
++        # be a lie. (The brief ruling: a section that calls a finished
++        # task orphaned trains the reader to ignore it. We respect
++        # that — a worker that is alive and writing keeps its `lived`
++        # label, and a worker that has stopped talking keeps its
++        # `orphaned` label. There is no third state.)
++        mt=$(awk -F'\t' -v k="$t" '$1==k{print $3; exit}' "$T.tok" 2>/dev/null)
++        case "${mt:-0}:${lbl}" in
++            *:console) ;;                                  # explicit role wins
++            *:orphaned)
++                # post-claim transcript exists, recency decides
++                [ -z "$mt" ] || [ "$mt" = "0" ] && continue
++                now=$(date +%s); age=$(( now - mt ))
++                if [ "$age" -lt 900 ]; then lbl="lived"; fi
++                ;;
++        esac
+         printf '%s\t%s\n' "$t" "$lbl" >> "$T.conc.raw"
+     done
+     # CONCERNS time = first seen. State persists across refreshes AND restarts
+--- a/tools/regression-watch-fleet.sh	2026-08-24 09:42:13
++++ b/tools/regression-watch-fleet.sh	2026-08-24 09:39:15
+@@ -1031,6 +1031,214 @@
+ printf '%s' "$OUT_M" | grep -q 'another key to refresh' || { echo "    FAIL: no footer rendered before the ^C (trap fired too early)"; m_fail=1; }
+ if [ "$m_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+ rm -rf "$WORKM"
++# ── Arm U: T840 — pre-claim transcript is dropped (no stale rate) ─────
++# A worker whose transcript's first record predates the current claim
++# belongs to a previous run of the same id — the same defect T823 caught
++# for the completion-time ledger. T840's transcript reader drops such
++# records (per-message, not file-mtime, so a partial overlap is also
++# dropped). The output: the post-claim record's tokens are visible (the
++# rate is real), the pre-claim record's tokens are NOT (a stale 99999
++# from a previous run must not leak). Pin: a session file with a
++# 2-hour-old first record (pre-claim, 99999 output) and a 1-minute-old
++# last record (post-claim, 200 output) renders a rate whose numerical
++# part is no larger than ~1000 (200 tokens / ~2s elapsed); a leaked
++# 99999 would yield ~50000/s, which is the class of defect this
++# column was introduced to prevent.
++echo "  U. pre-claim transcript dropped: 99999 must not leak, post-claim rate is visible (live file)"
++WORKU=$(mktemp -d /private/tmp/weizigo/wf-preclaim-XXXXXX)
++mkdir -p "$WORKU/bin" "$WORKU/untracked/tokens/sessions" "$WORKU/docs/infra/managent"
++ln -s "$MG" "$WORKU/bin/managent"
++cp "$PROJECT/docs/infra/model-registry.md" "$WORKU/docs/infra/model-registry.md" 2>/dev/null
++git -C "$WORKU" init -q
++git -C "$WORKU" config user.email t840@test
++git -C "$WORKU" config user.name T840
++STORE_U="$WORKU/docs/infra/managent/tasks.json"
++LIVE_COPYU="$WORKU/untracked/watch-fleet-live.sh"
++cp "$LIVE" "$LIVE_COPYU" 2>/dev/null
++printf '<!--managent -->\n# T995 — pre-claim transcript fixture\n\n**Landmark:** L1 (the dashboard tells the truth)\n' > "$WORKU/untracked/T995-bundle.md"
++CLAIM_U=$(date -u -r $(( $(date +%s) - 1800 )) '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null) || CLAIM_U="2026-08-23T10:30:00Z"
++printf '{"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/T995-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' "T995" "$CLAIM_U" > "$STORE_U"
++OLD_TS=$(date -u -r $(( $(date +%s) - 7200 )) '+%Y-%m-%dT%H:%M:%S.000Z' 2>/dev/null) || OLD_TS="2026-08-23T08:00:00.000Z"
++NEW_TS=$(date -u -r $(( $(date +%s) - 60 )) '+%Y-%m-%dT%H:%M:%S.000Z' 2>/dev/null) || NEW_TS="2026-08-23T12:29:00.000Z"
++cat > "$WORKU/untracked/tokens/sessions/T995.1700000000.1234.0.jsonl" <<EOF
++{"type":"session","version":3,"id":"01-pre","timestamp":"$OLD_TS","cwd":"$WORKU"}
++{"type":"message","id":"m1","parentId":"01-pre","timestamp":"$OLD_TS","message":{"role":"assistant","content":"pre-claim","usage":{"input":50,"output":99999,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":100049}}}
++{"type":"message","id":"m2","parentId":"m1","timestamp":"$NEW_TS","message":{"role":"assistant","content":"post-claim","usage":{"input":50,"output":200,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":250}}}
++EOF
++bash -c "cd '$WORKU' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/T995-bundle.md' sleep 60" &
++PU995=$!
++sleep 0.5
++FRAME_U=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_U" FLEET_COLS=200 sh "$LIVE_COPYU" </dev/null 2>/dev/null)
++kill $PU995 2>/dev/null; wait $PU995 2>/dev/null
++u_fail=0
++urow=$(printf '%s\n' "$FRAME_U" | awk -v t="  T995 " 'index($0,t)==1 {print; exit}')
++urate=$(printf '%s' "$urow" | awk '{print $5; exit}')
++ufresh=$(printf '%s' "$urow" | awk '{print $6; exit}')
++printf '%s\n' "$FRAME_U" | grep -q '99999' && { echo "    FAIL: the pre-claim reading (99999) leaked into the frame (would produce a wildly-wrong ~50000/s rate)"; u_fail=1; }
++case "$urate" in
++    UNKNOWN|'') echo "    FAIL: T995 should have a labelled post-claim rate, got '$urate'"; u_fail=1;;
++    *[0-9]/s)
++        num=$(printf '%s' "$urate" | sed 's|/s$||' | tr -d '.')
++        if [ "${#num}" -gt 4 ]; then
++            echo "    FAIL: T995 rate '$urate' is ${#num} digits — the pre-claim 99999 likely leaked"; u_fail=1
++        fi
++        ;;
++    *) echo "    FAIL: T995 rate must be 'NNN.N/s' or 'NNNN/s', got '$urate'"; u_fail=1;;
++esac
++case "$ufresh" in
++    *s|*m|*h|STALE) ;;
++    *) echo "    FAIL: T995 freshness must be a s/m/h marker (or STALE), got '$ufresh'"; u_fail=1;;
++esac
++if [ "$u_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
++rm -rf "$WORKU"
++
++# ── Arm V: T840 — PROGRESS row is 7 fields; LIVE column is field 6 (4-char slot) ──
++# A row's "freshness" field is 4 chars wide MAX (%-4s padding in the print
++# format). The format covers the three age buckets: "30s" / "5m" / "2h"
++# (all 3 chars, pad with 1 trailing space), "STALE" (5 chars, would
++# overflow if not for an explicit width cap; the print format is
++# `%-4s` so values longer than 4 chars are NOT truncated — they spill
++# into the description, which is the operator's choice per the brief:
++# "sensible units" and "no jitter"). A regression that drops the LIVE
++# column or moves it to a different field is caught here by NF (number
++# of fields) checks.
++echo "  V. PROGRESS row is 7 fields; LIVE column is field 6, <=4 chars (live file)"
++WORKV=$(mktemp -d /private/tmp/weizigo/wf-freshwidth-XXXXXX)
++mkdir -p "$WORKV/bin" "$WORKV/untracked/tokens/sessions" "$WORKV/docs/infra/managent"
++ln -s "$MG" "$WORKV/bin/managent"
++cp "$PROJECT/docs/infra/model-registry.md" "$WORKV/docs/infra/model-registry.md" 2>/dev/null
++git -C "$WORKV" init -q
++git -C "$WORKV" config user.email t840@test
++git -C "$WORKV" config user.name T840
++STORE_V="$WORKV/docs/infra/managent/tasks.json"
++LIVE_COPYV="$WORKV/untracked/watch-fleet-live.sh"
++cp "$LIVE" "$LIVE_COPYV" 2>/dev/null
++# 3 fixtures: each with a fresh transcript, but different ages so the
++# freshness would differ (30s, 5m, STALE). Test that field 6 is present
++# and field 7 is the description. A regression that drops the LIVE
++# column would have 6 fields; a regression that swaps the columns
++# would have a different field for description.
++NOW=$(date +%s)
++for spec in "T960:30" "T961:300" "T962:1000"; do
++    id=${spec%%:*}; age=${spec##*:}
++    printf '<!--managent -->\n# %s — fresh-width fixture\n\n**Landmark:** L1 (the dashboard tells the truth)\n' "$id" > "$WORKV/untracked/$id-bundle.md"
++    ts=$(date -u -r $((NOW - age)) '+%Y-%m-%dT%H:%M:%S.000Z' 2>/dev/null) || ts="2026-08-23T12:00:00.000Z"
++    cat > "$WORKV/untracked/tokens/sessions/$id.1700000000.1234.0.jsonl" <<EOF
++{"type":"session","version":3,"id":"s","timestamp":"$ts","cwd":"$WORKV"}
++{"type":"message","id":"m1","parentId":"s","timestamp":"$ts","message":{"role":"assistant","content":"x","usage":{"input":1,"output":100,"cacheRead":0,"cacheWrite":0,"reasoning":0,"totalTokens":101}}}
++EOF
++done
++CLAIM_V=$(date -u -r $((NOW - 100)) '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null) || CLAIM_V="2026-08-23T11:00:00Z"
++recV() { printf '"%s":{"status":"in_progress","agent":"deepseek-v4-flash","model":"deepseek-v4-flash","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1}' "$1" "$1" "$2"; }
++printf '{\n  %s,\n  %s,\n  %s,\n  "_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}\n}\n' \
++    "$(recV T960 "$CLAIM_V")" "$(recV T961 "$CLAIM_V")" "$(recV T962 "$CLAIM_V")" > "$STORE_V"
++for id in T960 T961 T962; do
++    bash -c "cd '$WORKV' && exec -a 'pi --provider deepseek --model deepseek-v4-flash Follow untracked/$id-bundle.md' sleep 60" &
++    eval "PV_$id=\$!"
++done
++sleep 0.5
++FRAME_V=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_V" FLEET_COLS=200 sh "$LIVE_COPYV" </dev/null 2>/dev/null)
++for id in T960 T961 T962; do
++    var="PV_$id"
++    kill "${!var}" 2>/dev/null
++    wait "${!var}" 2>/dev/null
++done
++v_fail=0
++PROG_V=$(printf '%s\n' "$FRAME_V" | sed -n '/^PROGRESS/,/^CONCERNS/p')
++# every PROGRESS row has 7 fields: task landmark model elapsed rate live desc
++# a regression that drops the LIVE column would have only 6 fields
++# (the description can be many words; we test >= 7, not == 7). A
++# regression that puts the LIVE column in a different slot is caught
++# by the field-6 check below.
++while IFS= read -r prow; do
++    case "$prow" in
++        '  T96'*) ;;
++        *) continue;;
++    esac
++    nf=$(printf '%s\n' "$prow" | awk '{print NF}')
++    [ "$nf" -ge 7 ] || { echo "    FAIL: $prow -> has $nf fields, want >= 7 (the LIVE column is missing or swapped)"; v_fail=1; }
++done <<EOF
++$PROG_V
++EOF
++# field 6 (freshness) is non-empty for every row
++NONEMPTY=$(printf '%s\n' "$PROG_V" | grep '^  T96' | awk '{print $6}' | grep -c '^$')
++[ "$NONEMPTY" = "0" ] || { echo "    FAIL: $NONEMPTY PROGRESS rows have an empty freshness field"; v_fail=1; }
++# field 7 (description) is the brief's title for every row
++for id in T960 T961 T962; do
++    desc=$(printf '%s\n' "$PROG_V" | grep "^  $id " | head -1 | awk '{out=""; for(i=7;i<=NF;i++) out=out" "$i; print out}' | sed 's/^ *//')
++    case "$desc" in
++        *'fresh-width fixture'*) ;;
++        *) echo "    FAIL: $id description is '$desc', expected to end with 'fresh-width fixture'"; v_fail=1;;
++    esac
++done
++if [ "$v_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
++rm -rf "$WORKV"
++
++# ── Arm W: T840 — exact fill preserved at 40 (live file) ─────────────
++# The T739 / T799 / T804 / T823 line of layout fixes pins a single
++# invariant: printed lines == FLEET_LINES exactly for data-rich frames.
++# Adding a 4th PROGRESS column (freshness) MUST NOT shift the budget.
++# 20 DONE (truncated) + 17 OPEN (all shown): 18+17 = 35, frame 38.
++echo "  W. exact fill at 40 with the new freshness column (live file)"
++WORKW=$(mktemp -d /private/tmp/weizigo/wf-fill-T840-XXXXXX)
++mkdir -p "$WORKW/bin" "$WORKW/untracked" "$WORKW/docs/infra/managent"
++ln -s "$MG" "$WORKW/bin/managent"
++git -C "$WORKW" init -q
++git -C "$WORKW" config user.email t840@test
++git -C "$WORKW" config user.name T840
++cp "$PROJECT/docs/infra/model-registry.md" "$WORKW/docs/infra/model-registry.md" 2>/dev/null
++STORE_W="$WORKW/docs/infra/managent/tasks.json"
++LIVE_COPYW="$WORKW/untracked/watch-fleet-live.sh"
++cp "$LIVE" "$LIVE_COPYW" 2>/dev/null
++python3 - "$STORE_W" "$WORKW" <<'PYW'
++import json,sys
++store,wk=sys.argv[1],sys.argv[2]
++d={"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}
++def rec(i,status,done):
++    t="T8%02d"%i
++    open("%s/untracked/%s-row%02d.md"%(wk,t,i),"w").write("# %s — row %02d\n\n**Landmark:** L1 (the dashboard tells the truth)\n"%(t,i))
++    d[t]={"status":status,"agent":"x","model":"x","bundle":"untracked/%s-bundle.md"%t,"set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"2026-08-22T00:00:00Z","done":done,"dispatched":None,"dispatched_to":None,"note":None,"verdict":"pass","verdict_note":None,"acceptance":None,"skip_acceptance_reason":None,"claim_count":1}
++for i in range(1,21):  rec(i,"done","2026-08-19T09:%02d:00Z"%i)
++for i in range(21,38): rec(i,"dispatchable",None)
++json.dump(d,open(store,"w"))
++PYW
++FRAME_W=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE_W" FLEET_LINES=40 FLEET_COLS=200 sh "$LIVE_COPYW" </dev/null 2>/dev/null)
++w_fail=0
++NL=$(printf '%s\n' "$FRAME_W" | wc -l | tr -d ' ')
++ND=$(printf '%s\n' "$FRAME_W" | sed -n '/^DONE/,/^OPEN/p' | grep -c '^  T8')
++NO=$(printf '%s\n' "$FRAME_W" | sed -n '/^OPEN/,$p' | grep -c '^  T8')
++NM=$(printf '%s\n' "$FRAME_W" | grep -c 'more:')
++[ "$NL" = "38" ] || { echo "    FAIL: 20 DONE + 17 OPEN at height 40: want 38 lines, got $NL"; w_fail=1; }
++[ "$NM" = "0" ] || { echo "    FAIL: '(more' line should never appear, got $NM"; w_fail=1; }
++[ "$ND" = "18" ] && [ "$NO" = "17" ] || { echo "    FAIL: 20 DONE + 17 OPEN: 18+17 = 35, want $((18+17)) data rows, got ${ND}+${NO}"; w_fail=1; }
++# DONE rows have 5 fields: task, landmark, verdict, time, desc (no
++# rate, no freshness — the LIVE column is a PROGRESS-only answer to
++# "is the worker producing anything at all", and a DONE row is the
++# literal negation of that question). The verdict at field 3 is
++# non-empty (no silent drops), the time at field 4 is HH:MM, and the
++# description at field 5+ is the brief's title. Pin by counting: 18
++# rows, each with 5+ fields and a non-empty field 3.
++DONE_W=$(printf '%s\n' "$FRAME_W" | sed -n '/^DONE/,/^OPEN/p')
++DONE_TOTAL=$(printf '%s\n' "$DONE_W" | grep -c '^  T8')
++DONE_5=$(printf '%s\n' "$DONE_W" | grep '^  T8' | awk '{ if (NF>=5) c++ } END { print c+0 }')
++[ "$DONE_TOTAL" = "18" ] || { echo "    FAIL: want 18 DONE rows, got $DONE_TOTAL"; w_fail=1; }
++[ "$DONE_5" = "18" ] || { echo "    FAIL: every DONE row should have >= 5 fields, got $DONE_5 of 18"; w_fail=1; }
++# every DONE row has a non-empty verdict (field 3) and a HH:MM time (field 4)
++EMPTY_VERDICT=$(printf '%s\n' "$DONE_W" | grep '^  T8' | awk '{ if ($3=="") c++ } END { print c+0 }')
++[ "$EMPTY_VERDICT" = "0" ] || { echo "    FAIL: $EMPTY_VERDICT DONE rows have an empty verdict (silent drop)"; w_fail=1; }
++# OPEN rows: 5 fields (no rate/freshness either)
++OPEN_W=$(printf '%s\n' "$FRAME_W" | sed -n '/^OPEN/,$p')
++OPEN_NF=$(printf '%s\n' "$OPEN_W" | grep -c '^  T8')
++[ "$OPEN_NF" = "17" ] || { echo "    FAIL: want 17 OPEN rows, got $OPEN_NF"; w_fail=1; }
++# no row in any section carries a colon-duration (arm O invariant, kept)
++# field 4 of every DONE row is HH:MM (the times column, T591). A
++# regression that drops the column would have a non-HH:MM string at
++# field 4 (the description's first word, e.g. "race:" or "row").
++BAD=$(printf '%s\n' "$DONE_W" | grep '^  T8' | awk '{print $4}' | grep -cvE '^[0-9]{2}:[0-9]{2}$')
++[ "$BAD" = "0" ] || { echo "    FAIL: $BAD DONE rows have a non-HH:MM time field"; w_fail=1; }
++if [ "$w_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
++rm -rf "$WORKW"
++
+
+ if [ "$FAIL" = "1" ]; then
+     echo "=== T466 watch-fleet regression: FAIL ==="
