@@ -122,8 +122,25 @@ FAMILY = {
 }
 
 # ── defaults (derivations in the module docstring — T845 §4) ─────────────
-DEFAULT_TOTAL_CAP = 4
-DEFAULT_FAMILY_CAP = {"claude": 3, "fable": 1, "ollama": 5}
+# Operator ruling 2026-08-24: at most TWO rows per model, FIVE per family,
+# TEN concurrent overall — with no expectation of ever reaching them.  His
+# reasoning, recorded because it bounds every future change here:
+# "We rarely or never need parallelization; it's only an optimization for
+# making progress according to the wall clock.  Parallelization is often the
+# source of unexpected and unnecessary complexity and failure."
+# The per-MODEL limit of 2 has no implementation yet — this module knows only
+# totals and families — so it is enforced by the seat and specified as work.
+# fable stays at 1: that is the standing reservation, not a family cap.
+DEFAULT_TOTAL_CAP = 10
+DEFAULT_FAMILY_CAP = {
+    "claude": 5,
+    "deepseek": 5,
+    "ollama": 5,
+    "local": 5,
+    "other": 5,
+    "fable": 1,
+}
+DEFAULT_MODEL_CAP = 2  # declared here; not yet consulted by any gate
 
 # Append-only audit log for the bin/dispatch cap override (T845 §3), the
 # fleet-window-overrides.jsonl precedent (T677): one JSON line per human
