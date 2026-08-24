@@ -463,3 +463,10 @@ rather than several from one family. Family diversity is what distinguishes a pr
 from a habit of one provider. Currently: the ideal consolidation is on DeepSeek, the what-is audit on
 Ollama, and Claude is unreliable this hour (one row produced nothing in 488 s with no 429 recorded), so
 the Claude arm waits rather than being forced.
+
+## B-new-16. `reap` declared three live workers orphans — found by the T871 seat, 2026-08-24
+
+| # | finding | evidence |
+|---|---|---|
+| B57 | **The bare run record is not single-writer, and `reap` trusts it.** With T861, T867 and T869 all alive in the process table (runners with `--arbiter-id`, walls 15–35 min into a 45-min budget), `bin/managent reap` reported all three `[ORPHAN] no live process` and offered `reap --close` to mark them abandoned. Cause: each worker's own test invocations run through `tools/runner` under the task's id, and every such run **overwrites the task's bare run record** (the per-task JSON in the volatile runs directory) — T861's bare record was on `attempt: 205`, command `sh tools/regression-window-resilience.sh`, wall 2.8 s, a dead pid. Reap read the clobbered record's pid, found it dead, and declared the row orphaned. T870 alone read `[BACKED]`, because its worker classifies without running tests, so its record was never clobbered. **The method note of B-new-2 ("the bare record is authoritative") is hereby qualified: the bare record is authoritative only for rows whose worker runs no tests — which green-up workers all do.** | the reap output versus `ps` in the same minute; T861's bare run record at attempt 205 |
+| B58 | **Near-miss, recorded as method.** Following the standing on-wake instruction ("run `bin/managent reap`", then close orphans) would have destroyed three healthy rows mid-work — the same shape as B25 (`liveness` attributing a dead attempt's heartbeat to a live run), now in the instrument the handover names as the *first* thing to trust. Until the run record is single-writer, an orphan verdict requires a process-table check for a live `--arbiter-id <task>` runner before any close. | this session |
