@@ -138,7 +138,7 @@ T677 incident (a cooldown once armed from a quoted document). I nearly repeated 
 | # | issue | evidence / disposition |
 |---|---|---|
 | B20 | **A race entrant's submission was sitting applied in the shared working tree.** The uncommitted diff to the rate race's own target file shared **343 of its 355 added lines** with `T840.patch` (glm-5.2's entry) — against 23 for T839 and 9 for T838. The entrant edited in-tree, captured the patch, and died before cleaning up. Committing it — which the reconciliation nearly did — would have made one entrant's code the baseline every other entrant is judged against. This is the Race-G contamination failure in a new place. | **RESOLVED.** Baseline restored from HEAD; the entry is preserved three ways (its own patch, the `.delivered-before-death` copy, and a captured working-tree diff). Race judging must apply each patch in isolation at the pinned commit, never against the working tree. |
-| B21 | **The race protocol and the volatile-citation gate are mutually incompatible.** A race entrant's findings file must cite its patch, and the protocol puts patches under `untracked/`; `C10-NEW` fails the commit on new citations to `untracked/`. So a race entrant's row can never close cleanly — `T840` cites four such paths and is structurally uncloseable, which is why the rate-race judges (`T843`/`T844`) remain blocked. Earlier entrants closed only because their findings predate the ratchet. | open — the fix is to give race patches a committed home, which also fixes B17: a patch in git survives the worker's death |
+| B21 | **RETRACTED — there is no citation deadlock.** I claimed the race protocol and the volatile-citation gate were mutually incompatible, inferring it from T847's failure without testing this case. Tested: `findings/T840-ratrace.json` cites four `untracked/` paths and **committed cleanly**. `C10-NEW` parses citations in documents that register evidence, not arbitrary strings in a findings file. The real and much narrower constraint is that a *declared deliverable* must be committed — so a race patch under a gitignored directory blocks its own row's close until force-added. `T840`'s patch is now committed (c2c2f7b), which also fixes B17 for that instance: a patch in git survives its worker's death. All four race judgments are unblocked. | the commit that disproved it |
 | B22 | **`T771` cannot close honestly: its declared deliverable was never written.** The outgoing seat's row declares `findings/T771-oversight-seat.json`, which does not exist, so the close gate refuses it — correctly. The row also still carries `claude-fable-5`, faithful to its origin (Fable held that seat on the 23rd) and stale for every holder since, because seat handovers reuse one row rather than minting a new one. | open — writing that findings file is within the read-only advisor's remit and is the one act that closes its own row |
 
 **Reconciliation outcome.** 39 rows closed on evidence (37 `pass`, 2 `abandoned`). `T819` and `T832` unblocked and are dispatchable. `T843`/`T844` remain blocked on B21. Six rows never ran and are correctly `dispatchable`: `T786`, `T787`, `T796`, `T798`, `T825`, `T836`. Store count unchanged at 479 throughout; every invariant re-verified after each commit.
@@ -163,3 +163,40 @@ T677 incident (a cooldown once armed from a quoted document). I nearly repeated 
   git refuse adds. **The material finding: `tools/hooks/pre-commit` is the only file in `tools/` that
   unsets the git environment**, so every one of these scripts is still unguarded when run directly,
   by the suite, or by `zig build test`. The hazard is closed for one invocation path, not for the class.
+
+## E. On wake — do these in order (written for a fresh or compacted context)
+
+**First, always:** `bin/managent reap`; `git rev-parse --show-toplevel` is this repo;
+`git config --get core.worktree` unset; `git ls-tree -r --name-only HEAD | wc -l` >2000;
+`git show HEAD:.gitignore | wc -l` is 46. Re-verify after every commit.
+
+**Then close out what finished.** T848 (store-loss detector, deepseek-v4-pro), T849 (scratch-repo
+fixture, glm-5.2), T850 (per-model request accounting, claude-sonnet-5). A worker that exits without
+closing its own row needs `bin/managent reopen <id>` before any re-dispatch — never re-dispatch a
+live row. Verify each deliverable exists **and is committed** before believing a close.
+
+**Then dispatch, at most four in flight, at most one per model, ordered:**
+
+1. **T832 — diff-race judgment.** Brief still to be written. From the committed design intent: the
+   172 arms were written by T793 *before* the race, two already red as recorded defects, so a patch
+   cannot be graded against arms fitted to it; **breaking a green arm outranks elegance**; and **a
+   patch that touches the test file is disqualified — diff the test file for every entrant, including
+   the well-behaved ones.** Apply each patch **in isolation at the pinned commit**, never against the
+   working tree (see B20). The judge must also write its model-perf ledger cells — B1.
+2. **T843 / T844 — rate-race judgment.** Judged twice: the operator smoke-tests the rendered output
+   himself and **his reading counts retroactively**, so judges paste every frame verbatim and **name
+   the hinge** — which ranking would change if he dislikes a given frame. Do not re-grade for him.
+3. **T819 — corpus three-way.** T817's brief *deliberately differs* (seeded from the old classifier)
+   while T818 and T820 are byte-identical, so the comparison measures two different things.
+4. **T836 → T837 — the epistemic arc.** The only queued work touching the product. T836 previously
+   died on a provider-429 without reaching the model; it is a retry, not a fresh failure.
+5. **T849's remainder** — the other 53 scratch-repo conversions, batch size set by what T849 reports
+   about how long one conversion takes and which scripts resist.
+
+**Model rules in force:** Fable reserved. **Do not put a real row on ox-alpha until it passes an
+agentic probe** — it failed the full loop three times since ~09:00Z while answering simple probes
+fine (B23). One task per family, one row per model. The fleet keeper stays paused: one dispatcher.
+
+**Known small fix, not yet owned:** a lane reports tokens only when dispatched with `--session`
+(deepseek and ollama have it; the openrouter/ox-alpha lane has neither `--session` nor `--mode json`,
+which is the whole explanation for its UNKNOWN token column). One line in the dispatch path.
