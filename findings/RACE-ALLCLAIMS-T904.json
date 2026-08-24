@@ -1,0 +1,41 @@
+{
+  "task_id": "T904",
+  "date": "2026-08-24",
+  "model": "ox-alpha",
+  "claims": [],
+  "new_rows": [],
+  "race": {
+    "name": "all-claims evidence race (T903/T904 lanes)",
+    "question": "for every claim in the register, does the cited evidence actually establish it?",
+    "batches_completed": 12,
+    "rows_judged": 233,
+    "register_rows_at_head": 233,
+    "coverage": "complete - every row of CLAIMS.md §2 judged, none skipped",
+    "batch_files": "untracked/race-allclaims/lane-T904/batch-{1..12}.jsonl (one JSON object per row; batch-4 additionally carries {\"revises\":\"GLOBAL.C2\"})",
+    "verdict_counts": {
+      "BACKED": 173,
+      "ADJACENT": 30,
+      "PROSE-ONLY": 30,
+      "DANGLING": 0,
+      "UNCHECKABLE": 0
+    },
+    "confidence_counts": {
+      "high": 147,
+      "medium": 86,
+      "low": 0
+    },
+    "conventions_declared": [
+      "Verdicts grade the row's OWN evidence column at its STATUS: FALSE rows graded on whether their citations establish the recorded falsification; UNTESTED rows default ADJACENT because their citations record openness, not the proposition.",
+      "Research notes that carry measured numbers/denominators are treated as weak-but-real output records (BACKED-medium); pure assertion documents are PROSE-ONLY.",
+      "Pure axiom/definition rows are BACKED-as-defined; substantive theorem claims resting only on their own statement (GLOBAL.Z) are ADJACENT."
+    ],
+    "notable_findings": [
+      "4x4.M2 miscitation: cites retrograde-4x4.md:21, which reads '~19 min WALL total' (wall time), not '19 sweeps'; the measurement actually sits uncited at boards/4x4/EPISTEMIC.md:364. Quantity confusion from line drift.",
+      "CODE.M4A-HARNESS (PROVEN by inspection) is stale at HEAD and unmarked: build.zig:177-185 now wires oracle_v2_accept tests into test_step, and the corrupted-copy A6 fixtures now exist - its '(a) in no build graph' half no longer holds. Flagged ADJACENT.",
+      "The E2 leak chain (GLOBAL.C3/LEAK/P1/P3, 2x2.C3, 3x2.C3, 3x3.C3, GLOBAL.E2-SANITY/E2-VERDICT, 3x3.E2-RUN1/RUN2) is PROSE-ONLY end to end: no raw E2 run output exists anywhere in git. GLOBAL.C3 has the register's highest FALSE in-degree.",
+      "GLOBAL.S1/4x4.S1 cite prose table rows (line-drifted) for what would need a round-trip probe; an uncited test exists at src/colex.zig:157.",
+      "Line drift is widespread but content usually survives nearby in the same file; only 4x4.M2's drift crossed into a different quantity."
+    ]
+  },
+  "notes": "Leaf lane of a blind race; did not read other lanes' outputs; made no commits; wrote only the batch JSONLs under untracked/race-allclaims/lane-T904/ and this findings file. One mid-race revision issued (GLOBAL.C2 BACKED->PROSE-ONLY) when the strict own-column rule was adopted after batch 3. Weakest where judgement calls had no artifact to open: the axiom-definition convention, and research-note-vs-output-record boundary cases (4x4.FP1-C3, 2x2.F2, 3x3.F2, 4x4.B43) - a stricter lane would call several of these PROSE-ONLY. Confidence never used 'low' because nothing was left unopenable; the uncertainty lives in the conventions, not in access."
+}
