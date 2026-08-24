@@ -1,0 +1,761 @@
+{
+ "task": "T818",
+ "method_version": 1,
+ "chunk_size": 50,
+ "universe_count": 579,
+ "sort": "lexicographic on id string",
+ "chunks": [
+  {
+   "k": 1,
+   "ids": [
+    "T268",
+    "T324"
+   ],
+   "row_count": 50,
+   "sha256": "1c2907990b867c481cb19d27dddcde0f03c70b33dbc3938f9a146ce4ae164045",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:12Z"
+  },
+  {
+   "k": 2,
+   "ids": [
+    "T325",
+    "T374"
+   ],
+   "row_count": 50,
+   "sha256": "8a79b5d03e62372cb0ca21e0d54ba6476739b47cf90810b8acf5c3e1b790830b",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:18Z"
+  },
+  {
+   "k": 3,
+   "ids": [
+    "T375",
+    "T424"
+   ],
+   "row_count": 50,
+   "sha256": "220a3cd6e390ac2ff1c0f4ad90beced25533b7abc8dd66eab7309392c52e46f0",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:23Z"
+  },
+  {
+   "k": 4,
+   "ids": [
+    "T425",
+    "T473"
+   ],
+   "row_count": 50,
+   "sha256": "e6eefb6f78d929a2cfdfcfceb5d28cafa9fb110f434358b344064addc91216d7",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:28Z"
+  },
+  {
+   "k": 5,
+   "ids": [
+    "T474",
+    "T523"
+   ],
+   "row_count": 50,
+   "sha256": "c0fe9c0c5fa84e3b17ee1c17aacff16f9737ed74ccd58051bbcbf38965c05ed0",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:33Z"
+  },
+  {
+   "k": 6,
+   "ids": [
+    "T524",
+    "T574"
+   ],
+   "row_count": 50,
+   "sha256": "c8a61efde10b016d77aa91bd244d8dabf1001feefb97b3d9904efcf814837afc",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:39Z"
+  },
+  {
+   "k": 7,
+   "ids": [
+    "T575",
+    "T624"
+   ],
+   "row_count": 50,
+   "sha256": "c5a85c5a6711db9f47466c762b2a5ae7111015932ff5c847422845681a87ca0a",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:44Z"
+  },
+  {
+   "k": 8,
+   "ids": [
+    "T625",
+    "T697"
+   ],
+   "row_count": 50,
+   "sha256": "5dfa23299a0850e082e4cd45f743ba543f39969508850539eee5cbb04aecc1bd",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:50Z"
+  },
+  {
+   "k": 9,
+   "ids": [
+    "T698",
+    "T747"
+   ],
+   "row_count": 50,
+   "sha256": "7ff71b2922dd61c22c56904d81b10eedc9c0c96ca587b6df8aa4a2d858cadd41",
+   "method_version": 2,
+   "ts": "2026-08-23T21:52:55Z"
+  },
+  {
+   "k": 10,
+   "ids": [
+    "T748",
+    "T797"
+   ],
+   "row_count": 50,
+   "sha256": "9ea0a82e3f23352e8d275af8001d8bd0a384594516667f92ee7f761b74adba1c",
+   "method_version": 2,
+   "ts": "2026-08-23T21:53:01Z"
+  },
+  {
+   "k": 11,
+   "ids": [
+    "T798",
+    "TL1F"
+   ],
+   "row_count": 29,
+   "sha256": "b7f6cddc6be707f12de72a01149f98a01b3af4913a8157d7004a5b5826c5e091",
+   "method_version": 2,
+   "ts": "2026-08-23T21:53:04Z"
+  },
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "d7e6a2d8e69cd3a3d83a06e49bc6c6ef72c7bfc3e65a29830132cc8eb141d586",
+   "method_version": 2,
+   "ts": "2026-08-23T21:53:53Z"
+  },
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "4af727b5c03dc67e628754ff2487f40bc45ccde090c0e465a6345572baceb5fa",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:34Z"
+  },
+  {
+   "k": 1,
+   "ids": [
+    "T268",
+    "T324"
+   ],
+   "row_count": 50,
+   "sha256": "ffdf4616eefbf9b0c6326d3a31a910176ac88bc86fab3e71a7f4442ca98a6c97",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:39Z"
+  },
+  {
+   "k": 2,
+   "ids": [
+    "T325",
+    "T374"
+   ],
+   "row_count": 50,
+   "sha256": "3c11495dce74e330bc51c150050d76564c446a434de7b338f6e254da9eb23ed0",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:44Z"
+  },
+  {
+   "k": 3,
+   "ids": [
+    "T375",
+    "T424"
+   ],
+   "row_count": 50,
+   "sha256": "9ac207eab4481dde2da2b100bb90f8bad9cc8d4e558cd94edfffd71bc52165d0",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:49Z"
+  },
+  {
+   "k": 4,
+   "ids": [
+    "T425",
+    "T473"
+   ],
+   "row_count": 50,
+   "sha256": "dac4b86a5782a5a1ece9bd637e01484e4f4eab7be1c10707de41595779483e00",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:54Z"
+  },
+  {
+   "k": 5,
+   "ids": [
+    "T474",
+    "T523"
+   ],
+   "row_count": 50,
+   "sha256": "7b4c610fd6c79a7461ccfc54edf8d063db985c82f0df84bddcc84295a940189d",
+   "method_version": 3,
+   "ts": "2026-08-23T21:55:59Z"
+  },
+  {
+   "k": 6,
+   "ids": [
+    "T524",
+    "T574"
+   ],
+   "row_count": 50,
+   "sha256": "5db22d5ca31e9c9366a64ba32f1b56482768d148abdec39376681fa4df9d47d3",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:04Z"
+  },
+  {
+   "k": 7,
+   "ids": [
+    "T575",
+    "T624"
+   ],
+   "row_count": 50,
+   "sha256": "6f86917ef6eaf8a304920c7de35439e445e53b34cb252f2e134f2891f44b4a0e",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:09Z"
+  },
+  {
+   "k": 8,
+   "ids": [
+    "T625",
+    "T697"
+   ],
+   "row_count": 50,
+   "sha256": "97cf6a5ea7ad6f06e0d3b8cba4301ec7ce773de7c70e61f54ec568df76d67a9f",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:15Z"
+  },
+  {
+   "k": 9,
+   "ids": [
+    "T698",
+    "T747"
+   ],
+   "row_count": 50,
+   "sha256": "7cf1e1398353582bf4457e52b357955ae32645b626ac87c2458058757bdbe39b",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:19Z"
+  },
+  {
+   "k": 10,
+   "ids": [
+    "T748",
+    "T797"
+   ],
+   "row_count": 50,
+   "sha256": "8bd371bdcf865d7e2fa3fd81371497cd2f6ff0786ef37c80186bb5442574e184",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:24Z"
+  },
+  {
+   "k": 11,
+   "ids": [
+    "T798",
+    "TL1F"
+   ],
+   "row_count": 29,
+   "sha256": "ed63bf6049c0fb1c8a1101ca80b07c8d5e0e86d3f369a3232e618243937ad045",
+   "method_version": 3,
+   "ts": "2026-08-23T21:56:27Z"
+  },
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "74f6f33981e58a15962d33b2dbb45722717380e52e1a6f067843474a0c35cee0",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:08Z"
+  },
+  {
+   "k": 1,
+   "ids": [
+    "T268",
+    "T324"
+   ],
+   "row_count": 50,
+   "sha256": "09e823876dbe15765fe31b915b3fda3b9a0fb3218f1952642a13419c63db3b0e",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:12Z"
+  },
+  {
+   "k": 2,
+   "ids": [
+    "T325",
+    "T374"
+   ],
+   "row_count": 50,
+   "sha256": "c69b7a0809726cc5b6ff4e3e3a00b2afd052dc71596937759e3c02811a30222b",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:18Z"
+  },
+  {
+   "k": 3,
+   "ids": [
+    "T375",
+    "T424"
+   ],
+   "row_count": 50,
+   "sha256": "f7909a8dac36bb2a863a8a8e8b7073cf27f847ab9aa57a20f13b51d0565e5ce4",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:23Z"
+  },
+  {
+   "k": 4,
+   "ids": [
+    "T425",
+    "T473"
+   ],
+   "row_count": 50,
+   "sha256": "72aa920eadde86567461785f539275bed840dc69c886fe60941d5b002659a53d",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:28Z"
+  },
+  {
+   "k": 5,
+   "ids": [
+    "T474",
+    "T523"
+   ],
+   "row_count": 50,
+   "sha256": "9e3c4dc394677ff32d8b93257a9e18b6b4a41d25d16af0297ae101daa884aa05",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:33Z"
+  },
+  {
+   "k": 6,
+   "ids": [
+    "T524",
+    "T574"
+   ],
+   "row_count": 50,
+   "sha256": "335b67b3436ce8e743ae874a43aed2d2175953604efc01fd50627adaf9a91bd2",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:38Z"
+  },
+  {
+   "k": 7,
+   "ids": [
+    "T575",
+    "T624"
+   ],
+   "row_count": 50,
+   "sha256": "9fe5fd27bedbf2911eabc88fb0f848bdd34b2336f4dff2e89a2af312461c1461",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:43Z"
+  },
+  {
+   "k": 8,
+   "ids": [
+    "T625",
+    "T697"
+   ],
+   "row_count": 50,
+   "sha256": "b4eb98dd4e2cbb82fd3ef94569677710a87c15061045736f166ec58c81b7c22b",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:48Z"
+  },
+  {
+   "k": 9,
+   "ids": [
+    "T698",
+    "T747"
+   ],
+   "row_count": 50,
+   "sha256": "3dab4ef6e64c6898de151d190e29f4ce4c295c7e3cdb817c0099a2fabdf78fd6",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:53Z"
+  },
+  {
+   "k": 10,
+   "ids": [
+    "T748",
+    "T797"
+   ],
+   "row_count": 50,
+   "sha256": "ab88ce3287a1aa16b301ffac4444391aad74674083588b693b0b975828bc488a",
+   "method_version": 4,
+   "ts": "2026-08-23T21:57:58Z"
+  },
+  {
+   "k": 11,
+   "ids": [
+    "T798",
+    "TL1F"
+   ],
+   "row_count": 29,
+   "sha256": "eace4f9b1ef049cbdf312f4239147f03f5f12829cd90f5eed30dd3118f3ea29f",
+   "method_version": 4,
+   "ts": "2026-08-23T21:58:01Z"
+  },
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "d46d8df59a6bb14dcdbcc3f16c37350726fe47e865cc984c1c18103abdcbbe85",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:03Z"
+  },
+  {
+   "k": 1,
+   "ids": [
+    "T268",
+    "T324"
+   ],
+   "row_count": 50,
+   "sha256": "163ba00dd775b780e4fb4f85c50a67bf3838c0ace5783a56e61d3802ef8505b3",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:07Z"
+  },
+  {
+   "k": 2,
+   "ids": [
+    "T325",
+    "T374"
+   ],
+   "row_count": 50,
+   "sha256": "f655a8cbed3f86fda883d0f509233189072434f32a0495c511218140765f51df",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:11Z"
+  },
+  {
+   "k": 3,
+   "ids": [
+    "T375",
+    "T424"
+   ],
+   "row_count": 50,
+   "sha256": "54052d99362a1e90b5a0aa32fd8f8a733e3fa31c41b329f50faa562f89dc9077",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:16Z"
+  },
+  {
+   "k": 4,
+   "ids": [
+    "T425",
+    "T473"
+   ],
+   "row_count": 50,
+   "sha256": "2bce84d7281b7f706dedbbf87edee03fa51607248e3f9aec1cf89d9c8c43c048",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:21Z"
+  },
+  {
+   "k": 5,
+   "ids": [
+    "T474",
+    "T523"
+   ],
+   "row_count": 50,
+   "sha256": "d827633ee79ff778c4c92fba7b7cd50f86560c4fd7bec1b663472ca61e404106",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:26Z"
+  },
+  {
+   "k": 6,
+   "ids": [
+    "T524",
+    "T574"
+   ],
+   "row_count": 50,
+   "sha256": "29e0310a4f4bb943572201d520898503aababc2c4a27dec345925dbffa149917",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:31Z"
+  },
+  {
+   "k": 7,
+   "ids": [
+    "T575",
+    "T624"
+   ],
+   "row_count": 50,
+   "sha256": "72a25d73eefbe9a823d387edd20f94d033e3621f97525192866c913bbf1e7ed8",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:37Z"
+  },
+  {
+   "k": 8,
+   "ids": [
+    "T625",
+    "T697"
+   ],
+   "row_count": 50,
+   "sha256": "882c29a68b7fb8dce33631ae46801471d302110f37d8a8a920ec7ac3995a6a00",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:42Z"
+  },
+  {
+   "k": 9,
+   "ids": [
+    "T698",
+    "T747"
+   ],
+   "row_count": 50,
+   "sha256": "5e06179d29e399399e9f7fa3d3f35c983919737e0db79418e8d25dc958ecdd6d",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:48Z"
+  },
+  {
+   "k": 10,
+   "ids": [
+    "T748",
+    "T797"
+   ],
+   "row_count": 50,
+   "sha256": "0fb09299b36efed8d78dfcb7ece3e3a3d73dbbbc6a716ba2d0ba707426ec4317",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:53Z"
+  },
+  {
+   "k": 11,
+   "ids": [
+    "T798",
+    "TL1F"
+   ],
+   "row_count": 29,
+   "sha256": "554c86c6113642e7419a99c4ca24b72fa805b8d45cf9ba94d9304b91f7cee1a9",
+   "method_version": 5,
+   "ts": "2026-08-23T21:59:56Z"
+  },
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "027ceeb70d03525570807d6a468d02169c42e41f3068ef740d9d24d8ac3f4e3b",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:28Z"
+  },
+  {
+   "k": 1,
+   "ids": [
+    "T268",
+    "T324"
+   ],
+   "row_count": 50,
+   "sha256": "f1c70385150bdd0c6c3ebf1da7e20fdaec732f1dedd8af4cc36d3392c186b2e8",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:33Z"
+  },
+  {
+   "k": 2,
+   "ids": [
+    "T325",
+    "T374"
+   ],
+   "row_count": 50,
+   "sha256": "a8288c5cb6e6b1a69bae7fbbd7a6c08d49b71cbf966b1660bc1a4d1de19fe275",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:38Z"
+  },
+  {
+   "k": 3,
+   "ids": [
+    "T375",
+    "T424"
+   ],
+   "row_count": 50,
+   "sha256": "f3602072e18500b372f718c89d52222bccaaa8aba434e75d1d12767c5ea5f5b3",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:43Z"
+  },
+  {
+   "k": 4,
+   "ids": [
+    "T425",
+    "T473"
+   ],
+   "row_count": 50,
+   "sha256": "d23b12adf66ba726d6f8f600d7ed76d779659c3ec75545d1bc59cd831fd468ad",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:47Z"
+  },
+  {
+   "k": 5,
+   "ids": [
+    "T474",
+    "T523"
+   ],
+   "row_count": 50,
+   "sha256": "78ea0be1d0478d5f59e3698d13f7df6ba052f6ec230403ac95ff9a0d8755f324",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:52Z"
+  },
+  {
+   "k": 6,
+   "ids": [
+    "T524",
+    "T574"
+   ],
+   "row_count": 50,
+   "sha256": "528174405fa27f9c7df4f47e7924ce0673981253c2e99db7d2fbc72514d4ec50",
+   "method_version": 6,
+   "ts": "2026-08-23T22:01:57Z"
+  },
+  {
+   "k": 7,
+   "ids": [
+    "T575",
+    "T624"
+   ],
+   "row_count": 50,
+   "sha256": "24d115e68518e7296a4e9346cfd889ce1cc7916cbbb92f4860c3f4c2dd52d01f",
+   "method_version": 6,
+   "ts": "2026-08-23T22:02:02Z"
+  },
+  {
+   "k": 8,
+   "ids": [
+    "T625",
+    "T697"
+   ],
+   "row_count": 50,
+   "sha256": "062bdbf4435bad6a9c47785225869ea82baf41a6c783a837f207a3d4c611d3c9",
+   "method_version": 6,
+   "ts": "2026-08-23T22:02:07Z"
+  },
+  {
+   "k": 9,
+   "ids": [
+    "T698",
+    "T747"
+   ],
+   "row_count": 50,
+   "sha256": "04457fa9f9431c4a1c08b65dbc8338f62b2008162a0e5ad71e65dd99495e3f41",
+   "method_version": 6,
+   "ts": "2026-08-23T22:02:12Z"
+  },
+  {
+   "k": 10,
+   "ids": [
+    "T748",
+    "T797"
+   ],
+   "row_count": 50,
+   "sha256": "09fcf02a39008cee8da2a3d9a6ad5260399fab6d82317f14ad1af281c51a012d",
+   "method_version": 6,
+   "ts": "2026-08-23T22:02:17Z"
+  },
+  {
+   "k": 11,
+   "ids": [
+    "T798",
+    "TL1F"
+   ],
+   "row_count": 29,
+   "sha256": "69b3c77e99822a1e0beee90fa4e905cb0125e5017d896671af0f3ed9bc0ee1ea",
+   "method_version": 6,
+   "ts": "2026-08-23T22:02:20Z"
+  }
+ ],
+ "next_chunk": 12,
+ "note_probe": "chunk-00.jsonl is the method-1 calibration probe, retained as written; production rows are chunk-*-m2.jsonl",
+ "probe_chunks": [
+  {
+   "k": 0,
+   "ids": [
+    "--bundle",
+    "T267"
+   ],
+   "row_count": 50,
+   "sha256": "10c985a9eca34c303d8d62dd3d70f504932fca5e3aa22e23e7cca429fcc72929",
+   "method_version": 1,
+   "ts": "2026-08-23T21:50:53Z"
+  }
+ ],
+ "production_method_version": 6,
+ "generation_history": [
+  {
+   "method": 1,
+   "note": "calibration probe; chunk-00.jsonl only, kept as written",
+   "superseded_by": 2
+  },
+  {
+   "method": 2,
+   "note": "first full pass; seat/duty/diagnosis rules added",
+   "superseded_by": 3
+  },
+  {
+   "method": 3,
+   "note": "race lanes -> battery, sprint consoles -> orchestration, duty health checks -> infra, question-word titles -> research",
+   "superseded_by": 4
+  },
+  {
+   "method": 4,
+   "note": "'?' in title -> research regardless of opening word",
+   "superseded_by": 5
+  },
+  {
+   "method": 5,
+   "note": "case-folded classifier inputs (fixed SPEC ONLY / AUDIT-title misses)",
+   "superseded_by": 6
+  },
+  {
+   "method": 6,
+   "note": "PRODUCTION: run-record globbing fixed to include <id>.<n>.json attempt files (39 tasks' wall/cpu/rss were undercounted in m5); classifier identical to m5"
+  }
+ ],
+ "append_only_discipline": "A completed chunk file is never rewritten; method changes produce a new generation of chunk-NN-m<v>.jsonl files, recorded here.",
+ "resume_command": "python3 docs/infra/task-corpus-b/derive.py   # reads this manifest, verifies per-chunk sha256, continues at next_chunk",
+ "row_schema": {
+  "id": "task id",
+  "method": "int",
+  "title": "from brief heading",
+  "sources": {
+   "brief_on_disk": "bool",
+   "brief_path": "path or null",
+   "runs": "run records matched",
+   "findings_files": "count",
+   "token_rows": "count"
+  },
+  "brief_bytes": "int or null",
+  "declared_paths": [
+   "deliverables= + holds union"
+  ],
+  "n_declared_paths": "int",
+  "run_metrics": {
+   "wall_s": "sum over run records",
+   "cpu_s": "sum",
+   "rss_mb": "max",
+   "n_run_files": "count"
+  },
+  "tokens": {
+   "in": "sum tokens_in from untracked/tokens/tokens.jsonl",
+   "out": "sum"
+  },
+  "task_type": {
+   "value": "one of spec|implement|audit|integration|infra|research|battery|orchestration|UNKNOWN",
+   "basis": "which cascade rule fired and on what text",
+   "confidence": "high|medium|low"
+  },
+  "scope_class": {
+   "value": "micro|single-doc|code-touch|multi-artifact|heavy-compute",
+   "basis": "rule"
+  },
+  "capabilities": [
+   {
+    "name": "tag",
+    "why": "rule that fired"
+   }
+  ],
+  "kanban_status": "status field"
+ }
+}
