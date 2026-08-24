@@ -60,10 +60,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t521-capture-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$ROOT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo t521-capture WORK   # T849: isolated scratch repo
 cd "$WORK"
-git init -q
 git config user.email t521@test
 git config user.name T521
 echo base > README.md
