@@ -200,3 +200,13 @@ fine (B23). One task per family, one row per model. The fleet keeper stays pause
 **Known small fix, not yet owned:** a lane reports tokens only when dispatched with `--session`
 (deepseek and ollama have it; the openrouter/ox-alpha lane has neither `--session` nor `--mode json`,
 which is the whole explanation for its UNKNOWN token column). One line in the dispatch path.
+
+## B-new-4. Observability gaps measured while three workers ran, 2026-08-24
+
+| # | issue | evidence |
+|---|---|---|
+| B25 | **`managent liveness` displays a falsehood, which is worse than a gap.** With `T848` running on `deepseek-v4-pro` and `T849` on `glm-5.2`, it reported both as `[beats stopped]` with `command: pi --provider openrouter --model stealth` — the command and model of *earlier abandoned attempts* on those same rows. A heartbeat from a dead attempt is never superseded, so the surface attributes it to the live run and names the wrong model. Both tasks were in fact healthy. Anyone acting on that display would reopen or re-dispatch a working row. | `bin/managent liveness` versus the process table and the session transcripts, same minute |
+| B26 | **A `claude` lane is unobservable by design, not by accident.** It is dispatched as bare `claude -p …` with no `--session`, its stdout is buffered to completion, and no heartbeat lands — so `T850` showed `UNKNOWN — no assertion`, a 2.7 KB log frozen for ten minutes, and no transcript, while being perfectly alive (two live pids). The process table was the *only* truthful signal. | `T850` across four surfaces |
+| B27 | **The reliable liveness signal is the session transcript, and only two of four lanes have one.** `deepseek` is dispatched with `--mode json --session <path>` and `ollama` with `--session <path>`; both produced growing transcripts (736 KB and 127 KB, mtimes seconds old) that correctly showed health. The `openrouter`/`ox-alpha` lane gets neither flag and the `claude` lane gets none. **So the missing `--session` is not a cosmetic token-column gap — it removes liveness and attribution together for half the fleet.** That reframes it from nice-to-have to the cheapest observability fix available. | the four lanes' argv, measured |
+
+**Verified working, recorded so it is not re-litigated:** the fleet keeper's pause is real, not just a flag — its own log writes `cooldown flag set — no new dispatches` every 30 s. And all four race-judge briefs (`T832`, `T843`, `T844`, `T819`) are amended with the closed field, the clean-baseline requirement, and the design assumptions their originals did not state; they are ready to dispatch as slots free.
