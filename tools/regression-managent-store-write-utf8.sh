@@ -55,13 +55,15 @@ if [ ! -x "$MG" ]; then
 fi
 
 mkdir -p /tmp/weizigo
-TMPDIR="$(mktemp -d /tmp/weizigo/managent-store-write-utf8-XXXXXX)" || { echo "regression-managent-store-write-utf8.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git init);
+# T445 refuse-on-failure is preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo managent-store-write-utf8 TMPDIR
 trap 'rm -rf "$TMPDIR"' EXIT
 
 # Scratch repo (repo_root) with the store inside it. git is initialized so
 # the binary's git probes (done deliverable check, isLiveStore) behave.
 mkdir -p "$TMPDIR/docs/infra/managent" "$TMPDIR/untracked"
-git init -q "$TMPDIR"
 git -C "$TMPDIR" config user.email "t587@test"
 git -C "$TMPDIR" config user.name "T587"
 
