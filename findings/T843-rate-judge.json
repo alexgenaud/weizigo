@@ -1,0 +1,133 @@
+{
+  "task_id": "T843",
+  "date": "2026-08-24",
+  "model": "claude-sonnet-5",
+  "identifier": "claude-sonnet-5/T843",
+  "type": "rate-race-judgment",
+  "instrument": "mechanical judging of three patches to untracked/watch-fleet.sh + tools/regression-watch-fleet.sh against pinned base efa747d, plus independent live-transcript fixtures; no epistemic claim rows",
+  "claims": [],
+  "new_rows": [],
+  "headline": "Field is T838/T839/T840, both no-shows confirmed. T838 and T839 both correctly fix the UNKNOWN-forever rate defect (sum per-turn output tokens, mtime-based freshness) and break nothing; T839 additionally covers the pgrep-blind-spot false-kill case with a third CONCERNS state. T840 also renders a live rate, but independently reproduces three real defects: it sums the wrong way (takes the max of a field that is NOT cumulative in real transcripts, confirmed against a live session file), it silently drops every transcript-less 'orphaned' task from CONCERNS (a stray shell `continue` — reproduced 3/3 runs, breaks the previously-green holder arm P and contributes to arm H), and its freshness column mis-parses UTC timestamps as local time, so it shows STALE for a transcript written seconds ago on this actual (CEST) host — confirmed live, not hypothetical. Ranking: T839 > T838 > T840.",
+
+  "method": {
+    "isolation": "For each of T838/T839/T840: `git worktree add --detach /tmp/weizigo/rate-judge-<id> efa747d` (a real git worktree, not a scratch git-init — never touches the live repo's GIT_DIR/index, unlike the 2026-08-24 scratch-repo incident T849 fixed). Applied each patch alone in its own worktree; never two patches in one tree.",
+    "binary": "The worktree has no bin/managent (gitignored build artifact). `zig build deploy-managent -Doptimize=ReleaseSafe` has no cross-target step, so it was built once in an unpatched efa747d worktree and copied byte-identical into each patched worktree (the patches touch only the two shell files, never zig source, so one build serves all three + the baseline control).",
+    "pitfall_found_and_fixed": "First pass copied TODAY's already-built bin/managent (a later commit) into the efa747d worktrees. That produced spurious failures on arm C/N/K/H/B/O — not real defects, just a store-schema/behaviour drift between the binary's commit and the fixture's era. Confirmed by reproducing the identical spurious failures against an UNPATCHED efa747d baseline. Rebuilt managent from efa747d source before drawing any conclusion; the false readings are not reported below.",
+    "baseline_confound_control": "Ran the unpatched (efa747d) worktree through tools/regression-watch-fleet.sh four times before touching any patch. Result: arm F fails every time (pre-existing, owned by T466/T492 — 'T991 command with watch-fleet.sh should be HIDDEN' — untouched by any entrant, correctly left alone by all three per the brief). Arm O (rate arithmetic) flaked once in four baseline runs — a host-load timing race in the same family the entrants themselves flagged (spawn-to-frame races on B/F/G/H/M), not attributable to any patch. No other baseline arm ever failed. This is the yardstick every patch is measured against.",
+    "clean_baseline_assertion": "Confirmed per amendment §2 before applying anything: `git diff efa747d HEAD -- untracked/watch-fleet.sh tools/regression-watch-fleet.sh` is empty, and `git status --short` shows both files clean. No contamination.",
+    "per_patch_runs": "Each patch's OWN copy of tools/regression-watch-fleet.sh (the patch also modifies the regression script) was run 2-3 times in its isolated worktree.",
+    "independent_live_render": "Beyond the entrants' own regression arms, built one independent fixture (not shipped by any entrant) run against baseline and all three patches identically: a scratch store with T901 in_progress (real `exec -a` sleep process + a real pi-style session file, two messages, second message's timestamp 5s before capture), T902 in_progress/no-process, T903 done. Captured one ONESHOT frame (stdout not a tty) per worktree."
+  },
+
+  "per_patch_table": [
+    {
+      "entrant": "T838", "model": "deepseek-v4-pro", "patch_bytes": 25303, "wall_s": 4159,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_git_apply_check": true,
+      "arms_total": 19, "arms_new": ["Q", "R", "S"],
+      "green_broken": [], "new_arms_added_pass": true,
+      "deterministic_result": "18/19 across 2 runs — only F fails (pre-existing, not attributable). Q/R/S pass both runs.",
+      "rate_verified_live_independent_fixture": "2100/s (RATE), '1s' (LIVE) for a task with a real process and a real growing transcript; baseline on the identical fixture showed RATE=UNKNOWN.",
+      "exact_fill": "K/N pass — 35 data rows / 38-line frame, unchanged by the new column.",
+      "disqualified": false
+    },
+    {
+      "entrant": "T839", "model": "deepseek-v4-flash", "patch_bytes": 31265, "wall_s": 2524,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_git_apply_check": true,
+      "arms_total": 20, "arms_new": ["Q", "R", "S", "T"],
+      "green_broken": [], "new_arms_added_pass": true,
+      "deterministic_result": "19-20/20 across 2 runs — F fails both times (pre-existing); O flaked once (same host-load race seen at baseline, not attributable). Q/R/S/T pass both runs.",
+      "rate_verified_live_independent_fixture": "2100/s (RATE), '   1s' (5-char freshness slot) on the identical fixture.",
+      "exact_fill": "K/N pass — unchanged.",
+      "disqualified": false,
+      "note": "Findings file records a fleet-wide `core.worktree` redirect incident by an unrelated console during its run; T839 worked around it with explicit `--git-dir`/`GIT_WORK_TREE` and closed correctly. Not a defect in T839's patch — recorded as a fleet hazard, not scored against it."
+    },
+    {
+      "entrant": "T840", "model": "glm-5.2", "patch_bytes": 25832, "wall_s": 2929,
+      "files_touched": ["untracked/watch-fleet.sh", "tools/regression-watch-fleet.sh"],
+      "applies_git_apply_check": true,
+      "arms_total": 19, "arms_new": ["U", "V", "W"],
+      "green_broken": ["H", "P"],
+      "new_arms_added_pass": "V, W always; U flaked FAIL in 2 of 3 runs (its own self-test is not reliably green)",
+      "deterministic_result": "14-15/19 across 3 runs — F fails every run (pre-existing); H and P fail EVERY run (new, confirmed regressions, see defects below); O flaked once; U failed twice.",
+      "rate_verified_live_independent_fixture": "1800/s (RATE) — real but WRONG: the true output over the fixture's two messages was 300+1800=2100 tokens, not 1800 (see defect 1). LIVE column showed 'STALE' for a transcript written seconds before capture (see defect 3) — the freshness signal is actively wrong on this host, not just imprecise.",
+      "exact_fill": "N/A(K arm absent in this patch's own suite by name) / W passes — 7-field rows, exact fill at height 40 holds despite the new column.",
+      "disqualified": false,
+      "note": "Not disqualified under the brief's mechanical criteria (applies cleanly, touches only the two allowed files) — but carries three confirmed defects, below."
+    }
+  ],
+
+  "no_shows": [
+    {"entrant": "T841", "model": "kimi-k2.7", "result": "exit 1, wall 2909s, nothing on disk — closed abandoned. No findings file, no patch. Recorded as a measurement, not scored."},
+    {"entrant": "T842", "model": "minimax-m3", "result": "exit 1, wall 2902s, nothing on disk — closed abandoned. No findings file, no patch. Recorded as a measurement, not scored."},
+    {"entrant": "ox-alpha", "result": "never entered the field at all (per amendment §1)."}
+  ],
+
+  "t840_defects_confirmed": [
+    {
+      "id": "T840-D1-wrong-aggregation",
+      "summary": "T840's transcript reader takes the MAX of a single message's `usage.output` field and treats it as a cumulative counter ('the highest cumulative output from a post-claim message'). Real transcripts do not work that way.",
+      "evidence": "Read a live, currently-tracked session file (untracked/tokens/sessions/T851.1787565237622000000.69112.0.jsonl): successive `output` values are 186, 140, 158, 158, 182, 638 — NOT monotonic, so `output` is a PER-TURN count, not a running total (the running total is `totalTokens`, which does climb monotonically: 10141, 11869, 13466, 16362, 19467, 30767). T838 and T839 both SUM per-turn `output` across messages, matching this. T840 takes the max, which under-counts almost every real multi-turn task and is stale-pinned once the largest single turn has passed — a later long tool-wait/short-turn burst adds no visible rate even though real output is accumulating.",
+      "reproduced": "Independent fixture: two messages, per-turn output 300 then 1800 (matching the real-file shape of independent, non-cumulative per-turn counts). T838/T839 correctly rendered 2100/s (sum). T840 rendered 1800/s (max) — a ~14% undercount in this fixture, and unboundedly worse whenever the largest turn is not the most recent one.",
+      "contradicts_self_report": "T840's own findings file claims tokens_out is a reading whose 'null renders UNKNOWN' and treats the field as effectively cumulative ('takes the transcript's tokens/mtime when it has a post-claim record') without ever testing the non-cumulative case against a real transcript."
+    },
+    {
+      "id": "T840-D2-concerns-row-drop",
+      "summary": "A stray shell `continue` inside the CONCERNS per-task loop silently drops EVERY transcript-less task from CONCERNS whenever it would otherwise be labelled 'orphaned' — which is the common case (most orphaned tasks have no transcript at all).",
+      "evidence_location": "untracked/ratrace/T840.patch, in the new CONCERNS block: `case \"${mt:-0}:${lbl}\" in *:orphaned) [ -z \"$mt\" ] || [ \"$mt\" = \"0\" ] && continue ; ... esac` followed by `printf '%s\\t%s\\n' \"$t\" \"$lbl\" >> \"$T.conc.raw\"`. The `continue` is a shell loop-control statement, not a case-branch skip: it jumps straight to the next `$t`, bypassing the printf that appends the row. Every task with no transcript (mt empty or literal \"0\") that would default to 'orphaned' NEVER reaches the append line.",
+      "reproduced": "Deterministic — arm P (holder-from-store) fails on every one of 3 runs with 'T941 missing from CONCERNS' and 'T941 has no agent — holder must render \\'-\\', not an invented one, got \\'\\''; arm H (times column) fails identically every run ('a times row is missing', 'CONCERNS label missing'). Neither arm failed at baseline or against T838/T839.",
+      "severity_note": "This is worse than the defect being judged. The brief's motivating complaint is a dashboard that LIES (UNKNOWN forever, or mislabels a live/finished task). T840 introduces a dashboard that silently OMITS rows — an operator scanning CONCERNS for stuck work would not even see the task, let alone see a wrong label."
+    },
+    {
+      "id": "T840-D3-timezone-freshness",
+      "summary": "`parse_iso()` parses a UTC-suffixed transcript timestamp with `time.mktime(time.strptime(s[:19], '%Y-%m-%dT%H:%M:%S'))`, which interprets the naive string as LOCAL time. On any host whose local zone is not UTC, this silently shifts every parsed timestamp by the zone offset.",
+      "evidence": "This machine's actual zone is CEST (UTC+2; confirmed via `date` → 'Mon Aug 24 12:07:18 CEST 2026' and `python3 -c \"import time; print(time.tzname)\"` → ('CET','CEST')) — i.e. the operator's own host, not a hypothetical one.",
+      "reproduced": "Independent fixture: a session file whose last message carries a UTC timestamp 5 seconds before capture. T838 and T839 (both mtime-based, timezone-agnostic) correctly rendered '1s' / '   1s'. T840 rendered 'STALE' — the 2-hour UTC/CEST offset pushes the parsed age past the 900s threshold even though the file was written 5 seconds earlier.",
+      "self_disclosure_gap": "T840's own findings file names this exact risk under 'what would prove this approach wrong' (#3: 'a session file with a UTC timestamp after the test runs in a non-UTC zone would resolve to a wall time before now and show STALE') and offers file-mtime as the stated fallback — but the code only falls back to mtime when the timestamp STRING fails to parse, not when it parses to a wrong value. A syntactically valid but timezone-mismatched timestamp parses 'successfully' to the wrong epoch, so the mtime fallback never engages. The self-disclosed risk is not a rare edge case here; it is live and deterministic on the actual host this dashboard runs on."
+    }
+  ],
+
+  "frames_verbatim": {
+    "note": "Independent fixture (not shipped by any entrant): PROGRESS=T901 (real process + real 2-message transcript, second message 5s old at capture), CONCERNS=T902 (in_progress, no process, no transcript), DONE=T903. FLEET_LINES=24 FLEET_COLS=110, stdout not a tty (ONESHOT).",
+    "baseline_efa747d": "PROGRESS\n  T901  L1            0'00   UNKNOWN  render fixture\n\nCONCERNS\n  T902  L1  orphaned  12:06           render fixture\n\nDONE\n  T903  L1  pass      11:00  render fixture",
+    "T838": "PROGRESS\n  T901  L1            0'01   2100/s   1s   render fixture\n\nCONCERNS\n  T902  L1  orphaned  12:06           render fixture\n\nDONE\n  T903  L1  pass      11:00  render fixture",
+    "T839": "PROGRESS\n  T901  L1            0'01   2100/s      1s render fixture\n\nCONCERNS\n  T902  L1  orphaned  12:06           render fixture\n\nDONE\n  T903  L1  pass      11:00  render fixture",
+    "T840": "PROGRESS\n  T901  L1            0'01   1800/s   STALE render fixture\n\nDONE\n  T903  L1  pass      11:00  render fixture",
+    "T840_note": "T902 (orphaned, no transcript) is MISSING from the frame entirely — this is defect T840-D2 rendered live, not just a regression-suite assertion."
+  },
+
+  "amendment_items_addressed": {
+    "1_field_of_three": "Judged exactly T838/T839/T840; T841/T842/ox-alpha recorded as no-shows, not scored against the three that exist.",
+    "2_clean_baseline": "Confirmed empty diff efa747d..HEAD and clean git status on both files before applying anything.",
+    "3_session_confound": "Not directly exercised (my independent fixture used a pi-style --session file for all three, which is the readable-lane shape); no entrant was penalized for an unreadable ox-alpha-style lane because none of my checks used one. Noted for completeness rather than scored.",
+    "4_t771_retired": "Not reproduced or tested — T771 is retired per the amendment; no fixture referencing it was constructed.",
+    "5_operators_reading": "Weighed as evidence that T840's RATE column can render a real number on a genuinely live lane (9.1/s, 14.3/s observed) — consistent with what I independently found (T840 does render a live, non-fabricated number). It is NOT evidence about the two regressions (D2, D3) or the aggregation defect (D1), none of which the operator's smoke-test was positioned to see: D2 needs a transcript-less orphaned task in view, D3 needs the freshness column specifically inspected, D1 needs a multi-turn transcript where the largest turn is not the last. His reading and my findings are consistent, not in conflict — they simply examined different parts of the same patch.",
+    "6_ledger_written": "Five rows appended to docs/infra/model-task-metrics.jsonl: T838, T839, T840 (patch entrants) + T841, T842 (no-shows)."
+  },
+
+  "ranking": [
+    {
+      "rank": 1, "entrant": "T839", "model": "deepseek-v4-flash",
+      "why": "Correct aggregation (sum, matches real transcript semantics), timezone-safe freshness (mtime), breaks nothing, and is the only entrant whose CONCERNS design has a third state ('lived') that directly answers the race's own motivating incident — a live worker that pgrep cannot see should not read as dead. Most thorough new-arm coverage (Q/R/S/T, all deterministic).",
+      "hinge": "If the operator considers the third CONCERNS state unnecessary complexity (T840 argued explicitly against a third state, calling it a hedge) and prefers the minimal two-state design, this ranking narrows to a near-tie with T838 — both fix the core defect identically and neither breaks anything. Name this hinge explicitly: 'do you want CONCERNS to distinguish a pgrep-blind live worker from a truly dead one, or is finished-vs-orphaned enough?' A 'no' flips 1st/2nd."
+    },
+    {
+      "rank": 2, "entrant": "T838", "model": "deepseek-v4-pro",
+      "why": "Identical correct aggregation and timezone-safe freshness to T839, breaks nothing, smallest/simplest of the two working patches. Two-state CONCERNS (finished/orphaned) covers the T818-shaped defect the brief named explicitly, but not the pgrep-blind-spot case T839 also covers.",
+      "hinge": "If the operator dislikes T839's extra STALE-banding/5-char slot as visual clutter, or the third CONCERNS state as unproven, this becomes rank 1. Nothing about T838 itself would need to change — the hinge is entirely about T839's added surface, not about any defect in T838."
+    },
+    {
+      "rank": 3, "entrant": "T840", "model": "glm-5.2",
+      "why": "Renders a real (if under-counted) live rate — the operator's own smoke test confirms the core mechanism works. But carries three confirmed, reproducible defects: wrong token aggregation (D1), a dashboard-integrity regression that silently drops rows from CONCERNS (D2, breaks previously-green arms H/P on every run), and a timezone bug that makes the new freshness column actively lie (STALE-on-fresh) on the operator's own host (D3). D2 is categorically worse than the UNKNOWN-forever defect this race exists to fix.",
+      "hinge": "This ranking is NOT sensitive to the operator's positive live-rate observation — that observation is about RATE alone and does not touch D2 or D3. The only way T840 rises above T838/T839 is if the operator judges D1-D3 acceptable collateral for being first to demonstrate a live rate on his own screen — a taste call about risk tolerance, not a mechanical one. Absent that call, T840 stays last: it is the only entrant that turns previously-green arms red."
+    }
+  ],
+
+  "disqualifications": "None. All three applied cleanly (`git apply --check` clean against efa747d) and touched only untracked/watch-fleet.sh + tools/regression-watch-fleet.sh — confirmed by diffing the file list of every patch, including T840's (whose defects are real but do not include a scope violation).",
+
+  "ledger_note": "docs/infra/model-task-metrics.jsonl: five infra rows written (T838 pass, T839 pass, T840 pass-with-findings/qualified=false, T841 no-show, T842 no-show), each provisional (n=1), no tier emitted per methodology §5's emission gate (n=1, single cost point, no anchored cell).",
+
+  "inbox": "bin/managent inbox T843 --ack polled at claim and before close; empty both times, no directive ID to record.",
+  "status": "pass-with-findings"
+}
