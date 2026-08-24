@@ -44,16 +44,19 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 MG="$PROJECT/bin/managent"
 FAIL=0
 
+# T849: the scratch repo is created by the ONE helper that isolates the git
+# env (unset GIT_DIR GIT_WORK_TREE …) before `git init`, so this script is
+# safe to run outside the pre-commit hook too.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+
 if [ ! -x "$MG" ]; then
     echo "SKIP: no managent binary (build with 'zig build') — T682 needs it"
     exit 0
 fi
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/managent-landmark-XXXXXX)" || { echo "regression-managent-landmark.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+weizigo_scratch_repo managent-landmark WORK   # T849: isolated scratch repo (T445 refuse-on-failure preserved)
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
-git init -q
 git config user.email t682@test
 git config user.name T682
 echo base > README.md
