@@ -39,6 +39,19 @@ effects passes, and the dispatcher says it is believing the work, not the
 text.  There is no silent retry: a failed dispatch is a failed dispatch, and
 the report names the checks so the Orchestrator can adjudicate.
 
+T827 (2026-08-24): the nonce is proof-of-reading, the declared deliverables
+are proof-of-work, and verification classifies their failure separately.  A
+worker whose every declared deliverable exists but whose token was not
+echoed (and whose row was not closed — T818, 2026-08-23: 12/12 chunks, a
+manifest with per-chunk sha256, derive.py and notes.md all committed, the
+row left in_progress and recorded verified=fail fail=row, graded as if
+nothing had been produced) has a PROTOCOL failure — the work happened, the
+close protocol broke.  Such an outcome names "WORK PRESENT" in its summary,
+records a recoverable fail reason (nonce), and is never indistinguishable
+from a worker that read the brief and produced nothing (fail=row /
+fail=deliverables).  The recoverable/unrecoverable vocabulary
+tools/model-profiles.py grades on (RECOVERABLE_FAIL) is unchanged.
+
 Task: T411 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-07
 
 T631 (2026-08-22): this module is imported by bin/subagent from the COMMITTED
@@ -931,6 +944,16 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
       summary    one line, printed with a [verify] prefix by the caller
       details    detail lines, printed indented under the summary
       perf       (task_id, model, report, verified, fail_check) for the model ledger
+
+    T827 classification: the checks are proof-of-reading (nonce) and
+    proof-of-work (declared deliverables).  When every declared deliverable
+    exists, the work happened: a missing nonce or an open row is then a
+    PROTOCOL failure — the summary names WORK PRESENT, the fail_check stays
+    in the recoverable vocabulary (nonce), and the outcome is distinct from
+    a worker that produced nothing (fail=row / fail=deliverables).  Exit
+    code stays 2 for every failure (the documented 0/2 contract); the
+    distinction lives in the classification, which is what the ledger and
+    the operator read.
     """
     details = []
     nonce_ok = nonce in stdout
@@ -1014,6 +1037,31 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
     if status != "done":
         # The row never closed.  rc==0 with an open row is the kimi incident.
         if rc == 0:
+            # T827: classify WORK PRESENT before failing on the open row.
+            # The deliverables are proof-of-work; when every declared one
+            # exists the work happened, and a worker that failed to echo the
+            # token (or to close the row) has a PROTOCOL failure, not a work
+            # failure.  Report it distinctly — never as the unrecoverable
+            # fail=row a worker that produced nothing earns (the T818 wound:
+            # work fully committed, recorded as if nothing had been done).
+            if deliverables and not dl_missing:
+                if not nonce_ok:
+                    reason = "nonce"
+                    protocol = "the nonce was not echoed and the row never closed"
+                else:
+                    reason = "row"
+                    protocol = "the row never closed"
+                return (2,
+                        "worker exited 0 but the task never left %s — WORK "
+                        "PRESENT: every declared deliverable exists; "
+                        "verification FAILED (%s — a protocol failure, not a "
+                        "work failure)" % (status, protocol),
+                        details + ["FAIL kanban: task %s is still %s (no claim/done "
+                                   "recorded)" % (task_id, status),
+                                   "NOTE work present: every declared deliverable "
+                                   "exists — the close protocol broke (%s), not "
+                                   "the work" % protocol],
+                        (task_id, model, "incomplete", "fail", reason))
             return (2,
                     "worker exited 0 but the task never left %s — verification FAILED"
                     % status,
@@ -1070,6 +1118,20 @@ def verify_dispatch(*, root, task_id, model, nonce, stdout, rc,
                 details, (task_id, model, worker_report, "fail", "findings"))
 
     if not nonce_ok:
+        # T827: the closed row's deliverables already passed their existence
+        # check above; when the declaration is non-empty and nothing is
+        # missing, the work EXISTS and a missing token is proof-of-reading
+        # only — a protocol failure, distinct from "produced nothing".  The
+        # fail_check stays "nonce" (recoverable) either way.
+        if deliverables and not dl_missing:
+            return (2,
+                    "worker reported %s; verification FAILED: nonce echo missing "
+                    "— WORK PRESENT (every declared deliverable exists): a "
+                    "protocol failure, not a work failure" % worker_report,
+                    details + ["NOTE work present: every declared deliverable "
+                               "exists — the nonce failure is proof-of-reading, "
+                               "not proof-of-work"],
+                    (task_id, model, worker_report, "fail", "nonce"))
         return (2,
                 "worker reported %s; verification FAILED: nonce echo missing" % worker_report,
                 details, (task_id, model, worker_report, "fail", "nonce"))

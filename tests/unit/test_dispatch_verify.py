@@ -1068,6 +1068,55 @@ class TestVerifyDispatchKanban(unittest.TestCase):
         self.assertEqual(perf[4], "exit")
 
 
+class TestVerifyDispatchT818OpenRowWorkPresent(unittest.TestCase):
+    """T818 (2026-08-23): a worker whose every declared deliverable exists but
+    whose nonce was not echoed and whose row was left in_progress must NOT be
+    recorded as fail=row (unrecoverable, indistinguishable from a worker that
+    produced nothing).  The work happened; the close protocol broke.  This is
+    the incident the diff race (T832) was run to abolish — pinned here so a
+    patch that flatters the 172-arm mechanical gate (T826/T831: they leave the
+    open-row rc==0 branch untouched) turns this arm RED, while the winner T827
+    (which splits on work-present before failing) keeps it GREEN."""
+
+    def test_open_row_rc0_work_present_nonce_missing_not_fail_row(self):
+        # the real T818 shape: in_progress, rc=0, every declared deliverable
+        # on disk, nonce NOT echoed.  Base records fail=row (unrecoverable, the
+        # wound); the fix reclassifies to a recoverable protocol failure.
+        root = make_root()
+        store = write_store(root, {"T1": {"status": "in_progress"}})
+        dl = write_deliverable(root)  # every declared deliverable exists
+        rc, summ, details, perf = verify(root, "T1", store_env=store,
+                                         stdout="OK.",  # nonce NOT echoed
+                                         deliverables=[dl])
+        self.assertEqual(rc, 2,
+            "still a failed dispatch — the protocol broke, not the work")
+        self.assertNotEqual(perf[4], "row",
+            "work-present + nonce-missing on an open row must NOT be fail=row "
+            "(unrecoverable); it is a protocol failure, distinct from a "
+            "worker that produced nothing")
+        self.assertEqual(perf[4], "nonce",
+            "the recoverable classification for a nonce-not-echoed protocol "
+            "failure is 'nonce', in the graded recoverable vocabulary")
+        self.assertIn("WORK PRESENT", summ,
+            "the summary must name WORK PRESENT so the operator can tell a "
+            "protocol failure from a worker that produced nothing")
+
+    def test_open_row_rc0_work_absent_nonce_missing_still_fail_row(self):
+        # CONTROL: the kimi incident (rc=0, did nothing) stays caught.  When
+        # the declared deliverable is MISSING the work did NOT happen, so the
+        # open row is the unrecoverable fail=row regardless of the nonce.  A
+        # fix that over-broadens (recovers work-absent as well) breaks this.
+        root = make_root()
+        store = write_store(root, {"T1": {"status": "in_progress"}})
+        rc, summ, details, perf = verify(root, "T1", store_env=store,
+                                         stdout="OK.",  # nonce NOT echoed
+                                         deliverables=["docs/never.txt"])
+        self.assertEqual(rc, 2)
+        self.assertEqual(perf[4], "row",
+            "work-absent + nonce-missing on an open row is the kimi incident "
+            "— stay fail=row (unrecoverable); the fix must not over-recover")
+
+
 class TestVerifyDispatchVerdicts(unittest.TestCase):
     """SHOULD: map verdict -> worker_report; success/fail-found require
     deliverables; blocked/abandoned may produce nothing; an unknown verdict is
