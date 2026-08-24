@@ -73,6 +73,11 @@ ROOT="$HERE/.."
 TOOL="$ROOT/tools/model-profiles.py"
 FAIL=0
 
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$ROOT/tools/lib/scratch-repo.sh"
+
 mkdir -p /tmp/weizigo
 WORK="$(mktemp -d /tmp/weizigo/t524-profiles-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
@@ -406,13 +411,12 @@ if [ $? -ne 0 ]; then FAIL=1; fi
 # ── (e) deliverables committed: git-tracked vs not (feeds scope) ──────────
 echo "  5. uncommitted deliverable flips scope_discipline"
 mkdir -p /tmp/weizigo
-GITWORK="$(mktemp -d /tmp/weizigo/t524-git-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+weizigo_scratch_repo t524-git GITWORK   # T849: isolated scratch repo
 trap 'rm -rf "$WORK" "$GITWORK"' EXIT
 # T626 bakeoff MEDIUM: an un-belted cd leaves the script in the repo root
-# if the scratch dir vanished, and `git init -q` below would re-init the
-# live repo.  Belt it (the mktemp itself is already belted, T445).
+# if the scratch dir vanished.  The helper already belted the git init
+# (T445/T849); belt the cd too so an empty GITWORK refuses (T626).
 cd "$GITWORK" || { echo "FATAL: could not cd into scratch $GITWORK; refusing to run (T626)" >&2; exit 2; }
-git init -q
 git config user.email t524@test
 git config user.name T524
 mkdir -p docs/infra/managent untracked/log findings
