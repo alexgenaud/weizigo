@@ -507,3 +507,242 @@ them here would misstate what this spec actually specifies versus what it defers
 - Characterization-pass definition, concrete enough to dispatch, naming the six S06-target scripts
   by path (§5.1).
 - Findings: `findings/T790-module-contract-spec.json`.
+
+---
+
+# T861 — module map, contract declarations, and the known-red baseline
+
+**Task:** T861 · **Worker:** deepseek-v4-pro/T861 · **Date:** 2026-08-24
+**Landmark:** advances `L1 (the dashboard tells the truth)` — this is the row that makes the
+operator's module-test ruling enforceable: the map (declare) + the `test … covers …` lines the
+pre-commit hook parses (select) + the dated, per-script, owned, expiring known-red baseline.
+
+The T790 spec above fixes the *shape*; this section fills it with the real population. The three
+machine sections below are the ones `tools/hooks/pre-commit` parses — nothing else in this file is
+machine-read.
+
+## 9. Module map (T861 — declare)
+
+A **module** is a subset of the project with its own test suite. Two kinds, per the operator ruling:
+software (tooling, engines, experiments, tables) and prose (the epistemic tree). For each module:
+its tracked files (path prefix), its suite, and its gate tier.
+
+**Tier rule (T861, measured 2026-08-24):** a script is *pre-commit* only if it runs standalone via
+`sh <script>` with no build-wired argument AND completes in ≤ 20 s wall. Anything slower, or that
+needs a `zig build test` argument, or that is state-dependent by design, is *full/scheduled* tier
+(ran by `zig build test` / `tools/suite-truth.sh`). This is the tiered half of the budget
+resolution (§9.1); the parallel half is in the hook.
+
+| module | tracked path prefix(es) | suite | tier |
+|---|---|---|---|
+| kanban (bin/managent) | `src/managent/` | ~40 `regression-managent-*`, `regression-directive-*`, `regression-orient`, `regression-store-census`, `regression-status-doc-truth`, `regression-T227`, `regression-task-*`, `regression-inbox-loop`, `regression-claim-lifecycle` | pre-commit (≤20s) + full (slow arms) |
+| claimlint (bin/weizigo-claimlint) | `src/claimlint.zig` `src/absorb.zig` `src/claims_register.zig` | `regression-claimlint-*` | pre-commit |
+| epistemic tree (prose) | `docs/epistemic/CLAIMS.md` `docs/epistemic/PROGRESS.md` `docs/evidence/` `findings/` | `bin/weizigo-claimlint` + `regression-claimlint-*` + `regression-absorption-machinery` | pre-commit (claimlint) + full |
+| gtp / oracle (bin/weizigo-gtp, bin/weizigo-oracle) | `src/gtp.zig` | `regression-gtp-boardsize` | pre-commit |
+| runner | `tools/runner` | `regression-runner-*` (15 scripts), `regression-arbiter`, `regression-orphan-reaper` | pre-commit (≤20s) + full (slow) |
+| pre-commit hook | `tools/hooks/pre-commit` | `regression-git-commit-mine-hook`, `regression-precommit` (full) | pre-commit + full |
+| commit wrapper | `tools/git-commit-mine` `tools/git-commit-mine-lib.sh` | `regression-git-commit-mine`, `regression-git-commit-mine-hook`, `regression-commit-concurrency` | pre-commit |
+| dispatcher (bin/dispatch) | `bin/dispatch` `tools/directive_policy.py` `tools/fleet_caps.py` | `regression-dispatch`, `regression-dispatch-caps`, `regression-duplicate-dispatch`, `regression-directive-*`, `regression-one-dispatch-path` (full) | pre-commit + full |
+| subagent (bin/subagent, bin/ollama-subagent) | `bin/subagent` `bin/ollama-subagent` | `regression-subagent-*`, `regression-depth-enforcement`, `regression-inbox-loop`, `regression-ollama-dispatcher`, `regression-session-capture` | pre-commit |
+| dispatch-verify | `tools/dispatch_verify.py` | `regression-dispatch-verification`, `regression-one-dispatch-path` (full), `regression-runner-brief-telemetry` | pre-commit + full |
+| argus | `bin/argus` | `regression-argus-doctor` (state-dependent) | full |
+| keeper | `tools/fleet-keeper.sh` `tools/fleet-cooldown.sh` `tools/window_policy.py` | `regression-fleet-keeper` (full), `regression-window-resilience` | pre-commit + full |
+| token ledger | `tools/token-capture.py` | `regression-token-capture`, `regression-session-capture` | pre-commit |
+| model labels | `tools/model_tags.py` `tools/model-profiles.py` `tools/attribution-backfill.py` | `regression-canonicalizer-parity`, `regression-model-profiles`, `regression-attribution-backfill`, `regression-managent-models`, `regression-managent-attribution` | pre-commit |
+| bakeoff / race | `tools/bakeoff.sh` `tools/race-p0-verify.sh` `tools/race-collect.py` | `regression-bakeoff-gates`, `regression-race-p0`, `regression-race-collect` | pre-commit |
+| suite gates | `tools/suite-truth.sh` `tools/smoke.sh` `docs/infra/suite-truth.md` `docs/infra/suite-truth-manifest.md` | `regression-suite-surfaces`, `regression-precommit` (full) | pre-commit + full |
+| deploy | `tools/deploy.sh` | deploy-check arms inside several `regression-managent-*` scripts + `tools/smoke.sh` | pre-commit |
+| acceptance | `tools/orcha-acceptance.sh` | `regression-orcha-acceptance` | pre-commit |
+| pilot gate | `tools/pilot_gate.sh` | `regression-pilot-gate` (slow) | full |
+| complementarity | `tools/complementarity.py` | `regression-complementarity` | pre-commit |
+| battery compare | `tools/battery-baseline-compare.py` | `regression-battery-baselines`, `regression-battery-sweep` (need a build-wired binary arg — NOT standalone) | full (build-wired) |
+| request accounting | `tools/request-accounting.py` | `regression-request-accounting` | pre-commit |
+| status docs | `docs/status/` | `regression-status-doc-truth` | pre-commit |
+| arbiter (T821) | `tools/runner` (admission half) | `regression-arbiter` | pre-commit |
+| **core engine** | `src/retro.zig` `src/oracle.zig` `src/rules.zig` `src/solve.zig` `src/state.zig` `src/superko.zig` `src/colex.zig` `src/zobrist.zig` `src/terminal.zig` `src/score.zig` `src/enumerate.zig` | `zig build test` module unit tests (inline `test` blocks) — no `regression-*.sh` | full |
+| **experiments / tables** | `src/exp*.zig` `src/t*.zig` `src/vb_*.zig` `src/*_census.zig` `src/*_differential.zig` `src/qa023_*.zig` | `zig build test` module targets | full |
+
+**UNKNOWN suites (recorded honestly, not invented):** the engine and experiment modules have no
+per-module `regression-*.sh` script; their suite is the `zig build test` module step, which the
+pre-commit selection does not run (it runs scripts, not `zig test` targets). Wiring engine unit
+tests into a per-module fast check is a follow-on row, not this one.
+
+### 9.1 The budget argument (tension a), resolved
+
+Serial wall of the largest declared pre-commit suite (`src/managent`, ~25 scripts) is ~90 s — over
+the 45 s fast-tier budget. Two halves close the gap, neither alone is enough:
+
+1. **Tiered placement** (§9 rule): scripts > 20 s standalone (`regression-dispatch` 26 s,
+   `regression-one-dispatch-path` 49 s, `regression-store-pollution` 33 s, `regression-claim-lifecycle`
+   25 s, `regression-argus-doctor` 46 s, `regression-pilot-gate` 48 s, `regression-precommit` 41 s,
+   `regression-runner-reap` 49 s, the four sleep/poll scripts at >60 s, and the two battery scripts
+   that need a build argument) are NOT selected at commit time — they run in `zig build test`.
+2. **Bounded parallelism** (`TEST_GATE_WORKERS=6` in the hook): the selected scripts run concurrently;
+   wall is dominated by the single slowest selected script (~15 s `regression-managent-landmark`), so
+   the `src/managent` selection lands ~25–35 s wall, under budget. **One carve-out, found by running
+   the gate inside a real commit:** the `regression-claimlint-*` scripts run SERIALLY (one at a time,
+   before the parallel batch) because they create and remove transient fixtures in `findings/` and
+   `docs/evidence/`; under parallel execution the fixture races the byte-identity and count controls
+   (two claimlint scripts failed only when run concurrently, 2026-08-24). Serializing those five ~1–2 s
+   scripts costs ~7 s and removes the race; everything else parallelizes.
+
+Measured 2026-08-24 (upper bounds, standalone, `tools/runner --max-wall 60`): largest single
+pre-commit-tier script is `regression-runner-pi-session-liveness` at 20 s; `regression-managent-landmark`
+15 s; the rest ≤ 18 s. The hook prints its own elapsed wall on every commit (`fast tier elapsed Ns`).
+
+## 10. Contract declarations (T861 — select)
+
+Format (parsed by `tools/hooks/pre-commit`, unchanged): `test <script> covers <prefix…>` where each
+prefix is a module path prefix (exact file, or a directory that also matches `prefix/*`). Scripts
+listed here but absent from the fast pool are now **selected** when a staged change touches their
+coverage; a pool script with no `covers` line still always runs.
+
+<!-- machine: test-coverage (do not reorder; parsed at line start) -->
+<!-- tools/smoke.sh is deliberately NOT declared: it is the one always-run fast-pool script
+     (in-pool + no coverage = always), which keeps SELECTED non-empty and preserves the
+     "unknown coverage is not empty coverage" invariant. -->
+test tools/regression-claimlint-output.sh covers src/claimlint.zig src/absorb.zig src/claims_register.zig docs/epistemic/CLAIMS.md docs/epistemic/PROGRESS.md docs/evidence findings
+test tools/regression-claimlint-c7-json.sh covers src/claimlint.zig src/absorb.zig src/claims_register.zig findings
+test tools/regression-claimlint-c7-scope.sh covers src/claimlint.zig src/absorb.zig src/claims_register.zig docs/epistemic/CLAIMS.md findings
+test tools/regression-claimlint-promotion.sh covers src/claimlint.zig src/absorb.zig src/claims_register.zig docs/epistemic/CLAIMS.md
+test tools/regression-claimlint-volatile.sh covers src/claimlint.zig src/absorb.zig src/claims_register.zig
+test tools/regression-orient.sh covers src/managent
+test tools/regression-directive-id-uniqueness.sh covers bin/dispatch tools/directive_policy.py src/managent
+test tools/regression-directive-integrity.sh covers bin/dispatch tools/directive_policy.py src/managent docs/epistemic/CLAIMS.md
+test tools/regression-managent-models.sh covers src/managent tools/model_tags.py tools/model-profiles.py
+test tools/regression-managent-landmark.sh covers src/managent
+test tools/regression-suite-surfaces.sh covers tools/suite-truth.sh docs/infra/suite-truth.md docs/infra/suite-truth-manifest.md src/evidence.zig src/evidence_control.zig
+test tools/regression-canonicalizer-parity.sh covers tools/model_tags.py tools/model-profiles.py tools/attribution-backfill.py src/managent
+test tools/regression-absorption-machinery.sh covers src/absorb.zig src/claims_register.zig docs/epistemic/CLAIMS.md
+test tools/regression-arbiter.sh covers tools/runner
+test tools/regression-attribution-backfill.sh covers tools/attribution-backfill.py tools/model_tags.py
+test tools/regression-bakeoff-gates.sh covers tools/bakeoff.sh
+test tools/regression-complementarity.sh covers tools/complementarity.py
+test tools/regression-depth-enforcement.sh covers bin/subagent
+test tools/regression-duplicate-dispatch.sh covers bin/dispatch
+test tools/regression-git-commit-mine-hook.sh covers tools/hooks/pre-commit tools/git-commit-mine tools/git-commit-mine-lib.sh
+test tools/regression-gtp-boardsize.sh covers src/gtp.zig
+test tools/regression-inbox-loop.sh covers bin/subagent tools/directive_policy.py src/managent
+test tools/regression-managent-attribution.sh covers src/managent
+test tools/regression-managent-build-mode.sh covers src/managent tools/deploy.sh
+test tools/regression-managent-concurrency.sh covers src/managent docs/epistemic/CLAIMS.md
+test tools/regression-managent-done-git.sh covers src/managent docs/epistemic/CLAIMS.md
+test tools/regression-managent-done-two-phase.sh covers src/managent
+test tools/regression-managent-duty.sh covers src/managent
+test tools/regression-managent-lanes.sh covers src/managent
+test tools/regression-managent-ledger-board-seam.sh covers src/managent
+test tools/regression-managent-resume.sh covers src/managent
+test tools/regression-managent-standing.sh covers src/managent docs/epistemic/CLAIMS.md
+test tools/regression-managent-store-write-utf8.sh covers src/managent tools/deploy.sh
+test tools/regression-model-profiles.sh covers tools/model-profiles.py
+test tools/regression-ollama-dispatcher.sh covers bin/ollama-subagent bin/subagent
+test tools/regression-orcha-acceptance.sh covers tools/orcha-acceptance.sh
+test tools/regression-orphan-reaper.sh covers tools/runner
+test tools/regression-race-collect.sh covers tools/race-collect.py
+test tools/regression-race-p0.sh covers tools/race-p0-verify.sh
+test tools/regression-request-accounting.sh covers tools/request-accounting.py
+test tools/regression-runner-agent-progress.sh covers tools/runner
+test tools/regression-runner-brief-telemetry.sh covers tools/runner tools/dispatch_verify.py
+test tools/regression-runner-claude-liveness.sh covers tools/runner
+test tools/regression-runner-harness-p95.sh covers tools/runner
+test tools/regression-runner-pi-session-liveness.sh covers tools/runner
+test tools/regression-runner-reporting.sh covers tools/runner
+test tools/regression-runner-run-records.sh covers tools/runner tools/attribution-backfill.py
+test tools/regression-runner-startup-liveness.sh covers tools/runner
+test tools/regression-runner-taskid.sh covers tools/runner
+test tools/regression-runner-worktree.sh covers tools/runner tools/bakeoff.sh
+test tools/regression-scratch-repo.sh covers tools/runner tools/hooks/pre-commit
+test tools/regression-session-capture.sh covers tools/token-capture.py bin/subagent
+test tools/regression-status-doc-truth.sh covers src/managent docs/status
+test tools/regression-store-census.sh covers src/managent
+test tools/regression-T227.sh covers src/managent
+test tools/regression-token-capture.sh covers tools/token-capture.py
+test tools/regression-commit-concurrency.sh covers tools/git-commit-mine tools/git-commit-mine-lib.sh
+test tools/regression-directive-kill.sh covers bin/dispatch tools/directive_policy.py src/managent
+test tools/regression-dispatch-caps.sh covers bin/dispatch tools/fleet_caps.py src/managent
+test tools/regression-dispatch-verification.sh covers tools/dispatch_verify.py
+test tools/regression-git-commit-mine.sh covers tools/git-commit-mine tools/git-commit-mine-lib.sh
+test tools/regression-managent-assert-store.sh covers src/managent
+test tools/regression-managent-holds.sh covers src/managent
+test tools/regression-managent-impression-gate.sh covers src/managent
+test tools/regression-managent-integrity.sh covers src/managent
+test tools/regression-managent-lock.sh covers src/managent
+test tools/regression-managent-status-json.sh covers src/managent
+test tools/regression-runner-guard.sh covers tools/runner
+test tools/regression-subagent-prompt.sh covers bin/subagent
+test tools/regression-task-id-archive.sh covers src/managent
+test tools/regression-task-identity.sh covers src/managent
+test tools/regression-window-resilience.sh covers tools/window_policy.py tools/fleet-keeper.sh
+
+**Not declared** (deliberately — they run in `zig build test`, not pre-commit selection):
+`regression-argus-doctor` (state-dependent), `regression-battery-baselines`/`regression-battery-sweep`
+(need a build-wired binary arg), `regression-claim-lifecycle` (25 s), `regression-dispatch` (26 s),
+`regression-fleet-keeper` (sleeps, >60 s), `regression-managent-memory-safety` (>60 s),
+`regression-managent-store-pollution` (33 s), `regression-one-dispatch-path` (49 s),
+`regression-pilot-gate` (48 s), `regression-precommit` (41 s), `regression-process-ownership` (>60 s),
+`regression-runner-reap` (49 s), `regression-watch-fleet` (>60 s). The two vacuous exit-0 stubs
+(`regression-runner-host-guard`, `regression-subagent-resident-gate`) are also not declared — they
+are delete candidates, not coverage.
+
+## 11. Known-red baseline (T861 — dated, per-script, owned, expiring)
+
+**Why this exists:** 24 of 88 `regression-*.sh` fail standalone today (measured 2026-08-24, each run
+via `tools/runner --max-wall 60 -- sh <script>`, the same invocation the hook uses). If the gate
+selected real suites and blocked on every red, any change touching a red module would freeze. This
+baseline is the **temporary** resolution: the gate treats a baseline hit as *known red, non-blocking*,
+and still **refuses any failure not in the baseline** (a NEW red). It is per-script, never a blanket
+"ignore failures" switch.
+
+**RATCHET DISCIPLINE (operator correction D084, 2026-08-24) — this is a temporary device:**
+
+- **Target: ZERO red.** This baseline is not a permanent "no new failures" floor; it is the worklist
+  for `stream2b-green`, which fixes or deletes every entry below and then deletes this section.
+- **Deletion requires ALL of:** (1) `stream2b-green` resolves every entry — repair, re-point the
+  fixture, or delete the script/arm, with the disposition column below obeyed; (2) a fresh full sweep
+  of `tools/regression-*.sh` (standalone, same invocation) shows zero non-baseline failures AND zero
+  baseline entries still failing; (3) `tools/hooks/pre-commit` drops the `known-red` read (the
+  `KNOWN_RED_FILE` block) — the gate must refuse any failing script once the baseline is gone.
+  **The file must not be emptied and left behind; it must be DELETED, or the per-script rule has
+  silently become a blanket one.**
+- **Expiry condition:** this section is void the moment `stream2b-green` closes with all entries
+  green or deleted; if that has not happened by 2026-09-07 (two-week review), the Orchestrator must
+  re-ratify it — a ratchet that outlives its review is the exact failure D084 forbids.
+
+**Delete vs repair (D084):** of the 24, **one is a delete-or-repoint** — `regression-runner-guard.sh`
+tests the host-guard memory-pressure kill that T821 deleted; its seeded arm can never fire again, so
+the script must be re-pointed at the T821 arbiter behavior or deleted. Everything else is a repair
+(fix code or re-point a drifted fixture), except the slow/needs-arg entries marked `not-precommit`
+(they stay in `zig build test`; nothing is wrong with them for pre-commit purposes). Two further
+**delete candidates are NOT red** — the vacuous exit-0 stubs `regression-runner-host-guard.sh` and
+`regression-subagent-resident-gate.sh` pass but assert nothing (whatis C5/C6); `stream2b-green` must
+delete them as part of zero-red, not fix them.
+
+Owner = the owning row that must resolve it (or `stream2b-green` when triage is that sprint's job).
+Disposition vocabulary: `repair` (fix code/fixture) · `repoint` (re-aim the assertion) · `delete` ·
+`deploy` (self-heals via `zig build deploy-*`) · `not-precommit` (slow/stateful; full-suite tier).
+
+<!-- machine: known-red (format: known-red <script> <owner> <disposition>; parsed at line start) -->
+known-red tools/regression-argus-doctor.sh T442 repair
+known-red tools/regression-battery-baselines.sh stream2b-green not-precommit
+known-red tools/regression-battery-sweep.sh stream2b-green not-precommit
+known-red tools/regression-claim-lifecycle.sh stream2b-green repair
+known-red tools/regression-commit-concurrency.sh stream2b-green repair
+known-red tools/regression-directive-kill.sh T682 repair
+known-red tools/regression-dispatch-caps.sh stream2b-green repair
+known-red tools/regression-dispatch-verification.sh D021 repair
+known-red tools/regression-fleet-keeper.sh stream2b-green not-precommit
+known-red tools/regression-git-commit-mine.sh T454 deploy
+known-red tools/regression-managent-assert-store.sh T518 repair
+known-red tools/regression-managent-holds.sh T682 deploy
+known-red tools/regression-managent-impression-gate.sh stream2b-green deploy
+known-red tools/regression-managent-integrity.sh stream2b-green deploy
+known-red tools/regression-managent-lock.sh T337 repair
+known-red tools/regression-managent-memory-safety.sh stream2b-green not-precommit
+known-red tools/regression-managent-status-json.sh stream2b-green repair
+known-red tools/regression-process-ownership.sh stream2b-green not-precommit
+known-red tools/regression-runner-guard.sh T821 repoint
+known-red tools/regression-subagent-prompt.sh stream2b-green repair
+known-red tools/regression-task-id-archive.sh stream2b-green repair
+known-red tools/regression-task-identity.sh stream2b-green repair
+known-red tools/regression-watch-fleet.sh T466 repair
+known-red tools/regression-window-resilience.sh stream2b-green repair

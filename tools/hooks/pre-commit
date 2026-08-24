@@ -382,6 +382,10 @@ regression "C7-nonconforming" "$CURRENT_C7NONCONF" "$FLOOR_C7NONCONF"
 TG_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo ".")"
 FAST_BUDGET_WALL_SECS="${TEST_GATE_BUDGET_SECS:-45}"
 PER_SCRIPT_WALL_SECS="${TEST_GATE_SCRIPT_WALL_SECS:-60}"
+# T861: bounded parallelism for the selected set — the largest declared module
+# suite (src/managent, ~25 scripts) is ~90s serial and ~30s wall under 6
+# workers, which keeps the 45s budget reachable. TEST_GATE_WORKERS is tunable.
+TEST_GATE_WORKERS="${TEST_GATE_WORKERS:-6}"
 INTERVAL_HOURS="${TEST_GATE_INTERVAL_HOURS:-26}"
 CONTRACT_PATH="${TEST_GATE_CONTRACT:-docs/epics/E1-markovian/L1-dashboard/S09-module-test-contract/spec.md}"
 RESULT_PATH="$TG_ROOT/untracked/test-gate/last-result.json"
@@ -442,75 +446,193 @@ else
         echo "pre-commit:   Bypass deliberately with a recorded reason: TEST_GATE_BYPASS=<reason> git commit"
         exit 1
     else
-        # ── change-based selection ──
+        # ── change-based selection (T861: select, not only skip) ──
+        # Candidate set = the fast pool ∪ every script the contract declares.
+        # A pool script with no declared coverage still always runs (unknown
+        # coverage is not empty coverage); a declared script runs when the
+        # staged diff touches one of the module prefixes it covers — and this
+        # now ADDS suites from outside the pool (the T861 fix), not only
+        # narrows the pool. Coverage tokens are path prefixes: a token
+        # `src/managent` matches a staged path equal to it or starting
+        # `src/managent/`; a token `src/retro.zig` matches only that file.
         case "$CONTRACT_PATH" in
           /*) CONTRACT="$CONTRACT_PATH" ;;
           *) CONTRACT="$TG_ROOT/$CONTRACT_PATH" ;;
         esac
         if [ -f "$CONTRACT" ]; then
-            echo "pre-commit: module contract present ($CONTRACT_PATH) — change-based selection active"
+            N_DECL=$(grep -cE "^test [^ ]+ covers " "$CONTRACT" 2>/dev/null || true)
+            if [ -n "$N_DECL" ] && [ "$N_DECL" -gt 0 ]; then
+                echo "pre-commit: module contract present ($CONTRACT_PATH; $N_DECL coverage declaration(s)) — change-based selection active"
+            else
+                echo "pre-commit: module contract present but declares NO 'test … covers …' lines — whole fast pool runs (unknown coverage is not empty coverage); populate the contract to narrow"
+            fi
         else
             CONTRACT=""
-            echo "pre-commit: no module contract yet (T790 in progress) — no declared coverage, so the whole fast pool runs (unknown coverage is not empty coverage)"
+            echo "pre-commit: no module contract yet — no declared coverage, so the whole fast pool runs (unknown coverage is not empty coverage)"
         fi
+
+        if [ -n "$CONTRACT" ]; then
+            DECLARED=$(grep -E "^test [^ ]+ covers " "$CONTRACT" 2>/dev/null | sed -E "s/^test ([^ ]+) covers .*/\1/" | sort -u)
+            CANDIDATES=$(printf '%s\n%s\n' "$FAST_POOL" "$DECLARED" | sed '/^$/d' | sort -u)
+        else
+            CANDIDATES="$FAST_POOL"
+        fi
+
+        touches_module() {
+            _tok="$1"; _paths="$2"
+            while IFS= read -r sp; do
+                [ -n "$sp" ] || continue
+                case "$sp" in
+                    "$_tok"|"$_tok"/*) return 0 ;;
+                esac
+            done <<EOF
+$_paths
+EOF
+            return 1
+        }
+
         SELECTED=""
         SKIPPED_BY_COVERAGE=""
         while IFS= read -r script; do
             [ -n "$script" ] || continue
-            run_it=1
+            in_pool=0
+            if printf '%s\n' "$FAST_POOL" | grep -Fxq "$script"; then in_pool=1; fi
+            run_it=0
+            has_cov=0
             if [ -n "$CONTRACT" ]; then
                 COVERAGE=$(grep -E "^test ${script} covers " "$CONTRACT" 2>/dev/null | sed -E "s|^test ${script} covers ||" | tr ' ' '\n' | grep -v '^$' || true)
                 if [ -n "$COVERAGE" ]; then
-                    run_it=0
+                    has_cov=1
                     for mod in $COVERAGE; do
-                        if printf '%s\n' "$STAGED_PATHS" | grep -Fxq "$mod"; then run_it=1; break; fi
+                        if touches_module "$mod" "$STAGED_PATHS"; then run_it=1; break; fi
                     done
-                    if [ "$run_it" -eq 0 ]; then
-                        SKIPPED_BY_COVERAGE="${SKIPPED_BY_COVERAGE}${script} "
-                        continue
-                    fi
                 fi
             fi
-            SELECTED="${SELECTED}${script}
+            if [ "$has_cov" -eq 0 ] && [ "$in_pool" -eq 1 ]; then
+                run_it=1
+            fi
+            if [ "$run_it" -eq 1 ]; then
+                SELECTED="${SELECTED}${script}
 "
+            elif [ "$has_cov" -eq 1 ]; then
+                SKIPPED_BY_COVERAGE="${SKIPPED_BY_COVERAGE}${script} "
+            fi
         done <<EOF
-$FAST_POOL
+$CANDIDATES
 EOF
         if [ -n "$SKIPPED_BY_COVERAGE" ]; then
             echo "pre-commit: skipped by declared coverage (no staged change touches a covered module): $SKIPPED_BY_COVERAGE"
         fi
         [ -n "$SELECTED" ] || SELECTED="$FAST_POOL"
 
-        # ── run the selection, guarded per-script ──
+        # ── run the selection ──
+        # Two phases: claimlint regressions run SERIALLY (they create/remove
+        # transient fixtures in findings/ and docs/evidence/; under parallel
+        # execution the fixture races the byte-identity and count controls —
+        # observed 2026-08-24: two claimlint scripts failed only when run
+        # concurrently). Everything else runs in PARALLEL batches (they use
+        # scratch stores/dirs), which is what keeps the largest declared
+        # suite (src/managent) inside the budget.
         TG_START=$(date +%s)
+        TG_TMPDIR=$(mktemp -d "${TMPDIR:-/tmp}/precommit-testgate-XXXXXX") || TG_TMPDIR=""
+        if [ -z "$TG_TMPDIR" ]; then
+            echo "pre-commit: REFUSED — cannot create a temp dir for the test gate (a gate that cannot run is a gate that is not there)"
+            exit 1
+        fi
+        TG_IDX=0
+        # phase A — claimlint, strictly serial
         while IFS= read -r script; do
             [ -n "$script" ] || continue
-            set +e
-            SCRIPT_OUT=$("$TG_ROOT/tools/runner" --max-wall "$PER_SCRIPT_WALL_SECS" -- sh "$TG_ROOT/$script" 2>&1)
-            SCRIPT_RC=$?
-            set -e
-            if [ "$SCRIPT_RC" -eq 0 ]; then
-                echo "pre-commit:   PASS $script"
-            else
-                echo "pre-commit:   FAIL $script (exit $SCRIPT_RC):"
-                printf '%s\n' "$SCRIPT_OUT" | tail -15 | sed 's/^/pre-commit:       /'
-                TEST_GATE_PASS=0
+            case "$script" in
+                *regression-claimlint-*)
+                    TG_IDX=$((TG_IDX + 1))
+                    echo "$script" > "$TG_TMPDIR/$TG_IDX.name"
+                    set +e
+                    "$TG_ROOT/tools/runner" --max-wall "$PER_SCRIPT_WALL_SECS" -- sh "$TG_ROOT/$script" > "$TG_TMPDIR/$TG_IDX.out" 2>&1
+                    echo $? > "$TG_TMPDIR/$TG_IDX.rc"
+                    set -e
+                    ;;
+            esac
+        done <<EOF
+$SELECTED
+EOF
+        # phase B — everything else, parallel batches
+        while IFS= read -r script; do
+            [ -n "$script" ] || continue
+            case "$script" in
+                *regression-claimlint-*) continue ;;
+            esac
+            TG_IDX=$((TG_IDX + 1))
+            echo "$script" > "$TG_TMPDIR/$TG_IDX.name"
+            (
+                set +e
+                "$TG_ROOT/tools/runner" --max-wall "$PER_SCRIPT_WALL_SECS" -- sh "$TG_ROOT/$script" > "$TG_TMPDIR/$TG_IDX.out" 2>&1
+                echo $? > "$TG_TMPDIR/$TG_IDX.rc"
+            ) &
+            if [ $((TG_IDX % TEST_GATE_WORKERS)) -eq 0 ]; then
+                wait 2>/dev/null || true
             fi
         done <<EOF
 $SELECTED
 EOF
+        wait 2>/dev/null || true
+
+        # ── report in index order, then baseline the failures ──
+        FAILS=""
+        j=1
+        while [ "$j" -le "$TG_IDX" ]; do
+            script=$(cat "$TG_TMPDIR/$j.name" 2>/dev/null)
+            rc=$(cat "$TG_TMPDIR/$j.rc" 2>/dev/null || echo 1)
+            if [ "$rc" = "0" ]; then
+                echo "pre-commit:   PASS $script"
+            else
+                echo "pre-commit:   FAIL $script (exit $rc):"
+                tail -15 "$TG_TMPDIR/$j.out" 2>/dev/null | sed 's/^/pre-commit:       /'
+                FAILS="${FAILS}${script}
+"
+            fi
+            j=$((j + 1))
+        done
+
+        if [ -n "$FAILS" ]; then
+            KNOWN_RED_FILE="$TG_TMPDIR/known-red.txt"
+            if [ -n "$CONTRACT" ]; then
+                grep -E "^known-red " "$CONTRACT" 2>/dev/null | awk '{print $2}' > "$KNOWN_RED_FILE" 2>/dev/null || : > "$KNOWN_RED_FILE"
+            else
+                : > "$KNOWN_RED_FILE"
+            fi
+            NEW_FAILS=""
+            while IFS= read -r fscript; do
+                [ -n "$fscript" ] || continue
+                if grep -Fxq "$fscript" "$KNOWN_RED_FILE"; then
+                    ownerdisp=$(grep -E "^known-red ${fscript} " "$CONTRACT" 2>/dev/null | head -1 | awk '{print $3" "$4}')
+                    echo "pre-commit:   KNOWN RED (baselined, non-blocking) $fscript [$ownerdisp]"
+                else
+                    NEW_FAILS="${NEW_FAILS}${fscript}
+"
+                fi
+            done <<EOF
+$FAILS
+EOF
+            if [ -n "$NEW_FAILS" ]; then
+                echo "pre-commit: REFUSED — the fast test tier failed on a check NOT in the known-red baseline (a NEW failure):"
+                echo "$NEW_FAILS" | while IFS= read -r nf; do
+                    [ -n "$nf" ] && echo "pre-commit:   $nf"
+                done
+                echo "pre-commit:   Fix the failing check(s), add it to the known-red baseline in $CONTRACT_PATH with an owner + disposition, or bypass deliberately with a recorded reason:"
+                echo "pre-commit:   TEST_GATE_BYPASS=<reason> git commit"
+                rm -rf "$TG_TMPDIR"
+                exit 1
+            fi
+        fi
+
         TG_ELAPSED=$(( $(date +%s) - TG_START ))
-        echo "pre-commit: fast tier elapsed ${TG_ELAPSED}s (budget ${FAST_BUDGET_WALL_SECS}s)"
+        rm -rf "$TG_TMPDIR"
+        echo "pre-commit: fast tier elapsed ${TG_ELAPSED}s (budget ${FAST_BUDGET_WALL_SECS}s; ${TEST_GATE_WORKERS} workers)"
         if [ "$TG_ELAPSED" -gt "$FAST_BUDGET_WALL_SECS" ]; then
-            echo "pre-commit: WARNING — the fast tier took ${TG_ELAPSED}s, over the ${FAST_BUDGET_WALL_SECS}s budget (busy host? a pool script got slow?). Tests PASSED — the commit proceeds — but the overrun is on record; investigate before adding anything to the pool."
+            echo "pre-commit: WARNING — the fast tier took ${TG_ELAPSED}s, over the ${FAST_BUDGET_WALL_SECS}s budget (busy host? a selected script got slow?). Tests PASSED — the commit proceeds — but the overrun is on record; investigate before adding anything to the pool."
         fi
-        if [ "$TEST_GATE_PASS" -eq 1 ]; then
-            TEST_GATE_NOTE="PASS (${TG_ELAPSED}s, budget ${FAST_BUDGET_WALL_SECS}s)"
-        else
-            echo "pre-commit: REFUSED — the fast test tier failed (above). Fix the failing check(s), or bypass deliberately with a recorded reason:"
-            echo "pre-commit:   TEST_GATE_BYPASS=<reason> git commit"
-            exit 1
-        fi
+        TEST_GATE_NOTE="PASS (${TG_ELAPSED}s, budget ${FAST_BUDGET_WALL_SECS}s, ${TEST_GATE_WORKERS} workers)"
     fi
 fi
 
