@@ -345,9 +345,7 @@ class ArgusRun:
     def _run_slug(self, slug_name, check_cmd, baseline_val, grade):
         """Execute one checklist slug."""
 
-        if slug_name == "claimlint-green":
-            self._check_claimlint(slug_name, check_cmd, baseline_val, grade)
-        elif slug_name == "stale-in-progress":
+        if slug_name == "stale-in-progress":
             self._check_stale_in_progress(slug_name, check_cmd, baseline_val, grade)
         elif slug_name == "artifact-loadable":
             self._check_artifact_loadable(slug_name, check_cmd, baseline_val, grade)
@@ -359,74 +357,14 @@ class ArgusRun:
             # Generic command check
             self._check_generic(slug_name, check_cmd, baseline_val, grade)
 
-    # Floor values for claimlint — the ratified honest-debt floor from the
-    # Phase-2 exit check (see ARGUS.md §Floor-grading rule). Violation only
-    # when counts exceed the floor; at the floor is green.
+    # Floor values for claimlint — shared by doctor check 9 (lockstep) and
+    # sweep's claimlint reading. T872 green-up deleted the `claimlint-green`
+    # CHECKLIST slug and its `_check_claimlint` (whose regexes never matched
+    # the real claimlint labels, so it always read "at or below floor"), but
+    # this attribute is NOT deleted here: doctor/sweep still consume it, and
+    # its stale value (10/12 vs the real 0/0 in tools/hooks/claimlint-floor.json)
+    # is a FIX-THE-CODE concern for a later wave, not this deletion wave.
     CLAIMLINT_FLOOR = {"C1a": 10, "C2": 12, "C6": 0}
-
-    def _check_claimlint(self, slug_name, check_cmd, baseline_val, grade):
-        """Run claimlint and parse structured output.
-
-        Graded against the floor (ARGUS.md §Floor-grading rule):
-        violation only when counts *exceed* the recorded floor. At the floor
-        is green — the floor is a ratified debt, not a regression.
-        """
-        cmd_parts = check_cmd.split()
-        exit_code, stdout, stderr = _run(cmd_parts, timeout=30)
-
-        # Parse C1a, C1b, C2, C6, calibration from stdout
-        c1a = None
-        c1b = None
-        c2 = None
-        c6 = None
-        cal = None
-
-        for line in stdout.splitlines():
-            m = re.search(r'C1a orphans:\s*(\d+)', line)
-            if m: c1a = int(m.group(1))
-            m = re.search(r'C1b alarms:\s*(\d+)', line)
-            if m: c1b = int(m.group(1))
-            m = re.search(r'C2 total:\s*(\d+)', line)
-            if m: c2 = int(m.group(1))
-            m = re.search(r'C6 cite-tag mismatches:\s*(\d+)', line)
-            if m: c6 = int(m.group(1))
-            if "calibration: PASS" in line:
-                cal = "PASS"
-            elif "calibration: FAIL" in line:
-                cal = "FAIL"
-
-        # Compare against floor (violation only when exceeding floor)
-        violations = []
-        for key, floor in self.CLAIMLINT_FLOOR.items():
-            val = {"C1a": c1a, "C2": c2, "C6": c6}.get(key)
-            if val is not None and val > floor:
-                violations.append(f"{key}={val} (floor={floor})")
-
-        current = f"C1a={c1a}, C1b={c1b}, C2={c2}, C6={c6}, cal={cal}"
-        if violations:
-            self.finding(
-                grade,
-                f"claimlint: {current} — EXCEEDS FLOOR: {'; '.join(violations)} (exit {exit_code})",
-                slug=slug_name,
-                evidence_kind="command",
-                evidence_command=check_cmd,
-                evidence_exit=exit_code,
-                evidence_output=f"{current}",
-                value=current,
-                baseline=baseline_val,
-            )
-        else:
-            self.finding(
-                "could",
-                f"claimlint: {current} — at or below floor (exit {exit_code})",
-                slug=slug_name,
-                evidence_kind="command",
-                evidence_command=check_cmd,
-                evidence_exit=exit_code,
-                evidence_output=f"{current}",
-                value=current,
-                baseline=baseline_val,
-            )
 
     def _check_stale_in_progress(self, slug_name, check_cmd, baseline_val, grade):
         """Check for stale in_progress tasks."""
