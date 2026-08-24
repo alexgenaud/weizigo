@@ -8,9 +8,9 @@
 
 | item | owner | model | state |
 |---|---|---|---|
-| arm A (untracked) | T857 | ox-alpha | **ARMS** — landed, blindness verified |
-| arm B (untracked) | T859 | deepseek-v4-pro | ACTIVE |
-| grade (untracked) | — | — | — |
+| arm A (untracked) | T857 | ox-alpha | **ARMS** — landed; blindness verified objectively (names no file that exists here) |
+| arm B (untracked) | T859 | deepseek-v4-pro | **ARMS** — landed |
+| grade (untracked) | **awaiting dispatch** — both arms are in | — | — |
 | **`stream1-design/design.md`** | — | — | **—** |
 
 ## stream2-whatis — what exists, blind to stream1
@@ -18,8 +18,8 @@
 | item | owner | model | state |
 |---|---|---|---|
 | arm A (untracked) | T858 | deepseek-v4-pro | **ARMS** — landed, all citations resolve |
-| arm B (untracked) | T860 | ox-alpha | ACTIVE |
-| grade (untracked) | — | — | — |
+| arm B (untracked) | T860 | ox-alpha | **ARMS** — landed (27,743 B); closed on evidence by the seat, worker skipped nonce and close |
+| grade (untracked) | **awaiting dispatch** — both arms are in | — | — |
 | **`stream2-whatis/whatis.md`** | — | — | **—** |
 
 ## stream3-compare — converges 1 and 2
@@ -91,3 +91,12 @@ input as something valid.
 `docs/status/`. Those outputs are **arms, not final documents.** On close, the seat relocates them to
 the untracked arm directory and grades them against the acceptance conditions above rather than the
 looser briefs they ran under. Their content is informative; their placement is not the plan.
+
+## Honesty note on this file, 2026-08-24
+
+This surface twice misreported its own state within a single session: it carried the label `RUN`, which
+can be read as already-run, running, or to-be-run; and it showed two arms as in-flight after both had
+closed. Recorded here rather than quietly corrected, because a progress surface that lies is the exact
+defect S11 exists to remove, and the sprint's own status file was an instance of it. **The rule now:
+every label states a fact about the present, and the file is corrected at the moment a row closes —
+not at the next convenient edit.**
