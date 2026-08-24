@@ -235,3 +235,30 @@ which is the whole explanation for its UNKNOWN token column). One line in the di
 **Audit of T850 by the seat, since a close is an assertion:** all four deliverables committed; 8 arms pass; the report-only scope was respected — no commits to `bin/dispatch`, `tools/fleet_caps.py`, `tools/window_policy.py` or `tools/runner`. Its `pass` is justified.
 
 **Audit of T848 by the seat:** its 4 arms pass, and independently on the live store the census `row_count` 481 matches the live row count exactly, all 481 ids are present, `written_by` shows it updating on each mutation, and `orient` is correctly silent on a healthy store. Its `pass` is justified.
+
+## B-new-7. Seat audits of T836 and T849, and what they turned up — 2026-08-24
+
+**T849 (scratch-repo fixture) — `pass-with-findings` justified, verified independently.** It converted
+**exactly five** scripts, one commit each, and its census matched the seat's figure for figure (83
+scripts, 58 with `git init`, 77 calls, 51/4/1/2 distribution, 65 vs 11 scratch-root split). Its four
+arms pass. **The seat then reproduced the incident from first principles against throwaway repos:**
+with a leaked `GIT_DIR`, the old hand-rolled pattern **overwrote the victim repository's
+`user.email`**, while the helper under identical conditions left the victim's identity, `core.worktree`
+and tree untouched. That is direct experimental confirmation of B28, which until now was inferred from
+authorship tallies. One of the five converted scripts is `regression-orient` — the pool script that
+runs on **every commit** and carries the `t353@test` identity, so the highest-frequency leak path is
+now the first one closed.
+
+**T836 (board proof census) — `pass-with-findings` justified.** It verified rather than rewrote, as
+amended: the census is committed unchanged, the verifier explicitly disclaims authorship, and
+`claims[]`/`new_rows[]` are empty consistent with the census's own "carries no authority" framing. It
+checked citations individually at file:line and **reproduced claimlint's C3 exactly at HEAD (42 Tier B
+/ 0 Tier C / 24 Tier A of 66 PROVEN rows)**.
+
+| # | issue it surfaced | why it matters |
+|---|---|---|
+| B36 | **A census reading rests on a claim archived as BOGUS.** §5 C-1 presents "Track A 2×2/3×2 regen complete (B15, byte-identical)" citing `PROGRESS.md:238-240`, where that text does not appear; the quote lives in `CLAIMS.md:1008-1009`, and `GLOBAL.B15` was **archived BOGUS on 2026-08-04**. The census flags PROGRESS.md line refs as possibly drifted but presents this reading without marking it unverified. | a live document asserting something built on a retracted claim |
+| B37 | **A retracted 4×4 value is still published as current.** The withdrawn `+2` empty-4×4 result is still stated as current in `docs/epistemic/GLOSSARY.md`, alongside `+9` — and the census records that `3×3` and `4×3` have **no live value** at all. | the product-facing numbers are the ones that must not be stale |
+| B38 | **Five citation line-references have drifted** (`src/rules.zig:1024-1027`→667, `SOLUTION-TREE.md:63`→53, `:65`→60, `:113`→109, `GLOSSARY.md:424`→425), each with the command that shows it. Individually trivial; collectively they mean commit-pinned line refs are decaying faster than they are maintained. | the project's citation discipline depends on these resolving |
+
+**Census headline worth carrying forward:** the PROVEN fraction falls monotonically with board size, and **4×4 has 1 of 11 cells PROVEN**, with its `KO_SENSITIVE` column (3,455,412 entries, 3.49%, including the root bracket) UNTRUSTWORTHY pending Track A.
