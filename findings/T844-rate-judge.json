@@ -1,7 +1,9 @@
 {
   "task_id": "T844",
   "date": "2026-08-24",
+  "model": "claude-haiku-4-5-20251001",
   "grader": "claude-haiku-4-5-20251001",
+  "claims": [],
   "identifier": "rate-judge-independent-read",
   "type": "race-judge-findings",
   "landmark": "L1 (measurement integrity)",
