@@ -46,6 +46,11 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT="$HERE/.."
 FAIL=0
 
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+
 # ── binary resolution ────────────────────────────────────────────────────
 MG="${MANAGENT_BIN:-}"
 if [ -z "$MG" ]; then
@@ -69,11 +74,9 @@ fi
 # if scratch creation fails — an empty scratch var once sent this suite's arms
 # into the LIVE repo (2026-08-18 incident: live kanban wiped, claimlint.zig and
 # CLAIMS.md clobbered by fixtures). cd "" succeeds silently; never rely on it.
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/directive-integrity-XXXXXX)" || { echo "regression-directive-integrity.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+weizigo_scratch_repo directive-integrity WORK   # T849: isolated scratch repo
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
-git init -q
 git config user.email t399@test
 git config user.name T399
 echo base > README.md
