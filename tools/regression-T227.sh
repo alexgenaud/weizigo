@@ -35,14 +35,13 @@ PROJECT="$(cd "$HERE/.." && pwd)"
 MG="$PROJECT/bin/managent"
 FAIL=0
 
-# T445: /tmp/weizigo decays (tmp sweeps, reboots).  Create it, and REFUSE to
-# run if scratch creation fails — an empty scratch var once sent this suite's
-# arms into the LIVE repo (2026-08-18 incident).
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/regression-T227-XXXXXX)" || { echo "regression-T227.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$PROJECT/tools/lib/scratch-repo.sh"
+weizigo_scratch_repo regression-T227 WORK   # T849: isolated scratch repo
 trap 'rm -rf "$WORK"' EXIT
 cd "$WORK"
-git init -q
 git config user.email t227@test
 git config user.name T227
 mkdir -p docs/infra/managent untracked tools
