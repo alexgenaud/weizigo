@@ -30,10 +30,41 @@ That split is the measurement: a phase is complete when and only when its single
 
 | stream | blind to | runs | final document |
 |---|---|---|---|
-| `stream1-design` | the repository, stream2, its own sibling arm | 2 arms in parallel, different models | `stream1-design/design.md` |
-| `stream2-whatis` | stream1, its own sibling arm | 2 arms in parallel, different models | `stream2-whatis/whatis.md` |
-| `stream3-compare` | nothing — **first meeting point of 1 and 2** | serial, after both are accepted | `comparison.md` + `decisions.md` |
+| `stream1-design` | the repository, stream2, its sibling arm | 2 arms, parallel, different models | `stream1-design/design.md` |
+| `stream2-whatis` | stream1, its sibling arm | 2 arms, parallel, different models | `stream2-whatis/whatis.md` |
+| `stream2b-green` | nothing | serial | `stream2b-green/green.md` |
+| `stream2c-delta` | nothing | serial, short | `stream2c-delta/delta.md` |
+| `stream3-compare` | nothing — **first meeting of 1 and 2** | serial | `comparison.md` + `decisions.md` |
 | `stream4-fix` | nothing | serial phases | one document per phase |
+
+### Why stream2b exists, and why it gates stream3
+
+**Operator ruling, 2026-08-24:** the full suite must reach **zero red** — by pruning scripts, functions
+and tests that should not exist at all (four checks are already known to be unable to fail under any
+input), then fixing code or tests until the remainder passes. *"We must eagerly move to zero red tests,
+then remove the ratchets."* A ratchet is permitted only as a temporary device carrying a named owner and
+an explicit expiry condition; a blanket "ignore failures" switch is forbidden.
+
+This is not optional tidying. Under the acceptance rule, **a module cannot be accepted while its own
+suite is red**, so zero-red is a precondition for accepting any work in `stream4-fix`, not a follow-up
+to it. Measured starting point: **23 of 86 regression scripts fail.**
+
+### Why stream2c exists, and why it is a delta rather than a re-run
+
+The what-is arms describe a system with 23 red scripts and four vacuous checks. Green-up changes some of
+that, so the inventory goes partly stale. **The seat's decision: do not re-run the full what-is.** Its
+value is the inventory of instrument dishonesty, most of which green-up does not touch, and a second
+full pass would cost far more than it corrects. Instead `stream2c` re-measures **only the counts
+green-up could have moved** — the vacuous checks and the red set — and amends the what-is document,
+recording what changed and what did not.
+
+### Ordering, and the mutual dependency at its centre
+
+`stream2b` and the module-test contract depend on each other: you cannot gate changes on module suites
+while 23 of them are red, and you cannot reach zero red without knowing which suite covers which module.
+Resolved by sequence: the contract declares the map **and a dated, per-script, owned baseline**; stream2b
+burns that baseline to zero; **the ratchet is deleted as stream2b's final act.** Its deletion is an
+acceptance condition of stream2b, not a hope.
 
 **Blindness is structural, not trusted:** every arm's brief carries its own instructions inline and
 never points at a shared file, so no arm can read another's out of curiosity. Two arms per stream on
