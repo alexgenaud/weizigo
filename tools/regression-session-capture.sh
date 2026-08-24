@@ -54,6 +54,11 @@ RUNNER="$ROOT/tools/runner"
 TOOL="$ROOT/tools/token-capture.py"
 FAIL=0
 
+# T849: scratch repo via the ONE isolated helper (unset GIT_DIR… before git
+# init); safe to run outside the pre-commit hook. T445 refuse-on-failure is
+# preserved by the helper.
+. "$ROOT/tools/lib/scratch-repo.sh"
+
 note() { echo "$*"; }
 pass() { echo "    PASS: $*"; }
 fail() { echo "    FAIL: $*"; FAIL=1; }
@@ -63,10 +68,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-mkdir -p /tmp/weizigo
-WORK="$(mktemp -d /tmp/weizigo/t552-session-XXXXXX)" || { echo "FATAL: scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
+weizigo_scratch_repo t552-session WORK   # T849: isolated scratch repo
 cd "$WORK"
-git init -q
 git config user.email t552@test
 git config user.name T552
 echo base > README.md
