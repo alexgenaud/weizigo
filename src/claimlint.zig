@@ -208,6 +208,7 @@ const CHECKS = [_]Check{
     .{ .id = "C12", .name = "DEAD-GLOBS" },
     .{ .id = "C13", .name = "NAMESPACE" },
     .{ .id = "C14", .name = "BARE-IDS" },
+    .{ .id = "C15", .name = "BRIEF-CITATIONS" },
 };
 
 /// The canonical name for a check ID, e.g. `checkName("C3")` → `UNBACKED`.
@@ -1443,6 +1444,172 @@ fn newVolatileInDoc(gpa: Allocator, idx: *Index, old_body: []const u8, new_body:
 
 // ── cite-tag extraction (C6) ────────────────────────────────────────────────
 
+// ── C15 BRIEF-CITATIONS (T764) ──────────────────────────────────────────────
+//
+// A brief (untracked/T*.md) is a worker's only window into what the
+// Orchestrator wanted. C2 catches DEAD-LINKS, but only after the brief is
+// loaded into a register — a brief is not in CLAIMS.md and C2 never sees it.
+// When a brief cites a path that does not resolve in the working tree, the
+// worker has to RECONSTRUCT the referent from prose and indirect sources.
+// The 2026-08-23 incident (T759 item 6, operator-ratified) was exactly this:
+// a brief cited "the 2026-08-23 audit" which existed only in a conversation,
+// and three sources were combined to recover it. The rule is *a brief cites
+// committed paths* (DELEGATOR.md §"Naming and citing"); C15 is the mechanism
+// that says so loudly, in the same report C2 produces.
+//
+// Scope: every untracked/T*.md. Token shape: pathTokens (a known file
+// extension, no glob metacharacter — the same gate C2 uses, so a glob is
+// C12's job and a bare directory mention is prose).
+//
+// Verdict classes:
+//   DEAD          — the path does not resolve anywhere in the working tree
+//   UNCOMMITTED   — the path does not resolve AND has the SHAPE of a
+//                   committed path (docs/ or findings/ or any other prefix
+//                   the brief-writer would have written from a real path).
+//                   This is the sharper warning: a worker who reads
+//                   "see `docs/foo.md`" and finds nothing has to guess whether
+//                   the file moved, was renamed, or was never committed. The
+//                   UNCOMMITTED class is the one the DELEGATOR.md ruling
+//                   speaks to ("commit a seed/findings first, then cite it").
+//
+// UNTRACKED/-shaped paths that DO resolve are silent — the brief may
+// legitimately point at scratch (e.g. the C10 seed path the brief itself
+// planted). The defect is the path that DOES NOT exist, not the prefix.
+//
+// Report-only (T764): a display/taste gate is a warning, never a refusal
+// (seed ruling 6). The floor is proposed separately, just as C10's was.
+
+const BRIEF_DIR = "untracked";
+const BRIEF_GLOB = "T*.md";
+
+/// The brief-citation verdict. UNCOMMITTED is the SHARPER warning
+/// (docs/ or findings/ shaped, so the brief-writer meant a committed path);
+/// DEAD is the residual (any other path-shaped reference that did not
+/// resolve). The split is what the DELEGATOR.md ruling speaks to.
+const BriefHitClass = enum { dead, uncommitted };
+
+/// A path-shaped reference in a brief that did not resolve. `token` and
+/// `file` are OWNED (dup'd) by the scanner — the brief's body is a slice
+/// that the walker frees at the end of each iteration, so neither the
+/// path-shaped token (sliced out of the body) nor the brief path (a
+/// walker buffer reused on the next call) survives long enough to be
+/// stored in a hash map. The scanner dups both, and the caller frees
+/// them when it frees the hits list.
+const BriefHit = struct {
+    token: []const u8,
+    file: []const u8,
+    line: usize,
+    class: BriefHitClass,
+};
+
+/// The pure per-body scanner behind C15. Walks `body` (a brief's text),
+/// extracts path-shaped tokens via pathTokens, and for every one that does
+/// not resolve in `idx`, appends a BriefHit naming the token, the brief,
+/// the line, and the class. A token that resolves is silent — a brief that
+/// points at scratch is fine; the defect is a brief that points at nothing.
+///
+/// The token and the brief path are OWNED (dup'd) inside each BriefHit, so
+/// the caller can free `body` and the walker can reuse its path buffer
+/// without dangling any key in the post-scan grouping map.
+///
+/// Fenced code blocks are skipped with the same fenceCharOf rule C10 uses
+/// (T424 Orchestrator ruling): a `zig --cache-dir /tmp/...` inside a
+/// backtick fence is a build-command illustration, not a citation. The
+/// fenced-block test exists in the C10 family; C15 reuses the helper.
+fn briefCitationInBody(
+    gpa: Allocator,
+    idx: *Index,
+    body: []const u8,
+    file: []const u8,
+    hits: *std.ArrayList(BriefHit),
+) !void {
+    var lineno: usize = 0;
+    var lit = std.mem.splitScalar(u8, body, '\n');
+    var fence_char: u8 = 0;
+    while (lit.next()) |line| {
+        lineno += 1;
+        const fc = fenceCharOf(line);
+        if (fc != 0) {
+            if (fence_char == 0) {
+                fence_char = fc;
+            } else if (fc == fence_char) {
+                fence_char = 0;
+            }
+            continue;
+        }
+        if (fence_char != 0) continue;
+        var toks: std.ArrayList([]const u8) = .empty;
+        defer toks.deinit(gpa);
+        try pathTokens(gpa, line, &toks);
+        for (toks.items) |tok| {
+            // Skip the index cache: `tok` is a slice into `body`, which is
+            // freed at the end of the caller's per-iteration scope. A cache
+            // entry keyed on the slice would dangle. The C2 path (whose
+            // tokens come from the long-lived register string) can use the
+            // cache; C15's path (per-brief slices) cannot.
+            if (idx.resolveUncached(tok) != null) continue;
+            const owned_tok = try gpa.dupe(u8, tok);
+            errdefer gpa.free(owned_tok);
+            const owned_file = try gpa.dupe(u8, file);
+            try hits.append(gpa, .{
+                .token = owned_tok,
+                .file = owned_file,
+                .line = lineno,
+                .class = classOf(tok),
+            });
+        }
+    }
+}
+
+/// Does `tok` look like a path the brief-writer would have cited from a
+/// COMMITTED location? The T764 ruling (DELEGATOR.md §"Naming and citing")
+/// is the rule: docs/ and findings/ are the two committed prefixes a brief
+/// is meant to cite from. Anything else (untracked/, a /tmp, an arbitrary
+/// directory) is residual: a brief can point at scratch legitimately, so
+/// the dead-vs-uncommitted distinction only sharpens the warning, not the
+/// existence of one.
+fn classOf(tok: []const u8) BriefHitClass {
+    if (std.mem.startsWith(u8, tok, "docs/")) return .uncommitted;
+    if (std.mem.startsWith(u8, tok, "findings/")) return .uncommitted;
+    return .dead;
+}
+
+/// Walk the brief directory and collect every dead path-shaped reference.
+/// T764: scope is untracked/T*.md only — the bundles managent emits. A
+/// brief in a non-T-prefix file is process prose (STATE.md, the absorption
+/// log) and is C2's job via its existing surface.
+fn briefCitationScan(
+    gpa: Allocator,
+    io: Io,
+    idx: *Index,
+    hits: *std.ArrayList(BriefHit),
+) !void {
+    var dir = Io.Dir.cwd().openDir(io, BRIEF_DIR, .{ .iterate = true }) catch |e| {
+        if (e == error.FileNotFound) return;
+        return e;
+    };
+    defer dir.close(io);
+    var w = try dir.walkSelectively(gpa);
+    defer w.deinit();
+    while (try w.next(io)) |e| {
+        if (e.kind != .file) continue;
+        if (!std.mem.startsWith(u8, e.basename, "T")) continue;
+        if (!std.mem.endsWith(u8, e.basename, ".md")) continue;
+        // Per-iteration free: a labeled block scopes the `defer free` to a
+        // single brief, not the whole function (a `defer` inside a `while`
+        // body in Zig accumulates until the enclosing scope ends — with
+        // 800+ briefs that leaks their bodies until the run finishes).
+        // `briefCitationInBody` dups both the token and the file path
+        // before they leave the call, so it is safe to free the body and
+        // to let the walker reuse its path buffer afterwards.
+        scanOne: {
+            const body = dir.readFileAlloc(io, e.path, gpa, .unlimited) catch break :scanOne;
+            defer gpa.free(body);
+            try briefCitationInBody(gpa, idx, body, e.path, hits);
+        }
+    }
+}
+
 /// A cite-tag found in a narrative document: `[ID:STATUS]`.
 const CiteTag = struct {
     id: []const u8,
@@ -2642,6 +2809,99 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     });
 
 
+    // ── C15 BRIEF-CITATIONS (T764) ───────────────────────────────────────
+    util.out("\n== C15 {s}  BRIEF CITATIONS (report only — does NOT fail, yet) ==\n", .{checkName("C15")});
+    util.out("A brief (untracked/T*.md) cites a path the worker has to follow. C2 only\n", .{});
+    util.out("scans the register and its cited documents; it never sees a brief. When a\n", .{});
+    util.out("brief cites a path that does not resolve in the working tree, the worker\n", .{});
+    util.out("has to RECONSTRUCT the referent from prose — the 2026-08-23 incident\n", .{});
+    util.out("(T759 item 6) lost a brief's referent to a conversation and required three\n", .{});
+    util.out("indirect sources to recover it. The rule lives in\n", .{});
+    util.out("docs/infra/delegation/DELEGATOR.md §\"Naming and citing\" (T759): a brief\n", .{});
+    util.out("cites committed paths; if the source is a conversation, commit a seed\n", .{});
+    util.out("first, then cite it. C15 is the mechanism that says so loudly.\n\n", .{});
+    util.out("  Verdict classes:\n", .{});
+    util.out("    UNCOMMITTED  — docs/- or findings/-shaped reference that does not\n", .{});
+    util.out("                   resolve: the brief-writer meant a committed path.\n", .{});
+    util.out("    DEAD         — any other path-shaped reference that does not resolve\n", .{});
+    util.out("                   (a sharper warning, but not a ruling-class name).\n\n", .{});
+    var c15_hits: std.ArrayList(BriefHit) = .empty;
+    defer {
+        for (c15_hits.items) |h| {
+            gpa.free(@constCast(h.token));
+            gpa.free(@constCast(h.file));
+        }
+        c15_hits.deinit(gpa);
+    }
+    try briefCitationScan(gpa, io, &idx, &c15_hits);
+    // Group by token for the report (a path cited N times shows once with N
+    // locations, capped — the same shape C10 uses for the volatile census).
+    const C15_MAX_LOC = 3;
+    var c15_by_token = std.StringHashMap(std.ArrayList([]const u8)).init(gpa);
+    defer {
+        var it = c15_by_token.iterator();
+        while (it.next()) |e| e.value_ptr.deinit(gpa);
+        c15_by_token.deinit();
+    }
+    var c15_dead: usize = 0;
+    var c15_uncommitted: usize = 0;
+    var c15_files = std.StringHashMap(void).init(gpa);
+    defer c15_files.deinit();
+    for (c15_hits.items) |h| {
+        const gop = try c15_by_token.getOrPut(h.token);
+        if (!gop.found_existing) gop.value_ptr.* = .empty;
+        if (gop.value_ptr.items.len < C15_MAX_LOC)
+            try gop.value_ptr.append(gpa, try std.fmt.allocPrint(gpa, "{s}:{d}", .{ h.file, h.line }));
+        switch (h.class) {
+            .dead => c15_dead += 1,
+            .uncommitted => c15_uncommitted += 1,
+        }
+        // The c15_files map only counts distinct briefs (the value is
+        // ignored); we do not store the path as a key, so the walker's
+        // reused buffer cannot dangle.
+        const gop2 = try c15_files.getOrPut(h.file);
+        if (!gop2.found_existing) gop2.value_ptr.* = {};
+    }
+    var c15_tokens: std.ArrayList([]const u8) = .empty;
+    defer c15_tokens.deinit(gpa);
+    {
+        var it = c15_by_token.iterator();
+        while (it.next()) |e| try c15_tokens.append(gpa, e.key_ptr.*);
+    }
+    // UNCOMMITTED first (the ruling-class warning), DEAD second, lex within.
+    const C15TokenLess = struct {
+        fn less(_: void, a: []const u8, b: []const u8) bool {
+            const au = classOf(a) == .uncommitted;
+            const bu = classOf(b) == .uncommitted;
+            if (au != bu) return au;
+            return std.mem.lessThan(u8, a, b);
+        }
+    };
+    std.mem.sort([]const u8, c15_tokens.items, {}, C15TokenLess.less);
+    util.out("  UNCOMMITTED — docs/ or findings/ references that do not resolve:\n", .{});
+    var c15_uncommitted_distinct: usize = 0;
+    for (c15_tokens.items) |tok| {
+        if (classOf(tok) != .uncommitted) continue;
+        c15_uncommitted_distinct += 1;
+        util.out("  C15 {s}  {s}\n", .{ checkName("C15"), tok });
+        for (c15_by_token.get(tok).?.items) |loc| util.out("             at {s}\n", .{loc});
+    }
+    if (c15_uncommitted_distinct == 0) util.out("    (none)\n", .{});
+    util.out("\n  DEAD — other path-shaped references that do not resolve:\n", .{});
+    var c15_dead_distinct: usize = 0;
+    for (c15_tokens.items) |tok| {
+        if (classOf(tok) != .dead) continue;
+        c15_dead_distinct += 1;
+        util.out("  C15 {s}  {s}\n", .{ checkName("C15"), tok });
+        for (c15_by_token.get(tok).?.items) |loc| util.out("             at {s}\n", .{loc});
+    }
+    if (c15_dead_distinct == 0) util.out("    (none)\n", .{});
+    util.out("\n  C15 {s} total: {d} unreferenced brief citation(s) ({d} distinct path(s) in {d} brief(s)) — uncommitted: {d} · dead: {d}\n", .{
+        checkName("C15"), c15_hits.items.len, c15_by_token.count(), c15_files.count(), c15_uncommitted, c15_dead,
+    });
+    util.out("  Scope: {s}/{s}\n", .{ BRIEF_DIR, BRIEF_GLOB });
+
+
     // ── A  repeated narrowing ───────────────────────────────────────────────
     util.out("\n== A  SMELL: repeated narrowing (report only) ==\n", .{});
     var smell: usize = 0;
@@ -3428,6 +3688,7 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("  C12 dead / ambiguous globs     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c12_dead, c12_ambig, checkName("C12") });
     util.out("  C13 unclassified / bespoke     {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c13_unclassified, c13_cov.bespoke.items.len, checkName("C13") });
     util.out("  C14 new bare-code / no-family  {d} / {d}   (report only — does not fail, yet)   [{s}]\n", .{ c14_bare, c14_nofam, checkName("C14") });
+    util.out("  C15 unreferenced brief citations {d}  ({d} distinct path(s) in {d} brief(s); report only — does not fail, yet)   [{s}]\n", .{ c15_hits.items.len, c15_by_token.count(), c15_files.count(), checkName("C15") });
     util.out("  calibration                   {s}\n", .{if (cal_ok) "PASS" else "FAIL"});
 
     if (reg.unparsed.items.len > 0) std.process.exit(3);
@@ -5447,5 +5708,133 @@ test "C10-NEW: a bare directory mention is not a citation" {
         hits.deinit(gpa);
     }
     try newVolatileInDoc(gpa, &idx, "", "swept from `untracked/` scratch and written under `/tmp/`", "docs/status/leak-crisis.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
+}
+
+// ── C15 BRIEF-CITATIONS unit tests (T764) ─────────────────────────────────
+// Red-first arms: a brief (untracked/T*.md) citing a path that does NOT
+// resolve in the working tree must be reported (RED). A brief whose
+// path-shaped references all resolve must be silent (NULL). Sub-classes:
+// a docs/ or findings/-shaped reference is flagged as UNCOMMITTED
+// (the rule is "a brief cites committed paths"), and a non-docs/-shaped
+// reference is flagged as DEAD. They exercise briefCitationInBody — the
+// pure per-body scanner — so the suite is independent of on-disk scratch.
+
+fn freeBriefHits(gpa: Allocator, hits: *std.ArrayList(BriefHit)) void {
+    for (hits.items) |h| {
+        gpa.free(@constCast(h.token));
+        gpa.free(@constCast(h.file));
+    }
+    hits.deinit(gpa);
+}
+
+test "C15 BRIEF-CITATIONS: a docs/-shaped reference that does not resolve is UNCOMMITTED" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "follow `docs/nope.md` for the spec", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 1), hits.items.len);
+    try std.testing.expectEqualStrings("docs/nope.md", hits.items[0].token);
+    try std.testing.expectEqualStrings("untracked/T764-test.md", hits.items[0].file);
+    try std.testing.expectEqual(BriefHitClass.uncommitted, hits.items[0].class);
+}
+
+test "C15 BRIEF-CITATIONS: a findings/-shaped reference that does not resolve is UNCOMMITTED" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "record the result in `findings/T999-foo.json`", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 1), hits.items.len);
+    try std.testing.expectEqual(BriefHitClass.uncommitted, hits.items[0].class);
+}
+
+test "C15 BRIEF-CITATIONS: a non-docs/-shaped reference that does not resolve is DEAD" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    // `random/place/phantom.md` is not docs/- or findings/-shaped, so when
+    // it does not resolve it is just a DEAD reference, not the sharper
+    // UNCOMMITTED verdict.
+    try briefCitationInBody(gpa, &idx, "see `random/place/phantom.md` for context", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 1), hits.items.len);
+    try std.testing.expectEqual(BriefHitClass.dead, hits.items[0].class);
+}
+
+test "C15 BRIEF-CITATIONS: a brief citing only committed paths is silent (null arm)" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    // Seed the index with the two committed paths the brief cites.
+    const k1 = try gpa.dupe(u8, "docs/infra/delegation/DELEGATOR.md");
+    defer gpa.free(k1);
+    const k2 = try gpa.dupe(u8, "findings/T759-doctrine-disambiguation.json");
+    defer gpa.free(k2);
+    try idx.paths.append(gpa, k1);
+    try idx.exact.put(k1, {});
+    try idx.paths.append(gpa, k2);
+    try idx.exact.put(k2, {});
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "see `docs/infra/delegation/DELEGATOR.md`; record in `findings/T759-doctrine-disambiguation.json`.", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
+}
+
+test "C15 BRIEF-CITATIONS: a /tmp or untracked/ reference that resolves is silent" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    // The brief points to a scratch file that exists. C15 does not tell a
+    // brief off for citing scratch — only for citing a path that does
+    // not exist (the worker would otherwise have to reconstruct it).
+    const k = try gpa.dupe(u8, "untracked/scratch/seed.json");
+    defer gpa.free(k);
+    try idx.paths.append(gpa, k);
+    try idx.exact.put(k, {});
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "fixture: `untracked/scratch/seed.json`.", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
+}
+
+test "C15 BRIEF-CITATIONS: an empty brief body is silent" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "", "untracked/T764-test.md", &hits);
+    try std.testing.expectEqual(@as(usize, 0), hits.items.len);
+}
+
+test "C15 BRIEF-CITATIONS: a glob-shaped token is not a brief citation" {
+    const gpa = std.testing.allocator;
+    var idx = testIndex(gpa);
+    defer idx.paths.deinit(gpa);
+    defer idx.exact.deinit();
+    defer idx.cache.deinit();
+    // pathTokens requires a known file extension AND no glob metacharacter
+    // (the same shape rule C2 uses), so a `docs/audits/*.md` is prose, not
+    // a citation — C12 owns the glob class. C15 stays silent on globs.
+    var hits: std.ArrayList(BriefHit) = .empty;
+    defer freeBriefHits(gpa, &hits);
+    try briefCitationInBody(gpa, &idx, "see `docs/audits/*.md` for the corpus", "untracked/T764-test.md", &hits);
     try std.testing.expectEqual(@as(usize, 0), hits.items.len);
 }
