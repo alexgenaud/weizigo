@@ -354,3 +354,20 @@ so the two recorded defects remain honestly red rather than papered over.
 | # | still open | why |
 |---|---|---|
 | B46 | **`T837` (C3's 42 unbacked proofs) is deliberately NOT dispatched.** Its dependencies (T835, T836) are now met, but it is the one queued row that could change the project's epistemic record, and T836 just found a live document resting on a claim archived BOGUS. Downgrading or backing 42 PROVEN claims is a bookend question, not a seat decision. | held for the operator |
+
+## B-new-11. Second rate reading, and a flaw in the seat's own method — 2026-08-24
+
+`T844` (`claude-haiku-4-5-20251001`) independently ranks **`T839` first, `T838` runner-up, `T840`
+disqualified on arithmetic** — the same order as `T843`. Both readings agree, so no split escalates to
+the operator, and `T853` now lands `T839`.
+
+| # | finding | why it matters |
+|---|---|---|
+| B47 | **The second reading was not independent, and the seat caused that.** The protocol wants two blind reads precisely so a wrong first read is caught. The seat's directive D083 handed the second judge the measured aggregation data *and named it "the critical hinge"*; the judge's findings carry a `critical_directive_d083` section restating it as the ranking criterion. **So this is corroboration, not an independent ranking.** The partial defence: the aggregation defect is a fact the seat verified itself against a live transcript, not the first judge's opinion — MAX=8,164 vs SUM=52,851 is arithmetic, and either judge would have had to contend with it. But the ranking hinge was supplied rather than found, and a future two-judge race must pass the second judge the *field* and nothing else. | D083 versus the protocol's intent |
+| B48 | **The second judge hedged well, and its hedge is worth keeping.** It recorded what would have to be true for its ranking to be wrong: if the operator's own live testing shows T840's rates are correct at magnitude, then either `output` is cumulative-with-overwrite after all, or the seat's sample was unrepresentative, or T840's code is not what runs. That is the right shape for a verdict awaiting a human reading, and it is the reason his smoke test still counts retroactively. | `notes_on_operator_reading` |
+
+**Landing brief (`T853`) carries the operator's own test as its acceptance criterion:** render a live
+frame showing a real rate, show UNKNOWN still appears for a genuinely transcript-less lane (the
+openrouter lane has neither `--session` nor `--mode json`, so UNKNOWN is *correct* there), and
+cross-check the rendered rate against hand arithmetic on the same transcript. Seeing a number is not
+the test; seeing the right number is.
