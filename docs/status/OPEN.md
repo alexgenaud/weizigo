@@ -101,3 +101,19 @@ Regenerate section "Queue state" from `bin/managent status --json`; edit section
 an item is raised, resolved, or dispatched. **An item leaves this file only when it is dispatched,
 decided, or explicitly killed** — never because it went quiet. When an item becomes a task, replace
 its row with the task id so the trail survives.
+
+## B-new. Issues found 2026-08-24 morning — for discussion on the operator's return
+
+| # | issue | evidence |
+|---|---|---|
+| B9 | **The task store silently lost 59 tasks.** `tasks.json` reverted to a pre-T785 snapshot (409 tasks, max id 784) and was committed in that state at `cbb0b70`. Both live races, the appetite change, the board census and the epistemic sprint vanished; a running worker surfaced it by logging `FAIL kanban: task T836 not found`. **No fuller snapshot exists in git**, so verdicts, notes and impressions for T785–T824 are unrecoverable. Repaired at `67780db` by re-registering 59 tasks from their briefs (marked RECONSTRUCTED) and restoring the chains by hand. **This is T716's defect unfixed**, and it is the single most dangerous thing in the fleet: the store is the only record of what work exists. | `67780db` |
+| B10 | **Claude is being rate-limited.** T836 (opus) recorded `provider refusal (reason=provider-429): the model was never reached — recorded as unreached, not a task failure`. The runner classifies it correctly, which is good; the operator's instinct that Claude is strained is confirmed. Only 4 Claude runs in the trailing 5-hour window, so the cause is not our volume. | `untracked/log/t836.log` |
+| B11 | **The shared git index carried a corrupt entry** for the gitignored built binary `bin/weizigo-claimlint` (object `58b7066` absent from the object store), making every ordinary commit fail with `Error building trees`. Cleared with `git reset -- <path>`; `git write-tree` is healthy again. Something stages a gitignored build artifact — likely a hook or a build step — and that recurs. | this session |
+| B12 | **A stale `in_progress` cohort came back with the reverted store**: T770, T774, T776, T780, T781, T783 all read in flight while being complete. `managent reap` is the tool; their verdict history is among the losses in B9. | store diff |
+| B13 | **The test gate is live and working** — `pre-commit: … test gate: PASS (37s, budget 45s)`. Noted here because it is the first time a commit in this repository has been gated on tests, and its 45-second budget is now a load-bearing number. | T789 |
+
+**My own two errors this session, recorded because they cost operator attention:** I called the
+appetite table a structural blocker when `bin/dispatch <task> <model>` never consults appetite —
+glm/kimi/minimax were usable the whole time. And a log-grep of mine reported "session limit" and
+"rate limit" hits that were **documentation strings inside task output**, which is precisely the
+T677 incident (a cooldown once armed from a quoted document). I nearly repeated it as a diagnosis.
