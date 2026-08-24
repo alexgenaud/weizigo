@@ -710,6 +710,26 @@
    "disposition": "rejected-by-register",
    "refuting_row": "2x2.T12 re-labelled FALSE-AS-SCOPED by T731 (Race G G34, 2026-08-23): the 144/160-vertex root-free 2×2 SCC refutes the no-cycles premise under basic ko",
    "rationale": "The class-C triage snapshot read 2x2.T12 as MEASUREMENT before Race G. T731 re-labelled it FALSE-AS-SCOPED. This disposition records the later re-labelling."
+  },
+  {
+   "finding_task": "T818",
+   "finding_file": "T818-corpus-b.json",
+   "claim_id": "MEAS.CORPUS-B",
+   "proposed_status": "MEASUREMENT",
+   "register_status": "GLOBAL.CORPUS-B: MEASUREMENT",
+   "disposition": "absorbed-under-register-id",
+   "refuting_row": "GLOBAL.CORPUS-B (MEASUREMENT, CLAIMS.md §2.11 tail)",
+   "rationale": "T835 audit (2026-08-24): `MEAS.` is not an ID scope in CLAIMS.md §1 (GLOBAL./CODE./<goban> are) — this is a claim about the task-corpus tooling, not a goban, so GLOBAL. is the right namespace (T402/RESOLVER precedent). The findings file also placed a brand-new claim under `claims[]` instead of `new_rows[]` (claimlint absorb: 'claim ID not found in register — use new_rows for new claims'). Content re-verified independently by T835 (61/61 chunk sha256 match, task_type counts reproduce exactly from the committed chunk-*-m6.jsonl) and absorbed as GLOBAL.CORPUS-B at MEASUREMENT, amended with a spot-check caveat (4/25 random rows misclassified via citation-path keyword collisions)."
+  },
+  {
+   "finding_task": "T818",
+   "finding_file": "T818-corpus-b.json",
+   "claim_id": "MEAS.CORPUS-B-METER-GAPS",
+   "proposed_status": "FALSE-AS-SCOPED",
+   "register_status": "GLOBAL.CORPUS-B-METER-GAPS: FALSE-AS-SCOPED",
+   "disposition": "absorbed-under-register-id",
+   "refuting_row": "GLOBAL.CORPUS-B-METER-GAPS (FALSE-AS-SCOPED, CLAIMS.md §2.11 tail)",
+   "rationale": "T835 audit (2026-08-24): same `MEAS.` scope-prefix and `claims[]`-vs-`new_rows[]` defect as MEAS.CORPUS-B, same fix — renamed to GLOBAL.CORPUS-B-METER-GAPS. Content re-verified: the 249/579 measured-wall-time figure reproduces exactly from the frozen committed corpus rows; the token-ledger and run-record percentages cite volatile, uncommitted sources that have since drifted (in the direction that reinforces, not refutes, the claim). Absorbed at FALSE-AS-SCOPED as proposed, amended to state the snapshot-vs-durable-measurement distinction."
   }
  ]
 }

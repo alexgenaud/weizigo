@@ -189,6 +189,8 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `GLOBAL.C4` | Z-NONCLAIMS | NC4: fresh-start == real-game FALSE-AS-SCOPED |
 | `GLOBAL.CALIB-LESSON` | Z-AUDIT | a self-consistency check needs a passing calibration case — auditor doctrine |
 | `GLOBAL.CERTCORE` | Z-NONCLAIMS | NC1: certified-core real-game claim FALSE-AS-SCOPED |
+| `GLOBAL.CORPUS-B` | Z-AUDIT | T818/T835: task-corpus classifier measurement, audited with a spot-check-noise caveat |
+| `GLOBAL.CORPUS-B-METER-GAPS` | Z-AUDIT | T818/T835: token/wall-time meter gaps, FALSE-AS-SCOPED for per-model cost ranking |
 | `GLOBAL.E1` | Z-NONCLAIMS | NC1/NC2 methodology: E1 confounded, diagnoses not falsifies |
 | `GLOBAL.E2-POLICY` | Z-NONCLAIMS | NC2: range-aware policy correctness |
 | `GLOBAL.E2-SANITY` | Z-NONCLAIMS | NC2: E2 harness wiring verified |
