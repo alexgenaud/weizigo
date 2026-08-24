@@ -3874,7 +3874,14 @@ def main():
     # ── WORKER-CHANNEL: auto-done on success ─────────────────────────────
     if ret == 0 and args.task_id:
         managent = os.path.join(repo_root, "bin", "managent") if repo_root else "bin/managent"
-        result = subprocess.run([managent, "done", args.task_id], capture_output=True, text=True)
+        # T855: `done` now refuses a close with neither --impression nor
+        # --impression-waiver (T522). This auto-done runs after a bare lane
+        # exit with no model narrative to attribute, so it waives by name
+        # rather than fabricating an impression.
+        result = subprocess.run(
+            [managent, "done", args.task_id, "--impression-waiver",
+             "tools/runner worker-channel auto-done on exit 0 — no model ran to narrate an impression"],
+            capture_output=True, text=True)
         if result.returncode != 0:
             stderr_text = result.stderr.strip()
             if not stderr_text:

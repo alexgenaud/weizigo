@@ -76,3 +76,19 @@ weizigo_scratch_repo() {
     git init -q "$d" || { echo "scratch-repo: FATAL — git init failed in $d" >&2; return 2; }
     printf -v "$outvar" '%s' "$d"
 }
+
+# weizigo_reset_census — T855: a fixture that writes tasks.json directly
+# (bypassing managent, to stage a new scenario) leaves the S10 store-loss
+# census (T848) pointing at the row count from the last managent-mediated
+# write. The next managent invocation then sees the direct write as a
+# "shrink" of a store it never measured and refuses/alarms — a false
+# positive against a fixture, not evidence of loss. Call this immediately
+# after any direct write to a scratch tasks.json so the store goes back to
+# "no census yet" (honestly unmeasured), the same state a brand-new store is
+# in. Never use this against the live store.
+#
+# Usage: weizigo_reset_census "$STORE"   # $STORE = path to the scratch tasks.json
+weizigo_reset_census() {
+    local store="${1:?weizigo_reset_census: store path required}"
+    rm -f "$(dirname "$store")/store-census.json"
+}

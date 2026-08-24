@@ -120,6 +120,7 @@ d[tid] = {
 }
 json.dump(d, open(store, "w"), indent=1)
 PY
+    weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 }
 
 echo "=== regression-managent-lanes (T716) ==="
@@ -127,6 +128,7 @@ echo "=== regression-managent-lanes (T716) ==="
 # ── A. forward known-bad: findings with no row ─────────────────────────────
 echo "  A. orphaned findings file (T900) with no row — lanes must go RED"
 : > "$STORE"
+weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 write_findings "T900-orphan.json" "T900"
 set +e
 OUT=$(bin/managent lanes 2>/dev/null)
@@ -208,6 +210,7 @@ python3 - "$STORE" <<'PY'
 import json, sys
 json.dump({"_sys": {"next_id": 950}}, open(sys.argv[1], "w"), indent=1)
 PY
+weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 set +e
 OUT=$(bin/managent lanes 2>/dev/null)
 RC=$?

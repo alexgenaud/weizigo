@@ -66,6 +66,7 @@ LIVE_HASH=$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)
 
 seed() {  # $1 = JSON body of one or more task records (no trailing comma)
     printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1}\n}\n' "$1" > "$STORE"
+    weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 }
 
 # One in_progress task record (bare "KEY":{...} pair): $1=id  $2=acceptance command

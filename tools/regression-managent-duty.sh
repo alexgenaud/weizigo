@@ -114,6 +114,7 @@ for rec in records.split("__REC__"):
 doc["_sys"] = {"next_id": 9000, "directive_next": 1, "assertion_next": 1, "closes": closes, "duty_migrated": True}
 json.dump(doc, open(store, "w"), indent=1)
 PY
+weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 }
 
 echo "=== T478 duty mechanism regression ==="

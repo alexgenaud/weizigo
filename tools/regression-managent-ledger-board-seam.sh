@@ -44,6 +44,9 @@ fi
 # if scratch creation fails — an empty scratch var once sent this suite's arms
 # into the LIVE repo (2026-08-18 incident). cd "" succeeds silently; never rely
 # on it.
+# T855: source the shared helper for weizigo_reset_census (T849's isolation
+# guards are re-asserted at source time too, at no cost).
+. "$PROJECT/tools/lib/scratch-repo.sh"
 mkdir -p /tmp/weizigo
 WORK="$(mktemp -d /tmp/weizigo/managent-ledger-seam-XXXXXX)" || { echo "regression-managent-ledger-board-seam.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
 trap 'rm -rf "$WORK"' EXIT
@@ -58,6 +61,7 @@ export MANAGENT_STORE="$STORE"
 
 seed() {  # $1 = JSON body of one or more task records (no trailing comma)
     printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1, "assertion_next": 1}\n}\n' "$1" > "$STORE"
+    weizigo_reset_census "$STORE"   # T855: direct write bypasses the census; see tools/lib/scratch-repo.sh
 }
 
 # dispatchable task record: $1=id
