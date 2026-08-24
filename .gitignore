@@ -1,1 +1,46 @@
+zig-cache/
+.zig-cache/
+zig-out/
+data/
+log/
+
+# ephemeral scratch — disposable outputs. The `ephemeral` symlink was retired
+# 2026-08-03 (T286): use /tmp/weizigo/ directly. This line guards the stray
+# directory if anyone recreates it — it must stay invisible.
+ephemeral/
+
+# important but untracked artifacts — agent-to-agent comms, large .wzo
+# files, in-progress task bundles. Must survive across sessions.
+# NEVER use for disposable scratch — that goes to /tmp/weizigo/
 untracked/
+
+# compiled binaries (built by agents)
+/retro-e*
+/gtp
+/weizigo
+/weizigo-arena
+/weizigo-oracle
+/weizigo-engine-vs-engine
+/managent
+
+# your personal scrap/notes file — never commit
+/HUMAN.md
+bin/*
+# bin/argus is a Python script, not a compiled binary — the blanket bin/ rule
+# made it invisible to git status and one `git clean -x` from gone (T211-A).
+!bin/argus
+!bin/subagent
+!bin/ollama-subagent
+!bin/dispatch
+
+# Durable evidence store (roadmap-2026-07-28 §4 P1): a claim may be marked
+# PROVEN only if its probe source and output are committed here. Must stay
+# last so no earlier rule (untracked/, log/, bin/, data/) can ever reach it.
+!docs/evidence/
+!docs/evidence/**
+src/version.zig
+docs/infra/managent/tasks.json.lockfile
+# T547: commit-mutex lock file (flock across stage→verify→commit) — the
+# wrapper creates it alongside the store's lockfile; it must never be
+# committed, only ever locked.
+docs/infra/managent/git-commit-mine.lock
