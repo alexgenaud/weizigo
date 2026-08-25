@@ -28,7 +28,9 @@ T715	19	1800	AUTO	record the incident in the guard doc
 T713	20	2700	AUTO	qwen-resident dispatch check
 T798	21	5400	AUTO	harness kill visible in kanban
 T925	22	3600	DISCUSS	5xN frontier: WZO1 vs WZO2 — needs a format ruling; cost of the folds is unmeasured
-T928	23	3600	DISCUSS	detached jobs: pid + log — design decision the operator has already shaped; agree the shape first
+T928	6	3600	AUTO	detached jobs: pid + log — RECLASSIFIED AUTO 2026-08-25 (T935): the brief already carries the operator's verbatim design and records that the over-built draft was rejected; there is no shape left to agree. Prerequisite for the 4x4 run.
+T936	7	7200	AUTO	4x4.D3 full run — detached compute; blocked on T928, controls-first, censored results reported as censored
+T937	7	3600	AUTO	C2 counts a dangling path it will not name — gate blocks with an unnamed integer
 T712	24	3600	DISCUSS	one arbiter, no per-runner kills — edits the live admission path - a wrong edit stops every dispatch (B3)
 T709	25	3600	DISCUSS	reconcile rc=0 with deliverables — edits dispatch verification, the thing that judges every lane
 T772	26	3600	DISCUSS	cost ladder quality gate — needs a policy ruling on what 'quality' gates on

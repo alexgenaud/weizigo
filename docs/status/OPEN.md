@@ -54,6 +54,58 @@ The instrument defect is registered as **T934** — a provider refusing service 
 | C5 | **Every hand-picked constant needs a derivation or a deletion.** `total // 8` is gone; still unexamined: `MEMORY_GATE_MARGIN_MB` 2048, `FALLBACK_COOLDOWN_SECONDS` 30 min, `ARM_FRESHNESS_SECONDS` 3 h, `--poll-ms` 250, `--rss-cap-mb` 12288, `MAX_DEPTH` 3. | pattern found via T806 |
 
 ---
+## SHIFT LOG — 2026-08-25 afternoon, T935 seat (supersedes the T914 entry below for seat state)
+
+**The stack now runs itself, serially, unattended.** `tools/pop-next.sh --loop 240` is running at
+MAX_LANES=1, AUTO rows only, DISCUSS rows never popped; its log and its brake file are the ones the
+script's own header names. It held correctly at one lane on its first three ticks.
+
+### Absorbed the morning's orphans — every lane that died at exit 0 without closing
+
+| row | what was actually true | close |
+|---|---|---|
+| T894 | code + regression delivered and green; findings file never written, row never closed | `pass-with-findings`, findings written post-hoc by the seat and marked so, committed `b27c7f0` |
+| T924 | deliverables committed days-of-work earlier; headline number corrected by T929/T930 | `pass-with-findings` |
+| T921 | runner killed mid-flight in the cold-cache Debug build; nothing salvageable | `abandoned` |
+| T914 | outgoing seat; resume + findings committed at `46f666a` | `pass` |
+| T932 | closed itself cleanly at 09:29:51Z — round-robin partition, 11.6x reproduced | `pass` (its own) |
+
+**T894 is live and deployed** (`bin/managent` b27c7f0): the dispatchable list orders by
+dispatch-readiness, duties and STANDING- triggers are out of it entirely, and an estimate column
+prints elapsed / expected / UNKNOWN. **All 37 dispatchable rows read `est: UNKNOWN`** — honest, and
+the remaining gap: `docs/infra/dispatch-queue.tsv` carries ranks and estimated walls and managent
+does not read it.
+
+### Decisions taken by this seat (operator reserves veto)
+
+1. **The keeper stays paused, and the resume's unpause condition is withdrawn.** T894 fixed the
+   *order*, not the *cap* — the keeper's cap is still global with no per-family scope, which is why
+   it was paused. And `pop-next.sh` is now doing the job with a brake. Two dispatchers is how
+   T350/T376/T389 duplicated. The reasoning is written into the keeper's own cooldown file, so a
+   successor reading the brake reads the argument before removing it.
+2. **T928 (detached jobs) reclassified DISCUSS → AUTO**, rank 6. Its brief already carries the
+   operator's verbatim design and records that the over-built draft was rejected; there is no shape
+   left to agree.
+3. **T936 registered** — run 4x4.D3 to completion, blocked on T928, controls-first. The 4x4 arc is
+   T924 → T929 → T930 → T932 → T936: projection, correction, cause, fix, measurement.
+4. **T937 registered** — claimlint's C2 summary blocks the commit with an integer and its detail
+   section prints `(none)`. Found by tripping it: four gate runs and a hand bisection over eight
+   candidate paths to identify one citation. Fifth instance of a generic symptom hiding a specific
+   cause, and the first one this landmark's own gate produced.
+
+### Observed live: the T922 shared-writer sweep
+
+T894's `build.zig` hunk was committed inside `cb5a307` (T932), because `build.zig` is an undeclared
+shared writer and T932 staged the whole file. Both regressions are wired in HEAD; the provenance is
+wrong. Recorded as a post-close amendment on T894. **This is not a hypothesis any more.**
+
+### Owed, unchanged
+
+A2, A3, A4 below. **T925** wants the 5xN format ruling. **T931** asks whether `unspec` should refuse
+dispatch — recommendation stands: not until the `acceptance=` backfill is done, then yes.
+
+---
+
 ## SHIFT LOG — 2026-08-25, T914 seat (supersedes the NEXT UP tables below)
 
 Everything under `NEXT UP` was generated 2026-08-24T18:40Z and its two tables have since gone
