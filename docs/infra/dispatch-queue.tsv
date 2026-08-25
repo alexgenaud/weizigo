@@ -6,6 +6,12 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T954	0	5400	AUTO	wire four OpenRouter models — PINNED dsflash; unblocks four DONE-audit arms; above T945 per fable
+T955	1	1800	AUTO	DONE audit arm (gptluna) — pin after T954 lands; blocked on T945,T954
+T956	1	1800	AUTO	DONE audit arm (qwencloud) — pin after T954; NEVER compare with qwen3.8:27b-mlx
+T957	1	1800	AUTO	DONE audit arm (nemotron) — pin after T954 lands
+T958	1	1800	AUTO	DONE audit arm (solarpro) — pin after T954 lands
+T953	3	3600	AUTO	three red gate arms: triage, do not leave baselined
 T952	0	3600	AUTO	moving-parts gate is RED on a clean host and wired into zig build test — suite broken
 T944	0	7200	AUTO	S10 pass 1a: STORE-LOSS DETECTOR — highest-severity open item; spec+21 arms ratified, arms S10-STORE-1..4 + SMOKE-4
 T945	0	5400	AUTO	DONE-audit corpus + sealed answer key — 120 rows, 5 disjoint slices + a 12-row control slice
