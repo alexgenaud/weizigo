@@ -1,0 +1,9 @@
+{
+  "task_id": "T951",
+  "date": "2026-08-25",
+  "model": "gpt-5.6-luna-pro",
+  "audited_by": "gpt-5.6-luna-pro/T951",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE-audit judge completed all 120 corpus rows (12 controls adjudicated from the sealed key plus 108 disjoint records). Control slice was scored before opening the key. corpus.md stated SHA-256 and computed SHA-256 both equal 440451bc1fd60711bc676374bd3b727e22f7f39d8d30f740d0726eea792e993e. Census: verdict accurate 113 yes, 6 no, 1 unverifiable/invalid; work complete/partial/none 99/15/6; absorbed yes/partial/no 92/18/10; verified/self-reported/unverifiable 110/9/1; useful yes/mixed/no/partial 99/14/6/1; complete-but-not-useful 0. No-acceptance stratum (20 rows): verdict 20/0/0, work 18/2/0, absorbed 14/5/1, verified 17/3/0, useful 17/3/0. Key calibration exact matches: dspro 9/12, dsflash 9/12, kimi 9/12, haiku 10/12, gemini 9/12, gptluna 8/12, qwencloud 10/12, nemotron 9/12, solarpro 10/12. T943 was caught by 8/9; T907 by 3/9; T894 and T924 were not caught exactly by any arm. T932/T927 null controls were not over-read and T921 was correctly recognized as a true negative. Collector disagreement on deliverables-present fields is a defect. T955/T957/T958 were served but absent from the live store after historical blocked registration/store loss; T956 is served and remains in_progress. Model cells were written only with surviving store attribution; absent-store arms have null model plus an explicit note, never a directory-based guess. Recommended record repairs: T894, T924, T943, T907, T598, T638, T701, T755, T730, T683, T533, T679. No directives received at inbox checkpoints."
+}
