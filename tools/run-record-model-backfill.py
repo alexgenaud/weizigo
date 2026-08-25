@@ -64,12 +64,13 @@ def _load_canonicalizer():
             "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
             "claude-haiku-4-5-20251001", "deepseek-v4-pro",
             "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7",
-            "qwen3.8:27b-mlx", "ox-alpha",
+            "qwen3.8:27b-mlx", "ox-alpha", "gemini-3.7-flash",
         ],
         "strip_suffix": ":cloud",
         "serving_tags": {
             "kimi-k2.7-code": "kimi-k2.7",
             "stealth/ox-alpha": "ox-alpha",
+            "google/gemini-3.7-flash": "gemini-3.7-flash",
         },
     })
 

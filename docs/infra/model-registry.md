@@ -16,6 +16,7 @@ deepseek-v4-pro · deepseek-v4-flash
 glm-5.2 · minimax-m3 · kimi-k2.7
 qwen3.8:27b-mlx
 ox-alpha
+gemini-3.7-flash
 ```
 
 **Rule (T276, 2026-08-02, human ruling):** model spellings in records use the canonical
@@ -44,6 +45,7 @@ render through it and hold no second copy.
 | `kimi` | `kimi-k2.7` | `kimi-k2.7-code:cloud` |
 | `qwen` | `qwen3.8:27b-mlx` | local (MLX) |
 | `oxalpha` | `ox-alpha` | `stealth/ox-alpha` |
+| `gflash` | `gemini-3.7-flash` | `google/gemini-3.7-flash` |
 
 Distinct short names are needed only when two models with confusable names run at the
 same time.
@@ -61,6 +63,7 @@ From the serving-tag probe (claude-opus-5/orcha), one `ollama run <tag> "say rea
 | `kimi-k2-thinking:cloud` | `retired at 2026-06-16` (vendor) | dead |
 | `qwen3.8:27b-mlx` | local, 18 GB MLX | the local qwen tag (`qwen3.8` in the pi/Ollama path) |
 | `stealth/ox-alpha` | answers (operator-verified headless, 2026-08-23) | the ox-alpha tag — serving tag only, never stored (canonical `ox-alpha`) |
+| `google/gemini-3.7-flash` | answers (operator-verified headless, 2026-08-25) | the gemini-3.7-flash tag — serving tag only, never stored (canonical `gemini-3.7-flash`) |
 
 `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working kimi
 invocation. Claude lanes need `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1` (authorized per
@@ -88,6 +91,7 @@ family, the kind of permission; the S06 spec ORC-POL-3 separation, T813):
 | `minimax-m3` | 5 | spend | " |
 | `glm-5.2` | 5 | spend | " |
 | `ox-alpha` | 9 | spend | *"make extra use … race against all others"* |
+| `gemini-3.7-flash` | 5 | spend | equal opportunity (T938) |
 | `claude-fable-5` | 1 | reserved | *"continue to reserve Fable"* |
 | `qwen3.8:27b-mlx` | (unchanged) | (unchanged) | local family, T833's — do not pre-empt |
 

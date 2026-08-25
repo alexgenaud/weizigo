@@ -119,6 +119,12 @@ FAMILY = {
     "minimax-m3": "ollama",
     "kimi-k2.7": "ollama",
     "qwen3.8:27b-mlx": "local",
+    # T938: gemini-3.7-flash — vendor family so a later gemini-pro can
+    # join it without re-keying.  Not in DEFAULT_FAMILY_CAP below: openrouter
+    # has no recorded ceiling for the `google` family today, so it is
+    # uncapped (a cap can be added by the operator via FLEET_FAMILY_CAP
+    # when one is needed).
+    "gemini-3.7-flash": "google",
 }
 
 # ── defaults (derivations in the module docstring — T845 §4) ─────────────

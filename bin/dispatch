@@ -132,12 +132,19 @@ MODELS = {
     # T732: pi harness, openrouter backend.  The serving tag is
     # stealth/ox-alpha (never the ledger); the canonical label is ox-alpha.
     "ox-alpha":                  ("pi", ["--model", "stealth/ox-alpha"]),
+    # T938: gemini-3.7-flash, same shape as ox-alpha — pi harness,
+    # openrouter backend, the vendor prefix `google/` plays the part
+    # `stealth/` plays there.  Operator-verified headless 2026-08-25.
+    "gemini-3.7-flash":          ("pi", ["--model", "google/gemini-3.7-flash"]),
 }
 
 # Input-convenience aliases (same shape managent accepts).
 ALIASES = {
     "dspro": "deepseek-v4-pro",
     "dsflash": "deepseek-v4-flash",
+    # T938: operator's shortname for gemini-3.7-flash (joins dspro/dsflash
+    # in the alias table; never a stored label).
+    "gflash": "gemini-3.7-flash",
 }
 
 
@@ -152,6 +159,9 @@ def canonicalize_model(raw: str) -> str:
     # T732: stealth serving tag → canonical label, matching managent.
     if s == "stealth/ox-alpha":
         return "ox-alpha"
+    # T938: google/ gemini serving tag → canonical label, matching managent.
+    if s == "google/gemini-3.7-flash":
+        return "gemini-3.7-flash"
     return s
 
 

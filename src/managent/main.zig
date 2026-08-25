@@ -401,6 +401,7 @@ const canonical_models = [_][]const u8{
     "kimi-k2.7",
     "qwen3.8:27b-mlx",
     "ox-alpha",
+    "gemini-3.7-flash",
 };
 
 fn isCanonicalModel(s: []const u8) bool {
@@ -431,6 +432,7 @@ fn printCanonicalModels(w: Writers) void {
 const serving_tag_map = [_]struct { serving: []const u8, canonical: []const u8 }{
     .{ .serving = "kimi-k2.7-code", .canonical = "kimi-k2.7" },
     .{ .serving = "stealth/ox-alpha", .canonical = "ox-alpha" },
+    .{ .serving = "google/gemini-3.7-flash", .canonical = "gemini-3.7-flash" },
 };
 
 /// The generic serving-tag suffix stripped before the map is applied.
@@ -521,6 +523,11 @@ const model_families = [_]ModelFamily{
     // reveal).  Its own family keeps it out of the auto-draw roster; re-keyed
     // to the real family on reveal.
     .{ .model = "ox-alpha", .family = "ox-alpha" },
+    // T938: gemini-3.7-flash (operator-verified headless 2026-08-25).
+    // The `google` family is a vendor family so a later gemini-pro can
+    // join it (the same shape ollama-cloud / local use).  SPEND appetite
+    // places it in the equal-opportunity set (operator ruling 2026-08-24).
+    .{ .model = "gemini-3.7-flash", .family = "google" },
 };
 
 // family → appetite, mirroring measurement-methodology.md §1 (2026-08-22).
@@ -537,10 +544,13 @@ const family_appetite = [_]FamilyAppetite{
     .{ .family = "claude-fable", .appetite = .reserved },
     .{ .family = "deepseek", .appetite = .spend },
     .{ .family = "local", .appetite = .probe },
-    // Operator ruling 2026-08-23 (supersedes T732's RESERVED): ox-alpha is
-    // free while the blind test runs — draw and compare it at every
-    // reasonable opportunity; never penalize it on speed (throttling observed).
+    // T732: ox-alpha is in the equal-opportunity set per the 2026-08-23
+    // operator ruling (T746).
     .{ .family = "ox-alpha", .appetite = .spend },
+    // T938: gemini-3.7-flash — same equal-opportunity set as the eight
+    // named in the 2026-08-24 operator ruling.  Vendor family so a later
+    // gemini-pro joins the same class without re-keying.
+    .{ .family = "google", .appetite = .spend },
 };
 
 fn familyOf(model: []const u8) ?[]const u8 {

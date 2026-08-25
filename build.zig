@@ -673,6 +673,32 @@ pub fn build(b: *std.Build) void {
     dispatch_caps_regression.cwd = b.path(".");
     test_step.dependOn(&dispatch_caps_regression.step);
 
+    // ── T938: gemini-3.7-flash wiring controls ────────────────────
+    // Operator-verified headless 2026-08-25
+    // (`pi --provider openrouter --model google/gemini-3.7-flash`); wired
+    // in the same shape as ox-alpha (canonical label, vendor serving tag,
+    // pi harness).  These controls pin the wiring across the six surfaces
+    // that must move in step (T317 single source; T801 one canonicalizer):
+    // managent canonical_models[] / serving_tag_map / model_families[] /
+    // family_appetite[]; bin/dispatch MODELS / ALIASES / canonicalize_model;
+    // bin/subagent PI_TAG_TO_CANONICAL / CANONICAL_TO_PI_TAG; the three
+    // readers (model_tags, runner, the hard-coded backfill list);
+    // tools/fleet_caps.py FAMILY; and docs/infra/model-registry.md.  Arms:
+    // A. canonical list includes the label, B. serving tag resolves to the
+    // label, C. null (every pre-existing label + serving tag unchanged),
+    // D. seeded defects (gflashx / google/gemini-3.7-pro / gflash-as-stored
+    // all refused by name), E. round-trip across managent + model_tags +
+    // runner + backfill hard-coded list (drift is a finding), F. real
+    // dry-run dispatch resolves to `pi --model google/gemini-3.7-flash`
+    // AND via the `gflash` alias, G. T317 sync (every canonical in
+    // bin/dispatch's MODELS), H. the `gflash` short name is an alias
+    // ONLY (no source / doc / binary stores it outside the ALIASES +
+    // short-names tables), I. fleet_caps.py family map.  Scratch store +
+    // scratch repo only — never the live kanban.
+    const gemini_flash_wiring_regression = b.addSystemCommand(&.{ "sh", "tools/regression-gemini-flash-wiring.sh" });
+    gemini_flash_wiring_regression.cwd = b.path(".");
+    test_step.dependOn(&gemini_flash_wiring_regression.step);
+
     // ── T890: one serving-tag path (bin/subagent) ─────────────────────
     // The 2026-08-24 defect: `bin/subagent --provider ollama --model
     // kimi-k2.7:cloud` was accepted (both kimi tags canonicalize to
