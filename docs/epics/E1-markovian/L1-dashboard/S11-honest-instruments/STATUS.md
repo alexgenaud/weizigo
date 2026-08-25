@@ -36,7 +36,7 @@ Anything short of ACCEPTED is incomplete.
 | classification (delete / fix-test / fix-code) | T870 | claude-opus-5 | **ACCEPTED** — committed at `stream2b-green/classification.md`; DELETE 11 / FIX-TEST 21 / FIX-CODE 10 over 88 scripts (denominator corrected from 86); three DELETE verdicts re-verified at source by the seat 2026-08-24 |
 | delete wave | T872 | deepseek-v4-pro | **ACCEPTED** — 2026-08-24, all 11 DELETE verdicts executed in 5 commits, **net −488 lines**; superset rule held with one ambient exclusion named; **four evidence-backed corrections to the classification** (below). Was **ACTIVE** — re-dispatched 2026-08-24 evening after the first wall was found too short (one full sweep costs ~20 min; the brief demanded two plus 11 gated commits inside 45 min). Five commits landed. Baseline sweep preserved and reused; see the green-up sweep contract |
 | fix-test wave | T873 | — | **QUEUED** — the delete wave has closed; this is next out |
-| fix-code wave | T874 | — | **QUEUED** — gated on the fix-test wave; ends with the ratchet deletion if zero red is reached |
+| fix-code wave | T874 | deepseek-v4-flash | **QUEUED** — R5 (cmdAgent use-after-free) landed; R4/R7/V3/V4/V10 queued. Its minimax lane was killed mid-flight 2026-08-25 when Ollama's weekly limit ran out; the row was reopened and unpinned, and re-drew to dsflash. |
 
 ## stream3-compare — converges 1 and 2
 

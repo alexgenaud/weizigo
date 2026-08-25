@@ -6,6 +6,7 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T1003	1	5400	AUTO	a killed row is re-dispatched to the model that just failed — pin vs residue
 T1002	0	5400	AUTO	two live rows hold src/managent/main.zig — the one-writer rule leaked on the claim path
 T969	4	2700	AUTO	Race A sealed arm (dspro) — PINNED deepseek-v4-pro
 T970	4	2700	AUTO	Race A sealed arm (dsflash) — PINNED deepseek-v4-flash
