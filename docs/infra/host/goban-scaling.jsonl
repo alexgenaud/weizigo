@@ -1,0 +1,9 @@
+
+{"artifact_bytes": 4406, "cols": 2, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 37568, "peak_rss_mb": 0, "points": 6, "regime": "writes-off", "rows": 3, "task": "T924", "wall_s": 1}
+{"artifact_bytes": 518, "cols": 2, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 3794, "peak_rss_mb": 45, "points": 4, "regime": "writes-off", "rows": 2, "task": "T924", "wall_s": 2}
+{"artifact_bytes": 518, "cols": 2, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 3794, "peak_rss_mb": 48, "points": 4, "regime": "writes-off", "rows": 2, "task": "T924", "wall_s": 4}
+{"artifact_bytes": 4406, "cols": 2, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 30042, "peak_rss_mb": 46, "points": 6, "regime": "writes-off", "rows": 3, "task": "T924", "wall_s": 2}
+{"artifact_bytes": 118130, "cols": 3, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 77935, "peak_rss_mb": 28, "points": 9, "regime": "writes-off", "rows": 3, "task": "T924", "wall_s": 2}
+{"artifact_bytes": 3188678, "cols": 3, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 183442515, "peak_rss_mb": 52, "points": 12, "regime": "writes-off", "rows": 4, "task": "T924", "wall_s": 43}
+{"artifact_bytes": null, "cols": 4, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 18240863, "peak_rss_mb": 48, "points": 16, "regime": "writes-off", "rows": 4, "task": "T924", "wall_s": 1231}
+{"artifact_bytes": null, "cols": 4, "exit": 0, "head": "7026044", "host": {"cores": 18, "ram_gb": 48}, "measured": true, "nodes": 234935, "peak_rss_mb": 48, "points": 16, "regime": "writes-off", "rows": 4, "task": "T924", "wall_s": 1971}
