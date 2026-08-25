@@ -1,0 +1,8 @@
+{
+  "task_id": "T973",
+  "date": "2026-08-26",
+  "model": "claude-haiku-4-5-20251001",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Spec for T936 committed: untracked/races/A-spec/haiku/spec.md. Decisions: (1) per-root node cap at 1B with censored reporting; (2) null control via 4×3 reproduction (11.6× ±10%); (3) seeded-defect control distinguishing contiguous vs round-robin partition; (4) kill-run control proving interruption safety; (5) recording per-root/per-run data (colex, nodes, wall, imbalance, RSS, host state); (6) detached job per T928. All six decisions backed by red-then-green acceptance arms. Verified all numbers against T924/T929/T930/T932 evidence."
+}
