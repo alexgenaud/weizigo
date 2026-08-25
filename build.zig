@@ -559,6 +559,28 @@ pub fn build(b: *std.Build) void {
     watch_fleet_regression.cwd = b.path(".");
     test_step.dependOn(&watch_fleet_regression.step);
 
+    // ── T908: live-rate controls (closed-but-alive + per-provider rate) ──
+    // Pins the LIVE untracked/watch-fleet.sh against the T786 incident: a
+    // lane whose store status is `done` while its worker is still alive
+    // used to render UNKNOWN in the rate column (the reading set was
+    // store-in_progress only, so a closed-but-alive row was listed by the
+    // process scan but never read — 170k readable tokens, the most of any
+    // lane). The fix unifies the row list and the reading set (in_progress
+    // UNION live) and renders the state as the stated reason `closed` + a
+    // fresh transcript age (the worker IS still writing — the incident
+    // signal), never a bare UNKNOWN and never a fabricated number. Arms:
+    // A per-provider rate against captured real session fixtures
+    // (deepseek-real from T786, ollama-real from T764), asserting the rate
+    // equals rate_of(true_total, elapsed); B null control (no usage ->
+    // UNKNOWN, never 0); C over-count control (real fixtures are per-turn so
+    // the sum is correct; the cumulative fixture documents the boundary no
+    // real provider reaches); D closed-but-alive renders `closed`; E a lane
+    // appears on refresh (no stale row-set caching). Red-first: arm D fails
+    // UNKNOWN on the pre-fix file, passes `closed` on the fix.
+    const live_rate_regression = b.addSystemCommand(&.{ "sh", "tools/regression-live-rate.sh" });
+    live_rate_regression.cwd = b.path(".");
+    test_step.dependOn(&live_rate_regression.step);
+
     // ── T337 S1: ollama-dispatcher regression controls ───────────────
     // T317 item 2 passed the canonical label to ollama launch instead
     // of the Ollama tag — every ollama dispatch would have failed, and

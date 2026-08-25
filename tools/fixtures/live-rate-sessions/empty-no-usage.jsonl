@@ -1,0 +1,2 @@
+{"type":"session","version":3,"id":"empty","timestamp":"2026-08-23T10:00:00.000Z","cwd":"/Users/alex/Project/Zig/weizigo"}
+{"type":"message","id":"m1","parentId":"empty","timestamp":"2026-08-23T10:00:01.000Z","message":{"role":"user","content":[{"type":"text","text":"hello"}]}}

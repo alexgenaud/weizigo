@@ -174,6 +174,29 @@ for k,r in auth.items():
 json.dump(auth,open(1,'w'))
 PYX
     bin/managent liveness 2>/dev/null > "$T.liveness" || : > "$T.liveness"
+    # T908: live worker task ids, collected ONCE per frame before the meter
+    # join so the reading set (want below) covers every PROGRESS row. The row
+    # list (live processes) and the reading set must share one source of
+    # truth: a row shown in PROGRESS must always have its transcript read, or
+    # be shown with a stated reason — never a bare UNKNOWN that means “I was
+    # not asked”. The T786 incident: store status `done` while the worker was
+    # still alive and writing 170k readable tokens; the reading set was
+    # store-in_progress only, so the closed-but-alive row was listed by the
+    # process scan but never read, and the rate column said UNKNOWN about a
+    # lane that had the most readable data of any in the fleet. The per-row
+    # PROGRESS loop below re-runs the same scan for the per-process fields;
+    # the duplication is deliberate (collecting ids early for the meter join
+    # without disturbing the per-row loop the existing arms pin).
+    : > "$T.live"
+    for p in $(pgrep -f "Follow untracked/T[0-9]+" 2>/dev/null); do
+        cmd=$(ps -o command= -p "$p" 2>/dev/null)
+        case "$cmd" in
+            sh*"$0"|bash*"$0"|*" /bin/sh "*"$0"*) continue ;;
+        esac
+        t=$(echo "$cmd" | sed -n 's/.*Follow untracked\/\(T[0-9]*\).*/\1/p' | head -1)
+        [ -z "$t" ] && continue
+        printf '%s\n' "$t" >> "$T.live"
+    done
     # Meter join (T823 + T839): task -> its latest output-token reading, and
     # task -> its holder. A reading written BEFORE the task's current claim
     # belongs to a previous run of the same id, so it is dropped rather than
@@ -197,7 +220,7 @@ PYX
     # now-esec) and drops a file that began more than 2 min before the
     # process — that shape only exists for a previous run's leftover.
     # Output shape: <task> \t <tokens|''> \t <mtime|''> \t <session-start|''>.
-    python3 - "$T.json" untracked/tokens/tokens.jsonl untracked/tokens/sessions "${WEIZIGO_CLAUDE_TRANSCRIPT_DIR:-}" "$T.agent" > "$T.tok" <<'PYT'
+    python3 - "$T.json" untracked/tokens/tokens.jsonl untracked/tokens/sessions "${WEIZIGO_CLAUDE_TRANSCRIPT_DIR:-}" "$T.live" "$T.agent" "$T.status" > "$T.tok" <<'PYT'
 import json,sys,os,re,time,calendar
 try: store=json.load(open(sys.argv[1]))
 except Exception: store={}
@@ -248,7 +271,22 @@ def read_tx(path):
                 toks += int(d['output_tokens'])
     return toks,start
 fresh={}; tx={}; ss={}
-want={t for t,v in store.items() if (v or {}).get('status')=='in_progress'}
+# T908: the reading set is store-in_progress UNION the live process set, so
+# every PROGRESS row (a live process) has its transcript read — the row list
+# and the reading set share one source. A closed-but-alive row (store `done`,
+# process alive — the T786 incident) is therefore read for freshness (the
+# worker IS still writing, which is the incident signal); the PROGRESS loop
+# renders its rate as the stated reason `closed` rather than a number, so the
+# rate column never fabricates a live-progress figure for a run the store has
+# closed. The store status drives rate-vs-reason; the process scan drives
+# listed-vs-hidden.
+live=set()
+try:
+    for line in open(sys.argv[5]):
+        line=line.strip()
+        if line: live.add(line)
+except Exception: pass
+want={t for t,v in store.items() if (v or {}).get('status')=='in_progress'} | live
 for base in (sys.argv[3],sys.argv[4] or ''):
     if not base or not os.path.isdir(base): continue
     try: names=os.listdir(base)
@@ -270,10 +308,14 @@ for base in (sys.argv[3],sys.argv[4] or ''):
         fresh[t]=nmt
         if start>0: ss[t]=start
         if toks>0: tx[t]=toks
-with open(sys.argv[5],'w') as f:
+with open(sys.argv[6],'w') as f:
     for t,v in store.items():
         a=(v or {}).get('agent') or ''
         if a: f.write('%s\t%s\n' % (t,a))
+with open(sys.argv[7],'w') as f:   # T908: task -> store status, for rate-vs-reason
+    for t,v in store.items():
+        st=(v or {}).get('status') or ''
+        if st: f.write('%s\t%s\n' % (t,st))
 for t in sorted(set(led) | set(fresh)):
     n=led[t][1] if t in led else (tx.get(t,'') if t in tx else '')
     print('%s\t%s\t%s\t%s' % (t,n,fresh.get(t,''),ss.get(t,'')))
@@ -326,10 +368,27 @@ PYT
            [ $(( ss + 120 )) -lt "$pstart" ] 2>/dev/null; then
             tok=""; mt=""                  # a previous run's transcript: not this run's rate OR liveness
         fi
+        # T908: a live process whose store row is NOT in_progress is the
+        # closed-but-alive state (the T786 incident: worker closed its own
+        # row and kept working). The reading set already opened its
+        # transcript (want = in_progress ∪ live), so freshness shows the
+        # worker is still writing — the incident signal. The rate column
+        # renders the stated reason `closed` instead of a number, because the
+        # store says this run is over and quoting its tokens/s as live
+        # progress would be the fabricated figure the S11 contract forbids.
+        # `closed` is neither a bare blank nor a number; it surfaces the
+        # disagreement between the two sources instead of hiding it as
+        # UNKNOWN. rate_of's “never 0” still holds for in_progress rows.
+        st=$(awk -F'\t' -v k="$t" '$1==k{print $2; exit}' "$T.status" 2>/dev/null)
+        if [ -n "$st" ] && [ "$st" != "in_progress" ]; then
+            rate_disp="closed"
+        else
+            rate_disp=$(rate_of "$tok" "$esec")
+        fi
         printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %5s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
-            "$(rate_of "$tok" "$esec")" \
+            "$rate_disp" \
             "$(freshness_of "$mt")" \
             "$(desc "$t")" >> "$T.prog.raw"
     done
