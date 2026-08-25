@@ -9,7 +9,7 @@
     {
       "task_id": "T916",
       "model": "oxalpha",
-      "script": "untracked/race-j/ox-alpha/regression-runner-guard.sh",
+      "script": "untracked/race-j/oxalpha/regression-runner-guard.sh",
       "executed": true,
       "exit_code": 0,
       "wall_s": 767.7,
