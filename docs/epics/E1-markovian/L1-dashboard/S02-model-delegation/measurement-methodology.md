@@ -165,6 +165,22 @@ it safe.)
   **Until (b) lands, the goldilocks cost ladder is not computable across families.** Highest-leverage
   item on this page.
 
+  > **2026-08-25 (T751).** Both halves of the token instrumentation have now landed. The
+  > fresh/cache_read split was split at T558 (the runner stamps `tokens_fresh` and
+  > `tokens_cache_read` separately today, and `tokens_in` keeps its meaning as the sum). The
+  > retroactive pi-session-JSONL meter was wired at T662 (per-lane `--session` readings).
+  > What remained was two gaps: **(c)** the meter had to fall back to the cwd-slug scan when a
+  > lane was dispatched without `--session` — that landed at T751 in the runner
+  > (`_pi_session_fallback_scan`, source `pi-session-jsonl-fallback`) and in
+  > `tools/token-backfill.py` (recovered 448 lanes retroactively); **(d)** the metrics record and
+  > the ledger were never joined — 24 of 24 metric rows held `cost: null` while the readings sat
+  > on disk. The T751 join (`tools/token-join.py`) writes six fields per metric row
+  > (`tokens_fresh`, `tokens_cache_read`, `tokens_out`, `tokens_source`, `trusted`, `corroborated`)
+  > and refuses to invent a price (the tokens-now-prices-later doctrine). §6's "highest-leverage
+  > unbuilt item" framing was stale by two days; the live gap is the **trust-grade gate on the
+  > cost ladder** (operator ruling 2026-08-23: a `trusted: false` reading must not reach a pick
+  > without saying so — T772).
+
 ## 7. Race queue, ordered by appetite rather than eagerness
 
 | # | race | fills | blocker | when |

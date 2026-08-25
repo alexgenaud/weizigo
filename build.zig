@@ -531,6 +531,21 @@ pub fn build(b: *std.Build) void {
     subagent_prompt_regression.cwd = b.path(".");
     test_step.dependOn(&subagent_prompt_regression.step);
 
+    // ── T913: RAM declared by wall, not provider ────────────────────
+    // ram-policy.md §3.1 (T806) measured that PROVIDER does not predict a
+    // lane's peak RSS — all providers converge (p95 ≈ 3.2 GB); §3.2:
+    // expected wall does (monotone in every quantile).  bin/subagent still
+    // keyed on provider (PROVIDER_RAM_MB_DEFAULT {claude: 1024, deepseek:
+    // 2816, pi: 1024}) and it killed T912 twice in ten minutes: a claude
+    // lane at --wall=10800 declared 1024 MB, capped at 1280, died exit 124
+    // at 242.8 s and again at 279.9 s.  This regression pins the wall-band
+    // declaration (768/1792/3072/4608), provider neutrality at equal wall,
+    // the 60/600/1800 boundary convention, and the two nulls (explicit
+    // --ram-mb=N wins; a resident local model keeps its registry figure).
+    const ram_declaration_regression = b.addSystemCommand(&.{ "sh", "tools/regression-ram-declaration.sh" });
+    ram_declaration_regression.cwd = b.path(".");
+    test_step.dependOn(&ram_declaration_regression.step);
+
     // ── T466: fleet-surface controls (time notation + self-heal) ────
     // Pins the COMMITTED untracked/watch-fleet.sh contract (git show HEAD),
     // never the live working-tree file (co-owned; T469 landed the four-
@@ -1251,6 +1266,22 @@ pub fn build(b: *std.Build) void {
     const token_capture_regression = b.addSystemCommand(&.{ "sh", "tools/regression-token-capture.sh" });
     token_capture_regression.cwd = b.path(".");
     test_step.dependOn(&token_capture_regression.step);
+
+    // ── T751: token-to-metrics join controls ────────────────────────
+    // The join is the durable code change T751 owes: the run record and
+    // the ledger carry the readings (trusted-grade); the metrics record
+    // carries the quality scores; the two were never joined, so 24 of 24
+    // metric rows held `cost: null` while the readings sat on disk.  The
+    // join writes the six named fields onto each metric row — tokens_fresh,
+    // tokens_cache_read, tokens_out, tokens_source, trusted, corroborated
+    // — and refuses to invent a price (tokens-now-prices-later).  Arms:
+    // A. schema (six fields, no price), B. dispatch-time wins over retro,
+    // C. trust-grade legacy inference, D. atomicity (tmp + rename), E.
+    // unjoined row stays untouched.  Fixture-driven; never touches the
+    // live JSONL or ledger.
+    const token_join_regression = b.addSystemCommand(&.{ "sh", "tools/regression-token-join.sh" });
+    token_join_regression.cwd = b.path(".");
+    test_step.dependOn(&token_join_regression.step);
 
     // ── T552: session-handle capture controls ────────────────────────
     // Every dispatch discards the resumable session id, so a follow-up

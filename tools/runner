@@ -794,6 +794,11 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         run_record["tokens_cache_read"] = tokens.get("tokens_cache_read")
         run_record["tokens_source"] = tokens.get("source")
         run_record["tokens_missing_reason"] = tokens.get("missing_reason")
+        # T751: trust grades on the run record too, so a reader of
+        # untracked/runs/*.json sees the grade without joining the ledger.
+        run_record["tokens_trusted"] = tokens.get("trusted")
+        run_record["tokens_corroborated"] = tokens.get("corroborated")
+        run_record["tokens_trusted_reason"] = tokens.get("trusted_reason")
         # T552: the resumable session handle, stamped ALWAYS (nulls
         # included) so the record is self-describing about the handle too.
         run_record["session_id"] = tokens.get("session_id")
@@ -2098,6 +2103,116 @@ def _pi_session_scan_target(argv):
                                  "sessions", slug))
 
 
+# T751: the cwd-slug fallback for the token meter.  When a pi/ollama lane
+# was dispatched with no `--session <path>`, pi wrote its session JSONL to
+# the shared cwd-slug dir (~/.pi/agent/sessions/<cwd-slug>/).  The runner's
+# meter used to declare UNKNOWN with the assertion that the file "cannot be
+# attributed to this lane" — that was false: token-capture.py already
+# attributes those sessions to tasks (extract_task reads the first user
+# message's `Follow untracked/T<id>` line), and token-backfill.py recovered
+# 448 such lanes retroactively.  The durable fix is the runner doing the
+# same join at dispatch time, before it declares UNKNOWN.  Honest-UNKNOWN is
+# kept for the residue: after the backfill, 85 task ids still have no
+# reading anywhere (synthetic bakeoff lanes and fixtures).
+PI_SESSION_FALLBACK_TOLERANCE_S = 5.0  # matches token-backfill.py default
+
+
+def _pi_session_fallback_scan(tc, sessions_dir, task_identity, start_ts,
+                              dispatch_model):
+    """Scan the cwd-slug session dir for THIS lane's session (T751).
+
+    Joins on task + start within PI_SESSION_FALLBACK_TOLERANCE_S seconds
+    (pi writes its session header ~1-1.3 s after the runner stamps `start`,
+    measured on the ox-alpha lanes).  Returns a (status, reading) pair:
+      ('match',    {tokens_in, tokens_out, tokens_fresh, tokens_cache_read,
+                    source, session_id, session_path, corroborated, gap_s})
+      ('conflict', None) — a session matched on task+start but its dominant
+                    model DISAGREES with the dispatch's --model: this is
+                    almost certainly a CONCURRENT lane for the same task, not
+                    this one.  The caller reports model-conflict UNKNOWN,
+                    never a mis-attributed reading.
+      ('none',     None) — no session matched task + start within tolerance.
+
+    Honesty (operator ruling 2026-08-23): this is a retroactive-style
+    session-scan reading, so the caller stamps `trusted: false`.  The
+    `corroborated` grade is how well an INDEPENDENT surface backs the
+    attribution: the session's dominant model (extracted by pi from its own
+    records) vs the dispatch's `--model` (from the command line) are two
+    independent derivations of which model ran.
+      'run-record' — a session matched on task+start AND its dominant model
+                     agrees with the dispatch's --model (both canonicalized).
+      'task-only'   — a session matched on task+start but carries no model
+                     to corroborate (a session with no assistant turns is
+                     not returned by scan_sessions, so this is the
+                     noncanonical-turns-only case).
+    """
+    if not task_identity or not sessions_dir or tc is None:
+        return ("none", None)
+    scan = getattr(tc, "scan_sessions", None)
+    if scan is None:
+        return ("none", None)
+    try:
+        sessions, _t, _m, _u, _n = scan(sessions_dir, task=task_identity)
+    except Exception:
+        return ("none", None)
+    if not sessions:
+        return ("none", None)
+    start_dt = _iso_to_dt_local(start_ts)
+    best, best_gap = None, None
+    if start_dt:
+        for s in sessions:
+            s_dt = _iso_to_dt_local(s.get("start"))
+            if not s_dt:
+                continue
+            gap = abs((s_dt - start_dt).total_seconds())
+            if gap <= PI_SESSION_FALLBACK_TOLERANCE_S and (best_gap is None or gap < best_gap):
+                best, best_gap = s, gap
+    # If no start-anchored match, the lane is genuinely unattributable from
+    # the cwd-slug dir (a pre-launch file, or a task whose prompt did not
+    # name this task) -- honest UNKNOWN, not a guess.
+    if best is None:
+        return ("none", None)
+    # Corroboration: the session's dominant model vs the dispatch's --model.
+    sess_model = best.get("model")
+    disp_model = None
+    if dispatch_model:
+        try:
+            disp_model = tc.canon_tag(dispatch_model)
+        except Exception:
+            disp_model = None
+    if sess_model and disp_model and sess_model != disp_model:
+        return ("conflict", None)  # a concurrent lane — do not mis-attribute
+    tk = best.get("tokens", {})
+    corroborated = "run-record" if (sess_model and disp_model) else "task-only"
+    reading = {
+        "tokens_in": best.get("tokens_in"),
+        "tokens_out": best.get("tokens_out"),
+        "tokens_fresh": tk.get("input"),
+        "tokens_cache_read": tk.get("cache_read"),
+        "source": "pi-session-jsonl-fallback",
+        "session_id": best.get("session_id"),
+        "session_path": os.path.join(sessions_dir, best.get("file", "")),
+        "corroborated": corroborated,
+        "gap_s": round(best_gap, 1) if best_gap is not None else None,
+    }
+    return ("match", reading)
+
+
+def _iso_to_dt_local(s):
+    """Parse an ISO-8601 timestamp (trailing Z or +00:00) to an aware
+    datetime, or None.  A small local helper so the fallback scan does not
+    import datetime at module top (the runner is stdlib-only and keeps its
+    imports where they are used)."""
+    if not s:
+        return None
+    import datetime
+    t = s.strip().replace("Z", "+00:00")
+    try:
+        return datetime.datetime.fromisoformat(t)
+    except ValueError:
+        return None
+
+
 def _pi_session_max_mtime(target, spawn_epoch):
     """Max wall-clock mtime across the pi session liveness target.
 
@@ -2823,7 +2938,16 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
            "missing_reason": None, "text": None,
            "session_id": None, "session_reason": None,
            "session_path": None, "session_path_reason": None,
-           "rate_band": None, "rate_band_reason": None}
+           "rate_band": None, "rate_band_reason": None,
+           # T751: every reading carries a trust grade (operator ruling
+           # 2026-08-23 -- token/cpu/rss figures are collected, not trusted as
+           # repeatable).  trusted=true is a dispatch-time reading from the
+           # harness's own usage envelope (claude) or the per-lane session
+           # file the dispatcher named (pi --session); trusted=false is a
+           # retroactive-style session-scan (the cwd-slug fallback).  A
+           # MISSING record carries None for both -- no reading to grade.
+           "trusted": None, "corroborated": None,
+           "trusted_reason": None}
     usage = None
     is_api_error = False
     if tc is not None:
@@ -2861,6 +2985,15 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     out["tokens_cache_read"] = usage["cache_read"]
                     out["tokens_out"] = usage["output"]
                     out["source"] = "claude-json-envelope"
+                    # T751: a dispatch-time reading from the harness's own
+                    # usage envelope is trusted=true.  No independent
+                    # surface corroborates (the envelope IS the reading),
+                    # so corroborated='none' -- the grade is not flattened.
+                    out["trusted"] = True
+                    out["corroborated"] = "none"
+                    out["trusted_reason"] = (
+                        "dispatch-time reading from the harness's own "
+                        "usage envelope (operator ruling 2026-08-23)")
                 elif meta.get("is_error"):
                     is_api_error = True
                     out["missing_reason"] = (
@@ -2908,6 +3041,18 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                             out["tokens_out"] = parsed["output"]
                             out["source"] = "pi-session-jsonl"
                             out["session_id"] = parsed["session_id"]
+                            # T751: the per-lane session file was NAMED by
+                            # the dispatcher (--session <path>), so
+                            # attribution is deterministic, not a scan --
+                            # trusted=true.  No independent surface
+                            # corroborates (the file IS the reading), so
+                            # corroborated='none'.
+                            out["trusted"] = True
+                            out["corroborated"] = "none"
+                            out["trusted_reason"] = (
+                                "dispatch-time reading from the per-lane "
+                                "session file the dispatcher named "
+                                "(operator ruling 2026-08-23)")
                         else:
                             reason = ("pi session JSONL unreadable: %s"
                                       % parsed.get("reason"))
@@ -2918,19 +3063,65 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                     out["missing_reason"] = reason
                     out["session_reason"] = reason
             else:
-                out["missing_reason"] = (
-                    "no structured usage in process output (pi/ollama lane) "
-                    "and no --session path at dispatch; pi wrote to "
-                    "~/.pi/agent/sessions/<cwd-slug>/ — the file cannot be "
-                    "attributed to this lane (UNKNOWN, never 0, never the "
-                    "total)")
-                out["session_reason"] = (
-                    "pi/ollama lane without --session: the session id is not "
-                    "emitted at dispatch; pi saves sessions to "
-                    "~/.pi/agent/sessions/<cwd-slug>/<uuid>.jsonl and "
-                    "resumes via `pi --session <uuid>`, but the per-lane "
-                    "file is unattributable (UNKNOWN, never 0, never the "
-                    "total)")
+                # T751: no --session path at dispatch.  The old code
+                # declared UNKNOWN with the assertion that the pi session
+                # file "cannot be attributed to this lane" — that was
+                # false: token-capture.py attributes those sessions to
+                # tasks (extract_task reads the first user message's
+                # `Follow untracked/T<id>` line), and token-backfill.py
+                # recovered 448 such lanes retroactively.  Fall back to
+                # the cwd-slug scan BEFORE declaring UNKNOWN, joining on
+                # task + start within a few seconds.  Honest-UNKNOWN is
+                # kept for the residue (no session matched, or a model
+                # conflict with a concurrent lane).
+                target = _pi_session_scan_target(argv)
+                sessions_dir = (target[1] if target and target[0] == "dir"
+                                else None)
+                status, fb = ("none", None)
+                if sessions_dir and task_identity and tc is not None:
+                    status, fb = _pi_session_fallback_scan(
+                        tc, sessions_dir, task_identity, start_ts,
+                        _argv_model(argv))
+                if status == "match" and fb is not None:
+                    out["tokens_in"] = fb["tokens_in"]
+                    out["tokens_fresh"] = fb["tokens_fresh"]
+                    out["tokens_cache_read"] = fb["tokens_cache_read"]
+                    out["tokens_out"] = fb["tokens_out"]
+                    out["source"] = fb["source"]
+                    out["session_id"] = fb["session_id"]
+                    out["session_path"] = fb["session_path"]
+                    # T751: a retroactive-style session-scan reading is
+                    # trusted=false (operator ruling 2026-08-23).  The
+                    # corroboration grade names how well an independent
+                    # surface backs the attribution.
+                    out["trusted"] = False
+                    out["corroborated"] = fb["corroborated"]
+                    out["trusted_reason"] = (
+                        "retroactive-style cwd-slug session-scan reading "
+                        "(source pi-session-jsonl-fallback); operator "
+                        "ruling 2026-08-23 -- token/cpu/rss figures are "
+                        "collected, not trusted as repeatable, and gate "
+                        "no decision until a repeatability control exists")
+                elif status == "conflict":
+                    out["missing_reason"] = (
+                        "no --session path at dispatch; the cwd-slug scan "
+                        "found a session for this task + start window but "
+                        "its model conflicts with the dispatch's --model "
+                        "(a concurrent lane, not this one) — model conflict; "
+                        "UNKNOWN, never 0, never the total")
+                    out["session_reason"] = (
+                        "pi/ollama lane without --session: the cwd-slug "
+                        "session matched on task+start but the model "
+                        "disagrees — not attributed (UNKNOWN)")
+                else:
+                    out["missing_reason"] = (
+                        "no --session path at dispatch; the cwd-slug session "
+                        "scan found no session matching task + start within "
+                        "%.0fs — no session matched; UNKNOWN, never 0, never "
+                        "the total" % PI_SESSION_FALLBACK_TOLERANCE_S)
+                    out["session_reason"] = (
+                        "pi/ollama lane without --session: the cwd-slug "
+                        "session scan found no matching session (UNKNOWN)")
     else:
         if claude_json_lane:
             out["missing_reason"] = (
@@ -2983,6 +3174,12 @@ def _capture_tokens(argv, claude_json_lane, stdout_text, stderr_text,
                 "tokens_cache_read": out["tokens_cache_read"],
                 "source": out["source"],
                 "missing_reason": out["missing_reason"],
+                # T751: trust grades propagate into the ledger so no
+                # consumer (the metrics join, the cost ladder) may silently
+                # average across grades (operator ruling 2026-08-23).
+                "trusted": out["trusted"],
+                "corroborated": out["corroborated"],
+                "trusted_reason": out["trusted_reason"],
                 "session_id": out["session_id"],
                 "session_reason": out["session_reason"],
                 "session_path": out["session_path"],
