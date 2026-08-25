@@ -61,6 +61,16 @@ rate_of() {  # $1 = tokens_out ('' = no reading)  $2 = elapsed wall seconds -> "
     case "${2:-x}" in ''|*[!0-9]*) echo UNKNOWN; return ;; esac
     [ "$2" -gt 0 ] || { echo UNKNOWN; return; }
     awk -v n="$1" -v s="$2" 'BEGIN{r=n/s; printf (r<1000 ? "%.1f/s" : "%.0f/s"), r}'; }
+# A Claude lane has no in-flight pi transcript.  Keep that UNKNOWN honest,
+# but name the attempted source and why it is unavailable; once finalized,
+# the DONE path above reads the trusted run record instead.
+progress_rate() {  # $1=tokens $2=elapsed $3=argv $4=transcript mtime
+    [ -n "${1:-}" ] && { rate_of "$1" "$2"; return; }
+    if [ -z "${4:-}" ] && printf '%s' "${3:-}" | grep -Eq '(^|[ /])claude([ /]|$)'; then
+        printf '%s' 'UNKNOWN(claude, no in-flight transcript)'; return
+    fi
+    rate_of "$1" "$2"
+}
 # Freshness of a live transcript (T839) — the SIXTH PROGRESS column, next to
 # the rate. Both harnesses append a transcript while the run is in flight (pi
 # at untracked/tokens/sessions/<task>.<ts>.<pid>.<n>.jsonl, claude under
@@ -438,7 +448,7 @@ PYT
         if [ -n "$st" ] && [ "$st" != "in_progress" ]; then
             rate_disp="closed"
         else
-            rate_disp=$(rate_of "$tok" "$esec")
+            rate_disp=$(progress_rate "$tok" "$esec" "$cmd" "$mt")
         fi
         printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %5s %7s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
@@ -541,38 +551,45 @@ def hm(ts):
         return time.strftime('%H:%M',time.localtime(calendar.timegm(utc)))
     except Exception: return '--:--'
 # DONE carries PROGRESS's columns (operator, 2026-08-25): model, total elapsed,
-# and the run's AVERAGE rate over its whole life.  Wall comes from the run
-# record (the measured figure the runner wrote); the store's claimed->done
-# delta is the fallback and is NOT the same thing -- it includes time the row
-# sat closed-but-unclaimed.  Tokens come from the token ledger, the same source
-# PROGRESS uses.  A reading we do not have prints '-', never 0 and never a
-# guess (the S11 contract: UNKNOWN is not zero).
-led={}
-try:
-    for line in open('untracked/tokens/tokens.jsonl'):
-        line=line.strip()
-        if not line: continue
-        try: r=json.loads(line)
+# and the run's AVERAGE rate over its whole life.  Tokens_out and wall MUST
+# come from the SAME served dispatch record.  The old code took wall from the
+# last T<id>.json (often a model:null smoke test) and tokens from a ledger or
+# transcript, producing T924's 14,476.5/s.  A model:null record is never a
+# lane, and a missing join is explicit UNKNOWN(joined), never '-' or a guess.
+runs_dir=os.path.join(os.getcwd(),'untracked','runs')
+def model_key(m):
+    # Store labels and runner labels differ only in punctuation for aliases
+    # such as oxalpha / ox-alpha.  This is comparison normalization, not a
+    # display mapping; the displayed model still comes from model_of()/mdl().
+    return ''.join(ch.lower() for ch in str(m or '') if ch.isalnum())
+def run_reading(k,v):
+    target=v.get('model') or v.get('agent') or ''
+    target_key=model_key(target)
+    matches=[]
+    try: paths=glob.glob(os.path.join(runs_dir,k+'*.json'))
+    except Exception: paths=[]
+    for path in paths:
+        try: rr=json.load(open(path))
         except Exception: continue
-        t=r.get('task'); n=r.get('tokens_out'); ts=r.get('ts') or ''
-        if not t or n is None: continue
-        cl=(d.get(t) or {}).get('claimed') or ''
-        if cl and ts and ts < cl: continue
-        pv=led.get(t)
-        if pv is None or ts>=pv[0]: led[t]=(ts,n)
-except Exception: pass
-def wall_of(k,v):
+        if rr.get('run_kind') != 'dispatch': continue
+        rm=rr.get('model') or ''
+        if not target_key or not model_key(rm) or model_key(rm) != target_key: continue
+        matches.append((rr.get('start') or '', int(rr.get('attempt') or 0), path, rr))
+    if not matches:
+        return None, None, 'UNKNOWN(joined: no matching dispatch record)'
+    # The closing model's latest matching dispatch attempt is the lane.  Do
+    # not mix an older attempt's tokens with this attempt's wall either.
+    matches.sort(key=lambda x:(x[0],x[1],x[2]))
+    rr=matches[-1][3]
+    tok=rr.get('tokens_out'); wall=rr.get('wall')
+    if tok is None or wall is None:
+        return None, None, 'UNKNOWN(joined: matching dispatch record incomplete)'
     try:
-        rr=json.load(open(os.path.join('untracked/runs',k+'.json')))
-        w=rr.get('wall')
-        if w: return float(w)
-    except Exception: pass
-    try:
-        a=calendar.timegm(time.strptime((v.get('claimed') or '')[:19],'%Y-%m-%dT%H:%M:%S'))
-        b=calendar.timegm(time.strptime((v.get('done') or '')[:19],'%Y-%m-%dT%H:%M:%S'))
-        if b>a: return float(b-a)
-    except Exception: pass
-    return None
+        wall=float(wall)
+        if wall <= 0: raise ValueError
+        return tok, wall, ''
+    except (TypeError,ValueError):
+        return None, None, 'UNKNOWN(joined: matching dispatch record has invalid wall)'
 def dshort(sec):
     if sec is None: return '-'
     s=int(sec)
@@ -616,12 +633,10 @@ for done,k in rows[:int(sys.argv[2])]:
     vd=v.get('verdict','') or '?'
     if vd=='pass-with-findings': vd='findings'
     elif vd=='fail-found': vd='fail'
-    w=wall_of(k,v)
-    tok=led.get(k,(None,None))[1]
-    if tok is None: tok=session_tokens(k)
-    if tok and w and w>0: rate="%.1f/s"%(tok/w)
-    elif tok: rate="%d"%tok
-    else: rate='-'
+    tok,w,join_reason=run_reading(k,v)
+    if join_reason: rate=join_reason
+    elif tok is not None and w is not None and w>0: rate="%.1f/s"%(tok/w)
+    else: rate='UNKNOWN(joined: no complete reading)'
     print('%s\t%s\t%s\t%s\t%s\t%s' % (k,vd,hm(done),model_of(k,v),dshort(w),rate))
 PY
     while IFS=$(printf '\t') read -r t v tm md du rt; do

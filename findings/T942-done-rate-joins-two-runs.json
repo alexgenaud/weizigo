@@ -1,0 +1,8 @@
+{
+  "task_id": "T942",
+  "date": "2026-08-25",
+  "model": "gpt-5.6-luna-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T942 (the DONE rate divides one run by another) — PASS for the scoped fix. Test-first: sh tools/regression-done-rate-join.sh was run before implementation and correctly failed on T924's 14476.5/s cross-run rate plus bare UNKNOWN for an in-flight Claude lane. The live dashboard now selects the latest run_kind=dispatch record whose model matches the closing store model (punctuation-normalized for oxalpha/ox-alpha), and takes tokens_out and wall only from that same record; model:null smoke records and pi session/ledger fallback cannot supply DONE values. Missing joins are rendered UNKNOWN(joined: ...) with a reason. Claude lanes without an in-flight transcript render UNKNOWN(claude, no in-flight transcript), while finalized Claude rows use their trusted run record. Green acceptance: sh tools/regression-done-rate-join.sh passed; its four rendered rates are T894 71.2/s, T916 26.5/s, T924 10.9/s, and T938 89.1/s, with no corpus rate above 1000/s. Existing sh tools/regression-watch-fleet.sh was also run: all relevant live-file arms passed, but its pre-existing T493 arm F/G process-collision control still fails to find T492; this task did not alter that process-filter code. Existing T466 arms Q/T confirmed fresh transcript liveness and non-STALE behavior. No inbox directives were received (D0NN none)."
+}
