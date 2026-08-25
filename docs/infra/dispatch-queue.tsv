@@ -1,0 +1,40 @@
+# task	rank	est_wall_s	note
+# Seat estimates (T914, 2026-08-25). Accuracy is not the point; the ordering and the
+# habit of estimating are. A wrong estimate that gets corrected beats no estimate.
+# T894 makes this mechanism durable; this file is the interim carrier.
+T926	1	3600	capture tool RSS + killed-run rows
+T927	2	3600	sleep guard around runs
+T894	3	5400	queue head + dispatch estimates (this mechanism, durably)
+T928	4	5400	detached jobs: pid + log, no agent
+T923	5	3600	commit gate reads worktree not index
+T922	6	5400	build.zig undeclared shared writer
+T915	7	5400	tools/runner coverage, red-first
+T873	8	14400	green-up fix-test wave, 21 entries
+T874	9	10800	green-up fix-code wave, 10 entries
+T892	10	5400	directives reach the worker
+T909	11	5400	close must stop the worker
+T768	12	2700	identifier defaults from model at claim
+T770	13	2700	task-ID mint consults archive
+T775	14	2700	refuse unknown flags loudly
+T772	15	5400	cost ladder quality gate
+T767	16	2700	findings schema queued_kanban_rows
+T833	17	3600	qwen appetite down to 1
+T925	18	5400	5xN frontier: WZO1 vs WZO2 ruling
+T916	19	1800	Race J arm ox-alpha
+T917	20	1800	Race J arm dsflash
+T918	21	1800	Race J arm dspro
+T919	22	1800	Race J arm kimi
+T920	23	1800	Race J arm sonnet
+T709	24	5400	reconcile rc=0 with deliverables
+T798	25	5400	harness kill visible in kanban
+T787	26	5400	one home for sprint documents
+T712	27	3600	one arbiter, no per-runner kills
+T713	28	2700	qwen-resident dispatch check
+T715	29	1800	record the incident in the guard doc
+T837	30	10800	C3 toward zero
+T830	31	5400	diff race: nonce vs no-work
+T753	32	5400	race oxalpha against the field
+T782	33	3600	race-w blind rejudge judge 3
+T535	34	10800	Stage-4 clean-story spec
+T529	35	7200	grand race P0
+T735	36	1800	BRIEF MISSING - write or retire

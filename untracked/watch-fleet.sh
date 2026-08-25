@@ -13,7 +13,12 @@
 # a truncated section simply shows fewer rows (its reserve is gone with its output).
 # Columns (T823): PROGRESS is task, landmark, model-from-argv, elapsed, RATE (output
 # tokens per wall second — not CPU), FRESH (age of the transcript's last write —
-# the liveness signal, T839); CONCERNS is task, landmark, label, first-seen,
+# the liveness signal, T839), PID, then the description of intent. PID (operator,
+# 2026-08-25) is the live process this row is reading — the handle to inspect it
+# (`ps -p`, `lsof -p`) or stop it, and the one column that survives when a lane's
+# transcript and store row disagree. It sits AFTER Fresh so the elapsed column
+# stays where the Times convention pins the other sections; CONCERNS is task,
+# landmark, label, first-seen,
 # HOLDER (the store's `agent`, never the brief's text), description.
 # MAX_ROWS raised 20 -> 200 (T804): with exact fill the 50/50 split already bounds
 # each flexible section at ~ROWS/2, so the cap only guards a pathological store
@@ -435,11 +440,12 @@ PYT
         else
             rate_disp=$(rate_of "$tok" "$esec")
         fi
-        printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %5s %s\n' "$esec" "$t" "$(lm "$t")" \
+        printf '%010d\t  %-5s %-3s %-8s  %-6s %-8s %5s %7s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
             "$rate_disp" \
             "$(freshness_of "$mt")" \
+            "$p" \
             "$(desc "$t")" >> "$T.prog.raw"
     done
     rm -f "$T.prog.ids"
@@ -564,22 +570,65 @@ for k,v in d.items():
     print(f'{k}\t{st}')
 PYS
 
-    for t in $(python3 -c "
-import json;d=json.load(open('$T.json'))
-import re,os
-disp=[k for k,v in d.items() if v.get('status')=='dispatchable' and k.startswith('T')]
-prio=[]
+    # T894/operator 2026-08-25: OPEN is a QUEUE, ordered by docs/infra/dispatch-queue.tsv
+    # (rank + estimated wall), not by id and not by a stale DO NOW list. ETA is the
+    # estimated time until the row is DISPATCHED, simulated forward from the rows already
+    # running: FLEET_CONC lanes, and `holds` serialising rows that want the same file.
+    # An unranked dispatchable row sorts last and shows ETA "?" — an honest blank, not a
+    # guessed number. Estimates are the seat's and often wrong; a wrong one that gets
+    # corrected is worth more than none (the operator's instruction when he asked for this).
+    python3 - "$T.json" "$MAX_ROWS" > "$T.openq" <<'PYQ'
+import json,sys,os
+store=json.load(open(sys.argv[1])); cap=int(sys.argv[2])
+CONC=int(os.environ.get('FLEET_CONC','5'))
+rank={}; est={}
 try:
-    b=open('docs/status/backlog-2026-08-19.md').read()
-    seg=b.split('## DO NOW')[1].split('##')[0]
-    prio=[m for m in re.findall(r'\bT\d+\b', seg)]
+    for ln in open('docs/infra/dispatch-queue.tsv'):
+        if ln.startswith('#') or not ln.strip(): continue
+        f=ln.rstrip('\n').split('\t')
+        if len(f)>=3: rank[f[0]]=int(f[1]); est[f[0]]=int(f[2])
 except Exception: pass
-head=[k for k in prio if k in disp]
-tail=sorted([k for k in disp if k not in head], key=lambda x:int(x[1:]))
-print(' '.join((head+tail)[:$MAX_ROWS]))" 2>/dev/null); do
+disp=[k for k,v in store.items() if v.get('status')=='dispatchable' and k.startswith('T')
+      and not v.get('duty')]
+disp.sort(key=lambda k:(rank.get(k, 10**6), int(k[1:])))
+# lanes busy now = in_progress rows, each finishing at its own estimate (or 1800 default)
+lanes=[]
+held=set()
+for k,v in store.items():
+    if v.get('status')=='in_progress':
+        lanes.append(est.get(k,1800))
+        for h in (v.get('holds') or []): held.add(h)
+lanes.sort()
+free_at={}   # file -> time it is released
+for k,v in store.items():
+    if v.get('status')=='in_progress':
+        for h in (v.get('holds') or []): free_at[h]=max(free_at.get(h,0), est.get(k,1800))
+out=[]
+for k in disp[:cap]:
+    if k not in rank:
+        out.append((k,None)); continue
+    holds=store[k].get('holds') or []
+    # at capacity: this row cannot start until the earliest lane frees, so ADVANCE to it
+    t_lane = lanes.pop(0) if len(lanes) >= CONC else 0
+    t_hold=max([free_at.get(h,0) for h in holds] or [0])
+    start=max(t_lane,t_hold)
+    out.append((k,start))
+    dur=est.get(k,1800)
+    lanes.append(start+dur); lanes.sort()
+    for h in holds: free_at[h]=start+dur
+def fmt(s):
+    if s is None: return '?'
+    if s<=0: return 'now'
+    if s<3600: return "%dm"%round(s/60)
+    if s<86400: return "%.1fh"%(s/3600)
+    return "%.1fd"%(s/86400)
+for k,s in out: print("%s\t%s"%(k,fmt(s)))
+PYQ
+    while IFS=$(printf '\t') read -r t eta; do
+        [ -z "$t" ] && continue
         st=$(awk -F'\t' -v t="$t" '$1==t{print $2}' "$T.openstat" 2>/dev/null)
-        printf '  %-5s %-3s %-8s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$(desc "$t")" | fit >> "$T.open"
-    done
+        printf '  %-5s %-3s %-8s %5s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$eta" "$(desc "$t")" | fit >> "$T.open"
+    done < "$T.openq"
 
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)
     nd=$(grep -c . "$T.done" 2>/dev/null); no=$(grep -c . "$T.open" 2>/dev/null)
