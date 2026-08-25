@@ -6,6 +6,7 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T967	3	5400	AUTO	draw least-data PER TASK TYPE so real work fills the model matrix; taxonomy extension proposal
 T965	1	5400	AUTO	the live store keeps every closed row — 584 rows, 1.6 MB, parsed on every refresh
 T963	0	5400	AUTO	SPEC: the close contract — consolidates T816+T909+S10 2.1/2.2; PINNED solarpro; audit loop follows
 T964	1	2700	AUTO	audit the close-contract spec round 1 — PINNED dspro, different model from the author
