@@ -1,0 +1,68 @@
+{
+  "task_id": "T920",
+  "date": "2026-08-25",
+  "model": "claude-sonnet-5",
+  "notes": "Race J, sonnet lane, sealed. Deliverable: untracked/race-j/sonnet/regression-runner-guard.sh, a candidate regression gate for tools/runner (which has carried zero declared test coverage since T914 removed the stale S09 declaration at b3a841c). This findings.json is NOT a CLAIMS.md register proposal (no claims[] entries apply — nothing here is a claim about docs/epistemic/CLAIMS.md); it records, per the brief's own required shape, each assertion's claim + control evidence (both the exit code observed when it should pass and the exit code observed when it should fail) plus what was left uncovered and why. All commands ran inside a disposable scratch git repo under /tmp/weizigo; the live repo, kanban, untracked/heartbeat.jsonl and untracked/arbiter-state.json were never read or written. No inbox directives were pending for T920 at claim time (bin/managent inbox T920 --ack, checked before this write).",
+  "claims": [],
+  "assertions": [
+    {
+      "id": "A1-admission-refusal",
+      "claim": "tools/runner refuses a lane whose declared RAM does not fit the host (avail - committed - ram_mb < RESERVE_MB, ram-policy.md §4.1) -- refused with exit 3, not killed, and nothing is ever spawned.",
+      "control_evidence": {
+        "pass_exit_observed": "0 -- --arbiter-admit --ram-mb 5392 against avail=10000/committed=0 (projected == RESERVE_MB == 4608 exactly): admitted",
+        "fail_exit_observed": "3 -- the identical arithmetic one MB over the boundary (--ram-mb 5393, projected == 4607): ARBITER REFUSED, message names 'row stays dispatchable'",
+        "third_arm": "full launch path (--ram-mb 5393 through the real spawn code path, not the --arbiter-admit probe): exit 3, and a marker file the child would have written never appeared -- confirms no process was spawned on refusal, not just that the standalone probe returns 3"
+      },
+      "could_not_verify": "Did not exercise the real (uninjected) host avail reading concurrently with a resident-model-shaped lane (tools/regression-arbiter.sh's control 1 already covers that exact live co-launch shape); this lane's arms all use WEIZIGO_HOST_MEM_AVAIL_MB injection for reproducibility, per the same reasoning tools/regression-arbiter.sh gives for its controls 4/5."
+    },
+    {
+      "id": "A2-wall-band-boundaries",
+      "claim": "The wall-band RAM declaration is correct at each band boundary (60s, 600s, 1800s) per ram-policy.md §3.2's table (<60s->768, 60-600s->1792, 600-1800s->3072, >=1800s->4608, each boundary landing in the band it STARTS).",
+      "control_evidence": {
+        "pass_exit_observed": "real bin/subagent._wall_band_ram_mb, imported read-only: wall=59->768, 60->1792, 599->1792, 600->3072, 1799->3072, 1800->4608 -- all 6 match, BAD=[] printed",
+        "fail_exit_observed": "seeded one-character mutant (`< 60` changed to `<= 60`) run against a full copy of bin/+tools/ (subagent's own sys.path trick needs its sibling tools/window_policy.py to resolve): wall=60 returns 768, not the correct 1792 -- the off-by-one is caught"
+      },
+      "scope_note": "This boundary arithmetic lives in bin/subagent, not tools/runner (tools/runner's --ram-mb has no default -- it enforces whatever value it is handed). tools/runner itself is read-only here, never touched. Flagged in the script header rather than silently testing the wrong file.",
+      "could_not_verify": "Did not test the resident-model override path (provider==ollama, no :cloud tag -> RESIDENT_MODEL_RAM_MB=18432) or the explicit --ram-mb override precedence -- both are in the same function but outside the brief's three named boundaries; left uncovered under the wall-budget triage below."
+    },
+    {
+      "id": "A3-max-wall-kill-attributable",
+      "claim": "A lane that exceeds --max-wall is terminated (SIGKILL, exit 124) and the termination is attributable (killed_by=\"wall\" in the run record).",
+      "control_evidence": {
+        "pass_exit_observed": "0 -- a lane finishing in <1s under --max-wall 10 exits 0, run record's killed_by is null/None",
+        "fail_exit_observed": "124 -- a lane sleeping 6s under --max-wall 1 is SIGKILLed at ~1.1s ('wall ceiling 1s ... reached'), run record's killed_by=\"wall\", wall field = 1.8"
+      },
+      "could_not_verify": "Did not separately test --max-cpu's CPU-ceiling twin (same code path shape, killed_by=\"cpu\") -- named by the runner's own header as a fallback for silent children alongside --max-wall, but not one of the brief's five named assertions; left uncovered, see wall-budget triage."
+    },
+    {
+      "id": "A4-memory-pressure-guard",
+      "claim_as_written_in_brief": "The memory-pressure host guard fires and kills the lane when the host crosses its pressure threshold.",
+      "finding": "This is FALSE against the current, ratified tools/runner and against docs/infra/host/ram-policy.md (INV-1, section 4.3-4.4): the L3 kernel-pressure backstop is alarm-only and NEVER kills. The killing host-floor mechanism the brief's wording describes was deleted (docs/infra/host/ram-policy.md §1/§6: 16 of 20 historical kills were futile, 0 of 20 were both necessary and effective; the `total // 8` floor and its largest-member kill are gone). tools/runner's own guard banner prints 'L3 alarm: kernel pressure (never kills)' on every launch.",
+      "claim_tested_instead": "The memory-pressure host guard fires an ALARM (naming the largest host-wide consumer, never the worker) when sustained kernel pressure (level>=2, dwell>=3 polls spanning >=2s) is observed, and never signals any process for it.",
+      "control_evidence": {
+        "pass_exit_observed": "0 -- no injected pressure (WEIZIGO_KERNEL_PRESSURE_LEVEL unset): no ALARM line, worker completes",
+        "fail_exit_observed_note": "there is no kill path left to force red for the brief's literal wording -- it was deleted by design (ORC-G1/INV-1). The seeded-positive arm below is the closest analogue: WEIZIGO_KERNEL_PRESSURE_LEVEL=4 sustained >=2s DOES change behaviour (an ALARM line appears, host_alarms is written to the run record) while the worker still exits 0 and is never killed -- both directions of the alarm/no-alarm boundary were observed, exit 0 in both cases by design",
+        "seeded_pressure_observed": "WEIZIGO_KERNEL_PRESSURE_LEVEL=4 for >=4s: '[runner] ALARM: host memory pressure level 4 sustained 2.2s (9 polls) -- largest host process: ... (never killed ...)' printed, host_alarms=[{level:4, dwell_s:2.2, consumer:..., consumer_rss_mb:...}] written, exit 0, no KILL line"
+      },
+      "could_not_verify": "Could not force a genuine host-level Jetsam pressure=4 condition (only the injection hook, by design -- ram-policy.md never wants this forced on a shared host); relied on the same WEIZIGO_KERNEL_PRESSURE_LEVEL injection point tools/runner's own header documents as the seeded-arm hook for this exact guard."
+    },
+    {
+      "id": "A5-run-record-kind",
+      "claim": "A run record is written with its kind declared (run_kind: \"dispatch\"|\"nested\"), so reap reads the dispatch record.",
+      "control_evidence": {
+        "pass_exit_observed": "a top-level launch (MANAGENT_TASK_ID=T920A5-DISPATCH, no enclosing MANAGENT_RUN_IDENTITY) writes untracked/runs/T920A5-DISPATCH.json with run_kind=\"dispatch\"; a launch whose MANAGENT_RUN_IDENTITY matches its own MANAGENT_TASK_ID writes untracked/runs/nested/T920A5-NESTED.<pid>-<epoch>.json with run_kind=\"nested\"",
+        "fail_exit_observed": "a copy of the real dispatch record with run_kind popped reads back as run_kind=None, not \"dispatch\" -- the checker's own pass/fail branch was exercised on both a genuine and a corrupted record"
+      },
+      "could_not_verify": "Tested only that tools/runner WRITES run_kind correctly, not that `managent reap` (a separate Zig binary, src/managent/main.zig) actually branches on it when deciding liveness -- that is a claim about the reader, not the writer, and this lane's wall did not extend to reading/testing the Zig reap implementation. This is the largest gap in assertion 5's coverage and should be closed by a future row reading src/managent/main.zig's reap path directly."
+    }
+  ],
+  "not_covered": [
+    "--max-cpu (the CPU-ceiling twin of --max-wall, killed_by=\"cpu\") -- same shape as A3, not one of the brief's five named assertions, cut for wall-budget.",
+    "The --rss-cap-mb overrun-stop path (INV-4, >125% of declared, killed_by=\"rss\") -- already covered by tools/regression-arbiter.sh control 3 (EFFECTIVE-KILL), which this lane read but did not duplicate to avoid spending the wall re-proving an already-instrumented control.",
+    "The resident-model RAM override (provider==ollama, no :cloud tag -> 18432 MB) and the explicit --ram-mb override's precedence over the wall-band default -- both live in bin/subagent._declared_ram_mb next to the tested _wall_band_ram_mb, but are not one of the brief's three named boundaries.",
+    "managent reap's actual behaviour when reading run_kind (see A5's could_not_verify) -- the writer side is proven, the reader side is not.",
+    "The progress-timeout / startup-liveness fuses for agent lanes (pi/claude/ollama) -- a materially different code path (agent_lane detection, session-file liveness) from the generic --max-wall fallback this script exercises; already the subject of several existing regression scripts (tools/regression-runner-startup-liveness.sh, tools/regression-runner-pi-session-liveness.sh, tools/regression-runner-claude-liveness.sh).",
+    "The RED/GREEN diff-against-HEAD style tools/regression-arbiter.sh uses to prove a REPAIR (extracting the pre-T821 committed runner as a baseline) -- not applicable here since there is no prior committed baseline missing this behaviour to diff against; this script instead uses boundary-flip and seeded-mutant reds throughout, per the house rule."
+  ],
+  "why_left_out": "The wall is 1799s and hard. Priority given to the five assertions the brief names explicitly, each with a real pass control AND a real, observed red control (a boundary flip or a seeded defect) -- the house rule ('never trust a green test') was treated as the actual spec for what counts as covered, not aspirational language. Breadth beyond the five (CPU ceiling, resident-model override, the reap reader side) was cut deliberately rather than left implicit; each cut is named above with what would close it."
+}
