@@ -72,6 +72,7 @@ COOLDOWN="$ROOT/tools/fleet-cooldown.sh"
 MG="$ROOT/bin/managent"
 DISPATCH="$ROOT/bin/dispatch"
 FAIL=0
+. "$ROOT/tools/lib/scratch-repo.sh"   # T873: weizigo_reset_census for direct store writes
 
 # T445: refuse to run if scratch cannot be created.
 mkdir -p /tmp/weizigo
@@ -123,6 +124,13 @@ export FLEET_TEST_WORKER="$WORK/stub.py"
 export FLEET_DEFAULT_MODEL="glm-5.2"
 export FLEET_CAP="5"
 export FLEET_INTERVAL="1"
+# T873/R10: pin the family cap to the fleet_caps.py documented default
+# (claude=3,fable=1,ollama=5) so the suite's verdict does not depend on the
+# host's LIVE FLEET_FAMILY_CAP (observed 2026-08-25: a host running
+# ollama=2 made the survivor arm fail — 3 seeded ollama tasks, only 2
+# dispatchable). Per-arm exports below still override this for the arms
+# that exercise a specific cap.
+export FLEET_FAMILY_CAP="claude=3,fable=1,ollama=5"
 
 # ── stub worker: claims the row and exits (stays in_progress so the cap
 #    holds — the keeper must observe the freed slot only when a row
@@ -167,6 +175,7 @@ doc["_sys"] = {"next_id": 9000, "directive_next": 1, "assertion_next": 1,
                "closes": 0, "duty_migrated": True}
 json.dump(doc, open(store_path, "w"), indent=1)
 PY
+  weizigo_reset_census "$STORE"   # T873: direct write bypasses the S10 census
 }
 
 # Full task record.  Args via env: ID,STATUS,SET,ADDED,NEEDS(comma),MODEL,DUTY
@@ -199,7 +208,7 @@ seed_bundle() {  # $1=id  $2=deliverable  $3=priority  $4=waiting
   local meta="set=A deliverables=${2:-findings/x.json}"
   [ -n "${3:-}" ] && meta="$meta priority=$3"
   [ -n "${4:-}" ] && meta="$meta waiting=$4"
-  printf '<!--managent %s-->\n# %s — fleet-keeper regression bundle\n' "$meta" "$1" \
+  printf '<!--managent %s-->\n# %s — fleet-keeper regression bundle\n**Landmark:** advances `L1 (dispatch tooling)` — fixture\n' "$meta" "$1" \
       > "$WORK/untracked/$1-bundle.md"
 }
 
