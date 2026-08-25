@@ -3750,6 +3750,121 @@ fn holdsConflict(state: StateMap, holds: []const []const u8, exclude_id: []const
     return null;
 }
 
+// ── T894: queue-head readiness ordering ─────────────────────────────────────
+// `status`/`orient` sorted the dispatchable list by task id — a lexicographic
+// accident, not a readiness signal. The operator read the top of that list as
+// "what is next" and it lied: a duty, a standing trigger, or a row registered
+// months ago sat at the head forever because its id happened to sort first.
+// Readiness here is derived ONLY from facts the store already carries (no
+// hand-maintained priority field, per the brief): whether the row is a duty
+// or standing trigger (own section, never interleaved with real work), a
+// holds conflict against an in-flight row (cannot actually start), whether
+// its brief exists on disk (cannot be followed if it does not), and — for a
+// blocked row — how many of its needs are still unmet (closer to zero is
+// closer to unblocking).
+
+/// A duty (ts.duty, DARGUS/DCLAIM/DRPLAY-style) or a standing trigger
+/// (STANDING-* id, registerStandingDefs) is never "next" in the ordinary
+/// sense — a duty never completes by design and a standing trigger only
+/// fires on an external condition. Both get their own section.
+fn isDutyOrStanding(id: []const u8, ts: TaskState) bool {
+    return ts.duty or std.mem.startsWith(u8, id, "STANDING-");
+}
+
+/// Ready-now (0) sorts before cold (1): a dispatchable row is cold when it
+/// cannot actually be picked up right now — its holds collide with a row
+/// already in progress, or its brief is missing from disk. `state` and `io`
+/// are read-only here (no bundle content is parsed, only existence checked).
+fn dispatchTier(state: *const StateMap, io: std.Io, id: []const u8, ts: TaskState) u8 {
+    if (ts.holds.len > 0 and holdsConflict(state.*, ts.holds, id) != null) return 1;
+    const stat = std.Io.Dir.cwd().statFile(io, ts.bundle, .{}) catch null;
+    if (stat == null) return 1;
+    return 0;
+}
+
+const QueueSortCtx = struct {
+    state: *const StateMap,
+    io: std.Io,
+};
+
+/// Comparator for the dispatchable bucket: ready-now before cold, id as the
+/// deterministic tiebreak within a tier (ids are unique, so this is a total
+/// order — no fabricated priority, just a stable fallback).
+fn dispatchLessThan(ctx: QueueSortCtx, a: []const u8, b: []const u8) bool {
+    const ta = dispatchTier(ctx.state, ctx.io, a, ctx.state.get(a).?);
+    const tb = dispatchTier(ctx.state, ctx.io, b, ctx.state.get(b).?);
+    if (ta != tb) return ta < tb;
+    return std.mem.lessThan(u8, a, b);
+}
+
+/// How many of a row's needs are not yet done — the mechanical stand-in for
+/// "how close its blocker is". Zero unmet needs cannot happen here (such a
+/// row would already be dispatchable, not blocked); fewer unmet is closer.
+fn unmetNeedsCount(state: *const StateMap, ts: TaskState) usize {
+    var n: usize = 0;
+    for (ts.needs) |need| {
+        const nts = state.get(need);
+        if (nts == null or nts.?.status != .done) n += 1;
+    }
+    return n;
+}
+
+/// Comparator for the blocked bucket: fewer unmet needs (closer to
+/// unblocking) sorts first; id is the deterministic tiebreak.
+fn blockedLessThan(ctx: QueueSortCtx, a: []const u8, b: []const u8) bool {
+    const ca = unmetNeedsCount(ctx.state, ctx.state.get(a).?);
+    const cb = unmetNeedsCount(ctx.state, ctx.state.get(b).?);
+    if (ca != cb) return ca < cb;
+    return std.mem.lessThan(u8, a, b);
+}
+
+/// Unix seconds parsed from an ISO timestamp — ageSecFromTs(ts, 0) returns
+/// `0 - ts_unix`, so negating it recovers the absolute instant without a
+/// second parser.
+fn unixFromIso(ts_str: []const u8) ?i64 {
+    const negated = ageSecFromTs(ts_str, 0) orelse return null;
+    return -negated;
+}
+
+/// T894 scope item 2: one column, two meanings. A running or done row reports
+/// how long it actually took (elapsed, measured from claimed/dispatched to
+/// now-or-done); a row not yet dispatched reports the dispatcher's wall-clock
+/// guess (expected_wall_s). Absent data prints UNKNOWN — a guess that reads
+/// as a measurement is the defect this whole landmark is about, so this
+/// function never fabricates a number.
+fn queueEstimateSuffix(ts: TaskState, now_unix: i64) []const u8 {
+    switch (ts.status) {
+        .in_progress => {
+            const start = ts.claimed orelse ts.dispatched;
+            if (start) |s| {
+                if (ageSecFromTs(s, now_unix)) |age| {
+                    return std.fmt.allocPrint(alloc, ", est: {d}s (elapsed)", .{@max(age, 0)}) catch ", est: UNKNOWN";
+                }
+            }
+            return ", est: UNKNOWN";
+        },
+        .done, .failed => {
+            const start = ts.claimed orelse ts.dispatched;
+            if (start) |s| {
+                if (ts.done) |d| {
+                    if (unixFromIso(s)) |su| {
+                        if (unixFromIso(d)) |du| {
+                            return std.fmt.allocPrint(alloc, ", est: {d}s (elapsed)", .{@max(du - su, 0)}) catch ", est: UNKNOWN";
+                        }
+                    }
+                }
+            }
+            return ", est: UNKNOWN";
+        },
+        .dispatchable, .blocked => {
+            if (ts.expected_wall_s) |e| {
+                return std.fmt.allocPrint(alloc, ", est: {d}s (expected)", .{e}) catch ", est: UNKNOWN";
+            }
+            return ", est: UNKNOWN";
+        },
+    }
+}
+
 fn bundleRel(bundle: []const u8, repo_root: []const u8) []const u8 {
     if (std.fs.path.isAbsolute(bundle)) {
         if (repo_root.len + 1 <= bundle.len and bundle[repo_root.len] == '/') {
@@ -4070,6 +4185,16 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     }
 
     id = args[2];
+
+    // T894: `--bundle` entered the store as a task id because a flag was
+    // parsed positionally (the caller omitted the id and this path took the
+    // flag literally). Refuse anything id-shaped that begins with '-' before
+    // it ever reaches the store — a malformed row that sits at the head of
+    // the id-sorted queue forever is the defect this row exists to close.
+    if (std.mem.startsWith(u8, id, "-")) {
+        w.diag("error: '{s}' looks like a flag, not a task id (a positional id must not start with '-')\n", .{id});
+        std.process.exit(1);
+    }
 
     if (state.contains(id)) {
         w.diag("error: task '{s}' already exists\n", .{id});
@@ -6574,8 +6699,11 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     var it_sort = state.iterator();
     while (it_sort.next()) |entry| {
         const tid = entry.key_ptr.*;
-        // T478: a duty never renders in OPEN alongside tasks — its own section.
-        if (entry.value_ptr.*.duty) {
+        // T478/T894: a duty never renders in OPEN alongside tasks; a standing
+        // trigger (STANDING-* id) fires on an external condition, not on
+        // dispatch-readiness — both get their own section, never interleaved
+        // with real work.
+        if (isDutyOrStanding(tid, entry.value_ptr.*)) {
             try duties.append(alloc, tid);
             continue;
         }
@@ -6595,16 +6723,24 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
             return std.mem.lessThan(u8, a, b);
         }
     }.lt;
-    std.mem.sort([]const u8, dispatchable.items, {}, sortFn);
+    // T894: the dispatchable and blocked buckets sort by dispatch-readiness
+    // (ready-now before cold; fewer unmet needs before more), not by id — an
+    // id-lexicographic sort is what let a malformed/stale row sit at the
+    // head of the queue forever. in_progress/done/failed/duties keep the
+    // plain id sort (no readiness question applies to them).
+    const queue_ctx = QueueSortCtx{ .state = &state, .io = io };
+    std.mem.sort([]const u8, dispatchable.items, queue_ctx, dispatchLessThan);
     std.mem.sort([]const u8, in_progress.items, {}, sortFn);
-    std.mem.sort([]const u8, blocked.items, {}, sortFn);
+    std.mem.sort([]const u8, blocked.items, queue_ctx, blockedLessThan);
     std.mem.sort([]const u8, done.items, {}, sortFn);
     std.mem.sort([]const u8, failed.items, {}, sortFn);
     std.mem.sort([]const u8, duties.items, {}, sortFn);
 
+    const now_unix = nowUnix();
+
     // ── stdout: the data ──
-    printSection(w, "dispatchable", dispatchable.items, &state, &ledger, repo_root);
-    printSection(w, "in progress", in_progress.items, &state, &ledger, repo_root);
+    printSection(w, "dispatchable", dispatchable.items, &state, &ledger, repo_root, now_unix);
+    printSection(w, "in progress", in_progress.items, &state, &ledger, repo_root, now_unix);
 
     // ── stderr: warnings ──
     var warned = false;
@@ -6626,21 +6762,28 @@ fn cmdStatus(w: Writers, io: std.Io, state_path: []const u8, repo_root: []const 
     }
     if (warned) w.diag("\n", .{});
 
-    printSection(w, "blocked", blocked.items, &state, &ledger, repo_root);
-    printSection(w, "done", done.items, &state, &ledger, repo_root);
-    printSection(w, "failed", failed.items, &state, &ledger, repo_root);
+    printSection(w, "blocked", blocked.items, &state, &ledger, repo_root, now_unix);
+    printSection(w, "done", done.items, &state, &ledger, repo_root, now_unix);
+    printSection(w, "failed", failed.items, &state, &ledger, repo_root, now_unix);
     printDutySection(w, duties.items, &state);
     w.data("\n", .{});
 }
 
 fn printDutySection(w: Writers, ids: []const []const u8, state: *StateMap) void {
-    w.data("\n  duties ({d})\n", .{ids.len});
+    w.data("\n  duties & standing triggers ({d})\n", .{ids.len});
     if (ids.len == 0) {
         w.data("    -- none --\n", .{});
         return;
     }
     for (ids) |uid| {
         const ts = state.get(uid).?;
+        // T894: a standing trigger (duty=false, id starts with STANDING-)
+        // has no due/chunk semantics — it fires on an external condition
+        // `managent standing` evaluates, not on a closes-since-chunk clock.
+        if (!ts.duty) {
+            w.data("    {s}  standing trigger\n", .{uid});
+            continue;
+        }
         const since = closesSinceChunk(ts);
         if (dutyIsDue(ts)) {
             w.data("    {s}  due ({d} closes since chunk, due after {d})", .{ uid, since, ts.due_after });
@@ -6657,7 +6800,7 @@ fn printDutySection(w: Writers, ids: []const []const u8, state: *StateMap) void 
     }
 }
 
-fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *StateMap, ledger: *const LedgerStatuses, repo_root: []const u8) void {
+fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *StateMap, ledger: *const LedgerStatuses, repo_root: []const u8, now_unix: i64) void {
     w.data("\n  {s} ({d})\n", .{ label, ids.len });
     if (ids.len == 0) {
         w.data("    -- none --\n", .{});
@@ -6691,6 +6834,9 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
         if (ts.verdict) |v| {
             w.data(", verdict={s}", .{v});
         }
+        // T894: one column, two meanings — elapsed for a running/done row,
+        // expected wall for one not yet dispatched; UNKNOWN, never a guess.
+        w.data("{s}", .{queueEstimateSuffix(ts, now_unix)});
         w.data(": follow {s}\n", .{rel});
     }
 }
@@ -7497,11 +7643,21 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     defer dispatchable.deinit(alloc);
     var blocked = std.ArrayList([]const u8).empty;
     defer blocked.deinit(alloc);
+    // T894: orient's classifier never checked ts.duty at all — DARGUS/DCLAIM/
+    // DRPLAY (real duties) and STANDING-ABSORB/STANDING-CLEANUP (standing
+    // triggers) landed in `dispatchable` and, sorted by id, sat at its head
+    // ahead of every real row. Own bucket, own section.
+    var duties_standing = std.ArrayList([]const u8).empty;
+    defer duties_standing.deinit(alloc);
     {
         var it = state.iterator();
         while (it.next()) |entry| {
             const tid = entry.key_ptr.*;
             const ts = entry.value_ptr.*;
+            if (isDutyOrStanding(tid, ts)) {
+                try duties_standing.append(alloc, tid);
+                continue;
+            }
             switch (resolveStatus(&state, ts, &ledger, tid).status) {
                 .in_progress => try in_progress.append(alloc, tid),
                 .dispatchable => try dispatchable.append(alloc, tid),
@@ -7516,8 +7672,12 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         }
     }.lt;
     std.mem.sort([]const u8, in_progress.items, {}, sortFn);
-    std.mem.sort([]const u8, dispatchable.items, {}, sortFn);
-    std.mem.sort([]const u8, blocked.items, {}, sortFn);
+    // T894: readiness ordering, not id — see the dispatchLessThan/
+    // blockedLessThan doc comments for what "readiness" is derived from.
+    const queue_ctx = QueueSortCtx{ .state = &state, .io = io };
+    std.mem.sort([]const u8, dispatchable.items, queue_ctx, dispatchLessThan);
+    std.mem.sort([]const u8, blocked.items, queue_ctx, blockedLessThan);
+    std.mem.sort([]const u8, duties_standing.items, {}, sortFn);
 
     // Heartbeats power the in-progress liveness label (beating / stalled /
     // UNKNOWN). Degrades to an empty list when untracked/heartbeat.jsonl is
@@ -7631,7 +7791,7 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
             }
             break :blk "UNKNOWN";
         };
-        o.p("  {s}  ({s}) [{s}] — {s}\n", .{ tid, ident, live_label, rel });
+        o.p("  {s}  ({s}) [{s}]{s} — {s}\n", .{ tid, ident, live_label, queueEstimateSuffix(ts, now_unix), rel });
     }
     o.p("dispatchable ({d}):\n", .{dispatchable.items.len});
     if (dispatchable.items.len == 0) {
@@ -7640,7 +7800,7 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
     for (dispatchable.items) |tid| {
         const ts = state.get(tid).?;
         const rel = bundleRel(ts.bundle, repo_root);
-        o.p("  {s} [set {c}] — {s}\n", .{ tid, ts.set, rel });
+        o.p("  {s} [set {c}]{s} — {s}\n", .{ tid, ts.set, queueEstimateSuffix(ts, now_unix), rel });
     }
     o.p("blocked ({d}):\n", .{blocked.items.len});
     if (blocked.items.len == 0) {
@@ -7651,7 +7811,19 @@ fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
         const rel = bundleRel(ts.bundle, repo_root);
         o.p("  {s} [set {c}] needs", .{ tid, ts.set });
         for (ts.needs) |n| o.p(" {s}", .{n});
-        o.p(" — {s}\n", .{rel});
+        o.p("{s} — {s}\n", .{ queueEstimateSuffix(ts, now_unix), rel });
+    }
+    // T894: duties (never complete by design) and standing triggers (fire on
+    // an external condition) — own section, never interleaved with the
+    // dispatchable/blocked rows above.
+    o.p("duties & standing triggers ({d}):\n", .{duties_standing.items.len});
+    if (duties_standing.items.len == 0) {
+        o.p("  -- none --\n", .{});
+    }
+    for (duties_standing.items) |tid| {
+        const ts = state.get(tid).?;
+        const rel = bundleRel(ts.bundle, repo_root);
+        o.p("  {s} [set {c}] — {s}\n", .{ tid, ts.set, rel });
     }
 
     // ── fresh activity (last commits, with task IDs from the subjects) ──
