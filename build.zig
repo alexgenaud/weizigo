@@ -1699,6 +1699,21 @@ pub fn build(b: *std.Build) void {
     managent_exe.root_module.addImport("version", version_mod);
     b.installArtifact(managent_exe);
 
+    // ── T910: run-record scan bound + archive controls ────────────
+    // readRunRecords used to open+JSON-parse every top-level .json in
+    // untracked/runs/ on each reap/resume call (1.11 s for ~2,755 files,
+    // monotonic).  The fix bounds the scan by the in-progress set and adds
+    // `managent archive-runs` to move cold records off the hot path.  Arms:
+    // open-bound (2000 cold + 3 live -> opened <= 3), null (empty runs dir),
+    // verdict matrix (a faster reaper must reap identically), archive (live /
+    // in-progress stay, cold moves, idempotent, re-dispatch resolves).  The
+    // step depends on the managent install so `zig build test` never runs it
+    // against a stale zig-out/bin/managent.
+    const run_record_scale_regression = b.addSystemCommand(&.{ "sh", "tools/regression-run-record-scale.sh" });
+    run_record_scale_regression.cwd = b.path(".");
+    run_record_scale_regression.step.dependOn(&b.addInstallArtifact(managent_exe, .{}).step);
+    test_step.dependOn(&run_record_scale_regression.step);
+
     // ── verify-battery (M1 harness, T168) ──────────────────────────
     const verify_battery_exe = b.addExecutable(.{
         .name = "verify-battery",

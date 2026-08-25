@@ -1391,7 +1391,7 @@ const mutating_verbs = [_][]const u8{
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
     "standing", "assert", "retire", "duty", "reap", "assign", "shape",
-    "lanes", "backfill-taxonomy",
+    "lanes", "backfill-taxonomy", "archive-runs",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -1660,6 +1660,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdVerdict(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "archive")) {
         try cmdArchive(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "archive-runs")) {
+        try cmdArchiveRuns(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "retire")) {
         try cmdRetire(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "amend")) {
@@ -6881,8 +6883,9 @@ fn printStatusJson(w: Writers, state: *StateMap, ledger: *const LedgerStatuses, 
 // ═══════════════════════════════════════════════════════════════════════════════
 // `managent resume` composes the resume surface on demand from sources that
 // cannot be stale: tasks.json (the kanban), git log/config/status, the claimlint
-// summary against the recorded floor, and the channel STATE.md narrative (by
-// reference). Nothing is cached and nothing is written; a stale surface is
+// summary against the recorded floor, and the hand-over narrative pointer
+// (docs/status/RESUME-*.md wildcard since 2026-08-24; legacy channel STATE.md
+// files are still listed by reference if any exist). Nothing is cached and nothing is written; a stale surface is
 // structurally impossible because the surface IS the sources, read at the
 // instant of invocation. Design: docs/infra/resume-surface.md (T286).
 
@@ -6991,10 +6994,12 @@ fn printResumeSection(w: Writers, label: []const u8, ids: []const []const u8, st
     }
 }
 
-/// Print the narrative headline of every channel STATE.md under untracked/msg/
-/// — by reference. The prose is never copied into the surface; the resume
-/// reader opens the file. Degrades to an explicit "none" when the channel
-/// does not exist (fresh clone).
+/// Print the narrative headline of any legacy channel STATE.md under
+/// untracked/msg/ — by reference. The prose is never copied into the surface;
+/// the resume reader opens the file. When none exist (the normal case since
+/// the 2026-08-24 operator ruling retired STATE.md), emit the durable pointer:
+/// the newest docs/status/RESUME-*.md, named as a wildcard so it never goes
+/// stale and is never updated.
 fn scanChannelState(w: Writers, io: std.Io, repo_root: []const u8) void {
     const msg_dir = std.fs.path.join(alloc, &.{ repo_root, "untracked", "msg" }) catch {
         w.data("    none (untracked/msg/ unreadable — fresh clone has no channel)\n", .{});
@@ -7058,8 +7063,13 @@ fn scanChannelState(w: Writers, io: std.Io, repo_root: []const u8) void {
         if (headline) |h| w.data("      headline: {s}\n", .{h});
         w.data("      (full narrative lives in that file — resume reads it there)\n", .{});
     }
-    if (found == 0) w.data("    none (no STATE.md under untracked/msg/)\n", .{});
+    if (found == 0) w.data("{s}", .{narrative_fallback});
 }
+
+/// Durable hand-over pointer for the resume surface's narrative section.
+/// Names the RESUME glob as a wildcard — never a dated file — so it cannot go
+/// stale and is never maintained (operator ruling 2026-08-24).
+const narrative_fallback = "    handover narrative: newest docs/status/RESUME-*.md (wildcard — always current)\n";
 
 fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
@@ -7101,7 +7111,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 
     // ── header ──
     w.data("\n  === resume surface — composed at read time; nothing stored ===\n", .{});
-    w.data("  composed {s} from tasks.json · git log/config/status · claimlint · STATE.md\n", .{now});
+    w.data("  composed {s} from tasks.json · git log/config/status · claimlint\n", .{now});
 
     // ── self-defense: the surface must know its own provenance ──
     // T289: the resume surface is the read-first surface; a surface that
@@ -7448,7 +7458,7 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 // `managent orient` (T353) composes the worker preamble at read time — a
 // generated, ≤150-line surface that replaces the ~1,524-line reading list a
 // worker otherwise wades through before its own brief (AGENTS.md + DELEGATEE.md
-// + sprint.md + DIRECTION.md + WAYPOINTS.md + STATE.md). It follows the `resume`
+// + sprint.md + DIRECTION.md + WAYPOINTS.md + the RESUME-*.md handover glob). It follows the `resume`
 // pattern: nothing is stored, nothing can rot — the surface IS the sources,
 // read at the instant of invocation.
 //
@@ -7461,7 +7471,8 @@ fn cmdResume(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const 
 // Principles are EXTRACTED from the existing documents, not invented: each is
 // a one-line imperative restatement of a rule that already lives in AGENTS.md,
 // DELEGATEE.md, sprint.md or DIRECTION.md. Adding policy here would be the
-// exact hand-maintained diary STATE.md became.
+// exact hand-maintained diary the retired channel STATE.md became (operator
+// ruling 2026-08-24: STATE.md deleted; resume points at docs/status/RESUME-*).
 fn cmdOrient(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
     _ = args;
 
@@ -8613,9 +8624,10 @@ fn cmdLandmark(w: Writers, io: std.Io, repo_root: []const u8, state_path: []cons
     w.diag("\n  landmark {s} declared (duties current)\n", .{landmark});
 }
 
-fn printHelp(w: Writers) void {
-    w.diag(
-        \\managent — agent-manager CLI
+/// The full usage text, extracted so tests can assert invariants on it
+/// (e.g. the 2026-08-24 operator ruling: never reference STATE.md).
+const usage_text = \\
+\\managent — agent-manager CLI
         \\
         \\Usage:
         \\  managent                  show current state (default)
@@ -8647,11 +8659,12 @@ fn printHelp(w: Writers) void {
         \\  managent ping [--note]    emit a heartbeat (prove liveness between builds)
         \\  managent liveness [--stale-min <min>]  show per-task liveness: UNKNOWN / beating / beats stopped (default threshold 5 min)
         \\  managent reap [--close]  reconcile in_progress rows vs the process table; --close closes orphans as abandoned (T364)
+        \\  managent archive-runs [--dry-run] [--date <YYYY-MM-DD>] [--min-age-days <d>]  move cold run records to untracked/runs/archive-<date>/ (T910)
         \\  managent treekill --anchor <pid> [--kill] [--seed <pids>] [--since <epoch>]  enumerate/kill a process tree (pass 1)
         \\  managent duty <UID> done  record a duty chunk (--verdict pass|fail --findings <path>); duties never close
         \\  managent landmark <Ln> --declare  gate a landmark declaration on duty currency (overdue or last-failed blocks)
         \\  managent standing         register triggered standing-tier tasks
-        \\  managent resume           derive the resume surface from tasks.json + git + claimlint + STATE.md
+        \\  managent resume           derive the resume surface from tasks.json + git + claimlint + the RESUME-* handover pointer
         \\  managent orient           generate the ≤150-line worker preamble (principles + gates + kanban + activity)
         \\  managent lanes            census T-ID ↔ findings drift (unregistered findings / missing-findings rows); --backfill mints+closes the orphans
         \\  managent help             show this help
@@ -8683,7 +8696,10 @@ fn printHelp(w: Writers) void {
         \\  MANAGENT_TEST=1        refuse every mutating verb on the live store (for harnesses)
         \\  fixture-pattern ids (DOCTOR/FIXTURE/SEED/PROBE/ARM/TEST) are refused on the live store
         \\
-    , .{});
+;
+
+fn printHelp(w: Writers) void {
+    w.diag("{s}", .{usage_text});
 }
 
 fn execHarness(prefix: []const u8, follow: []const u8) !void {
@@ -9430,12 +9446,61 @@ fn runRecF64(o: std.json.ObjectMap, key: []const u8) f64 {
     } else 0.0;
 }
 
-fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(RunRecord) {
+/// Mirror tools/runner `_sanitize_identity`: every char outside
+/// [A-Za-z0-9._-] becomes '_'.  The bounded reader must reproduce it to map a
+/// task id onto the filename segment the writer used — the record's `task`
+/// field is authoritative only AFTER the file is opened, and the whole point
+/// of the bound is not to open files that cannot name a live row (T910).
+fn sanitizeRunIdentity(tid: []const u8) ![]u8 {
+    const out = try alloc.alloc(u8, tid.len);
+    for (tid, 0..) |c, i| {
+        out[i] = if (std.ascii.isAlphanumeric(c) or c == '.' or c == '_' or c == '-') c else '_';
+    }
+    return out;
+}
+
+/// True when `name` (a ".json" file name) is one the writer would produce for
+/// one of the sanitized task prefixes: <prefix>.json (bare) or
+/// <prefix>.<N>.json (a numbered attempt, T650).  The '.' boundary check keeps
+/// "T9" from matching "T91.json" (T910).
+fn runFileNameMatchesAny(name: []const u8, prefixes: []const []u8) bool {
+    const stem = name[0 .. name.len - 5]; // strip ".json"
+    for (prefixes) |p| {
+        if (std.mem.eql(u8, stem, p)) return true;
+        if (stem.len > p.len + 1 and std.mem.startsWith(u8, stem, p) and stem[p.len] == '.') {
+            const rest = stem[p.len + 1 ..];
+            if (rest.len == 0) continue;
+            var all_digits = true;
+            for (rest) |c| {
+                if (c < '0' or c > '9') {
+                    all_digits = false;
+                    break;
+                }
+            }
+            if (all_digits) return true;
+        }
+    }
+    return false;
+}
+
+fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8, tids: []const []const u8) !std.ArrayList(RunRecord) {
     var result = std.ArrayList(RunRecord).empty;
     errdefer result.deinit(alloc);
 
     const runs_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "runs" });
     defer alloc.free(runs_dir);
+
+    // T910: bound the scan by the in-progress set.  reap/resume answer a
+    // question about a handful of live rows, so only files that could name one
+    // of those rows are opened.  An empty live set opens nothing.
+    var prefixes = std.ArrayList([]u8).empty;
+    defer {
+        for (prefixes.items) |p| alloc.free(p);
+        prefixes.deinit(alloc);
+    }
+    for (tids) |tid| {
+        try prefixes.append(alloc, try sanitizeRunIdentity(tid));
+    }
 
     var dir = std.Io.Dir.cwd().openDir(io, runs_dir, .{}) catch |err| {
         if (err == error.FileNotFound) return result; // fresh clone / no runs yet
@@ -9445,11 +9510,16 @@ fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(
 
     var bad: u32 = 0; // same silent-skip hazard as readHeartbeats: a corrupt
     // run record must be reported, not swallowed (T399).
+    var opened: u32 = 0; // T910 diagnostic: files actually opened + JSON-parsed
+    var json_entries: u32 = 0; // T910 diagnostic: .json files the directory held
     var it = dir.iterate();
     while (it.next(io) catch null) |entry| {
         if (entry.kind != .file) continue;
         if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+        json_entries += 1;
+        if (!runFileNameMatchesAny(entry.name, prefixes.items)) continue;
 
+        opened += 1;
         const abs = std.fs.path.join(alloc, &.{ runs_dir, entry.name }) catch continue;
         defer alloc.free(abs);
         const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch |err| {
@@ -9505,6 +9575,12 @@ fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8) !std.ArrayList(
     }
     if (bad > 0) {
         w.diag("warn: {d} unparseable or malformed run record(s) in untracked/runs/\n", .{bad});
+    }
+    // T910 diagnostic (opt-in): let a regression observe the open count without
+    // a tracer, so the bound — files opened vs the in-progress set — is a number,
+    // not an assertion.  Silent unless MANAGENT_RUN_RECORD_OPENS is set.
+    if (std.c.getenv("MANAGENT_RUN_RECORD_OPENS")) |_| {
+        w.diag("run-records: opened {d} of {d} .json entries for {d} in-progress row(s)\n", .{ opened, json_entries, tids.len });
     }
     return result;
 }
@@ -9638,7 +9714,24 @@ fn classifyReapRows(
     var rows = std.ArrayList(ReapRow).empty;
     errdefer rows.deinit(alloc);
 
-    var runs = try readRunRecords(w, io, repo_root);
+    // T910: collect the in-progress tids FIRST so readRunRecords only opens
+    // files that could name one of them (the bound).  The classification pass
+    // below re-derives the same set from the same state, so the filter can
+    // never drop a row the classifier would have consulted.
+    var tids = std.ArrayList([]const u8).empty;
+    defer tids.deinit(alloc); // the elements alias the state map's keys — not owned
+    {
+        var pre = state.iterator();
+        while (pre.next()) |entry| {
+            const tid = entry.key_ptr.*;
+            const ts = entry.value_ptr.*;
+            if (resolveStatus(state, ts, ledger, tid).status == .in_progress) {
+                try tids.append(alloc, tid);
+            }
+        }
+    }
+
+    var runs = try readRunRecords(w, io, repo_root, tids.items);
     defer {
         for (runs.items) |r| {
             alloc.free(r.task);
@@ -9762,6 +9855,189 @@ fn isOrphanReap(cls: ReapClass) bool {
 
 fn isUnknownReap(cls: ReapClass) bool {
     return cls == .unknown_no_dispatch;
+}
+
+/// T910: a record is old enough to archive when its `end` (fallback `start`)
+/// is at least `min_age_secs` in the past.  A record with neither timestamp
+/// parseable is conservatively old enough — pre-T650 records always carry
+/// `start`/`end`, so a missing/unparseable one is a torn shape that is
+/// certainly not a fresh live run.
+fn recordOldEnough(end: ?[]const u8, start: []const u8, now_unix: i64, min_age_secs: i64) bool {
+    if (end) |e| {
+        if (ageSecFromTs(e, now_unix)) |age| return age >= min_age_secs;
+    }
+    if (start.len > 0) {
+        if (ageSecFromTs(start, now_unix)) |age| return age >= min_age_secs;
+    }
+    return true;
+}
+
+// ── archive-runs — move cold run records off the hot path (T910) ────────────
+//
+// The readRunRecords bound above is the hot-path fix; this is the cold-path
+// fix that keeps untracked/runs/ from growing without bound.  A run record is
+// COLD when (a) its task is not an in_progress row (or is no row at all),
+// (b) its pid is dead — checked against the process table, not just the store
+// (a row can be `done` with a live worker: T909), and (c) it is older than
+// --min-age-days (default 2, so the AC7 24 h wall-kill window and tonight's
+// forensics are never hidden).  Cold records move into
+// untracked/runs/archive-<date>/ — archived, never deleted — and a
+// re-dispatch writes a fresh bare record, so the bare record stays findable.
+// The move is an atomic rename and idempotent: an interruption loses nothing,
+// and re-running finishes the job without touching what already moved.
+fn cmdArchiveRuns(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    const dry_run = hasFlag(args, "--dry-run");
+
+    var min_age_days: f64 = 2.0;
+    if (getFlagValue(args, "--min-age-days")) |v| {
+        if (std.fmt.parseFloat(f64, v)) |f| min_age_days = f else |_| {}
+    }
+    const min_age_secs: i64 = @intFromFloat(@max(min_age_days, 0.0) * 86400.0);
+
+    var owned_now: ?[]const u8 = null;
+    defer if (owned_now) |s| alloc.free(s);
+    const date = blk: {
+        if (getFlagValue(args, "--date")) |d| break :blk d;
+        const now = try nowTimestamp();
+        owned_now = now;
+        break :blk now[0..10];
+    };
+
+    var state = try readState(io, state_path);
+    defer freeState(&state);
+    var ledger = readLedgerStatuses(io, state_path);
+    defer freeLedgerStatuses(&ledger);
+
+    // The in-progress set — never archive these rows' records.
+    var tids = std.ArrayList([]const u8).empty;
+    defer tids.deinit(alloc); // elements alias the state map's keys — not owned
+    {
+        var it = state.iterator();
+        while (it.next()) |entry| {
+            const tid = entry.key_ptr.*;
+            const ts = entry.value_ptr.*;
+            if (resolveStatus(&state, ts, &ledger, tid).status == .in_progress) {
+                try tids.append(alloc, tid);
+            }
+        }
+    }
+
+    const runs_dir = try std.fs.path.join(alloc, &.{ repo_root, "untracked", "runs" });
+    defer alloc.free(runs_dir);
+
+    var dir = std.Io.Dir.cwd().openDir(io, runs_dir, .{}) catch |err| {
+        if (err == error.FileNotFound) {
+            w.data("  archive-runs: no untracked/runs/ — nothing to archive.\n", .{});
+            return;
+        }
+        return err;
+    };
+    defer dir.close(io);
+
+    const archive_name = try std.fmt.allocPrint(alloc, "archive-{s}", .{date});
+    defer alloc.free(archive_name);
+
+    var adir: ?std.Io.Dir = null;
+    defer if (adir) |d| d.close(io);
+    if (!dry_run) {
+        dir.createDirPath(io, archive_name) catch {}; // idempotent: exists is fine
+        adir = try dir.openDir(io, archive_name, .{});
+    }
+
+    var now_tp: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(std.c.CLOCK.REALTIME, &now_tp);
+    const now_unix: i64 = now_tp.sec;
+
+    var moved: u32 = 0;
+    var would_move: u32 = 0;
+    var skipped_inprog: u32 = 0;
+    var skipped_live: u32 = 0;
+    var skipped_recent: u32 = 0;
+    var skipped_exists: u32 = 0;
+    var bad: u32 = 0;
+
+    var it = dir.iterate();
+    while (it.next(io) catch null) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+
+        const abs = std.fs.path.join(alloc, &.{ runs_dir, entry.name }) catch continue;
+        defer alloc.free(abs);
+        const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch {
+            bad += 1;
+            continue;
+        };
+        defer alloc.free(content);
+        const trimmed = std.mem.trim(u8, content, " \r\n");
+        if (trimmed.len == 0) {
+            bad += 1;
+            continue;
+        }
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch {
+            bad += 1;
+            continue;
+        };
+        defer parsed.deinit();
+        if (parsed.value != .object) {
+            bad += 1;
+            continue;
+        }
+        const obj = parsed.value.object;
+
+        const task = runRecStr(obj, "task");
+        const pid = runRecI64(obj, "pid");
+        const start = runRecStr(obj, "start");
+        const end = runRecOptStr(obj, "end");
+
+        // (a) never archive an in_progress row's record.
+        var inprog = false;
+        for (tids.items) |t| {
+            if (std.mem.eql(u8, t, task)) {
+                inprog = true;
+                break;
+            }
+        }
+        if (inprog) {
+            skipped_inprog += 1;
+            continue;
+        }
+
+        // (b) never archive a live process's record (T909: done row, live worker).
+        if (processAlive(pid)) {
+            skipped_live += 1;
+            continue;
+        }
+
+        // (c) never hide a fresh record (AC7's 24 h wall-kill window).
+        if (!recordOldEnough(end, start, now_unix, min_age_secs)) {
+            skipped_recent += 1;
+            continue;
+        }
+
+        if (dry_run) {
+            would_move += 1;
+            continue;
+        }
+        dir.renamePreserve(entry.name, adir.?, entry.name, io) catch |err| switch (err) {
+            error.PathAlreadyExists => {
+                skipped_exists += 1;
+                continue;
+            },
+            else => return err,
+        };
+        moved += 1;
+    }
+
+    if (dry_run) {
+        w.data("\n  archive-runs (dry run): {d} cold record(s) would move to {s}/\n", .{ would_move, archive_name });
+    } else {
+        w.data("\n  archive-runs: moved {d} record(s) to {s}/\n", .{ moved, archive_name });
+    }
+    w.data("    skipped: {d} in-progress, {d} live-pid, {d} too-recent, {d} already-archived\n", .{ skipped_inprog, skipped_live, skipped_recent, skipped_exists });
+    if (bad > 0) {
+        w.data("    {d} unparseable record(s) left in place (never moved without a readable pid)\n", .{bad});
+    }
+    w.data("\n", .{});
 }
 
 
@@ -14561,6 +14837,16 @@ test "T906: the 40-char boundary is a named constant" {
 // ═══════════════════════════════════════════════════════════════════════════════
 // T786 tests — the frozen taxonomy: type vocabulary, scope binning, backfill
 // ═══════════════════════════════════════════════════════════════════════════════
+
+test "resume narrative fallback names the RESUME wildcard, never STATE.md (2026-08-24 operator ruling)" {
+    try std.testing.expect(std.mem.indexOf(u8, narrative_fallback, "docs/status/RESUME-*.md") != null);
+    try std.testing.expect(std.mem.indexOf(u8, narrative_fallback, "STATE.md") == null);
+}
+
+test "help text never references STATE.md (2026-08-24 operator ruling)" {
+    try std.testing.expect(std.mem.indexOf(u8, usage_text, "STATE.md") == null);
+    try std.testing.expect(std.mem.indexOf(u8, usage_text, "managent resume") != null);
+}
 
 test "taxonomy: the 9-value type vocabulary is closed and case-exact" {
     // The corpus (docs/infra/task-corpus.jsonl, T817) measured 9 closed
