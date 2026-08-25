@@ -26,12 +26,12 @@ set -e
 cd "$(dirname "$0")/.." || exit 1
 QUEUE=docs/infra/dispatch-queue.tsv
 STOP=untracked/pop-next.stop
-# Default 3 (operator, 2026-08-25: "Please dispatch more tasks safely").
-# Was 1. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
+# Default 5 (operator, 2026-08-25: "Maybe we can dispatch more of the race
+# lanes?"). Was 1, then 3. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
 # guards are downstream and unchanged: bin/dispatch enforces family caps, the
 # RAM arbiter refuses a lane that does not fit, and holds keep two rows off one
 # file. Set MAX_LANES=1 to go back to serial.
-MAX_LANES="${MAX_LANES:-3}"
+MAX_LANES="${MAX_LANES:-5}"
 DRY=0; LOOPS=1
 while [ $# -gt 0 ]; do
   case "$1" in
