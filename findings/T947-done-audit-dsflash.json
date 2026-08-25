@@ -1,0 +1,9 @@
+{
+  "task_id": "T947",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-flash",
+  "audited_by": "deepseek-v4-flash/T947",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE audit arm (dsflash) — 24 rows audited (12 disjoint + 12 control), ALL reached, none left unexamined. No claim status changes proposed: this audit grades records against reality, not claims. Verdicts: verdict_accurate yes 23 / no 1 (T943 auto-closed pass with its own acceptance RED); absorbed yes 17 / no 4 / partial 3 (the one absorption failure that matters is T730 — real work, both findings files untracked on disk, never committed); self_reported_or_verified verified 21 / self-reported 1 / unverifiable 2; useful yes 18 / mixed 4 / no 2. Rows to amend/re-open: T943 (verdict pass -> pass-with-findings; acceptance was red at close, defect recorded 35fd322, follow-up T952 stalled) and T730 (commit the two untracked findings files — the row itself is correctly blocked). Independent runs done by this auditor: T927/T944/T894/T932 regressions and T916's runner-guard (25/25 green, 5/5 red caught) all pass. Single most important pattern: the done gate closes on process evidence (exit 0 + deliverable presence in the working tree), which is neither the acceptance passing nor the deliverable being in git — T943 (acceptance red), T894 (committed post-run by another seat), T730 (never committed), T924 (recovered from transcript) are four instances; the rows with machine-checked acceptances (T932/T927/T944/T916) all verify. No directives received (inbox empty at every checkpoint). Collector: docs/audits/done-audit-2026-08-25/dsflash/collector.py + collector-output.json."
+}
