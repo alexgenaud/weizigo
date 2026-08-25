@@ -643,7 +643,7 @@ for k,v in d.items():
     br=glob.glob(f'untracked/{k}-*.md')
     if needs:                       st='dep-wait'
     elif not br:                    st='no-brief'
-    elif 'acceptance=' not in open(br[0]).read()[:400]: st='unspec'
+    elif 'acceptance=' not in (lambda r: (__import__('re').search(r'<!--managent(.*?)-->', r, 16).group(1) if __import__('re').search(r'<!--managent(.*?)-->', r, 16) else r[:400]))(open(br[0]).read()): st='unspec'
     elif k in donow:                st='next'
     else:                           st='low-prio'
     print(f'{k}\t{st}')

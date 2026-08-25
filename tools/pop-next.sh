@@ -26,7 +26,12 @@ set -e
 cd "$(dirname "$0")/.." || exit 1
 QUEUE=docs/infra/dispatch-queue.tsv
 STOP=untracked/pop-next.stop
-MAX_LANES="${MAX_LANES:-1}"
+# Default 3 (operator, 2026-08-25: "Please dispatch more tasks safely").
+# Was 1. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
+# guards are downstream and unchanged: bin/dispatch enforces family caps, the
+# RAM arbiter refuses a lane that does not fit, and holds keep two rows off one
+# file. Set MAX_LANES=1 to go back to serial.
+MAX_LANES="${MAX_LANES:-3}"
 DRY=0; LOOPS=1
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -47,7 +52,7 @@ pop_once() {
     return 2
   fi
   choice=$(python3 - "$QUEUE" <<'PYP'
-import json,sys,os
+import json,sys,os,re
 q=sys.argv[1]
 store=json.load(open('docs/infra/managent/tasks.json'))
 # A dispatched row reads `dispatchable` until its worker claims itself, which is a
@@ -84,7 +89,16 @@ for _,t in rows:
     # bundle header has no bar to be judged against, so it is not dispatchable
     # work -- it is work waiting to be specified. Same test watch-fleet uses.
     b=v.get('bundle') or ''
-    try: head=open(b).read()[:400]
+    # Read the WHOLE `<!--managent ... -->` comment, not a fixed byte window.
+    # A 400-byte window declared T954 unspec because its metadata line is 606
+    # bytes (ten holds and ten deliverables) and acceptance= sits at byte 547 --
+    # a correctly specified row, permanently unrunnable, for a reason nothing
+    # printed. The metadata comment is the unit; measure that.
+    head=''
+    try:
+        raw=open(b).read()
+        m=re.search(r'<!--managent(.*?)-->', raw, re.S)
+        head=m.group(1) if m else raw[:400]
     except Exception: head=''
     if 'acceptance=' not in head:
         print("UNSPEC\t%s\t%s"%(t,b)); continue

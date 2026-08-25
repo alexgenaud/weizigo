@@ -6,6 +6,7 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T961	2	5400	AUTO	one door to dispatch — managent dispatch launches, bin/dispatch becomes its callee
 T954	0	5400	AUTO	wire four OpenRouter models — PINNED dsflash; unblocks four DONE-audit arms; above T945 per fable
 T955	1	1800	AUTO	DONE audit arm (gptluna) — pin after T954 lands; blocked on T945,T954
 T956	1	1800	AUTO	DONE audit arm (qwencloud) — pin after T954; NEVER compare with qwen3.8:27b-mlx
