@@ -450,7 +450,7 @@ PYT
         else
             rate_disp=$(progress_rate "$tok" "$esec" "$cmd" "$mt")
         fi
-        printf '%010d\t  %-5s %-3s %-8.8s  %-6s %-8.8s %5s %7s %s\n' "$esec" "$t" "$(lm "$t")" \
+        printf '%010d\t  %-5s %-3s %-8.8s  %-6s %-8s %5s %7s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
             "$rate_disp" \
@@ -641,7 +641,7 @@ for done,k in rows[:int(sys.argv[2])]:
 PY
     while IFS=$(printf '\t') read -r t v tm md du rt; do
         [ -z "$t" ] && continue
-        printf '  %-5s %-3s %-9.9s %-6s %-8.8s %-6s %-8.8s %s\n' "$t" "$(lm "$t")" "$v" "$tm" \
+        printf '  %-5s %-3s %-9.9s %-6s %-8.8s %-6s %-9s %s\n' "$t" "$(lm "$t")" "$v" "$tm" \
             "$(mdl "$md")" "$du" "$rt" "$(desc "$t")" | fit >> "$T.done"
     done < "$T.done.rows"
     python3 - "$T.json" > "$T.openstat" <<'PYS'
