@@ -49,6 +49,7 @@ DISPATCH="$ROOT/bin/dispatch"
 KEEPER="$ROOT/tools/fleet-keeper.sh"
 MG="$ROOT/bin/managent"
 FAIL=0
+. "$ROOT/tools/lib/scratch-repo.sh"   # T855/T873: weizigo_reset_census for direct store writes
 
 mkdir -p /tmp/weizigo
 WORK="$(mktemp -d /tmp/weizigo/t845-caps-XXXXXX)" || { echo "regression-dispatch-caps.sh: FATAL — scratch mktemp failed; refusing to run (T445)" >&2; exit 2; }
@@ -127,6 +128,7 @@ fresh_store() {
 import json, sys
 json.dump({}, open(sys.argv[1], "w"), indent=1)
 PY
+    weizigo_reset_census "$STORE"   # T873: direct write bypasses the S10 census; reset so the next managent add is not refused as a shrink
 }
 
 reset_keeper_state() {  # fresh keeper state so each keeper arm starts clean
