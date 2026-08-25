@@ -6765,12 +6765,17 @@ fn cmdAgent(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
         w.diag("error: task '{s}' not found\n", .{id});
         std.process.exit(1);
     };
-    const old = ts_ptr.agent;
+    // T874 R5: dupe the previous agent before setFirstHandAttribution frees
+    // the underlying buffer — the diag below needs to print the old label,
+    // and reading it after free segfaults (RC=134). Reproduced on any
+    // `managent agent <id> <name>` whose existing agent is non-null.
+    const old_dup: ?[]const u8 = if (ts_ptr.agent) |a| try alloc.dupe(u8, a) else null;
+    defer if (old_dup) |d| alloc.free(d);
     // T544: correcting the agent also corrects the model — the two fields
     // describe the same attribution and must not be allowed to diverge.
     try setFirstHandAttribution(ts_ptr, name);
     try writeStateLocked(io, state_path, &state);
-    w.diag("\n  {s}  agent {s} -> {s}\n", .{ id, old orelse "(none)", name });
+    w.diag("\n  {s}  agent {s} -> {s}\n", .{ id, old_dup orelse "(none)", name });
 }
 
 // ── verdict — set verdict on a done task (backfill / correction) ─────────────

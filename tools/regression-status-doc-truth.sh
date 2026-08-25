@@ -214,7 +214,7 @@ def parse_tables(text):
         else:
             i += 1
 
-def check_doc(path, store, arch_keys, store_keys):
+def check_doc(path, store, arch_keys, store_keys, arch_store):
     try:
         text = open(path, encoding="utf-8").read()
     except Exception as e:
@@ -249,7 +249,31 @@ def check_doc(path, store, arch_keys, store_keys):
             label = extract_label(cells[state_idx])
             for tid, where in tids:
                 if where == "archive":
-                    unknowns.append(f"{path}: row {cells[0]!r} ({tid}) cites an archived row — no live status to agree with")
+                    # T965 moved closed rows into archive.json — their status is still
+                    # recorded there. Check agreement against the archived status
+                    # rather than silently downgrading to UNKNOWN (the historical.md
+                    # test in arm A breaks otherwise: T859/T860 are archived but
+                    # the document cites them as ACTIVE; without the lookup, the
+                    # test reports rc=0 and arm A never fires).
+                    arch_st = arch_store.get(tid, {}).get("status", "MISSING")
+                    if not legend_ok:
+                        unknowns.append(f"{path}: row {cells[0]!r} ({tid}) label '{label}' — no parseable legend; state unchecked")
+                        continue
+                    if label not in legend_labels:
+                        fails.append(f"{path}: row {cells[0]!r} ({tid}) uses label '{label}' not declared in legend {sorted(legend_labels)}")
+                        continue
+                    cls = class_of(legend[label])
+                    if cls == "unknown":
+                        unknowns.append(f"{path}: row {cells[0]!r} ({tid}) label '{label}' — legend description '{legend[label]}' unclassifiable")
+                        continue
+                    ok = {"not_started": {"dispatchable", "blocked"},
+                          "in_progress": {"in_progress"},
+                          "done": {"done", "failed"}}[cls]
+                    verified += 1
+                    if arch_st not in ok:
+                        fails.append(f"{path}: row {cells[0]!r} ({tid}): doc label '{label}' ({cls}) disagrees with archive status '{arch_st}'")
+                    else:
+                        unknowns.append(f"{path}: row {cells[0]!r} ({tid}) cites an archived row ({arch_st}) — agreement verified against archive")
                     continue
                 if not legend_ok:
                     unknowns.append(f"{path}: row {cells[0]!r} ({tid}) label '{label}' — no parseable legend; state unchecked")
@@ -278,12 +302,13 @@ def main():
     t0 = time.perf_counter()
     store = load_store(store_path)
     store_keys = set(store)
-    arch_keys = set(load_store(store_path.replace("tasks.json", "archive.json")))
+    arch_store = load_store(store_path.replace("tasks.json", "archive.json"))
+    arch_keys = set(arch_store)
     total_verified = total_unknown = total_fails = 0
     n_legend = 0
     no_legend = []
     for p in doc_paths:
-        legend_ok, labels, verified, unknowns, fails = check_doc(p, store, arch_keys, store_keys)
+        legend_ok, labels, verified, unknowns, fails = check_doc(p, store, arch_keys, store_keys, arch_store)
         total_verified += verified
         total_unknown += len(unknowns)
         total_fails += len(fails)
@@ -323,17 +348,21 @@ if [ ! -s "$WORK/historical.md" ]; then
 else
     for t in T859 T860; do
         st="$(python3 -c "import json,sys; print(json.load(open('$STORE')).get('$t',{}).get('status','MISSING'))")"
-        if [ "$st" != "done" ]; then
+        # T965 archived many closed rows; an archived row is recorded as done.
+        # Accept either form so the historical arm's contract survives T965's move.
+        if [ "$st" != "done" ] && [ "$st" != "MISSING" ]; then
             echo "    FAIL: precondition drift — live store row $t is '$st', expected 'done'; the historical arm's evidence changed"
             FAIL=1
         fi
     done
     out="$(python3 "$CHECKER" "$STORE" "$WORK/historical.md" 2>&1)"
     rc=$?
+    # T965: archived rows emit 'archive status', live rows emit 'store status'.
     if [ "$rc" -ne 0 ] && printf '%s\n' "$out" | grep -q 'T859' \
        && printf '%s\n' "$out" | grep -q 'T860' \
        && printf '%s\n' "$out" | grep -q "label 'ACTIVE'" \
-       && printf '%s\n' "$out" | grep -q "store status 'done'"; then
+       && (printf '%s\n' "$out" | grep -q "store status 'done'" \
+           || printf '%s\n' "$out" | grep -q "archive status 'done'"); then
         echo "    PASS: historical revision red, naming both rows (T859, T860) and both states (ACTIVE vs done)"
     else
         echo "    FAIL: historical check rc=$rc; expected red naming T859/T860/ACTIVE/done:"
