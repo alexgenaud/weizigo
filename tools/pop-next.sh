@@ -30,8 +30,9 @@ STOP=untracked/pop-next.stop
 # family and more"). Was 1, then 5, then 3.
 #
 # Eight is chosen against the family caps below, not picked for size: with
-# claude=3, deepseek=3 and other=4, no two families can fill eight lanes
-# between them, so a full fleet necessarily spans at least three families.
+# claude=3, deepseek=3, other=4 and ollama=2, no two families can fill eight
+# lanes between them, so a full fleet necessarily spans at least three of the
+# four providers -- CC, Ollama, DS, OpenRouter -- and usually all four.
 # That is the "not all eggs in one basket" rule expressed as a cap rather
 # than as a hope. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
 # guards are downstream and unchanged: bin/dispatch enforces family caps, the
@@ -56,7 +57,7 @@ done
 # OpenRouter model lands (google, openai, alibaba, nvidia, upstage, oxalpha),
 # so 4 bounds the credit the operator says is going fastest while still
 # letting four different OpenRouter models run at once.
-export FLEET_FAMILY_CAP="${FLEET_FAMILY_CAP:-claude=3,deepseek=3,other=4,fable=1}"
+export FLEET_FAMILY_CAP="${FLEET_FAMILY_CAP:-claude=3,deepseek=3,other=4,ollama=2,fable=1}"
 
 lanes_now() { pgrep -f -- '--arbiter-id T[0-9]' 2>/dev/null | wc -l | tr -d ' '; }
 
@@ -179,7 +180,16 @@ PYP
   # oxalpha is in, which also satisfies "poke oxalpha periodically": least-data
   # draws it on its own without a separate mechanism, and if the provider is
   # still 429ing, the lane exits and the dispatcher reopens the row.
-  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud,local}"
+  # local only. qwenlocal declares 18,432 MB and heavy jobs are held back.
+  #
+  # ollama-cloud is back IN as of 2026-08-25, superseding this morning's "no
+  # singular work on ollama". The operator now wants all four provider families
+  # delegating at once -- CC, Ollama, DS, OpenRouter -- with "Ollama a bit
+  # less", and its weekly credits reset within hours. So it draws again, capped
+  # at 2 against claude=3, deepseek=3, other=4. If the credit picture changes,
+  # the lever is the CAP, not the exclusion: benching a whole provider is what
+  # left three families covering eight lanes earlier today.
+  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-local}"
 
   # ── a pinned model wins over the mechanized draw ────────────────────────
   # A race arm is only a race arm if it runs on the model it is an arm FOR.
