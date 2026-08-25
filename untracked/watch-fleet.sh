@@ -71,6 +71,28 @@ progress_rate() {  # $1=tokens $2=elapsed $3=argv $4=transcript mtime
     fi
     rate_of "$1" "$2"
 }
+# T968: a lane PAST its declared --max-wall budget must be visible as such,
+# even while it is still producing — an over-budget lane that is alive is a
+# decision for a human, not something to hide (the 2026-08-25 incident: two
+# lanes at ~5h against a declared 2h, on no surface, because nothing compared
+# elapsed to wall_budget). The runner kills at the budget since T968; this is
+# defence-in-depth for the window before that guard fires and for any future
+# defect that stops it. Durations never contain a colon (the operator rule).
+# wall_over reads the launch run record's wall_budget (written at LAUNCH, so
+# present while the lane runs; absent/None -> no flag, never an invented one).
+secs_dur() {  # $1 = seconds -> "3d02h" | "4h57" | "19'48" | "48s" | ?
+    case "${1:-x}" in ''|*[!0-9]*) printf '?'; return ;; esac
+    if   [ "$1" -ge 86400 ]; then printf '%dd%02dh' $(( $1 / 86400 )) $(( ($1 % 86400) / 3600 ))
+    elif [ "$1" -ge 3600 ];  then printf '%dh%02d'   $(( $1 / 3600 ))  $(( ($1 % 3600) / 60 ))
+    elif [ "$1" -ge 60 ];    then printf "%d'%02d"   $(( $1 / 60 ))    $(( $1 % 60 ))
+    else                          printf '%ss' "$1"
+    fi; }
+over_wall() {  # $1 = elapsed s, $2 = declared budget s -> "OVER-WALL(elapsed/budget)" | ''
+    case "${1:-x}" in ''|*[!0-9]*) return ;; esac
+    case "${2:-x}" in ''|*[!0-9]*) return ;; esac
+    [ "$2" -gt 0 ] || return
+    [ "$1" -gt "$2" ] || return
+    printf 'OVER-WALL(%s/%s)' "$(secs_dur "$1")" "$(secs_dur "$2")"; }
 # Freshness of a live transcript (T839) — the SIXTH PROGRESS column, next to
 # the rate. Both harnesses append a transcript while the run is in flight (pi
 # at untracked/tokens/sessions/<task>.<ts>.<pid>.<n>.jsonl, claude under
@@ -454,13 +476,23 @@ PYT
         else
             rate_disp=$(progress_rate "$tok" "$esec" "$cmd" "$mt")
         fi
+        # T968: compare elapsed against the launch record's declared budget.
+        # The run record is written at LAUNCH, so wall_budget is present for
+        # any live lane; a missing/absent budget renders no flag (never an
+        # invented one). The flag rides the description column — the row's
+        # fixed columns are pinned by the Times convention (T591) and rate/
+        # freshness are data, not verdicts; a past-budget lane IS a verdict.
+        wb=$(python3 -c 'import json
+try: print(json.load(open("untracked/runs/'"$t"'.json")).get("wall_budget") or "")
+except Exception: print("")' 2>/dev/null)
+        ow=$(over_wall "$esec" "$wb")
         printf '%010d\t  %-5s %-3s %-8.8s  %-6s %-8s %5s %7s %s\n' "$esec" "$t" "$(lm "$t")" \
             "$(mdl "$(mflag "$cmd")")" \
             "$(dur "$(ps -o etime= -p $p|tr -d ' ')")" \
             "$rate_disp" \
             "$(freshness_of "$mt")" \
             "$p" \
-            "$(desc "$t")" >> "$T.prog.raw"
+            "$(desc "$t")${ow:+ $ow}" >> "$T.prog.raw"
     done
     rm -f "$T.prog.ids"
 

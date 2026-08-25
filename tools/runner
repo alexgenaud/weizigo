@@ -45,10 +45,15 @@
 #                       bypass an admission REFUSAL for this launch only,
 #                       reason required and logged loudly (the
 #                       --allow-unisolated escape-hatch pattern).
-#   --max-wall 1800     (fallback for silent children) SIGKILL after this
-#                       many wall seconds if no [progress] lines seen.
-#                       macOS does not have timeout(1), so this is the
-#                       project's only reliable wall-time backstop.
+#   --max-wall 1800     ABSOLUTE wall ceiling — SIGKILL when elapsed wall
+#                       time reaches this many seconds, whether or not the
+#                       child is producing output.  macOS does not have
+#                       timeout(1), so this is the project's only reliable
+#                       wall-time backstop.  (T214 demoted this to a
+#                       silent-child-only fallback; T968 reverted that —
+#                       measured 2026-08-25, two dispatched lanes ran 4h57m/
+#                       4h53m against --max-wall 7200 because one stdout byte
+#                       exempted them from their own declared budget forever.
 #   --max-cpu 3600      (fallback for silent children) SIGKILL when the
 #                       sum of cumulative CPU seconds across ALL
 #                       descendants exceeds this.  Reported per-PID on exit.
@@ -118,8 +123,11 @@
 #      an exemption from a memory-exhaustion kill.
 #   2. Progress watchdog (--progress-timeout 600) — kills when the child emits
 #      no [progress] line for N seconds.  A child that reports every few
-#      minutes runs as long as it needs.  Fallback: when no progress lines are
-#      ever seen, the traditional --max-cpu / --max-wall ceilings apply.
+#      minutes runs as long as it needs — UP TO its declared --max-wall,
+#      which since T968 is an absolute ceiling again (the budget is the
+#      operator's cost control, not a stuck-detector; watch-fleet flags any
+#      lane past its budget as defence-in-depth for the window before the
+#      guard fires).  --max-cpu remains a silent-child fallback.
 #
 # All flags are pass-through except the guard itself.  Exit code 124
 # (timeout convention) on guard kill, or the wrapped command's exit code.
@@ -4314,6 +4322,27 @@ def main():
                     print(f"[runner] note: RSS cap stopping this task for "
                           f"overrunning its OWN declared need (INV-4)",
                           file=sys.stderr)
+            elif args.max_wall and elapsed >= args.max_wall:
+                # T968: --max-wall is an ABSOLUTE ceiling again.  T214 had
+                # demoted it to a silent-child-only fallback, reachable only
+                # when no [progress]/agent output had ever been seen; the
+                # measured consequence (brief 2026-08-25T21:11Z) was two
+                # dispatched lanes at 4h57m/4h53m against a declared
+                # wall_budget of 7200s — one stdout byte exempted them from
+                # their own budget FOREVER, and no surface compared elapsed
+                # to budget.  A producing-but-over lane is still terminated:
+                # the budget is the operator's declared cost control (every
+                # downstream surface assumes it holds), while stuck-detection
+                # stays the job of --progress-timeout and the liveness fuses.
+                # watch-fleet independently flags lanes past their budget so
+                # an over-budget lane that IS still producing is visible even
+                # if a future defect stops this guard again — silently
+                # letting it run was never a decision anyone made.
+                kill_reason = (
+                    f"wall ceiling {args.max_wall}s "
+                    f"({_format_duration(args.max_wall)}) reached "
+                    f"at {elapsed:.1f}s elapsed"
+                )
             elif claude_lane:
                 # T634: claude liveness is mtime movement, not stdout — a
                 # claude lane buffers its output, so "silent" is normal.
@@ -4394,12 +4423,6 @@ def main():
                         # can refuse to attribute it to the model.  The stderr
                         # message above is byte-identical to T586's (null control).
                         run_record["kill_class"] = "liveness"
-                elif args.max_wall and elapsed >= args.max_wall:
-                    kill_reason = (
-                        f"wall ceiling {args.max_wall}s "
-                        f"({_format_duration(args.max_wall)}) reached "
-                        f"at {elapsed:.1f}s elapsed (no [progress] lines seen)"
-                    )
                 elif args.max_cpu and total_cpu >= args.max_cpu:
                     kill_reason = (
                         f"CPU ceiling {args.max_cpu}s "
