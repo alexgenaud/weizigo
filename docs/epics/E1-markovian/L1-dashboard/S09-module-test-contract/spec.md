@@ -668,7 +668,6 @@ test tools/regression-managent-impression-gate.sh covers src/managent
 test tools/regression-managent-integrity.sh covers src/managent
 test tools/regression-managent-lock.sh covers src/managent
 test tools/regression-managent-status-json.sh covers src/managent
-test tools/regression-runner-guard.sh covers tools/runner
 test tools/regression-subagent-prompt.sh covers bin/subagent
 test tools/regression-task-id-archive.sh covers src/managent
 test tools/regression-task-identity.sh covers src/managent
