@@ -476,6 +476,22 @@ pub fn build(b: *std.Build) void {
     runner_run_records_regression.cwd = b.path(".");
     test_step.dependOn(&runner_run_records_regression.step);
 
+    // ── T927: sleep-guard controls (idle-sleep prevention for a run) ─────
+    // tools/runner holds a `caffeinate -i -w <runner-pid>` assertion for the
+    // child's lifetime so the host cannot idle-sleep mid-measurement and
+    // silently inflate the wall figure (2026-08-24 slept 24x, 765-900s
+    // each).  The run record gains `sleep_prevented` (true|false, stamped
+    // at launch so a SIGKILL of the runner cannot erase it) and
+    // `sleeps_during_run` (N, from `pmset -g log` across the window).
+    // Arms: null (guard ON, short run, no sleep -> true/0), seeded-defect
+    // (--no-sleep-guard -> false), seeded-defect (WEIZIGO_SLEEP_GUARD=0 ->
+    // false, the operator override for an unattended fleet night), and a
+    // wall-killed run still carrying sleep_prevented on the launch record.
+    // Scratch repo only; caffeinate/pmset are host commands.
+    const sleep_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-sleep-guard.sh" });
+    sleep_guard_regression.cwd = b.path(".");
+    test_step.dependOn(&sleep_guard_regression.step);
+
     // ── T572: load-test store-pollution controls ─────────────────────────
     // The T559 load test left six dummy lanes (TL1A..TL1F) in_progress in
     // the LIVE kanban: the runner auto-claims `--task-id` rows at launch,

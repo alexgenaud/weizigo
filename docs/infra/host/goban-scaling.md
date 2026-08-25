@@ -68,6 +68,17 @@ Record which one produced the row — they are not comparable:
 
 Compare only within a regime, and state the core count and whether the solve was threaded.
 
+**T927 sleep fields (2026-08-25):** every row carries `sleep_prevented`
+(true|false - was a `caffeinate -i` assertion held for the solve?) and
+`sleeps_during_run` (N - host "Entering Sleep" events in the run window, or
+`null` when pmset was unavailable / the window was not recorded). A wall
+figure taken across a sleep is silently wrong, so the capture script holds
+the assertion and counts sleeps either way; a run that slept is MARKED, not
+discarded. The 8 rows captured by T924 pre-date the guard and carry
+`sleep_prevented=false` with `sleeps_during_run=null` - no `start_epoch`
+was recorded, so whether any spanned a sleep is unknowable (see
+findings/T927-sleep-unprotected-runs.json).
+
 ## WZO1 vs WZO2 — the two artifact formats
 
 Both are committed and both are live. They are not versions of one thing; they answer different

@@ -750,7 +750,7 @@ def _write_run_record(record, repo_root):
             pass
 
 
-def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None, tokens=None, reap_claimed=None, reap_survivors=None, reap_ok=None, reap_unknown_partial=None):
+def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None, cpu=None, rss_mb=None, killed=None, tokens=None, reap_claimed=None, reap_survivors=None, reap_ok=None, reap_unknown_partial=None, sleeps_during_run=None):
     """Stamp the child's outcome onto the in-memory launch record and persist.
 
     ret is the child's exit code; signum is the signal that killed the child
@@ -827,6 +827,12 @@ def _finalize_run_record(run_record, repo_root, ret=None, signum=None, wall=None
         # from a genuinely clean one (field absent; readers .get, the C6
         # convention for old records).
         run_record["reap_unknown_partial"] = reap_unknown_partial
+    # T927: stamp the sleep count at finalize.  None means "not measured"
+    # (pmset unavailable, or a finalize path that did not compute it); the
+    # key stays present (set to None at launch) so a reader never infers
+    # absence.  A real count (0 or N) overwrites the launch-time None.
+    if sleeps_during_run is not None:
+        run_record["sleeps_during_run"] = sleeps_during_run
     _write_run_record(run_record, repo_root)
 
 
@@ -1834,6 +1840,118 @@ def _arbiter_release(identity, state_path):
         if identity in state["admitted"]:
             del state["admitted"][identity]
             _arbiter_save(state_path, state)
+
+
+# ── T927 sleep guard — protect a run's wall clock from host idle sleep ────
+#
+# The defect (2026-08-25): nothing called `caffeinate`, so the host could
+# idle-sleep mid-measurement and silently inflate the wall figure
+# (`tools/runner` computes wall as end - start, folding any sleep into the
+# number with no signal in the record). 2026-08-24 slept 24 times
+# (765-900 s each); any wall figure taken that day is suspect.
+#
+# The guard: hold a `caffeinate -i -w <runner-pid>` assertion for the
+# child's lifetime.  `-i` prevents idle sleep; `-w <pid>` makes caffeinate
+# wait for that pid to exit, so the assertion auto-releases on EVERY exit
+# path — including a SIGKILL of the runner (caffeinate detects the pid gone
+# and exits).  caffeinate is a child of the RUNNER (not the guarded child),
+# so the child's process-group reap never touches it and it is never
+# counted in the child's RSS.
+#
+# The record gains `sleep_prevented` (true|false — was the assertion held?)
+# stamped at LAUNCH so a runner SIGKILL before finalize cannot erase it, and
+# `sleeps_during_run` (N — "Entering Sleep" entries from `pmset -g log`
+# whose timestamp falls in the run window) stamped at finalize.  A run that
+# slept is MARKED, not discarded — the reader decides.  On a host without
+# caffeinate (non-darwin) the guard honestly reports sleep_prevented=false
+# with a reason, never a silent true.
+#
+# Operator override: `--no-sleep-guard` or `WEIZIGO_SLEEP_GUARD=0` disables
+# the assertion.  The brief rules that holding idle-sleep off across an
+# unattended fleet night is a power/thermal decision, not just a
+# correctness one — so the override is the route the dispatcher takes for
+# such nights; correctness runs keep it on (the default).
+
+def _start_sleep_guard(runner_pid, enabled):
+    """Hold an idle-sleep assertion for the runner's lifetime.
+
+    Returns (proc, sleep_prevented, reason).  proc is the caffeinate
+    subprocess (a child of THIS runner) or None.  sleep_prevented is True
+    only when the assertion was actually held.  On a host without
+    caffeinate, or when the operator disabled the guard, returns
+    (None, False, reason) — never a silent True."""
+    if not enabled:
+        return None, False, "sleep guard disabled (--no-sleep-guard / WEIZIGO_SLEEP_GUARD=0)"
+    if not sys.platform.startswith("darwin"):
+        return None, False, "sleep guard inert: not darwin (sys.platform=%r)" % sys.platform
+    try:
+        proc = subprocess.Popen(
+            ["caffeinate", "-i", "-w", str(int(runner_pid))],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            # caffeinate in its own group so the child's reap never sees it
+            preexec_fn=lambda: os.setsid() if hasattr(os, "setsid") else None,
+        )
+    except (FileNotFoundError, OSError) as exc:
+        return None, False, "sleep guard unavailable: caffeinate not launched (%s)" % exc
+    return proc, True, "caffeinate -i -w %d held for the run" % int(runner_pid)
+
+
+def _release_sleep_guard(proc):
+    """Release the caffeinate assertion.  Belt-and-suspenders: `caffeinate
+    -w <runner-pid>` already auto-releases when the runner exits (including
+    SIGKILL), so this is only for the clean exit paths where terminating it
+    a moment early is tidier than waiting for the -w poll.  Idempotent."""
+    if proc is None:
+        return
+    try:
+        if proc.poll() is None:
+            proc.terminate()
+            try:
+                proc.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+
+
+def _count_sleeps_in_window(start_epoch, end_epoch):
+    """Count "Entering Sleep" entries from `pmset -g log` whose timestamp
+    falls in [start_epoch, end_epoch] (inclusive).  Returns the integer
+    count, or None when pmset is unavailable / unreadable (cannot measure =
+    cannot count, the guard's stance throughout this file)."""
+    if start_epoch is None or end_epoch is None:
+        return None
+    if end_epoch < start_epoch:
+        return None
+    try:
+        out = subprocess.run(
+            ["pmset", "-g", "log"],
+            capture_output=True, text=True, timeout=3.0,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+        return None
+    if out.returncode != 0:
+        return None
+    from datetime import datetime
+    count = 0
+    saw_any = False
+    for line in out.stdout.splitlines():
+        if "Entering Sleep" not in line:
+            continue
+        saw_any = True
+        # "2026-08-24 03:14:22 +0200 Sleep ... Entering Sleep state ..."
+        parts = line.split(None, 3)
+        if len(parts) < 3:
+            continue
+        ts_text = " ".join(parts[:3])  # date time offset
+        try:
+            dt = datetime.strptime(ts_text, "%Y-%m-%d %H:%M:%S %z")
+        except ValueError:
+            continue
+        epoch = int(dt.timestamp())
+        if start_epoch <= epoch <= end_epoch:
+            count += 1
+    return count if saw_any else None
 
 
 # ── L3 backstop: kernel-signalled alarm, never a kill (ram-policy.md §4.4) ─
@@ -3358,6 +3476,20 @@ def main():
                     help="log per-member peak RSS on exit (default true)")
     ap.add_argument("--no-show-peak-on-exit", dest="show_peak", action="store_false",
                     help="do not log per-member peak RSS on exit")
+    # T927: idle-sleep prevention for the run's wall clock.  Default ON — a
+    # measurement that crosses a host sleep is silently wrong.  The operator
+    # override (--no-sleep-guard / WEIZIGO_SLEEP_GUARD=0) is the route the
+    # brief names for an unattended fleet night where holding idle-sleep off
+    # is a power/thermal decision; correctness runs keep it on.
+    ap.add_argument("--sleep-guard", dest="sleep_guard", action="store_true",
+                    default=None,
+                    help="hold a caffeinate -i assertion for the run so the "
+                         "host cannot idle-sleep mid-measurement (default on; "
+                         "recorded as sleep_prevented=true).  See --no-sleep-guard.")
+    ap.add_argument("--no-sleep-guard", dest="sleep_guard", action="store_false",
+                    help="disable the idle-sleep assertion (recorded as "
+                         "sleep_prevented=false).  WEIZIGO_SLEEP_GUARD=0 has "
+                         "the same effect when neither flag is passed.")
     ap.add_argument("--task-id", type=str, default=None,
                     help="worker/task identifier for heartbeat and directive "
                          "checking, e.g. DSPro/2B-5 or WORKER-CHANNEL")
@@ -3402,6 +3534,17 @@ def main():
     ap.add_argument("rest", nargs=argparse.REMAINDER,
                     help="command and arguments after `--`")
     args = ap.parse_args()
+
+    # T927: resolve the sleep-guard flag.  Explicit flag wins; else env;
+    # else default ON.  WEIZIGO_SLEEP_GUARD=0 is the operator override for
+    # an unattended fleet night (power/thermal decision — see the brief).
+    sleep_guard = args.sleep_guard
+    if sleep_guard is None:
+        env_sg = os.environ.get("WEIZIGO_SLEEP_GUARD")
+        if env_sg is not None:
+            sleep_guard = env_sg.lower() not in ("0", "false", "no", "")
+        else:
+            sleep_guard = True
 
     # Handle --sweep (standalone)
     if args.sweep:
@@ -3702,6 +3845,13 @@ def main():
                 "wall_budget": args.max_wall if args.max_wall else None,
                 "exit": 124,
                 "wall": 0.0,
+                # T927: nothing ran - the guard was never started (no spawn)
+                # and no window was opened. sleep_prevented=false honestly
+                # reports the assertion was not held; sleeps_during_run=0
+                # because the window is empty, not because sleeps were counted.
+                "sleep_prevented": False,
+                "sleep_prevented_reason": "directive refused at launch - child never spawned, no guard started",
+                "sleeps_during_run": 0,
                 "kill_class": "directive",
                 "killed_by": "directive",
                 "killed": ("directive %s %s from %s (pending at launch)"
@@ -3750,6 +3900,17 @@ def main():
     # D-22/D-23: the --since floor is a PRE-spawn epoch integer, stamped
     # before Popen so it can never land strictly after the anchor's start.
     spawn_epoch = int(time.time())
+    # T927: hold the idle-sleep assertion for THIS runner's lifetime before
+    # spawning the child, so the wall clock cannot cross a host sleep.
+    # caffeinate -w <os.getpid()> auto-releases when the runner exits (even
+    # SIGKILL); _release_sleep_guard tidies it on the clean exit paths.
+    caff_proc, sleep_prevented, sleep_reason = _start_sleep_guard(
+        os.getpid(), sleep_guard)
+    if sleep_prevented:
+        print(f"[runner] sleep guard: {sleep_reason}", file=sys.stderr)
+    else:
+        print(f"[runner] sleep guard: not held — {sleep_reason}",
+              file=sys.stderr)
     proc = subprocess.Popen(argv, preexec_fn=preexec_fn,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             text=True)
@@ -3782,6 +3943,13 @@ def main():
         "brief_bytes": _bundle_bytes(task_identity, repo_root),
         "prompt_bytes": _prompt_bytes(argv),
         "wall_budget": args.max_wall if args.max_wall else None,
+        # T927: stamped at LAUNCH so a SIGKILL of the runner before finalize
+        # cannot erase whether the assertion was held.  sleeps_during_run is
+        # None until finalize computes it from pmset across the window; the
+        # key is present at launch so a reader never sees a missing field.
+        "sleep_prevented": sleep_prevented,
+        "sleep_prevented_reason": sleep_reason,
+        "sleeps_during_run": None,
     }
     # A nested run does NOT rotate the dispatch slot: no _begin_attempt, so
     # the row's dispatch record stays exactly where every reader looks.
@@ -4263,13 +4431,19 @@ def main():
                                 total_cpu_sum, peak_rss_mb, repo_root,
                                 tokens_in=(tok or {}).get("tokens_in"),
                                 tokens_out=(tok or {}).get("tokens_out"))
+                # T927: count sleeps across the run window before releasing
+                # the assertion; release on the kill path too (caffeinate -w
+                # would auto-release on runner exit, but be tidy now).
+                _sleeps = _count_sleeps_in_window(spawn_epoch, int(time.time()))
+                _release_sleep_guard(caff_proc)
                 _finalize_run_record(run_record, record_root, ret=None, signum=signal.SIGKILL,
                                     wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
                                     killed=kill_reason, tokens=tok,
                                     reap_claimed=reap_result["claimed"],
                                     reap_survivors=reap_result["survivors"],
                                     reap_ok=reap_result["ok"],
-                                    reap_unknown_partial=reap_result.get("unknown_partial"))
+                                    reap_unknown_partial=reap_result.get("unknown_partial"),
+                                    sleeps_during_run=_sleeps)
                 _print_tokens_trailer(tok)
                 print(f"[runner] exit 124 ({kill_reason}) in {elapsed:.1f} s", file=sys.stderr)
                 sys.exit(124)
@@ -4283,11 +4457,14 @@ def main():
         # decision — stamp the enum so the verification record can refuse it.
         if run_record is not None:
             run_record["killed_by"] = "harness-error"
+        _sleeps = _count_sleeps_in_window(spawn_epoch, int(time.time()))
+        _release_sleep_guard(caff_proc)
         _finalize_run_record(run_record, record_root, wall=elapsed, killed=f"runner exception: {exc}",
                              reap_claimed=reap_result["claimed"],
                              reap_survivors=reap_result["survivors"],
                              reap_ok=reap_result["ok"],
-                             reap_unknown_partial=reap_result.get("unknown_partial"))
+                             reap_unknown_partial=reap_result.get("unknown_partial"),
+                             sleeps_during_run=_sleeps)
         raise
     finally:
         if args.show_peak and not logs_done and (peak_rss or peak_cpu):
@@ -4320,6 +4497,10 @@ def main():
                     total_cpu_sum, peak_rss_mb, repo_root,
                     tokens_in=(tok or {}).get("tokens_in"),
                     tokens_out=(tok or {}).get("tokens_out"))
+    # T927: count sleeps across the run window, then release the assertion
+    # (caffeinate -w would auto-release on runner exit; tidy it now).
+    _sleeps = _count_sleeps_in_window(spawn_epoch, int(time.time()))
+    _release_sleep_guard(caff_proc)
     # T364: child's fate — subprocess reports killed-by-signal as a negative
     # returncode (-signum).  Record the signal separately so reap's note can
     # name "SIGKILL" instead of a bare code.
@@ -4330,7 +4511,8 @@ def main():
                             reap_claimed=reap_result["claimed"],
                             reap_survivors=reap_result["survivors"],
                             reap_ok=reap_result["ok"],
-                            reap_unknown_partial=reap_result.get("unknown_partial"))
+                            reap_unknown_partial=reap_result.get("unknown_partial"),
+                            sleeps_during_run=_sleeps)
     else:
         _finalize_run_record(run_record, record_root, ret=ret,
                             wall=elapsed, cpu=total_cpu_sum, rss_mb=peak_rss_mb,
@@ -4338,7 +4520,8 @@ def main():
                             reap_claimed=reap_result["claimed"],
                             reap_survivors=reap_result["survivors"],
                             reap_ok=reap_result["ok"],
-                            reap_unknown_partial=reap_result.get("unknown_partial"))
+                            reap_unknown_partial=reap_result.get("unknown_partial"),
+                            sleeps_during_run=_sleeps)
     _print_tokens_trailer(tok)
     print(f"[runner] exit {ret} in {elapsed:.1f} s", file=sys.stderr)
 
