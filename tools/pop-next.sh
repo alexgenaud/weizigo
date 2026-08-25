@@ -26,12 +26,18 @@ set -e
 cd "$(dirname "$0")/.." || exit 1
 QUEUE=docs/infra/dispatch-queue.tsv
 STOP=untracked/pop-next.stop
-# Default 3 (operator, 2026-08-25: "slow and steady is best"). Was 1, then 5.
-# Five was right while he was watching; three is the unattended rate. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
+# Default 8 (operator, 2026-08-25: "I would hope for at least one from each
+# family and more"). Was 1, then 5, then 3.
+#
+# Eight is chosen against the family caps below, not picked for size: with
+# claude=3, deepseek=3 and other=4, no two families can fill eight lanes
+# between them, so a full fleet necessarily spans at least three families.
+# That is the "not all eggs in one basket" rule expressed as a cap rather
+# than as a hope. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
 # guards are downstream and unchanged: bin/dispatch enforces family caps, the
 # RAM arbiter refuses a lane that does not fit, and holds keep two rows off one
 # file. Set MAX_LANES=1 to go back to serial.
-MAX_LANES="${MAX_LANES:-3}"
+MAX_LANES="${MAX_LANES:-8}"
 DRY=0; LOOPS=1
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -41,6 +47,16 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# Per-family caps, enforced by bin/dispatch (tools/fleet_caps.py). Defaults are
+# claude=5, deepseek=5, ollama=5, local=5, other=5, fable=1 -- which at
+# MAX_LANES=8 would let ONE family take five of the eight. Tightened so the
+# fleet has to spread: claude=3 (unchanged from T651 and the number that has
+# never tripped the provider), deepseek=3, other=4. `other` is where every
+# OpenRouter model lands (google, openai, alibaba, nvidia, upstage, oxalpha),
+# so 4 bounds the credit the operator says is going fastest while still
+# letting four different OpenRouter models run at once.
+export FLEET_FAMILY_CAP="${FLEET_FAMILY_CAP:-claude=3,deepseek=3,other=4,fable=1}"
 
 lanes_now() { pgrep -f -- '--arbiter-id T[0-9]' 2>/dev/null | wc -l | tr -d ' '; }
 
