@@ -147,7 +147,23 @@ PYP
   # models still run wherever a row PINS them, which is where their comparative
   # data comes from. Revisit when the OpenRouter picture changes -- this is a
   # credit decision, not a capability one, and it must not leak into any race.
-  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud,google,openai,alibaba,nvidia,upstage,oxalpha}"
+  # Excluded: ollama-cloud (operator: races only, credits burn fast) and local
+  # (qwenlocal declares 18,432 MB -- "hold back on risky/heavy 20 GB jobs").
+  # Everything else is IN, including oxalpha and the four OpenRouter models.
+  #
+  # This REVERSES the narrower exclusion set fifteen minutes ago, which had
+  # steered every unpinned draw to claude and deepseek to save OpenRouter
+  # credit. That was the wrong trade and the operator corrected it: "most
+  # models can be utilized about equally. Models with least evidence should be
+  # raced. Don't put all eggs in the same basket." Concentrating three hours of
+  # unattended work on two families is exactly one basket, and the models with
+  # the least evidence are the ones that most need the lanes. Slow and steady
+  # is bought with the RATE (3 lanes), not by benching two thirds of the roster.
+  #
+  # oxalpha is in, which also satisfies "poke oxalpha periodically": least-data
+  # draws it on its own without a separate mechanism, and if the provider is
+  # still 429ing, the lane exits and the dispatcher reopens the row.
+  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud,local}"
 
   # ── a pinned model wins over the mechanized draw ────────────────────────
   # A race arm is only a race arm if it runs on the model it is an arm FOR.
