@@ -1,0 +1,139 @@
+{
+  "claims": [],
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "task_id": "T939",
+  "identifier": "gemini-3.7-flash/T939",
+  "new_rows": [],
+  "assertions": [
+    {
+      "id": "A1_RAM_ADMISSION_REFUSAL",
+      "claim": "tools/runner refuses a lane whose declared RAM does not fit host memory (avail - committed - candidate < 4608 MB reserve per ram-policy.md §4.1); exit code is 3, child process is never spawned, running tasks are untouched, and --override-admission allows launch despite tight RAM.",
+      "pass_control": {
+        "scenario": "Host avail=10000 MB, candidate=1000 MB (projected 9000 MB >= 4608 MB reserve).",
+        "observed_exit_code": 0,
+        "child_spawned": true
+      },
+      "fail_control": {
+        "scenario": "Host avail=5000 MB, candidate=1000 MB (projected 4000 MB < 4608 MB reserve).",
+        "observed_exit_code": 3,
+        "child_spawned": false
+      },
+      "override_control": {
+        "scenario": "Host avail=5000 MB, candidate=1000 MB, with --override-admission='test-emergency-override'.",
+        "observed_exit_code": 0,
+        "child_spawned": true
+      },
+      "how_proved_can_fail": "Tested against injected avail memory; verified that runner returns exit code 3 and touches no spawn marker file when projected capacity breaches the 4608 MB reserve, while exit code 0 and child execution occur when capacity fits or override is passed."
+    },
+    {
+      "id": "A2_WALL_BAND_RAM_DECLARATION",
+      "claim": "Expected wall time monotonically maps to RAM declarations per ram-policy.md §3.2 and boundary convention (boundary value belongs to the band it starts): <60s -> 768 MB, 60-600s -> 1792 MB, 600-1800s -> 3072 MB, >=1800s -> 4608 MB; explicit --ram-mb=N overrides.",
+      "pass_control": {
+        "scenario": "Exact checks at 30s (768), 59s (768), 60s (1792), 300s (1792), 599s (1792), 600s (3072), 1200s (3072), 1799s (3072), 1800s (4608), 10800s (4608), plus explicit --ram-mb=8192 override.",
+        "observed_exit_code": 0
+      },
+      "fail_control": {
+        "scenario": "Asserting pre-T913 faulty expectation (e.g. 60s -> 768 MB or 1800s -> 1024 MB provider-based default).",
+        "observed_exit_code": 1
+      },
+      "how_proved_can_fail": "Evaluated declared RAM against boundary values; proven to go red (exit code 1) when asserting the previous faulty provider-keyed values (which killed T912 at 10800s) or off-by-one boundary mapping."
+    },
+    {
+      "id": "A3_MAX_WALL_CEILING_TERMINATION",
+      "claim": "A lane that exceeds --max-wall is terminated via process group reap (SIGKILL), runner exits with code 124, and termination is attributed in the run record (killed_by='wall', signal=9, wall_budget=max_wall).",
+      "pass_control": {
+        "scenario": "tools/runner --max-wall 5 -- sleep 0.1",
+        "observed_exit_code": 0,
+        "killed_by": null
+      },
+      "fail_control": {
+        "scenario": "tools/runner --max-wall 1 -- sleep 5",
+        "observed_exit_code": 124,
+        "killed_by": "wall",
+        "signal": 9
+      },
+      "how_proved_can_fail": "Spawned a silent sleep process exceeding --max-wall; observed runner terminate child after 1s, exit 124, and record killed_by='wall' with signal=9. Verified that an in-budget child exits 0 with killed_by=null."
+    },
+    {
+      "id": "A4_MEMORY_OVERRUN_RSS_CAP_KILL_AND_PRESSURE_ALARM",
+      "claim": "A process exceeding its RSS cap (--rss-cap-mb) is terminated by runner (exit 124, killed_by='rss', signal=9); while L3 sustained kernel memory pressure (WEIZIGO_KERNEL_PRESSURE_LEVEL=2) emits an ALARM without killing an in-budget process (exit 0, satisfying INV-1).",
+      "pass_control": {
+        "scenario": "tools/runner --rss-cap-mb 100 -- python3 allocating 10 MB",
+        "observed_exit_code": 0,
+        "killed_by": null
+      },
+      "fail_control": {
+        "scenario": "tools/runner --rss-cap-mb 30 -- python3 allocating 80 MB",
+        "observed_exit_code": 124,
+        "killed_by": "rss",
+        "signal": 9
+      },
+      "l3_pressure_alarm_control": {
+        "scenario": "WEIZIGO_KERNEL_PRESSURE_LEVEL=2 tools/runner -- python3 sleep 2.5s",
+        "observed_exit_code": 0,
+        "alarm_emitted": true,
+        "killed": false
+      },
+      "how_proved_can_fail": "Executed memory allocations above and below cap: allocating 80 MB under 30 MB cap produced immediate termination (exit 124, killed_by='rss'), whereas in-budget allocation completed cleanly (exit 0). Injected kernel pressure level 2 verified ALARM emission without kill (INV-1)."
+    },
+    {
+      "id": "A5_RUN_RECORD_KIND_AND_REAP_INTEGRITY",
+      "claim": "tools/runner records run_kind='dispatch' for top-level dispatches (untracked/runs/<task>.json) and run_kind='nested' for child test runs (untracked/runs/nested/<task>.<pid>-<epoch>.json), ensuring managent reap reads the true dispatch record without clobbering (T895).",
+      "pass_control": {
+        "scenario": "Top-level runner executing child that runs nested runner with identical MANAGENT_TASK_ID.",
+        "observed_exit_code": 0,
+        "dispatch_run_kind": "dispatch",
+        "nested_run_kind": "nested",
+        "dispatch_file_unclobbered": true
+      },
+      "fail_control": {
+        "scenario": "Asserting nested run clobbered top-level record or misclassified kind.",
+        "observed_exit_code": 1
+      },
+      "how_proved_can_fail": "Executed nested runner hierarchy inside scratch repository; verified that dispatch record retains run_kind='dispatch' while nested record in untracked/runs/nested/ is marked run_kind='nested'. If nested run had written to top-level slot, assertion fails with exit code 1."
+    },
+    {
+      "id": "A6_ZIG_RELEASEFAST_OPTIMIZATION_ENFORCEMENT",
+      "claim": "tools/runner automatically prepends ReleaseFast optimization (-Doptimize=ReleaseFast for zig build, -O ReleaseFast for zig run) when not explicitly set, preventing LLVM Debug mode memory exhaustion (incident 2026-07-29 actionable B-2).",
+      "pass_control": {
+        "scenario": "prepend_releasefast(['zig', 'build']) -> ['zig', 'build', '-Doptimize=ReleaseFast']; prepend_releasefast(['zig', 'run', 'src/retro.zig']) -> ['zig', 'run', '-O', 'ReleaseFast', 'src/retro.zig']",
+        "observed_exit_code": 0
+      },
+      "fail_control": {
+        "scenario": "Asserting non-transformed zig build command.",
+        "observed_exit_code": 1
+      },
+      "how_proved_can_fail": "Tested runner's CLI argument transformation against zig build/run commands; verified automatic insertion of ReleaseFast flags."
+    },
+    {
+      "id": "A7_SLEEP_GUARD_CAFFEINATE_ASSERTION",
+      "claim": "tools/runner holds a caffeinate -i -w <runner_pid> assertion during execution on Darwin to prevent idle sleep, recording sleep_prevented=true in the run record (T927).",
+      "pass_control": {
+        "scenario": "tools/runner execution on Darwin with default sleep guard enabled.",
+        "observed_exit_code": 0,
+        "sleep_prevented": true
+      },
+      "fail_control": {
+        "scenario": "Asserting sleep_prevented=false on active Darwin run.",
+        "observed_exit_code": 1
+      },
+      "how_proved_can_fail": "Verified that runner starts caffeinate assertion and writes sleep_prevented=true into the finalized run record."
+    }
+  ],
+  "uncovered_and_rationale": [
+    {
+      "scope": "Live process orphan kill (--sweep / --reap-orphans with SIGKILL)",
+      "rationale": "Sweeper live SIGKILL pass requires active untracked orphan processes on host. Destructive multi-pass orphan killing was tested for syntax/reap tree traversal in isolation rather than terminating live host processes."
+    },
+    {
+      "scope": "Real hardware physical RAM exhaustion",
+      "rationale": "Per ram-policy.md §4 and repo doctrine ('inject the reading, never exhaust the host'), memory pressure and available capacity are verified using injected environment variables (WEIZIGO_HOST_MEM_AVAIL_MB, WEIZIGO_KERNEL_PRESSURE_LEVEL) rather than risking actual kernel panics."
+    },
+    {
+      "scope": "Live external model provider API network calls",
+      "rationale": "Subagent prompt ingestion and wall-band mapping are tested deterministically without live network/API calls to ensure tests remain hermetic and reproducible offline."
+    }
+  ],
+  "notes": "T939 (Race J runner guard - gemini-flash lane). Delivered runnable regression suite untracked/race-j/gflash/regression-runner-guard.sh covering all 5 brief assertions plus ReleaseFast and sleep guard assertions. All positive (pass) and negative/termination (fail/refusal) controls executed with observed exit codes verified."
+}
