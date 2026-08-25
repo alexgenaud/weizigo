@@ -1,40 +1,47 @@
-# task	rank	est_wall_s	note
-# Seat estimates (T914, 2026-08-25). Accuracy is not the point; the ordering and the
-# habit of estimating are. A wrong estimate that gets corrected beats no estimate.
-# T894 makes this mechanism durable; this file is the interim carrier.
-T926	1	3600	capture tool RSS + killed-run rows
-T927	2	3600	sleep guard around runs
-T894	3	5400	queue head + dispatch estimates (this mechanism, durably)
-T928	4	5400	detached jobs: pid + log, no agent
-T923	5	3600	commit gate reads worktree not index
-T922	6	5400	build.zig undeclared shared writer
-T915	7	5400	tools/runner coverage, red-first
-T873	8	14400	green-up fix-test wave, 21 entries
-T874	9	10800	green-up fix-code wave, 10 entries
-T892	10	5400	directives reach the worker
-T909	11	5400	close must stop the worker
-T768	12	2700	identifier defaults from model at claim
-T770	13	2700	task-ID mint consults archive
-T775	14	2700	refuse unknown flags loudly
-T772	15	5400	cost ladder quality gate
-T767	16	2700	findings schema queued_kanban_rows
-T833	17	3600	qwen appetite down to 1
-T925	18	5400	5xN frontier: WZO1 vs WZO2 ruling
-T916	19	1800	Race J arm ox-alpha
-T917	20	1800	Race J arm dsflash
-T918	21	1800	Race J arm dspro
-T919	22	1800	Race J arm kimi
-T920	23	1800	Race J arm sonnet
-T709	24	5400	reconcile rc=0 with deliverables
-T798	25	5400	harness kill visible in kanban
-T787	26	5400	one home for sprint documents
-T712	27	3600	one arbiter, no per-runner kills
-T713	28	2700	qwen-resident dispatch check
-T715	29	1800	record the incident in the guard doc
-T837	30	10800	C3 toward zero
-T830	31	5400	diff race: nonce vs no-work
-T753	32	5400	race oxalpha against the field
-T782	33	3600	race-w blind rejudge judge 3
-T535	34	10800	Stage-4 clean-story spec
-T529	35	7200	grand race P0
-T735	36	1800	BRIEF MISSING - write or retire
+# task	rank	est_wall_s	lane	note
+# lane=AUTO    : well-specified, beneficial, reversible, no ruling needed. The popper
+#               (tools/pop-next.sh) takes these one at a time, in rank order.
+# lane=DISCUSS : needs an operator ruling, is a race needing adjudication, is
+#               under-specified, or edits a live dispatch path where a wrong change
+#               stops the fleet. Never popped automatically; raised for discussion.
+# Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
+# gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T926	1	3600	AUTO	capture tool RSS + killed-run rows
+T927	2	3600	AUTO	sleep guard around runs
+T894	3	5400	AUTO	queue head + dispatch estimates
+T932	4	7200	AUTO	finishParallel round-robin partition
+T931	5	5400	AUTO	bundle metadata sync
+T933	6	5400	AUTO	token ledger session join
+T923	7	3600	AUTO	commit gate reads worktree not index
+T922	8	5400	AUTO	build.zig undeclared shared writer
+T915	9	5400	AUTO	tools/runner coverage, red-first
+T873	10	14400	AUTO	green-up fix-test wave, 21 entries
+T874	11	10800	AUTO	green-up fix-code wave, 10 entries
+T892	12	5400	AUTO	directives reach the worker
+T909	13	5400	AUTO	close must stop the worker
+T768	14	2700	AUTO	identifier defaults from model at claim
+T770	15	2700	AUTO	task-ID mint consults archive
+T775	16	2700	AUTO	refuse unknown flags loudly
+T767	17	2700	AUTO	findings schema queued_kanban_rows
+T787	18	5400	AUTO	one home for sprint documents
+T715	19	1800	AUTO	record the incident in the guard doc
+T713	20	2700	AUTO	qwen-resident dispatch check
+T798	21	5400	AUTO	harness kill visible in kanban
+T925	22	3600	DISCUSS	5xN frontier: WZO1 vs WZO2 — needs a format ruling; cost of the folds is unmeasured
+T928	23	3600	DISCUSS	detached jobs: pid + log — design decision the operator has already shaped; agree the shape first
+T712	24	3600	DISCUSS	one arbiter, no per-runner kills — edits the live admission path - a wrong edit stops every dispatch (B3)
+T709	25	3600	DISCUSS	reconcile rc=0 with deliverables — edits dispatch verification, the thing that judges every lane
+T772	26	3600	DISCUSS	cost ladder quality gate — needs a policy ruling on what 'quality' gates on
+T833	27	3600	DISCUSS	qwen appetite down to 1 — roster config; operator's call
+T837	28	3600	DISCUSS	C3 toward zero — 42 register rows; a wrong absorb corrupts the epistemic ledger
+T916	29	3600	DISCUSS	Race J arm ox-alpha — race: needs blind adjudication after, and model-perf is deprioritised
+T917	30	3600	DISCUSS	Race J arm dsflash — race
+T918	31	3600	DISCUSS	Race J arm dspro — race
+T919	32	3600	DISCUSS	Race J arm kimi — race
+T920	33	3600	DISCUSS	Race J arm sonnet — race
+T830	34	3600	DISCUSS	diff race: nonce vs no-work — race
+T753	35	3600	DISCUSS	race oxalpha against the field — race
+T782	36	3600	DISCUSS	race-w blind rejudge judge 3 — race
+T529	37	3600	DISCUSS	grand race P0 — race, and 5d old with a 558-byte brief
+T535	38	3600	DISCUSS	Stage-4 clean-story spec — spec work; needs the operator in the loop by design
+T735	39	3600	DISCUSS	BRIEF MISSING — write it or retire it - cannot be run either way
