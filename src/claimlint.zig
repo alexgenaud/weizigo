@@ -2035,9 +2035,18 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
             c2_inventoried += 1;
             continue;
         }
+        c2_fail += 1;
         if (m.from_column) c2a += 1 else c2b += 1;
     }
     util.out("\n  missing paths, with the claims that reach them:\n", .{});
+    // T953 D1 (2026-08-25): the detail named the path but never the remedy —
+    // a reader with a failing count and a list of paths had to re-derive what
+    // to DO about each one (four gate runs + a hand bisection over eight
+    // paths, the recorded cost). A failure names its cause AND the action.
+    if (c2_fail > 0) {
+        util.out("  action (any one of): commit the missing file to the tree; remove or correct the citation;\n", .{});
+        util.out("  or record the loss in {s} (CONFIRMED-LOST inventory). Then re-run claimlint.\n", .{LOSS_INVENTORY});
+    }
     std.mem.sort(Missing, missing.items, {}, missingLess);
     for (missing.items) |m| {
         if (m.bulk) {
@@ -2045,7 +2054,6 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
             continue;
         }
         if (m.inventoriedOnly()) continue;
-        c2_fail += 1;
         util.out("  C2 {s}  {s}\n", .{ checkName("C2"), m.path });
         util.out("           named in:", .{});
         for (m.vias.items, 0..) |v, k| {
@@ -3672,7 +3680,18 @@ fn runVerify(io: Io, gpa: Allocator, claims_path: []const u8) !void {
     util.out("\n== SUMMARY ==\n", .{});
     util.out("  rows parsed / unparsed        {d} / {d}\n", .{ reg.rows.items.len, reg.unparsed.items.len });
     util.out("  C1a orphans / C1b alarms      {d} / {d}   (FAILS)   [C1a {s} / C1b {s}]\n", .{ c1_count, alarms.items.len, checkName("C1a"), checkName("C1b") });
-    util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]\n", .{ c2_total + c10_new.items.len, checkName("C2") });
+    util.out("  C2 dangling evidence paths    {d}   (FAILS)   [{s}]{s}\n", .{
+        c2_total + c10_new.items.len,
+        checkName("C2"),
+        // T953 D1: the count folds in C10-NEW volatile citations, whose paths
+        // are listed under the C10-NEW section — say so, or the reader hunts
+        // the C2 detail for a path that is not there (summary says 1, detail
+        // says (none)).
+        if (c10_new.items.len > 0)
+            try std.fmt.allocPrint(gpa, "  (including {d} C10-NEW volatile citation(s) — their paths are listed under the C10-NEW section, not in the C2 detail above)", .{c10_new.items.len})
+        else
+            "",
+    });
     util.out("  C3 PROVEN w/o committed evid. {d}   (debt list — hook-gated at the floor in claimlint-floor.json)   [{s}]\n", .{ tierB.items.len + tierC.items.len, checkName("C3") });
     util.out("  C4 dangling IDs / unreferenced {d} / {d}   (report only, does not fail yet)   [{s}]\n", .{ dangling.count(), unref, checkName("C4") });
     util.out("  C5 shadowed dependencies      {d}   (report only, does not fail yet)   [{s}]\n", .{ c5, checkName("C5") });
