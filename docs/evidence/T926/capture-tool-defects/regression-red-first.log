@@ -1,0 +1,25 @@
+=== regression-goban-scaling-capture (T926) ===
+host: Darwin; capture script: /tmp/weizigo/t926-confirm/capture-broken.sh
+
+  A. null: clean child -> row lands with rc=0, killed_by=none, partial=false
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+KeyError: 'killed_by'
+    FAIL: null control: row shape wrong
+
+  B. seeded-defect: tree RSS — child forks 300MB grandchild -> peak_rss_mb >= 400MB
+Traceback (most recent call last):
+  File "<stdin>", line 12, in <module>
+AssertionError: peak_rss_mb=309 MB — under 400 MB floor; only the direct child was sampled (pre-T926 shape). row={'artifact_bytes': None, 'cols': 0, 'exit': 0, 'head': '99efb87', 'host': {'cores': 18, 'ram_gb': 48}, 'measured': True, 'nodes': None, 'peak_rss_mb': 309, 'points': 0, 'regime': 'writes-off', 'rows': 0, 'sleep_prevented': True, 'sleeps_during_run': 0, 'start_epoch': 1787651367, 'task': 'T926B', 'wall_s': 8}
+    FAIL: tree RSS: row records only the direct child — defect 1 NOT fixed
+
+  C. seeded-defect: child SIGKILLs itself -> row lands with rc=137, killed_by=signal, partial=true
+    FAIL: killed control: no row in /private/tmp/weizigo/t926-scaling-vRwVes/ledger-C.jsonl (row was lost — pre-T926 defect 2)
+
+  D. seeded-defect: regime mismatch — claim writes-off, no RETRO_SOUND -> regime_mismatch=true
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+KeyError: 'regime_claimed'
+    FAIL: regime mismatch: field or warning missing — defect 3 NOT fixed
+
+=== regression-goban-scaling-capture: FAILED ===

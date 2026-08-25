@@ -1,0 +1,20 @@
+=== regression-goban-scaling-capture (T926) ===
+host: Darwin; capture script: /Users/alex/Project/Zig/weizigo/tools/goban-scaling-capture.sh
+
+  A. null: clean child -> row lands with rc=0, killed_by=none, partial=false
+        row OK: rc=0 killed_by=none partial=false peak=0MB
+    PASS: null control: row shape correct
+
+  B. seeded-defect: tree RSS — child forks 300MB grandchild -> peak_rss_mb >= 400MB
+        row OK: peak_rss_mb=612MB (parent ~300 + child ~300 = tree sum, post-T926 shape)
+    PASS: tree RSS: row records descendant tree, not just the child
+
+  C. seeded-defect: child SIGKILLs itself -> row lands with rc=137, killed_by=signal, partial=true
+        row OK: rc=137 killed_by=signal partial=true — kill path records the row
+    PASS: killed run: row lands with kill fields populated
+
+  D. seeded-defect: regime mismatch — claim writes-off, no RETRO_SOUND -> regime_mismatch=true
+        row OK: regime_claimed=writes-off regime_observed=memo-reuse mismatch=True, stderr warned
+    PASS: regime mismatch: row carries observed + mismatch + stderr warning
+
+=== regression-goban-scaling-capture: ALL CONTROLS PASSED ===
