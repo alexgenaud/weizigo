@@ -1,0 +1,16 @@
+{
+  "task_id": "T934",
+  "date": "2026-08-25",
+  "model": "nemotron-3.5-lightning",
+  "claims": [],
+  "changes": [
+    "Modified tools/runner to detect provider errors in stderr after subprocess exit",
+    "Added provider_info field to run_record with retries and last_provider_error",
+    "Set killed_by=provider-error when provider errors detected",
+    "Created tools/regression-provider-error-exit.sh with null and seeded-defect controls"
+  ],
+  "deliverables": [
+    "tools/runner - modified to distinguish three exit cases",
+    "tools/regression-provider-error-exit.sh - new file with controls"
+  ]
+}

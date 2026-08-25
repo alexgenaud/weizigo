@@ -1,0 +1,8 @@
+{
+  "task_id": "T934",
+  "date": "2026-08-25",
+  "model": "nemotron-3.5-lightning",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T934 — a provider refused service 20 times and the lane reported success. Short name: the provider refused service 20 times and the lane reported success. Landmark: advances L1 (the dashboard tells the truth) — a lane that could not run must not report the same exit code as one that ran. What changed: 1. Modified tools/runner to detect provider errors (e.g. 429 rate-limit) in stderr after the subprocess exits. This distinguishes three cases that were previously conflated: 1. Worker ran and finished → exit 0 with tokens 2. Worker ran and was killed → exit 124 with kill reason 3. Worker was never served → provider errors in stderr, killed_by=provider-error 2. Created tools/regression-provider-error-exit.sh with two controls: - null control: a worker that really runs → exit 0, tokens present - seeded-defect control: a stubbed provider returning 429 → must NOT exit 0, must name the error Runner changes (tools/runner): After ret = proc.wait(), the runner now checks stderr for provider error patterns: 429: or 429 \" → 429 rate-limit, count as retry Provider returned error with 429 → provider error 429 response format → 429 response, count as retry If provider errors detected, it sets: run_record[\"killed_by\"] = \"provider-error\" run_record[\"provider_info\"][\"retries\"] = count run_record[\"provider_info\"][\"last_provider_error\"] = error message This enables the verification layer to surface the provider's own message instead of the generic \"the task never left dispatchable\" symptom, and to separate \"model scored badly\" from \"model never answered\" in model-task-metrics.jsonl."
+}
