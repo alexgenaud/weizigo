@@ -1,0 +1,8 @@
+{
+  "task_id": "T949",
+  "date": "2026-08-25",
+  "model": "claude-haiku-4-5-20251001",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE audit arm for claude-haiku-4-5-20251001. Audited all 24 assigned rows (12 control with sealed ground truth + 12 disjoint haiku slice). Deliverables: docs/audits/done-audit-2026-08-25/haiku/records.json (24 rows with full judgment fields per corpus schema) and analysis.md (summary census + pattern analysis). Verdict accuracy: 83% (20/24 accurate; 3 inaccurate: T943, T755, T701; 1 mixed: T924). Absorption rate: 83% (20/24). Verification rate: 75% (18/24 verified; 6 self-reported). Key finding: acceptance gates predict verdict accuracy (95% on rows with acceptance=; 50% on rows without). Most important pattern: runner exit 0 and in-git deliverables do not prove completion; 3 control rows show auto-close hides incomplete work (T894, T924, T943). Recommended re-openings: T943 (false-positive gate should be investigated), T755 (deliverable missing), T701 (incomplete deliverable)."
+}
