@@ -46,7 +46,112 @@ things that are **owed, undecided, or wrong** and would otherwise live only in a
 | C5 | **Every hand-picked constant needs a derivation or a deletion.** `total // 8` is gone; still unexamined: `MEMORY_GATE_MARGIN_MB` 2048, `FALLBACK_COOLDOWN_SECONDS` 30 min, `ARM_FRESHNESS_SECONDS` 3 h, `--poll-ms` 250, `--rss-cap-mb` 12288, `MAX_DEPTH` 3. | pattern found via T806 |
 
 ---
-## Queue state, generated 2026-08-24T06:44Z
+## SHIFT LOG — 2026-08-25, T914 seat (supersedes the NEXT UP tables below)
+
+Everything under `NEXT UP` was generated 2026-08-24T18:40Z and its two tables have since gone
+stale — every row in "in flight now" has closed. Left in place rather than hand-rewritten,
+because **T894** is the registered durable fix (dispatch-readiness ordering with an estimate
+column, in `managent status` and `orient`, not in this file). Read this block first.
+
+### Settled
+
+- **Waypoint 1 is answered** (T912, `92909d3`): where writes-off and the committed 3×2 table
+  disagreed on the 62 ko-sensitive pairs, **writes-off is right on 62 of 62**. Stronger than the
+  question asked — the artifact at HEAD already agrees with a fresh writes-off rebuild on all
+  **978** (slot, side) values; the 62 were repaired by the regeneration at `ae39978`, so the
+  disagreement is historical, not live. **Open, for the operator:** the row was told to
+  adjudicate with the history-exact solver. That solver resolved **0 of 62** — and 0 of its own
+  24-pair null control — after 1.72 × 10⁹ nodes and 330 s. The row substituted the ADR-0013
+  minimax identity under a fixed root history (62 of 62 in 7 ms), documented it, and ran the
+  control. Waypoint 1 was therefore answered by an instrument the roadmap did not name, and
+  waypoint 1 gates 4×4 compute on Track A.
+- **The repository-wide commit freeze is lifted** (T914, `b3a841c`). The S09 module contract
+  declared `test tools/regression-runner-guard.sh covers tools/runner`; T872 deleted that script
+  at `12e7055` and dropped its known-red line but left the coverage declaration. Every commit
+  staging `tools/runner` therefore selected a file that does not exist and was refused. Verified
+  after the fix: every `test … covers …` path the contract declares exists on disk.
+- **The dashboard's cost was mis-attributed and is now measured** (T910). Bounded run-record
+  scan, reap/resume 0.79 s → 0.36 s — but profiling showed the ~9.14 s frame is **~2,294
+  fork/exec per frame in `watch-fleet.sh`**, not run-record parsing. The row corrected two brief
+  imprecisions rather than executing them.
+
+### New rows registered this shift
+
+| row | what | why now |
+|---|---|---|
+| **T915** | real `tools/runner` coverage, red-first with both controls | T914 removed a broken gate; that is not the same as having one. B3: one bad `tools/runner` edit killed 13 dispatches in 0.1 s. |
+| **T921** | Debug + ReleaseSafe suite resource profile, drained host | Operator ruling: big runs and resource requirements outrank model-perf data. Debug has **never** been profiled — ~12.5 GB and a kernel panic in July, routed around ever since. |
+| **T922** | `build.zig` is an undeclared shared writer | T908 and T910 were editing it concurrently; neither declared it. T910 caught the collision itself and added the hold — a model noticed, the mechanism did not. |
+| **T916–T920** | Race J: five sealed lanes on T915's runner guard | Registered and **parked** behind the big runs, per the operator's ordering. |
+
+### Race J, designed and parked
+
+Five byte-identical sealed briefs (verified before any entrant ran, the T863 Step-0 discipline):
+ox-alpha, dsflash, dspro, kimi, sonnet. Measures **control design on infra** — the dimension that
+predicted the C3 winner, never measured outside audit — and fills `fabricated_interfaces`
+mechanically, which currently reads UNKNOWN (not zero) for six of nine models. Two canaries with
+knowable answers sit in the required-assertions list: the memory-pressure host guard T821 deleted,
+and band boundaries that live in `bin/subagent`, not `tools/runner`. The multi-model claim under
+test is **union coverage** — distinct runner behaviours across all arms versus the best single arm,
+the 41-versus-21 audit statistic asked of infra. A null result there is worth having: it would mean
+we stop paying for breadth on infra work.
+
+### The measurement gap this shift quantified
+
+502 closed rows against 52 metric rows. Audit is 32% of the work and 69% of the measurement.
+**Four types — orchestration (45 rows), battery (35), spec (18), integration (14) — have never
+been measured at all**, 113 completed rows between them. `cost` is null in 52 of 52, which is why
+no tier has ever been emitted. Every Tier-2 judged dimension is n=1: one race, one grader, one
+task type.
+
+---
+## NEXT UP — STALE, generated 2026-08-24T18:40Z (see SHIFT LOG above)
+
+**`est` is a dispatch-time estimate: how long the lane is expected to run.** It is the same
+column the DONE list uses for elapsed time; here it means *expected*, there it means *actual*.
+Estimates are the seat's, often wrong, and deliberately shown anyway — a wrong estimate that
+gets corrected is worth more than no estimate. `why` is what has to happen before it goes.
+
+### In flight now (3)
+
+| row | model | est | elapsed | what it is |
+|---|---|---|---|---|
+| T872 | dspro | 3h | ~30m | green-up delete wave — 3 of 11 committed, post-sweep running |
+| T880 | dsflash | 90m | ~60m | holds parse + report bug — red tests written, fix landed, verifying |
+| T890 | glm | 2h | ~15m | one serving-tag path (the kimi dead-tag bug) |
+
+### Next out the door (ordered)
+
+| # | row | est | why it is not out yet |
+|---|---|---|---|
+| 1 | **T891** lane telemetry parity | 2h | holds `bin/subagent` — waits on T890 |
+| 2 | **T877** run-record identity (the reap blinding) | 3h | holds `src/managent/main.zig` — waits on T880 |
+| 3 | **T892** directives reach the worker | 2h | holds `src/managent/main.zig` — waits on T880 |
+| 4 | **T873** green-up fix-test wave (21 entries) | 4h | shared change-log + suite — waits on T872 |
+| 5 | **T893** race-C3 adjudication (consensus + Fable) | 2h | waits on the nine lanes being scored — ready now |
+| 6 | **T874** green-up fix-code wave (10 entries) | 4h | waits on T873 |
+| 7 | **T875** C3 evidence triage (superseded) | — | **the race answered this**; row to be retired or rescoped |
+
+### Standing / duties (never close, run when triggered)
+
+`DARGUS`, `DCLAIM`, `DRPLAY`, `STANDING-ABSORB`, `STANDING-CLEANUP` — these are duties, not
+queue entries, and should never sit at the head of the dispatchable list.
+
+### Cold storage — registered, real, not scheduled
+
+`T529` `T535` `T709` `T712` `T713` `T715` `T735` `T750` `T751` `T753` `T764` `T767` `T768`
+`T770` `T772` `T775` `T782` `T786` `T787` `T796` `T798` `T825` `T830` `T833` `T837` `T863`
+plus the blocked `T784` `T815` `T816`. None of these is next; they are listed so the trail
+survives, not to be read as a plan.
+
+**Retired 2026-08-24:** the malformed `--bundle` row — a bundle flag captured as a task id,
+never dispatchable, and it had been sitting at the head of the queue for weeks. That is the
+`L9`-at-the-top complaint's literal cause: the list was sorted by id, so junk and duties led it.
+The durable fix (ordering by dispatch-readiness with an estimate column, in `managent status`
+and `orient` rather than in this file) is registered as **T894**.
+
+---
+## Queue state, generated 2026-08-24T06:44Z (STALE — superseded by NEXT UP above)
 
 ### IN FLIGHT (7)
 
@@ -470,3 +575,19 @@ the Claude arm waits rather than being forced.
 |---|---|---|
 | B57 | **The bare run record is not single-writer, and `reap` trusts it.** With T861, T867 and T869 all alive in the process table (runners with `--arbiter-id`, walls 15–35 min into a 45-min budget), `bin/managent reap` reported all three `[ORPHAN] no live process` and offered `reap --close` to mark them abandoned. Cause: each worker's own test invocations run through `tools/runner` under the task's id, and every such run **overwrites the task's bare run record** (the per-task JSON in the volatile runs directory) — T861's bare record was on `attempt: 205`, command `sh tools/regression-window-resilience.sh`, wall 2.8 s, a dead pid. Reap read the clobbered record's pid, found it dead, and declared the row orphaned. T870 alone read `[BACKED]`, because its worker classifies without running tests, so its record was never clobbered. **The method note of B-new-2 ("the bare record is authoritative") is hereby qualified: the bare record is authoritative only for rows whose worker runs no tests — which green-up workers all do.** | the reap output versus `ps` in the same minute; T861's bare run record at attempt 205 |
 | B58 | **Near-miss, recorded as method.** Following the standing on-wake instruction ("run `bin/managent reap`", then close orphans) would have destroyed three healthy rows mid-work — the same shape as B25 (`liveness` attributing a dead attempt's heartbeat to a live run), now in the instrument the handover names as the *first* thing to trust. Until the run record is single-writer, an orphan verdict requires a process-table check for a live `--arbiter-id <task>` runner before any close. | this session |
+
+## B-new-17. Found by the T876 orchestration seat, 2026-08-24 evening
+
+| # | finding | evidence / disposition |
+|---|---|---|
+| B59 | **The file-conflict guard has been reporting success while holding nothing.** `managent add` reads `holds=` from a bundle header, and a **space-separated** list is silently truncated to its first entry (comma works). Probed on a scratch store with a null control: the comma form stored three paths, the space form stored one, and **no warning was printed either way**. Worse, the confirmation line printed `[set: A, holds tools/runner]` in *both* cases — the surface that tells the operator what was recorded cannot distinguish one hold from three-showing-one, which is why the parse defect survived. Live cost: **`T872` declared four holds and its store row carries zero** (space-separated *and* minted by `suggest`, which drops holds entirely — B24), so the delete wave ran with none of its four files guarded. | **dispatched as `T878`**, queued behind `T877`; the probe above is handed to it as its seeded-defect control |
+| B60 | **`reap` picks the newest run record for a task id, not the dispatch record.** This is the mechanism under B57/B58, now located: `latestRunRecordFor` selects by `start` timestamp with no notion of what kind of run wrote the record, so a worker's own nested `tools/runner` test invocation — newer, short-lived, exited — becomes the record reap judges the row by. What T650 fixed was *retention* (attempts are archived, never lost); **identity** was never fixed, and a human process-table check is currently standing in for the missing mechanism. | **dispatched as `T877`**, which also carries the ratified data-contamination amendment (`tools/facts` must state provenance and read UNKNOWN where its source is overwritable) |
+| B61 | **A full serial sweep of the 89 regression scripts costs ~20 minutes** (77 of 89 in 18 min, measured under a 300 s per-script watchdog, one at a time). This is now a load-bearing number for brief authoring: **any brief demanding a before-and-after sweep needs a wall of at least two hours**, not the standard 2700 s. `T872` was dispatched with 2700 s against an acceptance condition requiring two sweeps plus eleven deletions with a gated commit each, and could not have passed at any level of worker skill. | the seat's own timing of the in-flight sweep |
+| B62 | **A directory literally named `WORK=` was created in the repository root**, holding a mirrored `WORK=/private/tmp/weizigo/t862-smoke-…/` scratch task store (tasks.json, its lockfile, store-census.json), timestamped this evening. A shell assignment reached a `mkdir` as a literal path. Nothing entered git and repository integrity checks pass, but this is the **T445 live-repo-escape class** landing inside the working tree again, and `tools/lib/scratch-repo.sh` — the one place a scratch repo is supposed to be created — is not what produced it. | the directory and its timestamps; culprit call site not yet identified |
+| B63 | **`.test-patches/` is 144 MB of race-entrant repository clones with three nested `.git` directories inside the live repo root, and it is untracked but NOT gitignored.** `git check-ignore` returns nothing for it or for `WORK=`. A single `git add -A` — the command the whole `tools/git-commit-mine` discipline exists to prevent — would stage both. Deliberately **not deleted**: the rate-race judgments (`T843`/`T844`) are blocked rows that may still need those trees. The gitignore entry is the fix, and it collides with the documented integrity constant "`.gitignore` is 46 lines", which every wake check asserts. | `du -sh`, `find -name .git`, `git check-ignore -v` |
+
+**On B63's collision.** The 46-line constant is a canary against the repoint incident, which rewrote
+`.gitignore` down to 4 lines. It is also exactly the hand-picked constant class of C5: a legitimate
+addition must update the asserted value everywhere in the same commit, or the canary reads as a breach.
+That is a two-line change and a real decision about which document owns the number — recorded here
+rather than done silently mid-shift.
