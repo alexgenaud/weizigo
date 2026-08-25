@@ -1,0 +1,8 @@
+{
+  "task_id": "T945",
+  "model": "gemini-3.7-flash",
+  "date": "2026-08-25",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T945 (DONE-audit corpus and sealed answer key).\n\n1. Deliverables:\n- docs/audits/done-audit-2026-08-25/corpus.md\n- docs/audits/done-audit-2026-08-25/slices.json\n- findings/T945-done-audit-corpus.json\n- untracked/done-audit-2026-08-25-answer-key.json\n\n2. Controls (12):\n- T932, T927, T894, T924, T921, T943, T842, T841, T907, T387, T929, T421\n\n3. Sealed Answer Key:\n- Location: untracked/done-audit-2026-08-25-answer-key.json\n- SHA-256: 440451bc1fd60711bc676374bd3b727e22f7f39d8d30f740d0726eea792e993e\n- Authority: Held sealed until opened exclusively by Judge seat T951.\n\n4. Strata Breakdown:\n- Total unique tasks in corpus: 120\n- Control slice: 12\n- Disjoint slices: 9 slices of 12 tasks each = 108 tasks\n- Assigned arms: dspro, dsflash, kimi, haiku, gemini, gptluna, qwencloud, nemotron, solarpro\n- Verdicts: 56 pass, 54 pass-with-findings, 6 abandoned, 4 blocked\n- Dedicated no-acceptance stratum: exactly 20 tasks lacking machine-checked acceptance= command"
+}
