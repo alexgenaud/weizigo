@@ -8,7 +8,8 @@
   "notes": "Duplicate of findings/T965-store-archive-done-rows.json (no claims of its own). Raw data below: before/after timings, store shape before/after the 507-row move, regression transcripts, and the live archive run summary.",
   "store_shape": {
     "before": {"live_rows": 584, "done_rows": 539, "dispatchable": 36, "in_progress": 6, "blocked": 3, "tasks_json_bytes": 1605929, "archive_json_bytes": 192220, "live_sys": "next_id 968 / directive_next 21 / closes 113 (pre-move values; the archive file carried the STALE next_id 963 / closes 91)"},
-    "after": {"live_rows": 79, "archive_rows": 648, "rows_moved": 507, "tasks_json_bytes": 184668, "archive_json_bytes": 1627792, "census_row_count": 79, "census_written_by": "archive (retired: <507 ids>)", "live_sys_preserved": "next_id 968 / directive_next 97 / closes 118 — archive _sys now matches live (SysSnapshot fix)"}
+    "run_1_LOST": {"live_rows": 79, "note": "507 moved at 18:33Z, verified, then reverted uncommitted in the shared checkout — see main findings the_move.run_1"},
+    "after_run_2": {"live_rows": 81, "archive_rows": 646, "rows_moved": 505, "commit": "dfa30c9 (verified in HEAD)", "census_row_count": 81, "census_written_by": "archive (retired: <505 ids>)", "live_sys_preserved": "yes — SysSnapshot fix; archive _sys matches live"}
   },
   "timings": {
     "method": "status/orient: /usr/bin/time, 3 runs each, output discarded. watch-fleet: bash time around `sh untracked/watch-fleet.sh > /dev/null` (piped stdout => ONESHOT one-draw-then-exit), 3 runs each. Host: operator's Mac, same day ~3.5h apart, live store in between.",

@@ -18,12 +18,12 @@
   },
   "the_move": {
     "command": "bin/managent archive (deployed binary 34a5c8c-dirty built 2026-08-25T16:03:14Z with the T965 hunks)",
-    "rows_moved": 507,
-    "rows_left_live": 79,
-    "refused": "40 not done/failed, 31 live dependents, 8 uncommitted holds, 0 unabsorbed findings, 0 non-conforming findings",
+    "run_1": "18:33Z: 507 rows moved, verified clean (orient silent, both regressions green, timings re-measured), then LOST: the move sat uncommitted in the shared checkout for 25 minutes and was reverted to the pre-move state (working tree 586-live/143-archive) before run 1's commit staged the store files — a consistent store+census pair overwrite, the exact case the S10 detector cannot see (its documented limitation). Commit 0b96b51 therefore contains only the T965 findings + regression files, not the move it announced. Lesson: an uncommitted bulk move in a six-console checkout is the same window the 2026-08-24 incident opened.",
+    "run_2": "19:07Z: re-archived immediately and committed as dfa30c9 (store files included, verified in HEAD: 81 live / 646 archive). 586 -> 81 live rows, 505 moved (2 fewer than run 1: the store had advanced in the interim — new rows completed, some run-1-eligible rows re-opened or newly blocked).",
+    "refused": "41 not done/failed, 32 live dependents, 8 uncommitted holds, 0 unabsorbed findings, 0 non-conforming findings (run 2)",
     "needs_edges_cleaned": ["T757", "T939", "T546", "T541"],
-    "census": "store-census.json rewritten in the same locked wave: row_count=79, written_by='archive (retired: <507 ids>)' — an explained shrink (A19), never an alarm, never silent; orient rc=0 silent after the move",
-    "sys_after": "live _sys preserved (next_id 968, directive_next 97, closes 118) — see sys_clobber_fix; the archive _sys now also carries the live values (previously the archive's stale snapshot, next_id 963 / closes 91, was one write away from being written back into tasks.json)"
+    "census": "store-census.json rewritten in the same locked wave: row_count=81, written_by='archive (retired: <505 ids>)' — an explained shrink (A19), never an alarm, never silent; orient rc=0 silent after run 2",
+    "sys_after": "live _sys preserved — see sys_clobber_fix; the archive _sys now also carries the live values (before run 1 the archive's stale snapshot, next_id 963 / closes 91, was one write away from being written back into tasks.json)"
   },
   "defects_found": [
     {
@@ -68,5 +68,5 @@
   "directives": ["D096 (sent to T961, amend — main.zig hunk handoff)"],
   "claims": [],
   "new_rows": [],
-  "notes": "Claim wipe incident (T965-CLAIM-WIPE) and the deployed-binary-ahead-of-tree state (main_zig_commit_state) are the two things the Orchestrator must act on: the former is a standing detector gap (S10 sees row loss, not claim loss), the latter is a live hazard while T961 holds the file."
+  "notes": "Three things the Orchestrator must act on: (1) T965-CLAIM-WIPE — a standing detector gap (S10 sees row loss, not claim loss); (2) the deployed-binary-ahead-of-tree state (main_zig_commit_state) — a live hazard while T961 holds src/managent/main.zig; (3) the run-1 loss recorded in the_move — an uncommitted bulk move was reverted in the shared checkout; the durable fix is procedural (commit immediately after the move), but a follow-up detector (archive high-water mark: alert if live row count rises above the max ever archived) would make the loss VISIBLE. Run 2 (dfa30c9) is the committed state; earlier timing numbers in this file were measured against run 1's store shape (79 live) and the run-2 shape (81 live) is within noise of them."
 }
