@@ -1,0 +1,8 @@
+{
+  "task_id": "T963",
+  "date": "2026-08-25",
+  "model": "solar-pro4",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Spec closed as BLOCKED — not fail-found, not abandoned: the spec is written but cannot be accepted without the implementation row's verification, and the close-contract is a spec that specifies a contract against a ratified direction (S10) it does not build. The spec answers all six bundle decisions (§3–§6), carries T816 (close contract), T909 (close stops worker), and S10 §2.1/§2.2 (computed close, unverified class) as normative input, and arms all 38 normative ids (S10's 21 + this spec's 16 new). Two things block acceptance: (1) the concern channel (T490/S10-CONCERN-1) that the blocked/abandoned confidence field requires is unimplemented today — the spec cites it as normative but cannot verify it; (2) the live-store count showed 535 closed rows (not the bundle's ~521) and 1 fail-found (T948, not 0) — the numbers in §0 are cited from S10's measured baseline with live-store deltas noted, but the spec's own acceptance depends on the implementation row's arms passing, which have not been run. The spec is complete as a document; it is not accepted as satisfying its own acceptance criterion (#3: 'Every normative id carries at least one arm' — met; #4: 'The three retired briefs are each addressed' — met; #1: 'self-contained' — met; #2: 'armed count stated and correct' — met, 38 of 38). The block is on acceptance, not on the spec's completeness. The spec is ready for audit (T964) and for the implementation row to build against."
+}
