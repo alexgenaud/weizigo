@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
-# regression-moving-parts.sh — T943 controls:
+# regression-moving-parts.sh — T943 / T952 controls:
 #
 # Inventory and process hygiene gate:
 #   1. Every running project-owned process matches an entry in docs/infra/moving-parts.md.
 #   2. Undocumented processes, orphaned test trees, and prohibited daemons fail loudly.
 #   3. Scratch directories (/tmp/weizigo) do not leak across runs.
 #   4. Background launchd plists are verified unloaded.
+#   5. Caffeinate processes are attributed by ancestry: harness caffeinate is exempt,
+#      project-spawned timed caffeinate (-i -t) is prohibited (T952).
 #
 # Controls:
 #   A. Null control: live system with only documented processes passes silently.
 #   B. Seeded defect: undocumented project process is detected and named loudly.
-#   C. Seeded defect: prohibited timed caffeinate (-i -t) is detected and rejected.
+#   C. Seeded defect & ancestry discrimination: prohibited timed caffeinate (-i -t) in
+#      project tree is detected and rejected, while external harness caffeinate is exempt.
 #   D. Stale / orphan detection: expired wall budget and orphaned test processes are flagged.
 #   E. Scratch cleanliness: running subagent / tests creates zero directory leaks in /tmp/weizigo.
 #   F. Launchd census: no com.weizigo plists loaded in launchd.
 #
-# Task: T943 · Model: gemini-3.7-flash · Date: 2026-08-25
+# Task: T943/T952 · Model: gemini-3.7-flash · Date: 2026-08-25
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -25,7 +28,7 @@ FAIL=0
 pass() { echo "    PASS: $*"; }
 fail() { echo "    FAIL: $*"; FAIL=1; }
 
-echo "=== regression-moving-parts (T943) ==="
+echo "=== regression-moving-parts (T943/T952) ==="
 
 # ── Helper: Process Scanner (Python) ───────────────────────────────────────
 SCANNER_PY="$PROJECT/tools/moving-parts-scanner.py"
@@ -51,13 +54,16 @@ ALLOWED_PATTERNS = [
     r"tools/runner",
     r"caffeinate -i -w \d+",
     r"zig build test",
+    r"zig build",
     r"zig test",
+    r"\.zig-cache/.*build\b",
+    r"\.zig-cache/.*test\b",
     r"bin/managent",
     r"bin/argus",
     r"tools/suite-truth\.sh",
     r"tools/git-commit-mine",
     r"tools/goban-scaling-capture\.sh",
-    r"bin/weizigo-[a-z0-9-]+",
+    r"(?:zig-out/)?bin/weizigo-[a-z0-9-]+",
     r"tools/regression-[a-z0-9_-]+\.sh",
     r"tools/deploy\.sh",
     r"tools/smoke\.sh",
@@ -65,7 +71,34 @@ ALLOWED_PATTERNS = [
     r"pytest",
     r"moving-parts-scanner\.py",
     r"regression-moving-parts\.sh",
+    r"claude -p",
+    r"pi --provider",
+    r"claude --dangerously-skip-permissions",
 ]
+
+def is_project_cmd(cmd):
+    if REPO_ROOT in cmd:
+        return True
+    keywords = [
+        "weizigo", "pop-next", "fleet-keeper", "watch-fleet", "managent",
+        "subagent", "dispatch_verify", "goban-scaling-capture", "suite-truth"
+    ]
+    return any(kw in cmd for kw in keywords)
+
+def has_project_ancestor(pid, proc_map, max_depth=50):
+    curr = pid
+    visited = set()
+    depth = 0
+    while curr in proc_map and curr not in ("0", "1") and depth < max_depth:
+        visited.add(curr)
+        ppid, _, pcmd = proc_map[curr]
+        if is_project_cmd(pcmd):
+            return True
+        if ppid in visited:
+            break
+        curr = ppid
+        depth += 1
+    return False
 
 def scan_processes(custom_ps_lines=None):
     if custom_ps_lines is None:
@@ -82,6 +115,8 @@ def scan_processes(custom_ps_lines=None):
         "documented": []
     }
 
+    proc_map = {}
+    proc_list = []
     for line in ps_out:
         parts = line.strip().split(None, 3)
         if len(parts) < 4:
@@ -89,27 +124,28 @@ def scan_processes(custom_ps_lines=None):
         pid, ppid, etime, cmd = parts
         if pid == "PID":
             continue
+        proc_map[pid] = (ppid, etime, cmd)
+        proc_list.append((pid, ppid, etime, cmd))
 
+    for pid, ppid, etime, cmd in proc_list:
         # Ignore self / scanner invocations
         if "moving-parts-scanner.py" in cmd or "ps -axo" in cmd:
             continue
 
-        # Check for caffeinate
+        # Check for caffeinate: attribute by ancestry (T952)
         if "caffeinate" in cmd:
-            if re.search(r"caffeinate -i -t\b", cmd) or not re.search(r"caffeinate -i -w \d+", cmd):
-                findings["prohibited_caffeinate"].append({"pid": pid, "ppid": ppid, "etime": etime, "cmd": cmd})
+            is_ours = is_project_cmd(cmd) or has_project_ancestor(pid, proc_map)
+            if not is_ours:
+                # External / harness caffeinate (e.g. Claude Code console claude --dangerously-skip-permissions) -> exempt (not ours)
                 continue
+            if re.search(r"caffeinate -i -w \d+", cmd):
+                findings["documented"].append({"pid": pid, "ppid": ppid, "etime": etime, "cmd": cmd})
+            else:
+                findings["prohibited_caffeinate"].append({"pid": pid, "ppid": ppid, "etime": etime, "cmd": cmd})
+            continue
 
         # Is this process related to the project?
-        is_project = (
-            REPO_ROOT in cmd
-            or any(kw in cmd for kw in [
-                "weizigo", "pop-next", "fleet-keeper", "watch-fleet", "managent",
-                "subagent", "dispatch_verify", "goban-scaling-capture", "suite-truth"
-            ])
-        )
-
-        if not is_project:
+        if not is_project_cmd(cmd):
             continue
 
         # Check if documented
@@ -124,9 +160,8 @@ def scan_processes(custom_ps_lines=None):
         else:
             findings["documented"].append({"pid": pid, "ppid": ppid, "etime": etime, "cmd": cmd})
 
-        # Check for orphaned test scripts (ppid == 1 and regression-*.sh)
-        if ppid == "1" and ("regression-" in cmd or "zig build test" in cmd):
-            # Not top-level daemon
+        # Check for orphaned test scripts (ppid == 1 and regression-*.sh or zig build test)
+        if ppid == "1" and ("regression-" in cmd or "zig build test" in cmd or ".zig-cache" in cmd):
             if not ("pop-next.sh" in cmd or "watch-fleet.sh" in cmd or "fleet-keeper.sh" in cmd):
                 findings["orphaned_test_trees"].append({"pid": pid, "ppid": ppid, "etime": etime, "cmd": cmd})
 
@@ -211,8 +246,8 @@ else
     echo "$OUT_B" | sed 's/^/      | /'
 fi
 
-# ── Arm C: Seeded defect — Prohibited timed caffeinate ─────────────────────
-echo "  C. seeded defect: prohibited timed caffeinate (-i -t) detected"
+# ── Arm C: Seeded defect & ancestry discrimination for caffeinate ──────────
+echo "  C. seeded defect & ancestry discrimination: prohibited timed caffeinate (-i -t) detected"
 if command -v caffeinate >/dev/null 2>&1; then
     (caffeinate -i -t 30 >/dev/null 2>&1) &
     CAFF_PID=$!
@@ -223,27 +258,39 @@ if command -v caffeinate >/dev/null 2>&1; then
     wait "$CAFF_PID" 2>/dev/null || true
     unset CAFF_PID
     if [ "$RC_C" -ne 0 ] && echo "$OUT_C" | grep -q "prohibited_caffeinate"; then
-        pass "seeded defect: timed caffeinate was detected and flagged (RC=$RC_C)"
+        pass "seeded defect: timed caffeinate in project tree was detected and flagged (RC=$RC_C)"
     else
         fail "seeded defect failed: timed caffeinate was NOT flagged (RC=$RC_C)"
         echo "$OUT_C" | sed 's/^/      | /'
     fi
-else
-    # Synthetic test if caffeinate binary absent
-    SYNTH_FILE=$(mktemp /tmp/synth-ps-XXXXXX)
-    cat <<'SYNEOF' > "$SYNTH_FILE"
+fi
+
+# Synthetic discrimination test (T952): harness caffeinate vs project hung test caffeinate
+SYNTH_FILE=$(mktemp /tmp/synth-ps-caff-XXXXXX)
+cat <<SYNEOF > "$SYNTH_FILE"
 PID  PPID ETIME    COMMAND
-9991 1    00:05:00 caffeinate -i -t 300
+9901 9900 00:05:00 caffeinate -i -t 300
+9900 1    01:00:00 /usr/local/bin/claude --dangerously-skip-permissions
+9903 9902 00:05:00 caffeinate -i -t 300
+9902 1    00:10:00 /bin/sh $PROJECT/tools/regression-hung-test.sh
+9905 9904 00:02:00 caffeinate -i -w 9904
+9904 1    00:02:00 /usr/bin/python3 $PROJECT/tools/runner --max-wall 3600 -- pi --model test
 SYNEOF
-    OUT_C=$(python3 "$SCANNER_PY" test_synthetic "$SYNTH_FILE" 2>&1)
-    RC_C=$?
-    rm -f "$SYNTH_FILE"
-    unset SYNTH_FILE
-    if [ "$RC_C" -ne 0 ] && echo "$OUT_C" | grep -q "prohibited_caffeinate"; then
-        pass "seeded defect (synthetic): timed caffeinate was detected and flagged (RC=$RC_C)"
-    else
-        fail "seeded defect failed (synthetic): timed caffeinate was NOT flagged (RC=$RC_C)"
-    fi
+
+OUT_C_SYNTH=$(python3 "$SCANNER_PY" test_synthetic "$SYNTH_FILE" 2>&1)
+RC_C_SYNTH=$?
+rm -f "$SYNTH_FILE"
+unset SYNTH_FILE
+
+# Verify that PID 9903 (project hung test) is in prohibited_caffeinate, PID 9901 (claude harness) is NOT, and PID 9905 is documented
+if [ "$RC_C_SYNTH" -ne 0 ] \
+   && echo "$OUT_C_SYNTH" | grep -q '"pid": "9903"' \
+   && ! echo "$OUT_C_SYNTH" | grep -q '"pid": "9901"' \
+   && echo "$OUT_C_SYNTH" | grep -q '"pid": "9905"'; then
+    pass "ancestry discrimination: harness caffeinate (9901) exempt, project timed caffeinate (9903) caught, project -w (9905) documented"
+else
+    fail "ancestry discrimination failed (RC=$RC_C_SYNTH)"
+    echo "$OUT_C_SYNTH" | sed 's/^/      | /'
 fi
 
 # ── Arm D: Synthetic stale runner & orphaned test tree detection ──────────
