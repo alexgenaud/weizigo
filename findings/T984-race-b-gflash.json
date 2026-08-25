@@ -1,0 +1,8 @@
+{
+  "task_id": "T984",
+  "model": "gemini-3.7-flash",
+  "date": "2026-08-26",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race B fail-transparency arm (gemini-3.7-flash): resolved all 5 blockers, 3 red flags, and 2 notes from untracked/L1/T963/spec/audit-1.md against docs/epics/E1-markovian/L1-dashboard/T963/spec.md. Facts independently verified against the repository: (1) Missing reporting fields cannot refuse closes (violates S10 §1.2 always-close-never-strand and bundle decision 4); resolved by computing verdict, recording fields as not-provided, and flagging reporting_gap: true. (2) Pass rate misstated as 444/92% from bundle; verified bundle baseline measured 502/521 (96%) and S10 baseline was 444/92%. (3) fail-found exemplar corrected from T948 (pass-with-findings) to T959 (fail-found). (4) T940 was verified closed by worker gemini-3.7-flash (not auto-closed); auto-close references corrected to cite T943. (5) Armed count reconciled and corrected: 25 cited (S10 A1-A21 + SMOKE-1..4) + 16 new (8 TC + 3 TW + 5 SMOKE-T963) = 41 total arms. Red flags resolved with concrete mechanisms: (RF1) Runner exit & hold release mechanism specified via PID liveness checks, runner exit cleanup hooks, passive sweeps, and 60s watchdog escalation. (RF2) Interim blocked/abandoned close mechanism specified via mandatory --note until T490 managent concern lands. (RF3) Reporting field CLI flags (--delivered, --confidence, --deferred, --followups, --retrospective) and findings JSON fallback specified. Deliverable: untracked/races/B-failtrans/gflash/resolution.md."
+}
