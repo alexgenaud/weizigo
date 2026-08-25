@@ -26,12 +26,12 @@ set -e
 cd "$(dirname "$0")/.." || exit 1
 QUEUE=docs/infra/dispatch-queue.tsv
 STOP=untracked/pop-next.stop
-# Default 5 (operator, 2026-08-25: "Maybe we can dispatch more of the race
-# lanes?"). Was 1, then 3. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
+# Default 3 (operator, 2026-08-25: "slow and steady is best"). Was 1, then 5.
+# Five was right while he was watching; three is the unattended rate. Nothing was blocked at 1 -- 14 rows were runnable and idle. The real
 # guards are downstream and unchanged: bin/dispatch enforces family caps, the
 # RAM arbiter refuses a lane that does not fit, and holds keep two rows off one
 # file. Set MAX_LANES=1 to go back to serial.
-MAX_LANES="${MAX_LANES:-5}"
+MAX_LANES="${MAX_LANES:-3}"
 DRY=0; LOOPS=1
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -46,6 +46,12 @@ lanes_now() { pgrep -f -- '--arbiter-id T[0-9]' 2>/dev/null | wc -l | tr -d ' ';
 
 pop_once() {
   [ -f "$STOP" ] && { echo "pop-next: STOPPED — $STOP exists (remove it to resume)"; return 1; }
+  # Report orphans every tick. NOT --close: a lane that died after writing its
+  # deliverable looks identical to one that produced nothing, and closing it
+  # `abandoned` would be a lie (T894 and T963 both delivered and never closed).
+  # So this only records, and the record is what an unattended stretch is
+  # reconstructed from.
+  bin/managent reap 2>&1 | grep -E 'ORPHAN|orphans: [1-9]' | sed 's/^/pop-next: reap: /' || true
   n=$(lanes_now)
   if [ "$n" -ge "$MAX_LANES" ]; then
     echo "pop-next: $n lane(s) running, MAX_LANES=$MAX_LANES — nothing popped"
@@ -125,7 +131,23 @@ PYP
   # --exclude ollama-cloud drops all three with "excluded by row (family
   # ollama-cloud)". Local mlx (family `local`) is unaffected and is
   # PROBE-gated anyway; it spends no cloud credit.
-  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud}"
+  # ── which families the mechanized DRAW may use ──────────────────────────
+  # A PIN always wins over this (see below), so a pinned race arm still runs on
+  # its own model. This only steers unpinned backlog work.
+  #
+  # Operator, 2026-08-25 on the credit picture: ollama full but "we tend to burn
+  # them quickly"; OpenRouter "burning fairly quickly, slow and steady"; DeepSeek
+  # typical, "do not go unusually heavy"; Claude barely used with its 5-hour
+  # window resetting soon. The mechanized draw is solo-least-data, which favours
+  # the models with the least history -- and every one of those is OpenRouter
+  # (google, openai, alibaba, nvidia, upstage, oxalpha). Left alone it would
+  # spend the scarcest credit fastest, for the least urgent reason.
+  #
+  # So unpinned backlog work draws from claude and deepseek; the OpenRouter
+  # models still run wherever a row PINS them, which is where their comparative
+  # data comes from. Revisit when the OpenRouter picture changes -- this is a
+  # credit decision, not a capability one, and it must not leak into any race.
+  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud,google,openai,alibaba,nvidia,upstage,oxalpha}"
 
   # ── a pinned model wins over the mechanized draw ────────────────────────
   # A race arm is only a race arm if it runs on the model it is an arm FOR.
