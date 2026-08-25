@@ -6,6 +6,39 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T969	4	2700	AUTO	Race A sealed arm (dspro) — PINNED deepseek-v4-pro
+T970	4	2700	AUTO	Race A sealed arm (dsflash) — PINNED deepseek-v4-flash
+T971	4	2700	AUTO	Race A sealed arm (opus) — PINNED claude-opus-5
+T972	4	2700	AUTO	Race A sealed arm (sonnet) — PINNED claude-sonnet-5
+T973	4	2700	AUTO	Race A sealed arm (haiku) — PINNED claude-haiku-4-5-20251001
+T974	4	2700	AUTO	Race A sealed arm (gflash) — PINNED gemini-3.7-flash
+T975	4	2700	AUTO	Race A sealed arm (gptluna) — PINNED gpt-5.6-luna-pro
+T976	4	2700	AUTO	Race A sealed arm (nemotron) — PINNED nemotron-3.5-lightning
+T977	4	2700	AUTO	Race A sealed arm (solarpro) — PINNED solar-pro4
+T978	4	2700	AUTO	Race A sealed arm (oxalpha) — PINNED oxalpha
+T979	4	2700	AUTO	Race B sealed arm (dspro) — PINNED deepseek-v4-pro
+T980	4	2700	AUTO	Race B sealed arm (dsflash) — PINNED deepseek-v4-flash
+T981	4	2700	AUTO	Race B sealed arm (opus) — PINNED claude-opus-5
+T982	4	2700	AUTO	Race B sealed arm (sonnet) — PINNED claude-sonnet-5
+T983	4	2700	AUTO	Race B sealed arm (haiku) — PINNED claude-haiku-4-5-20251001
+T984	4	2700	AUTO	Race B sealed arm (gflash) — PINNED gemini-3.7-flash
+T985	4	2700	AUTO	Race B sealed arm (gptluna) — PINNED gpt-5.6-luna-pro
+T986	4	2700	AUTO	Race B sealed arm (nemotron) — PINNED nemotron-3.5-lightning
+T987	4	2700	AUTO	Race B sealed arm (solarpro) — PINNED solar-pro4
+T988	4	2700	AUTO	Race B sealed arm (oxalpha) — PINNED oxalpha
+T989	4	2700	AUTO	Race C sealed arm (dspro) — PINNED deepseek-v4-pro
+T990	4	2700	AUTO	Race C sealed arm (dsflash) — PINNED deepseek-v4-flash
+T991	4	2700	AUTO	Race C sealed arm (opus) — PINNED claude-opus-5
+T992	4	2700	AUTO	Race C sealed arm (sonnet) — PINNED claude-sonnet-5
+T993	4	2700	AUTO	Race C sealed arm (haiku) — PINNED claude-haiku-4-5-20251001
+T994	4	2700	AUTO	Race C sealed arm (gflash) — PINNED gemini-3.7-flash
+T995	4	2700	AUTO	Race C sealed arm (gptluna) — PINNED gpt-5.6-luna-pro
+T996	4	2700	AUTO	Race C sealed arm (nemotron) — PINNED nemotron-3.5-lightning
+T997	4	2700	AUTO	Race C sealed arm (solarpro) — PINNED solar-pro4
+T998	4	2700	AUTO	Race C sealed arm (oxalpha) — PINNED oxalpha
+T999	5	5400	AUTO	judge Race A — blind until every arm closes
+T1000	5	5400	AUTO	judge Race B — blind until every arm closes
+T1001	5	5400	AUTO	judge Race C — blind until every arm closes
 T968	0	3600	AUTO	max-wall declared and NOT enforced — two lanes 2.4x over budget, nothing killed them
 T967	3	5400	AUTO	draw least-data PER TASK TYPE so real work fills the model matrix; taxonomy extension proposal
 T965	1	5400	AUTO	the live store keeps every closed row — 584 rows, 1.6 MB, parsed on every refresh
