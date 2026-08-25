@@ -1,0 +1,9 @@
+{
+  "task_id": "T946",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "audited_by": "deepseek-v4-pro/T946",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE-audit arm (dspro): audited all 24 assigned rows (12 disjoint T900/T685/T804/T810/T580/T779/T564/T396/T426/T903/T901/T330 + 12 shared control). Rows not reached: none. Census: 20/24 work complete, 23/24 verdicts accurate, 17/24 absorbed (4 partial, 3 no), 19/24 verified (4 self-reported, 1 unverifiable), 17/24 useful (4 mixed, 3 no). Single most important pattern: verdicts are honest but content-verification is the weak link — the two objectively-wrong results (T924 projection 7.585x too high; T943 closed pass on a red gate) both closed without the closing row detecting the defect, and fail-found is zero across all 525 closes. Recommended corrections (no full re-execution needed): re-verdict T943; fix T580 store model field (deepseek-v4-pro vs actual claude-sonnet-5); amend T841 note to record infra starvation (byte-identical to T842's runaway note); point T924's store row at the T929 correction. Record-quality defects: T564 run record is misattributed (command=regression-fleet-keeper.sh); T685 lane findings file is untracked. Full records in docs/audits/done-audit-2026-08-25/dspro/records.json and analysis.md. Inbox polled at claim, after collection, and before close: no directives."
+}
