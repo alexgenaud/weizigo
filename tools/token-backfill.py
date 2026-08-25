@@ -8,7 +8,7 @@ session file "cannot be attributed to this lane".  **That reason is false.**
 `tools/token-capture.py` already implements the cwd-slug scan
 (`~/.pi/agent/sessions/<cwd-slug>/`) and attributes those sessions to tasks;
 measured 2026-08-23, it recovers 56 lanes the ledger records as UNKNOWN — 53
-deepseek and 3 ox-alpha — plus 334 tasks the ledger never mentions.  So the
+deepseek and 3 oxalpha — plus 334 tasks the ledger never mentions.  So the
 readings were never lost, only un-joined.
 
 The durable fix is the runner falling back to this scan before declaring
@@ -29,7 +29,7 @@ gate or cost ladder may take a decision from them until a repeatability
 control exists.  The flag is what keeps a consumer honest.
 
 JOIN KEY.  session.start vs run-record/ledger start, same task, within
---tolerance seconds (default 5).  Measured offset on the ox-alpha lanes was
+--tolerance seconds (default 5).  Measured offset on the oxalpha lanes was
 1.0-1.3 s (pi writes its session file just after the runner stamps `start`).
 A session that matches no run record is reported, never guessed at.
 
@@ -247,8 +247,8 @@ def control(tc, sessions_dir, ledger_path, task="T735"):
                        regresses, the ledger silently grows a T276 defect.
     """
     ok = True
-    if tc.canon_tag("stealth/ox-alpha") != "ox-alpha":
-        print("  FAIL seeded-defect: canon_tag('stealth/ox-alpha') != 'ox-alpha'")
+    if tc.canon_tag("stealth/ox-alpha") != "oxalpha":
+        print("  FAIL seeded-defect: canon_tag('stealth/ox-alpha') != 'oxalpha'")
         ok = False
     else:
         print("  pass seeded-defect: canon_tag maps the stealth serving tag")

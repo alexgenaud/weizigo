@@ -8,7 +8,7 @@ Sources: five independent lanes on untracked/race-i-waypoint3-brief.md —
          findings/T741-waypoint3-spec.md (claude-sonnet-5)  · 12 rows, measure/write split
          findings/T742-waypoint3-spec.md (deepseek-v4-pro)  ·  9 rows, gate-first
          findings/T743-waypoint3-spec.md (deepseek-v4-flash)· 16 rows, family-major
-         findings/T744-waypoint3-spec.md (ox-alpha)         · 13 rows, size-major
+         findings/T744-waypoint3-spec.md (oxalpha)         · 13 rows, size-major
 Trunk:   T740 (structure, measured baseline, shard design, gate-with-own-controls).
          Grafts credited per row in §8. Every graft names its lane; the model
          comparison in findings/T749-race-i-synthesis.json depends on it.

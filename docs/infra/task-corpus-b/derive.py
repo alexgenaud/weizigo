@@ -2,7 +2,7 @@
 """T818 (blind second pass) — corpus miner, method version 1.
 
 Deterministic, re-runnable derivation of task_type / task_scope / capabilities
-for every task id in the managent store. Written by ox-alpha/T818 (2026-08-23).
+for every task id in the managent store. Written by oxalpha/T818 (2026-08-23).
 
 Universe: union of docs/infra/managent/tasks.json + archive.json ids, minus
 "_sys". Sorted lexicographically; chunks of 50; chunk k is a fixed id set.

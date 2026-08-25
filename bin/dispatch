@@ -13,7 +13,7 @@ Usage:
             minimax-m3:cloud, qwen3.8:27b-mlx:cloud; dspro/dsflash for the
             deepseek pair; claude-fable-5 / claude-opus-5 / claude-sonnet-5 /
             claude-haiku-4-5-20251001 for the claude pair; stealth/ox-alpha
-            (→ ox-alpha) for the pi/openrouter pair).  claude labels
+            (→ oxalpha) for the pi/openrouter pair).  claude labels
             route to bin/subagent's claude provider, which launches a
             headless `claude -p` session in the Claude Code harness — never
             through the Anthropic API from here (T494; the prohibition is
@@ -130,9 +130,9 @@ MODELS = {
     "claude-sonnet-5":           ("claude", ["--model", "claude-sonnet-5"]),
     "claude-haiku-4-5-20251001": ("claude", ["--model", "claude-haiku-4-5-20251001"]),
     # T732: pi harness, openrouter backend.  The serving tag is
-    # stealth/ox-alpha (never the ledger); the canonical label is ox-alpha.
-    "ox-alpha":                  ("pi", ["--model", "stealth/ox-alpha"]),
-    # T938: gemini-3.7-flash, same shape as ox-alpha — pi harness,
+    # stealth/ox-alpha (never the ledger); the canonical label is oxalpha.
+    "oxalpha":                  ("pi", ["--model", "stealth/ox-alpha"]),
+    # T938: gemini-3.7-flash, same shape as oxalpha — pi harness,
     # openrouter backend, the vendor prefix `google/` plays the part
     # `stealth/` plays there.  Operator-verified headless 2026-08-25.
     "gemini-3.7-flash":          ("pi", ["--model", "google/gemini-3.7-flash"]),
@@ -158,7 +158,7 @@ def canonicalize_model(raw: str) -> str:
         return "kimi-k2.7"
     # T732: stealth serving tag → canonical label, matching managent.
     if s == "stealth/ox-alpha":
-        return "ox-alpha"
+        return "oxalpha"
     # T938: google/ gemini serving tag → canonical label, matching managent.
     if s == "google/gemini-3.7-flash":
         return "gemini-3.7-flash"

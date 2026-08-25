@@ -17,7 +17,7 @@ things that are **owed, undecided, or wrong** and would otherwise live only in a
 
 | # | item | state |
 |---|---|---|
-| A1 | **Race W — RESOLVED 2026-08-24.** The operator delegated adjudication to the T871 seat ("this is not democracy — judge from the primary sources"). Ruling: Section A stands as committed (opus lane, 3-of-4 blind lean). Section B: the committed **hybrid stands** — clause-by-clause check confirmed it carries all three of ox-alpha's Amendment-2 clauses plus opus's defect catalogue and promotion/dispatch binding, and scopes the W0 gate better than either pure lane. Performance verdict (separate, per protocol v2.1 rule 10): opus best overall (Section A win + craft), ox-alpha strongest doctrinal completeness (all grafts trace to its lane), deepseek third (dropped the W0 hard gate). Protocol amendments from this case are §4b of the seed doc. | resolved |
+| A1 | **Race W — RESOLVED 2026-08-24.** The operator delegated adjudication to the T871 seat ("this is not democracy — judge from the primary sources"). Ruling: Section A stands as committed (opus lane, 3-of-4 blind lean). Section B: the committed **hybrid stands** — clause-by-clause check confirmed it carries all three of oxalpha's Amendment-2 clauses plus opus's defect catalogue and promotion/dispatch binding, and scopes the W0 gate better than either pure lane. Performance verdict (separate, per protocol v2.1 rule 10): opus best overall (Section A win + craft), oxalpha strongest doctrinal completeness (all grafts trace to its lane), deepseek third (dropped the W0 hard gate). Protocol amendments from this case are §4b of the seed doc. | resolved |
 | A2 | **Does D044's DeepSeek time-priced rate band survive the budget-meter retirement?** The band is a fact about *when* a run happened, computed at write time; the retirement says agents know nothing of costs and never mention peak hours. | flagged, not decided |
 | A3 | **Filling the 12 now-recoverable `cost: null` lanes in the sha256-sealed `tools/complementarity-inputs/*.json`** would change a dispatch-decision input using `trusted:false` readings. Deliberately not done. | ratification question |
 | A4 | **Is the pi/openrouter API-key pattern more secure, and should claude / deepseek / ollama converge on it?** He raised it; it is a security review, not a measurement question. | unowned |
@@ -26,19 +26,19 @@ things that are **owed, undecided, or wrong** and would otherwise live only in a
 
 | # | issue | evidence |
 |---|---|---|
-| B1 | **Nothing writes the model-perf ledger automatically.** 24 rows across 72 possible cells; 59 empty; 9 of the 13 filled are `audit`. ox-alpha has **0 of 8** despite 7 completed tasks. Making each race's judge write its cells (T832) is a per-race instruction, not a mechanism. | `docs/infra/model-task-metrics.jsonl` |
+| B1 | **Nothing writes the model-perf ledger automatically.** 24 rows across 72 possible cells; 59 empty; 9 of the 13 filled are `audit`. oxalpha has **0 of 8** despite 7 completed tasks. Making each race's judge write its cells (T832) is a per-race instruction, not a mechanism. | `docs/infra/model-task-metrics.jsonl` |
 | B2 | **The appetite table is compiled into `src/managent/main.zig`** with no file or env override, so a roster change needs a source edit, a rebuild, and a slot in a serialized chain. S06 pass 1 (the policy file) is the fix. | T834's own findings |
 | B3 | **A consolidation pass editing a live file breaks the fleet while it works.** T821's arbiter edit left `name 'host_guard_on' is not defined` in `tools/runner`; 13 dispatches died in 0.1 s inside a 7-second window. `tools/runner` is re-read on every dispatch, so passes must land atomically or work on a copy. | the 13 `runner exception` records of 2026-08-23T22:19, cited in T821's findings |
-| B4 | **ox-alpha lanes die; it is not a protocol problem.** SUPERSEDES the nonce reading. Measured 2026-08-25: T926 **exit 0 in 37.4 s, never claimed the row, no output, no work** (rss 158 MB); T924 ran 4,110 s, did excellent science, then exited 0 having written **neither** declared deliverable; T709 was refused on RAM before launch. **CAUSE FOUND, same day, from the operator's console: HTTP 429, `limit_source:
+| B4 | **oxalpha lanes die; it is not a protocol problem.** SUPERSEDES the nonce reading. Measured 2026-08-25: T926 **exit 0 in 37.4 s, never claimed the row, no output, no work** (rss 158 MB); T924 ran 4,110 s, did excellent science, then exited 0 having written **neither** declared deliverable; T709 was refused on RAM before launch. **CAUSE FOUND, same day, from the operator's console: HTTP 429, `limit_source:
 upstream_provider_shared_pool`, "stealth/ox-alpha is temporarily rate-limited upstream".** The
 lane log holds **40 occurrences of 429** — twenty retries, all refused — and `tools/runner` then
 recorded **exit 0**. The lanes were never non-compliant; they were never served. Our own dispatch
 rate was 18 claims in nine hours, so the pressure is other users of the shared pool, not us.
 **B4 as previously written was a wrong diagnosis that stood for weeks**, and the seat acted on it
-by putting waypoint 1 on ox-alpha (T924: 4,110 s, complete ladder, neither deliverable written).
-The instrument defect is registered as **T934** — a provider refusing service must not exit 0. **Decision (T914 seat): ox-alpha is off the dispatch list** until lane telemetry can distinguish provider death from model behaviour. Work quality is the best in the field (37/40, race C3) — this is a lane-reliability finding, not a capability one. | `docs/evidence/T926/` (run record + lane log, preserved), `findings/T924-4x4-d3-tractability.json` |
-| B4-corr | **B4 CORRECTED 2026-08-25 (T935 seat) — the two ox-alpha events are not the same event, and the bench was never mechanized.** B4 merged T926's death with T924's, and they have opposite causes. **T926: never served.** 37.4 s, `tokens_out: 0`, row never claimed — the 429 case, exactly as B4 says. **T924: served, and served well.** 4,110.6 s wall, **2,560.4 s CPU (62% utilisation)**, **4,886,579 tokens in / 44,877 out**, 1,440 MB RSS, **66 successful assistant turns**, and its stderr log holds **zero** 429s. It ran the full ladder and both arms. The 429s arrive only at the very end: last served turn **04:57:08Z**, then `Provider returned error` at 04:57:22Z and three `429 upstream_provider_shared_pool` refusals at 04:57:29 / 04:57:40 / 04:57:57Z, run over at 04:57:58Z. **It was cut off fifty seconds after its last served turn, mid-analysis, before it could write its deliverables.** Its final thinking block is it catching its own sampling-weight error — the same 7.6x error T929 later found independently. So "did excellent science, then exited 0 having written neither deliverable" understates it: it did not neglect to write, **it was interrupted while still correcting itself.** Consequence: **the T914 decision to take ox-alpha off the dispatch list is withdrawn.** It was (a) founded on a merged reading of two different failures, and (b) never implemented anyway — `managent assign` still lists ox-alpha in every candidate set, verified today. Benching a model on a telemetry defect is the B4 error repeating one level up. The fix is **T934** (a provider refusing service must not exit 0), now ranked 2. | `docs/evidence/T924/lane-cutoff.md` and `docs/evidence/T924/lane-run-record.json` — committed by this seat; the session file itself is volatile |
-| B4-old | **ox-alpha does not reliably echo the dispatch nonce** — three instances (T770, T776 via raw pi; T818 through `bin/dispatch`, so the door is not the explanation). Work quality high, protocol compliance unreliable. | T818 findings |
+by putting waypoint 1 on oxalpha (T924: 4,110 s, complete ladder, neither deliverable written).
+The instrument defect is registered as **T934** — a provider refusing service must not exit 0. **Decision (T914 seat): oxalpha is off the dispatch list** until lane telemetry can distinguish provider death from model behaviour. Work quality is the best in the field (37/40, race C3) — this is a lane-reliability finding, not a capability one. | `docs/evidence/T926/` (run record + lane log, preserved), `findings/T924-4x4-d3-tractability.json` |
+| B4-corr | **B4 CORRECTED 2026-08-25 (T935 seat) — the two oxalpha events are not the same event, and the bench was never mechanized.** B4 merged T926's death with T924's, and they have opposite causes. **T926: never served.** 37.4 s, `tokens_out: 0`, row never claimed — the 429 case, exactly as B4 says. **T924: served, and served well.** 4,110.6 s wall, **2,560.4 s CPU (62% utilisation)**, **4,886,579 tokens in / 44,877 out**, 1,440 MB RSS, **66 successful assistant turns**, and its stderr log holds **zero** 429s. It ran the full ladder and both arms. The 429s arrive only at the very end: last served turn **04:57:08Z**, then `Provider returned error` at 04:57:22Z and three `429 upstream_provider_shared_pool` refusals at 04:57:29 / 04:57:40 / 04:57:57Z, run over at 04:57:58Z. **It was cut off fifty seconds after its last served turn, mid-analysis, before it could write its deliverables.** Its final thinking block is it catching its own sampling-weight error — the same 7.6x error T929 later found independently. So "did excellent science, then exited 0 having written neither deliverable" understates it: it did not neglect to write, **it was interrupted while still correcting itself.** Consequence: **the T914 decision to take oxalpha off the dispatch list is withdrawn.** It was (a) founded on a merged reading of two different failures, and (b) never implemented anyway — `managent assign` still lists oxalpha in every candidate set, verified today. Benching a model on a telemetry defect is the B4 error repeating one level up. The fix is **T934** (a provider refusing service must not exit 0), now ranked 2. | `docs/evidence/T924/lane-cutoff.md` and `docs/evidence/T924/lane-run-record.json` — committed by this seat; the session file itself is volatile |
+| B4-old | **oxalpha does not reliably echo the dispatch nonce** — three instances (T770, T776 via raw pi; T818 through `bin/dispatch`, so the door is not the explanation). Work quality high, protocol compliance unreliable. | T818 findings |
 | B5 | **`dispatch_verify` cannot distinguish "nonce not echoed" from "work absent."** T818 was complete — 12/12 chunks, 579 rows — and read as *orphaned* for two hours. | the diff race (T826–T831) fixes this |
 | B6 | **A findings file citing volatile paths now fails the commit gate**, which is correct — but corpus-mining tasks must read `untracked/` sources. They must cite the committed corpus they produced, not the volatile sources they read. | T814's C10-NEW gate, hit by T818 |
 | B7 | **The progress fuse still reads stdout only.** pi buffers to completion, so a working console looks dead: qwen/T824 sat at 2,951 log bytes for 33 minutes while its session file grew to 573 KB across 25 bash calls. The display half is fixed (T823/D082); the fuse half is `tools/runner` and needs a task. | T773, T823 |
@@ -97,9 +97,9 @@ does not read it.
    1–3 are measurement and need nobody, and the ruling in item 4 cannot be made honestly until they
    are done. Item 4 now says *recommend, with the RAM figure for both candidates; the ruling is the
    operator's*. The row runs; the decision waits for its output.
-6. **T735 retired unrun** — ox-alpha shadow arm of race G. Its bundle pointed at a file that does
+6. **T735 retired unrun** — oxalpha shadow arm of race G. Its bundle pointed at a file that does
    not exist; race G was contaminated on 2026-08-23 when T731 repaired the register from the BARE
-   arm mid-race and erased all four seeded canaries before this lane finished; and ox-alpha is off
+   arm mid-race and erased all four seeded canaries before this lane finished; and oxalpha is off
    the dispatch list under B4. Three independent reasons, none fixable by re-running it.
 
 **DISCUSS is now 15 rows, and 10 of them are races.** Whether the parked races (Race J's five arms,
@@ -110,7 +110,7 @@ worth the operator's time — it is the largest block of held work and nobody ha
 
 **1. gemini-3.7-flash is coming in as `gflash`.** Verified before writing anything:
 `env -u OPENROUTER_API_KEY pi --provider openrouter --model google/gemini-3.7-flash -p '…'` → `rc 0`.
-**T938** wires it, ox-alpha's shape exactly: canonical label `gemini-3.7-flash` (what the ledger
+**T938** wires it, oxalpha's shape exactly: canonical label `gemini-3.7-flash` (what the ledger
 stores), serving tag `google/gemini-3.7-flash` (what pi launches), input alias `gflash` (what a
 human types, alongside `dspro`/`dsflash`). The shortname does not become the stored label — the
 kanban and the perf ledger read a name that explains itself. Thirteen surfaces enumerated in the
@@ -124,7 +124,7 @@ on assigning kimi/glm/minimax while looking configured. Verified live with the c
 mlx (family `local`) is unaffected and spends no cloud credit. A pinned model overrides the
 exclusion, which is what lets the kimi race arm run.
 
-**3. Race J is the race.** It already had five sealed lanes — ox-alpha, deepseek-v4-flash,
+**3. Race J is the race.** It already had five sealed lanes — oxalpha, deepseek-v4-flash,
 deepseek-v4-pro, kimi-k2.7, claude-sonnet-5 — writing a regression for `tools/runner`, which today
 has **zero declared test coverage**. Added **T939** (gemini-3.7-flash arm, blocked on T938) and
 **T941** (the judge, which the race never had). All six arms **pinned** to their model, and
@@ -134,7 +134,7 @@ which gives each arm a clean host rather than six contending.
 
 **4. The API keys are already redundant, all three of them.** Measured, key removed from the
 environment each time: openrouter → `rc 0`, ollama cloud → `rc 0`, **deepseek → `rc 0`**.
-`OPENROUTER_API_KEY` is not even set in the live environment and ox-alpha has been served all
+`OPENROUTER_API_KEY` is not even set in the live environment and oxalpha has been served all
 along. **The one thing standing in the way is ours:** `bin/subagent:983-985` exits with
 "DEEPSEEK_API_KEY is not set" — so the moment that variable leaves the profile, every deepseek
 dispatch (121 ledger tasks, the bulk workhorse) dies naming a cause that is not the cause. **T940**
@@ -222,7 +222,7 @@ column, in `managent status` and `orient`, not in this file). Read this block fi
 ### Race J, designed and parked
 
 Five byte-identical sealed briefs (verified before any entrant ran, the T863 Step-0 discipline):
-ox-alpha, dsflash, dspro, kimi, sonnet. Measures **control design on infra** — the dimension that
+oxalpha, dsflash, dspro, kimi, sonnet. Measures **control design on infra** — the dimension that
 predicted the C3 winner, never measured outside audit — and fills `fabricated_interfaces`
 mechanically, which currently reads UNKNOWN (not zero) for six of nine models. Two canaries with
 knowable answers sit in the required-assertions list: the memory-pressure host guard T821 deleted,
@@ -291,11 +291,11 @@ and `orient` rather than in this file) is registered as **T894**.
 ### IN FLIGHT (7)
 
 - **T771** `claude-opus-5` — 
-- **T818** `ox-alpha` — blind second derivation of type/scope/capabilities, chunks of 50, append-only chunk file
+- **T818** `oxalpha` — blind second derivation of type/scope/capabilities, chunks of 50, append-only chunk file
 - **T822** `deepseek-v4-flash` — convergent, not another amendment: 25 unarmed ids each get an arm or get deleted; no thi
 - **T828** `claude-sonnet-5` — diff race entrant: dispatch_verify nonce-vs-no-work, patch against a015496, scored by 17
 - **T829** `claude-haiku-4-5-20251001` — diff race entrant: dispatch_verify nonce-vs-no-work, patch against a015496, scored by 17
-- **T831** `ox-alpha` — diff race entrant (ox-alpha): dispatch_verify nonce-vs-no-work, patch against a015496
+- **T831** `oxalpha` — diff race entrant (oxalpha): dispatch_verify nonce-vs-no-work, patch against a015496
 - **T834** `deepseek-v4-pro` — ollama back; 8 models equal at dial 5, oxalpha 9, fable reserved, qwen left to T833. Ver
 
 ### DISPATCHABLE (19)
@@ -311,10 +311,10 @@ and `orient` rather than in this file) is registered as **T894**.
 - **T709** — 
 - **T712** — 
 - **T715** — 
-- **T735** — ox-alpha shadow lane on race-G science set; model set at dispatch once T732 onboarding l
+- **T735** — oxalpha shadow lane on race-G science set; model set at dispatch once T732 onboarding l
 - **T750** — record canary_recall + fabricated_citations, retire thoroughness; backfill T706/T626/T55
-- **T751** — token join: split into tokens.jsonl, canon_tag knows ox-alpha, metrics cost join; method
-- **T753** — score the completed ox-alpha lanes T735/T744 against T730's ruling; no new ox-alpha spen
+- **T751** — token join: split into tokens.jsonl, canon_tag knows oxalpha, metrics cost join; method
+- **T753** — score the completed oxalpha lanes T735/T744 against T730's ruling; no new oxalpha spen
 - **T764** — 
 - **T787** — move 10 orphan sprints under their landmark, races to a sibling level, docs/epics/README
 - **T825** — T814 follow-up: commit-or-repoint 29 bucket-(b) Tier-B rows, downgrade-or-rescope 13 buc
@@ -383,7 +383,7 @@ T677 incident (a cooldown once armed from a quoted document). I nearly repeated 
 
 **Reconciliation outcome.** 39 rows closed on evidence (37 `pass`, 2 `abandoned`). `T819` and `T832` unblocked and are dispatchable. `T843`/`T844` remain blocked on B21. Six rows never ran and are correctly `dispatchable`: `T786`, `T787`, `T796`, `T798`, `T825`, `T836`. Store count unchanged at 479 throughout; every invariant re-verified after each commit.
 
-| B23 | **ox-alpha returned two empty responses, then probed healthy — the fault was transient, not the model.** Two dispatches of the store-loss detector row came back exit 0 in 13.1 s and 8.8 s with no nonce and no claim, six minutes after the same model had completed a substantial lane on the *identical* provider path. A direct probe immediately afterwards had it read that same brief, echo a nonce, and summarise the task correctly including its arm count. **So this is an availability blip and nothing more.** Recorded here because the seat's first write-up implied ox-alpha was the weaker choice, which the evidence does not support: switching the row to `deepseek-v4-pro` was a liveness decision on n=1, not a capability comparison, and the standing measurement has ox-alpha at the best clean-pass rate. Ranking these two requires a head-to-head on one row. | two attempt records for that row; a direct provider probe; the model's own correct summary of the brief |
+| B23 | **oxalpha returned two empty responses, then probed healthy — the fault was transient, not the model.** Two dispatches of the store-loss detector row came back exit 0 in 13.1 s and 8.8 s with no nonce and no claim, six minutes after the same model had completed a substantial lane on the *identical* provider path. A direct probe immediately afterwards had it read that same brief, echo a nonce, and summarise the task correctly including its arm count. **So this is an availability blip and nothing more.** Recorded here because the seat's first write-up implied oxalpha was the weaker choice, which the evidence does not support: switching the row to `deepseek-v4-pro` was a liveness decision on n=1, not a capability comparison, and the standing measurement has oxalpha at the best clean-pass rate. Ranking these two requires a head-to-head on one row. | two attempt records for that row; a direct provider probe; the model's own correct summary of the brief |
 | B24 | **`managent suggest` does not apply the bundle's `holds=` meta.** A row minted by `suggest` before its brief is written keeps `holds: []`, so the file-conflict guard protects nothing even though the brief declares it. Deliverables *are* read from the same header at dispatch, so the parser exists — only `holds` is dropped. `T848` holds `src/managent/main.zig`, the one-writer file, and its row claims to hold nothing. | `T848`'s row versus its own bundle header |
 
 ## C-new. Dispatched or queued by the orcha seat, 2026-08-24
@@ -433,12 +433,12 @@ live row. Verify each deliverable exists **and is committed** before believing a
 5. **T849's remainder** — the other 53 scratch-repo conversions, batch size set by what T849 reports
    about how long one conversion takes and which scripts resist.
 
-**Model rules in force:** Fable reserved. **Do not put a real row on ox-alpha until it passes an
+**Model rules in force:** Fable reserved. **Do not put a real row on oxalpha until it passes an
 agentic probe** — it failed the full loop three times since ~09:00Z while answering simple probes
 fine (B23). One task per family, one row per model. The fleet keeper stays paused: one dispatcher.
 
 **Known small fix, not yet owned:** a lane reports tokens only when dispatched with `--session`
-(deepseek and ollama have it; the openrouter/ox-alpha lane has neither `--session` nor `--mode json`,
+(deepseek and ollama have it; the openrouter/oxalpha lane has neither `--session` nor `--mode json`,
 which is the whole explanation for its UNKNOWN token column). One line in the dispatch path.
 
 ## B-new-4. Observability gaps measured while three workers ran, 2026-08-24
@@ -447,7 +447,7 @@ which is the whole explanation for its UNKNOWN token column). One line in the di
 |---|---|---|
 | B25 | **`managent liveness` displays a falsehood, which is worse than a gap.** With `T848` running on `deepseek-v4-pro` and `T849` on `glm-5.2`, it reported both as `[beats stopped]` with `command: pi --provider openrouter --model stealth` — the command and model of *earlier abandoned attempts* on those same rows. A heartbeat from a dead attempt is never superseded, so the surface attributes it to the live run and names the wrong model. Both tasks were in fact healthy. Anyone acting on that display would reopen or re-dispatch a working row. | `bin/managent liveness` versus the process table and the session transcripts, same minute |
 | B26 | **A `claude` lane is unobservable by design, not by accident.** It is dispatched as bare `claude -p …` with no `--session`, its stdout is buffered to completion, and no heartbeat lands — so `T850` showed `UNKNOWN — no assertion`, a 2.7 KB log frozen for ten minutes, and no transcript, while being perfectly alive (two live pids). The process table was the *only* truthful signal. | `T850` across four surfaces |
-| B27 | **The reliable liveness signal is the session transcript, and only two of four lanes have one.** `deepseek` is dispatched with `--mode json --session <path>` and `ollama` with `--session <path>`; both produced growing transcripts (736 KB and 127 KB, mtimes seconds old) that correctly showed health. The `openrouter`/`ox-alpha` lane gets neither flag and the `claude` lane gets none. **So the missing `--session` is not a cosmetic token-column gap — it removes liveness and attribution together for half the fleet.** That reframes it from nice-to-have to the cheapest observability fix available. | the four lanes' argv, measured |
+| B27 | **The reliable liveness signal is the session transcript, and only two of four lanes have one.** `deepseek` is dispatched with `--mode json --session <path>` and `ollama` with `--session <path>`; both produced growing transcripts (736 KB and 127 KB, mtimes seconds old) that correctly showed health. The `openrouter`/`oxalpha` lane gets neither flag and the `claude` lane gets none. **So the missing `--session` is not a cosmetic token-column gap — it removes liveness and attribution together for half the fleet.** That reframes it from nice-to-have to the cheapest observability fix available. | the four lanes' argv, measured |
 
 **Verified working, recorded so it is not re-litigated:** the fleet keeper's pause is real, not just a flag — its own log writes `cooldown flag set — no new dispatches` every 30 s. And all four race-judge briefs (`T832`, `T843`, `T844`, `T819`) are amended with the closed field, the clean-baseline requirement, and the design assumptions their originals did not state; they are ready to dispatch as slots free.
 
@@ -470,7 +470,7 @@ which is the whole explanation for its UNKNOWN token column). One line in the di
 | # | finding | evidence |
 |---|---|---|
 | B34 | **The minimax starvation is not reproduced in a measured window, and the real concentration is elsewhere.** T850 built the accounting (report-only, as scoped) and its first reading over the trailing 5 hours shows the ollama family split roughly evenly — `minimax-m3` **295** requests (36.9% of family), `glm-5.2` **275** (34.4%), `kimi-k2.7` **230** (28.8%). The documented premise for a per-model budget was minimax taking 790 of ~792 while glm and kimi got one each. That window predates the reset, so this does not refute the incident — but it does mean **the budget must be driven by measured shares rather than by that anecdote.** The concentration this window actually shows is **`claude-sonnet-5` at 598 requests, 75.6% of its family and 25.7% of the entire fleet.** Any cap written to the anecdote would have policed the wrong model. | `python3 tools/request-accounting.py` |
-| B35 | **The honesty rule survived implementation.** `ox-alpha` reports `requests=0` with **5 unattributable attempts** named individually, rather than folding unknowns into a zero or a total; the ollama `[GIN]` cross-check reports `gin_total=923 gin_429=12 known=800 discrepancy=123` and explicitly does not reconcile it. Fleet total is stated as *known* = 2325 with 13 unattributable attempts alongside. This is the shape the brief demanded and it is what makes the numbers usable. | the same report |
+| B35 | **The honesty rule survived implementation.** `oxalpha` reports `requests=0` with **5 unattributable attempts** named individually, rather than folding unknowns into a zero or a total; the ollama `[GIN]` cross-check reports `gin_total=923 gin_429=12 known=800 discrepancy=123` and explicitly does not reconcile it. Fleet total is stated as *known* = 2325 with 13 unattributable attempts alongside. This is the shape the brief demanded and it is what makes the numbers usable. | the same report |
 
 **Audit of T850 by the seat, since a close is an assertion:** all four deliverables committed; 8 arms pass; the report-only scope was respected — no commits to `bin/dispatch`, `tools/fleet_caps.py`, `tools/window_policy.py` or `tools/runner`. Its `pass` is justified.
 
@@ -505,7 +505,7 @@ checked citations individually at file:line and **reproduced claimlint's C3 exac
 
 ## B-new-8. The diff race is judged — T832, audited by the seat, 2026-08-24
 
-**Ruling: `T827` (deepseek-v4-flash) wins; `T828` (claude-sonnet-5) second.** Then `T831` (ox-alpha),
+**Ruling: `T827` (deepseek-v4-flash) wins; `T828` (claude-sonnet-5) second.** Then `T831` (oxalpha),
 `T826` (deepseek-v4-pro), `T829` (claude-haiku-4-5-20251001) failed, `T830` (qwen) never ran.
 
 **Why the mechanical headline was wrong, which is the valuable part.** `T826` and `T831` score a
@@ -542,7 +542,7 @@ named as the decisive test.
 measured legacy accuracy is 70.4%. Caveat the seat adds: the ground truth is **n=27**, which is a thin
 basis for a 100% claim, and the eight legacy misses are concentrated in `spec`→`audit` confusion.
 
-**Experiment 2 — the clean two-model comparison, and the consequential result.** T818 (`ox-alpha`) and
+**Experiment 2 — the clean two-model comparison, and the consequential result.** T818 (`oxalpha`) and
 T820 (`deepseek-v4-pro`) worked from **byte-identical briefs** over the same 578 tasks. Their
 `task_type` labels agree on **206 of 578 — 35.6%**. Scope taxonomies are outright incompatible and
 capability vocabularies are model-specific. The seat recomputed independently on the subset it could
@@ -694,11 +694,11 @@ exhaustive pass. Stated rather than implied.
 | # | finding | evidence |
 |---|---|---|
 | B54 | **An upstream rate-limit is recorded as a successful empty run.** The operator sees explicit `429 … "stealth/ox-alpha is temporarily rate-limited upstream"` in his own console, while our harness records those same runs as **exit 0 with no output** — three such runs today, at 13.1 s, 8.8 s and one longer. **No 429 appears anywhere in our logs.** The `provider-429` classification exists only as a `dispatch_verify` verification outcome (`verified=unreached reason=provider-429`) and evidently cannot see the refusal on pi lanes. So the honest reading — *the provider refused, the model was never reached* — is rendered as a clean success. | his console versus our run records |
-| B55 | **Every model-quality inference the seat drew from those empty runs is withdrawn.** The seat told the operator three times that ox-alpha showed "unreliable protocol compliance"; that was already retracted once when the nonce check was shown to read its own prompt back, and it is now retracted a second time on a different ground: the empty runs are consistent with upstream refusal, and there is no evidence for a model explanation. **Two independent instrument defects produced the same false accusation against one model.** | this file |
-| B56 | **A near-miss worth recording as method.** The seat's first check for 429s in a run log reported two hits and was about to report "ox-alpha hit rate limits and recovered". The matches were the digits inside a process id (`84291`). Caught before reporting. This is the same class as an earlier incident where a log grep matched documentation strings inside task output. **A substring match is not evidence; the match must be shown in context before it is believed.** | the grep and the pid |
+| B55 | **Every model-quality inference the seat drew from those empty runs is withdrawn.** The seat told the operator three times that oxalpha showed "unreliable protocol compliance"; that was already retracted once when the nonce check was shown to read its own prompt back, and it is now retracted a second time on a different ground: the empty runs are consistent with upstream refusal, and there is no evidence for a model explanation. **Two independent instrument defects produced the same false accusation against one model.** | this file |
+| B56 | **A near-miss worth recording as method.** The seat's first check for 429s in a run log reported two hits and was about to report "oxalpha hit rate limits and recovered". The matches were the digits inside a process id (`84291`). Caught before reporting. This is the same class as an earlier incident where a log grep matched documentation strings inside task output. **A substring match is not evidence; the match must be shown in context before it is believed.** | the grep and the pid |
 
 **Model selection rule adopted, operator 2026-08-24:** for the most important findings and audits, use
-**one model per family** — one Claude, one DeepSeek, one Ollama, plus ox-alpha when it is responsive —
+**one model per family** — one Claude, one DeepSeek, one Ollama, plus oxalpha when it is responsive —
 rather than several from one family. Family diversity is what distinguishes a property of the problem
 from a habit of one provider. Currently: the ideal consolidation is on DeepSeek, the what-is audit on
 Ollama, and Claude is unreliable this hour (one row produced nothing in 488 s with no 429 recorded), so

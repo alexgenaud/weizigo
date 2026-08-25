@@ -104,3 +104,112 @@ dispatch-verify 2026-08-22 T657 deepseek-v4-pro report=success verified=pass kil
 dispatch-verify 2026-08-22 T654 claude-opus-5 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
 dispatch-verify 2026-08-22 T651 deepseek-v4-pro report=success verified=pass killed_by=none
 dispatch-verify 2026-08-22 T650 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T836 claude-opus-5 report=unknown verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T822 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T834 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T839 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T842 minimax-m3 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T841 kimi-k2.7 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T840 glm-5.2 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T838 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T846 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T845 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T847 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T848 oxalpha report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T848 oxalpha report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T849 oxalpha report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T850 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T848 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T836 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T849 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T832 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T819 kimi-k2.7 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T843 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T852 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T844 claude-haiku-4-5-20251001 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T851 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T853 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T854 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T855 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T856 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T857 oxalpha report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T858 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T859 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T860 oxalpha report=incomplete verified=fail fail=nonce killed_by=none
+dispatch-verify 2026-08-24 T861 claude-sonnet-5 report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T862 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T864 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T865 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T866 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T868 kimi-k2.7 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T869 claude-sonnet-5 report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T867 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T861 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T870 claude-opus-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T884 kimi-k2.7 report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T884 kimi-k2.7 report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T883 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T884 kimi-k2.7 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T885 minimax-m3 report=success verified=fail fail=nonce killed_by=none
+dispatch-verify 2026-08-24 T882 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T881 claude-opus-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T886 oxalpha report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T872 deepseek-v4-pro report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-24 T888 claude-haiku-4-5-20251001 report=success verified=fail fail=nonce killed_by=none
+dispatch-verify 2026-08-24 T889 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 - kimi-k2.7 report=bare verified=pass killed_by=none
+dispatch-verify 2026-08-24 T887 claude-sonnet-5 report=incomplete verified=fail fail=row killed_by=rss
+dispatch-verify 2026-08-24 T880 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T897 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T893 claude-fable-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T896 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T872 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T890 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T750 minimax-m3 report=success verified=fail fail=nonce killed_by=none
+dispatch-verify 2026-08-24 T899 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T900 claude-fable-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T898 claude-sonnet-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T895 claude-opus-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T891 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T901 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T902 claude-opus-5 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T863 claude-sonnet-5 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-24 T903 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T905 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T904 oxalpha report=success verified=pass killed_by=none
+dispatch-verify 2026-08-24 T786 deepseek-v4-flash report=success verified=fail fail=exit killed_by=none
+dispatch-verify 2026-08-25 T908 minimax-m3 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-25 T751 glm-5.2 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-25 T863 claude-sonnet-5 report=failure-blocked verified=pass killed_by=none
+dispatch-verify 2026-08-25 T907 claude-fable-5 report=failure-blocked verified=pass killed_by=none
+dispatch-verify 2026-08-25 T764 minimax-m3 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-25 T902 claude-opus-5 report=incomplete verified=fail fail=row killed_by=rss
+dispatch-verify 2026-08-25 T764 minimax-m3 report=incomplete verified=unreached reason=provider-429 killed_by=provider-limit
+dispatch-verify 2026-08-25 T912 claude-opus-5 report=incomplete verified=fail fail=row killed_by=rss
+dispatch-verify 2026-08-25 T912 claude-opus-5 report=incomplete verified=fail fail=row killed_by=rss
+dispatch-verify 2026-08-25 T764 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T906 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T912 claude-opus-5 report=incomplete verified=fail fail=row killed_by=rss
+dispatch-verify 2026-08-25 T796 kimi-k2.7 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T751 minimax-m3 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T912 claude-opus-5 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T910 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T825 minimax-m3 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T913 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T908 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T924 oxalpha report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-25 T929 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T930 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T926 oxalpha report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-25 T927 glm-5.2 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T894 claude-sonnet-5 report=incomplete verified=fail fail=row killed_by=none
+dispatch-verify 2026-08-25 T932 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T926 minimax-m3 report=success verified=fail fail=nonce killed_by=none
+dispatch-verify 2026-08-25 T938 claude-haiku-4-5-20251001 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T940 gemini-3.7-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T916 oxalpha report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T917 deepseek-v4-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T918 deepseek-v4-pro report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T919 kimi-k2.7 report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T943 gemini-3.7-flash report=success verified=pass killed_by=none
+dispatch-verify 2026-08-25 T920 claude-sonnet-5 report=success verified=pass killed_by=none

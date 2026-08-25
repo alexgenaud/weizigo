@@ -260,10 +260,10 @@ OLLAMA_TAG_TO_CANONICAL = {
 
 # pi (openrouter) serving tag → canonical label mapping (T732).  The serving
 # tag stealth/ox-alpha never reaches the ledger; the stored label is always
-# ox-alpha (src/managent/main.zig canonical_models[]).
+# oxalpha (src/managent/main.zig canonical_models[]).
 PI_TAG_TO_CANONICAL = {
-    "stealth/ox-alpha": "ox-alpha",
-    # T938: gemini-3.7-flash — the same shape as ox-alpha, with the
+    "stealth/ox-alpha": "oxalpha",
+    # T938: gemini-3.7-flash — the same shape as oxalpha, with the
     # `google/` vendor prefix in place of `stealth/`.  Operator-verified
     # headless 2026-08-25; canonical label is what the ledger stores.
     "google/gemini-3.7-flash": "gemini-3.7-flash",
@@ -288,7 +288,7 @@ CANONICAL_TO_OLLAMA_TAG = {
     "qwen3.8:27b-mlx": "qwen3.8:27b-mlx",
 }
 CANONICAL_TO_PI_TAG = {
-    "ox-alpha": "stealth/ox-alpha",
+    "oxalpha": "stealth/ox-alpha",
     # T938: gemini-3.7-flash — same shape; the inverse of
     # PI_TAG_TO_CANONICAL above (T890 single source of truth).
     "gemini-3.7-flash": "google/gemini-3.7-flash",
@@ -657,7 +657,7 @@ def _resolve_model(provider, raw_model, flags):
         return raw_model, raw_model, None  # label IS the model
     if provider == "pi":
         # T732/T890: --model is the serving tag (stealth/ox-alpha) OR the
-        # canonical label (ox-alpha); the canonical label is what the
+        # canonical label (oxalpha); the canonical label is what the
         # ledger stores, the live serving tag is what pi launches.  A
         # hand-typed serving tag is accepted only as input convenience.
         if not raw_model:

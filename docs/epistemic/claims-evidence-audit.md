@@ -201,7 +201,7 @@ non-BACKED verdicts on evidential rows I call BACKED.
 
 | lane | model | agree /233 | agree /150 evidential | defect recall /53 | false flags | right on the 70 | T901-repointed 18 | canaries | verdict entropy | confidence h/m/l | median `what_i_checked` | templated rows |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| T904 | ox-alpha | **169** | 119 | 27 | **2** | **49** | 18/18 | 2/2 | 0.47 | 147/86/0 | 119 | 7 |
+| T904 | oxalpha | **169** | 119 | 27 | **2** | **49** | 18/18 | 2/2 | 0.47 | 147/86/0 | 119 | 7 |
 | T905 | glm-5.2 | **166** | 116 | 46 | 25 | 42 | 18/18 | 2/2 | 0.62 | 109/124/0 | 154 | 9 |
 | T903 | deepseek-v4-pro | **125** | 103 | **49** | 42 | 22 | 17/18 | 2/2 | 0.57 | 43/147/43 | 81 | **194** |
 

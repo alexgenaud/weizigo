@@ -26,9 +26,9 @@
   ],
   "what_was_computed": [
     "12 dispatchable solo rows (T709/T712/T715/T735/T750/T751/T753/T764/T787/T810/T811/T812); all others dispatchable are shape=null (legacy T635 draw, unaffected)",
-    "per-model kanban row counts: haiku 7, ox-alpha 8, sonnet 17, opus 20, flash 56, pro 102 — haiku is both cheapest (1.4M tokens median) and least-data",
+    "per-model kanban row counts: haiku 7, oxalpha 8, sonnet 17, opus 20, flash 56, pro 102 — haiku is both cheapest (1.4M tokens median) and least-data",
     "before/after: old binary (HEAD) picks haiku via solo-cost; new binary picks haiku via solo-least-data — method and reason change, model unchanged",
-    "the 3 failing unit tests are pre-existing at HEAD: 2ec4f93 set ox-alpha appetite SPEND, so filterQualified yields 6 candidates while the T635 roster tests expect 5"
+    "the 3 failing unit tests are pre-existing at HEAD: 2ec4f93 set oxalpha appetite SPEND, so filterQualified yields 6 candidates while the T635 roster tests expect 5"
   ],
   "what_was_changed": [
     "src/managent/main.zig — soloPick rewired to qualification-first + least-data, cost reporting-only; greedyPanelStep/panelPick cost tie-break → least-data; readMeasuredCosts returns []CostReading with trust grade; selectForShape + taskCountsByModel/DataCounts census; cmdAssign computes and passes the census; 7 new/rewritten tests",

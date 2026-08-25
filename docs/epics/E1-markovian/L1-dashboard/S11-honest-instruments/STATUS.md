@@ -9,31 +9,33 @@ Anything short of ACCEPTED is incomplete.
 
 | item | owner | model | state |
 |---|---|---|---|
-| arm A (untracked) | T857 | ox-alpha | **ARMS** — landed; blindness verified objectively (names no file that exists here) |
+| arm A (untracked) | T857 | oxalpha | **ARMS** — landed; blindness verified objectively (names no file that exists here) |
 | arm B (untracked) | T859 | deepseek-v4-pro | **ARMS** — landed |
 | reconciliation | T865 | deepseek-v4-flash | **ACCEPTED** — `stream1-design/design.md` committed, 435 lines, reconciled from both arms; §5 chooses each difference with a reason, §6/§7 carry both arms' costs forward |
-| grade | **QUEUED** — the document exists and is unreviewed; a grade is still owed | — | — |
-| **`stream1-design/design.md`** | T865 | dsflash | **ARMS→ACCEPTED, UNGRADED** |
+| grade | T897 | claude-sonnet-5 | **GRADED** — 2026-08-24, `stream1-design/GRADE.md`, verdict *accepted with amendments* (4, each sentence-scale: N/A-clause ambiguity, missing surface-enumeration procedure, prose-surface inspection gap, +1) |
+| **`stream1-design/design.md`** | T865 | dsflash | **ACCEPTED** (document written; grade recorded in the row above) |
 
 ## stream2-whatis — what exists, blind to stream1
 
 | item | owner | model | state |
 |---|---|---|---|
 | arm A (untracked) | T858 | deepseek-v4-pro | **ARMS** — landed, all citations resolve |
-| arm B (untracked) | T860 | ox-alpha | **ARMS** — landed (27,743 B); closed on evidence by the seat, worker skipped nonce and close |
+| arm B (untracked) | T860 | oxalpha | **ARMS** — landed (27,743 B); closed on evidence by the seat, worker skipped nonce and close |
 | arm C (untracked) | T869 | claude-sonnet-5 | **ARMS** — landed 2026-08-24, blind third pass; 9 mechanisms cited, blind spots named; closed on evidence by the seat (worker died before close); **absorbed into whatis.md rev 2 by T896 — 8 new union sites, 1 overlap (R2)** |
-| audit of A+B | T866 | glm-5.2 | **ACCEPTED (rev 1)** — `stream2-whatis/whatis.md` committed, 259 lines; every cited `file:line` opened and marked confirmed / misread / drifted / unverifiable; **rev 2 (T896) grows the file to 406 lines with the arm-C absorption** |
+| audit of A+B | T866 | glm-5.2 | **ACCEPTED** — `stream2-whatis/whatis.md` committed, 259 lines; every cited `file:line` opened and marked confirmed / misread / drifted / unverifiable; **rev 2 (T896) grows the file to 406 lines with the arm-C absorption** |
 | **absorb arm C** | T896 | deepseek-v4-flash | **ACCEPTED** — rev 2 of `whatis.md` committed with every arm-C assertion dispositioned; union recounted with provenance; fourth-pass question answered yes |
-| grade | **QUEUED** — owed now that rev 2 is in | — | — |
-| **`stream2-whatis/whatis.md`** | T866 + T896 | glm + deepseek-v4-flash | **rev 2 committed (T896)** — three arms absorbed; seat grading pending |
+| **census, not a 4th arm** | T898 | claude-sonnet-5 | **ACCEPTED** — `stream2-whatis/census-method.md` committed + `tools/emission-census.py` (wired into `zig build test`); denominator: 6,004 emission points in full scope / 1,477 on product surfaces (154/35 files); null + seeded-defect controls PASS; coverage of the 3-arm union: 16.0% (full) / 57.1% (product surfaces); **verdict: no 4th blind arm — classify what is enumerated** |
+| grade | — | — | **QUEUED** — no grading row registered yet for the what-is stream |
+| **`stream2-whatis/whatis.md`** | T866 + T896 | glm + deepseek-v4-flash | **ACCEPTED** (revision 2, arm C absorbed) — three arms absorbed; seat grading pending |
+| **`stream2-whatis/census-method.md`** | T898 | claude-sonnet-5 | **ACCEPTED** — the sprint's denominator; seat grading pending |
 
 ## stream2b-green — zero red, honestly
 
 | item | owner | model | state |
 |---|---|---|---|
 | classification (delete / fix-test / fix-code) | T870 | claude-opus-5 | **ACCEPTED** — committed at `stream2b-green/classification.md`; DELETE 11 / FIX-TEST 21 / FIX-CODE 10 over 88 scripts (denominator corrected from 86); three DELETE verdicts re-verified at source by the seat 2026-08-24 |
-| delete wave | T872 | deepseek-v4-pro | **ACTIVE** — re-dispatched 2026-08-24 evening after the first wall was found too short (one full sweep costs ~20 min; the brief demanded two plus 11 gated commits inside 45 min). Five commits landed. Baseline sweep preserved and reused; see the green-up sweep contract |
-| fix-test wave | T873 | — | **QUEUED** — gated on the delete wave closing (seat-enforced serial) |
+| delete wave | T872 | deepseek-v4-pro | **ACCEPTED** — 2026-08-24, all 11 DELETE verdicts executed in 5 commits, **net −488 lines**; superset rule held with one ambient exclusion named; **four evidence-backed corrections to the classification** (below). Was **ACTIVE** — re-dispatched 2026-08-24 evening after the first wall was found too short (one full sweep costs ~20 min; the brief demanded two plus 11 gated commits inside 45 min). Five commits landed. Baseline sweep preserved and reused; see the green-up sweep contract |
+| fix-test wave | T873 | — | **QUEUED** — the delete wave has closed; this is next out |
 | fix-code wave | T874 | — | **QUEUED** — gated on the fix-test wave; ends with the ratchet deletion if zero red is reached |
 
 ## stream3-compare — converges 1 and 2
@@ -165,3 +167,30 @@ its own state, in a sprint whose entire purpose is that surfaces should not do t
 already written above — *every label states a fact about the present, and the file is corrected at
 the moment a row closes* — was not followed, because nothing enforces it. **A row to make the
 sprint surface derive its state rather than remember it is owed and not yet written.**
+
+## The delete wave's four corrections to the classification, 2026-08-24
+
+The brief invited override with evidence — *"a classification is a decision, not a fact"* — and the
+wave used it four times. These are recorded here because they change later waves' work:
+
+1. **V2 was wrong, and correcting it prevented fabricated debt.** The classification said battery
+   I11 (move-set consistency) was *"genuinely uncovered"* and that a claims-register row was owed
+   for the gap. It is not uncovered: `src/vb_i11.zig` already covers battery-vs-solver move-set
+   agreement with null and seeded-defect controls, exhaustive to 4×3 plus a 50k 4×4 sample, and is
+   wired into `zig build test`. Deleting the stub revealed **no** gap. **No claims-register row is
+   owed** — had the wave followed the classification, we would have registered a debt that does not
+   exist.
+2. **R25 was incomplete.** `regression-managent-holds.sh` had a second red cause besides the
+   deploy-freshness arm. Deleting the arm was still correct; the script stays red for T539's reason.
+3. **R27 was not confirmed, and this is the green-up working.** The classification predicted
+   `regression-managent-integrity.sh` would pass outright once the deploy arm went. It does not — it
+   now fails at arm 3, which **the redundant check had been masking**. Deleting a vacuous check
+   *revealed a real failure that was hidden behind it.* That is the whole thesis of this stream,
+   demonstrated.
+4. **V8 partially:** the `CLAIMLINT_FLOOR` attribute is deliberately kept (doctor and sweep consume
+   it), with its stale figure handed forward to a fix-code wave rather than silently corrected.
+
+**On the superset rule:** one script gave two disagreeing readings across the sweep because
+`bin/subagent` was being edited by another row mid-run. The wave named the ambient input and
+excluded it explicitly rather than quietly, which is what the sweep contract requires. That is a
+*third* instance of the ambient-dependence class the contract was written for.

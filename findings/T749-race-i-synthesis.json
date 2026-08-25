@@ -167,7 +167,7 @@
       },
       {
         "lane": "T744",
-        "model": "ox-alpha",
+        "model": "oxalpha",
         "lines": 376,
         "rows": 13,
         "sections_covered": "4/4",

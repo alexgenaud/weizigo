@@ -1,8 +1,8 @@
 {
  "task_id": "T924",
  "date": "2026-08-25",
- "model": "ox-alpha",
- "identifier": "ox-alpha/T924",
+ "model": "oxalpha",
+ "identifier": "oxalpha/T924",
  "recovered_by": "claude-opus-5/T914 from the lane transcript; the lane exited 0 without writing its deliverables and the runner's auto-close correctly declined (T862 3)",
  "landmark": "L2 (proven 4x4 values)",
  "claims": [

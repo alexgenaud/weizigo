@@ -16,7 +16,7 @@ is a Claude model ranking Claude models. Per the review-independence rule
 `model-registry.md`; short names below are presentation only (canonical mapping as of
 2026-08-22: opus=`claude-opus-5`, fable=`claude-fable-5`, sonnet=`claude-sonnet-5`,
 haiku=`claude-haiku-4-5-20251001`, dspro=`deepseek-v4-pro`, flash=`deepseek-v4-flash`,
-glm=`glm-5.2`, minimax=`minimax-m3`, kimi=`kimi-k2.7`, qwen=`qwen3.8:27b-mlx`).
+glm=`glm-5.2`, minimax=`minimax-m3`, kimi=`kimi-k2.7`, qwenlocal=`qwen3.8:27b-mlx`).
 
 **Evidence tags** on every placement:
 - **[M]** measured at least once (cite in place; almost always n = 1, grader caveats apply)
@@ -42,7 +42,7 @@ not directly comparable; the merged ordering below is therefore already a belief
 8. kimi [M — 25, T447]
 9. haiku [M — 0, T447-rep, false-negative "no escape paths"; **never dispatch an audit to haiku
    without a second lane**]
-10. qwen [M — no completion in 2400 s on repo-wide input; but see §2 verification-depth — on a
+10. qwenlocal [M — no completion in 2400 s on repo-wide input; but see §2 verification-depth — on a
     *bounded* verification target it is not last, it is mid]
 
 ### infra / tooling — 22 %
@@ -57,7 +57,7 @@ not directly comparable; the merged ordering below is therefore already a belief
 6. minimax [F — mid; one rc=124 cohort death on record, a fleet datum not a quality datum]
 7. haiku [I — fine for small scripts with mechanical acceptance; passed T589/T598/T618 today]
 8. opus [F — over-qualified; spends premium tokens on work flash closes]
-9. qwen [M-adjacent — only when input and output are both small]
+9. qwenlocal [M-adjacent — only when input and output are both small]
 10. fable [ruling — never; RESERVED types only]
 
 ### battery-heavy — 18 %
@@ -70,7 +70,7 @@ not directly comparable; the merged ordering below is therefore already a belief
 6. minimax [F]
 7. haiku [F — cheap enough to burn, but batteries reward thoroughness, its weak axis]
 8. opus / fable [F/ruling — wrong cost tier]
-9. qwen [M — only overnight, never during a measured suite run]
+9. qwenlocal [M — only overnight, never during a measured suite run]
 
 ### implementation-bounded — 11 % (matrix T-B; zero graded cells, this ladder is nearly all guess)
 
@@ -83,7 +83,7 @@ not directly comparable; the merged ordering below is therefore already a belief
 7. minimax [F]
 8. haiku [F — only with a sealed mechanical acceptance gate (§6 of the methodology), never on
    panel trust]
-9. qwen [unknown in Zig — "untested", not "cannot code"]
+9. qwenlocal [unknown in Zig — "untested", not "cannot code"]
 10. fable [ruling — never]
 
 Race #2 (mechanized-acceptance implement race) exists precisely to destroy this ladder.
@@ -99,7 +99,7 @@ Race #2 (mechanized-acceptance implement race) exists precisely to destroy this 
 6. glm [F]
 7. kimi / minimax [F — no evidence either way]
 8. haiku [I — plan-drift and premature-closure risk over hours]
-9. qwen [structural no — a console is all tool round-trips, each paying local latency]
+9. qwenlocal [structural no — a console is all tool round-trips, each paying local latency]
 
 ### integration / reframe — 6 %
 
@@ -111,7 +111,7 @@ Race #2 (mechanized-acceptance implement race) exists precisely to destroy this 
 5. flash [I — executes a given reframe well; less evidence it originates one]
 6. glm / kimi / minimax [F — no data]
 7. haiku [F — no]
-8. qwen [F — no]
+8. qwenlocal [F — no]
 
 ### research / census — 4 % (almost no data anywhere; pure prior)
 
@@ -119,7 +119,7 @@ Race #2 (mechanized-acceptance implement race) exists precisely to destroy this 
 2. flash [I — cheap breadth]
 3. dspro [I]
 4. sonnet [F]
-5. qwen [I — the one niche: overnight bounded re-runs and variance measurement, where slow is free]
+5. qwenlocal [I — the one niche: overnight bounded re-runs and variance measurement, where slow is free]
 6. glm / kimi / minimax [F]
 7. haiku [F — census rewards not-missing-things]
 8. fable [ruling — only if the census *is* the holistic review]
@@ -138,7 +138,7 @@ Measured base: T554 grading round — opus/sonnet/flash "great", fable/dspro "go
 5. dspro [M — good]
 6. glm [F]
 7. kimi / minimax [F]
-8. qwen [F — long-form coherence over small input is not implausible, untested]
+8. qwenlocal [F — long-form coherence over small input is not implausible, untested]
 9. haiku [M — disqualified: fabrication gate]
 
 ### adjudication / verdict-writing (matrix T-F; not a D027 type but a seat that recurs)
@@ -147,7 +147,7 @@ Measured base: T554 grading round — opus/sonnet/flash "great", fable/dspro "go
    the evidence axis]
 2. fable [I — independence and willingness-to-overturn are the reserved traits; T614 pass-with-findings
    audit of the S04 reconciler spec is the one recent datum]
-3. qwen [M — the `getsid` unique catch, every citation verified: verification *depth* is real]
+3. qwenlocal [M — the `getsid` unique catch, every citation verified: verification *depth* is real]
 4. sonnet [I — sharp, low false-alarm]
 5. flash [M-adjacent — served as race grader repeatedly without incident]
 6. glm [M-adjacent — wins the volume-graded independence metric in the profiles table]
@@ -164,18 +164,18 @@ ineligible to adjudicate a race that ranks Claude lanes.
 
 ### citation / verification honesty (the rank-1 discriminator per methodology §6)
 
-opus [M] > qwen [M] > sonnet ≈ glm [I] > flash ≈ dspro [I — no fabrication on record, no deep
+opus [M] > qwenlocal [M] > sonnet ≈ glm [I] > flash ≈ dspro [I — no fabrication on record, no deep
 probe either] > kimi ≈ minimax [F] > fable [unmeasured — expected high, but self-assessment is
 worthless here] ≫ haiku [M — one confirmed fabricated citation].
 
 ### thoroughness (a D027 dimension with **zero recorded data for every model** — all guess)
 
 opus > fable > flash > dspro > minimax ≈ glm > kimi > sonnet (deliberately trades recall for
-precision) > qwen (deep but narrow) > haiku.
+precision) > qwenlocal (deep but narrow) > haiku.
 
 ### scope discipline (stay inside the brief)
 
-glm [M — 1.00, n = 37] > sonnet [I] > qwen [I — physically can't wander far] > flash [I] >
+glm [M — 1.00, n = 37] > sonnet [I] > qwenlocal [I — physically can't wander far] > flash [I] >
 kimi [F] > haiku [I] > minimax [F] > dspro [I — today's fail=row incompletes are partly scope
 drift] > opus ≈ fable [I — both tend to exceed the brief; sometimes that is the value, it is
 still indiscipline].
@@ -188,19 +188,19 @@ scored as model failures (classifier miss, folded into T625), and at least two o
 classifier *did* excuse were misclassified the other way (T526 was our own watchdog kill; T601
 actually succeeded). Until T625's fix lands and the rows are re-scored, this axis distinguishes
 **provider availability and instrument error, not models** — treat model-the-weights and
-model-the-service as separate things here. What survives: minimax's rc=124 history and qwen's
+model-the-service as separate things here. What survives: minimax's rc=124 history and qwenlocal's
 wall-ceiling kill (both fleet data), haiku's speed-as-survival (its two lanes finished before
 the wall came down). [I] throughout, now with known contamination.
 
 ### speed to done (wall clock, tool-heavy work)
 
-haiku > flash > glm ≈ kimi ≈ minimax (cloud lanes) > sonnet > dspro > opus > fable ≫ qwen
+haiku > flash > glm ≈ kimi ≈ minimax (cloud lanes) > sonnet > dspro > opus > fable ≫ qwenlocal
 (structurally last on anything tool-heavy; competitive only when the task is one generation).
 
 ### cost per solved row (folklore only — **uncomputable across families** until the §6 token
 split lands; fresh-vs-cache-read is unsplit)
 
-qwen (costs the machine, not money) ≤ glm ≈ minimax ≈ kimi (credits, currently OFF) <
+qwenlocal (costs the machine, not money) ≤ glm ≈ minimax ≈ kimi (credits, currently OFF) <
 flash < haiku < dspro < sonnet < opus < fable. The interesting inversions to test once
 computable: haiku-vs-flash (haiku may lose on rework cost despite cheap tokens), and
 sonnet-vs-dspro on bounded implementation.
@@ -208,7 +208,7 @@ sonnet-vs-dspro on bounded implementation.
 ### long-horizon context / plan-keeping
 
 fable ≈ opus (200 k; fable hands over before 90 % by ruling) > sonnet > dspro > flash >
-glm ≈ kimi ≈ minimax > haiku (drifts) > qwen. [F/I — no controlled measurement exists.]
+glm ≈ kimi ≈ minimax > haiku (drifts) > qwenlocal. [F/I — no controlled measurement exists.]
 
 ---
 
@@ -216,11 +216,11 @@ glm ≈ kimi ≈ minimax > haiku (drifts) > qwen. [F/I — no controlled measure
 
 | scope | first choice | backup | never |
 |---|---|---|---|
-| one-liner / config / rename | haiku, qwen | glm | opus, fable |
+| one-liner / config / rename | haiku, qwenlocal | glm | opus, fable |
 | single file, sealed acceptance | flash | glm, kimi | fable |
-| multi-file bounded feature | sonnet, flash | dspro | qwen |
-| repo-wide sweep / census | opus, flash | dspro | qwen (measured DNF) |
-| whole-sprint console | dspro (hypothesis), opus | sonnet, flash | qwen, haiku |
+| multi-file bounded feature | sonnet, flash | dspro | qwenlocal |
+| repo-wide sweep / census | opus, flash | dspro | qwenlocal (measured DNF) |
+| whole-sprint console | dspro (hypothesis), opus | sonnet, flash | qwenlocal, haiku |
 | gate verification / holistic review / adjudication | fable, opus | sonnet | haiku (fabrication gate) |
 
 ---

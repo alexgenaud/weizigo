@@ -90,7 +90,7 @@ the adjudication excluded them. Substance is the T893 grade (n = 40 judged rows)
 
 | lane | model | substance /40 | effort (real/named, med. checked) | discernment: class entropy · conf dist (h/m/l) | fabrication (cit + iface) | canary | category fidelity | control design | self-rep. limits |
 |---|---|---|---|---|---|---|---|---|---|
-| T886 | ox-alpha | **37** | 36/71 · 261 | 0.96 · 33/10/1 | 0 + 0 | 2/2 | **2** | **2** | 1 |
+| T886 | oxalpha | **37** | 36/71 · 261 | 0.96 · 33/10/1 | 0 + 0 | 2/2 | **2** | **2** | 1 |
 | T887 | claude-sonnet-5 | **35** | 35/95 · 407 | 0.95 · 27/12/4 | 0 + n/r | 2/2 | **2** | 1 | **2** |
 | T881 | claude-opus-5 | **33** | 42/106 · 520 | 0.88 · 26/18/0 | 0 + n/r | 2/2 | **2** | 1 | **2** |
 | T882 | deepseek-v4-pro | **32** | 34/76 · 251 | 0.77 · 33/11/0 | 0 + n/r | 2/2 | **2** | 0 | 0 |

@@ -43,14 +43,14 @@ Build Summary: 112/122 steps succeeded (9 failed); 1344/1348 tests passed (1 ski
     `forced`, found `random`.
   - `assign: named model is preferred, qualified list still recorded` —
     expected 5, found 6.
-- **Cause:** `ox-alpha` (family `ox-alpha`) moved from RESERVED to **SPEND**
+- **Cause:** `oxalpha` (family `oxalpha`) moved from RESERVED to **SPEND**
   appetite on 2026-08-23 (operator ruling, supersedes T732's RESERVED). The
   qualified candidate list is now SIX models (claude opus/sonnet/haiku, deepseek
-  pro/flash, ox-alpha), not five. The T635 test expectations (`candidates.len
+  pro/flash, oxalpha), not five. The T635 test expectations (`candidates.len
   == 5`, `method=forced` when only deepseek-v4-pro survives exclusion) were not
-  updated for the sixth candidate. The assign **logic** is correct (ox-alpha is
+  updated for the sixth candidate. The assign **logic** is correct (oxalpha is
   spend-qualified); the **test expectations** are stale.
-- **Owning row:** ox-alpha placement (T753) / the 2026-08-23 ox-alpha SPEND
+- **Owning row:** oxalpha placement (T753) / the 2026-08-23 oxalpha SPEND
   ruling. Fix = update the T635 expectations (or the appetite, if the ruling
   changes).
 - **Verdict:** NEW red — test drift, not a logic defect.

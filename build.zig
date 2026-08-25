@@ -676,7 +676,7 @@ pub fn build(b: *std.Build) void {
     // ── T938: gemini-3.7-flash wiring controls ────────────────────
     // Operator-verified headless 2026-08-25
     // (`pi --provider openrouter --model google/gemini-3.7-flash`); wired
-    // in the same shape as ox-alpha (canonical label, vendor serving tag,
+    // in the same shape as oxalpha (canonical label, vendor serving tag,
     // pi harness).  These controls pin the wiring across the six surfaces
     // that must move in step (T317 single source; T801 one canonicalizer):
     // managent canonical_models[] / serving_tag_map / model_families[] /
@@ -898,20 +898,20 @@ pub fn build(b: *std.Build) void {
     integrity_regression.cwd = b.path(".");
     test_step.dependOn(&integrity_regression.step);
 
-    // ── T848/S10: store-loss detector controls ────────────────────────
-    // Four arms (null, seeded-defect revert, legitimate retirement, reasoned
-    // escape) against a scratch store + scratch repo, each shown red first
-    // then green.  The seeded-defect arm is the 2026-08-24 59-task loss
-    // shape: a hand-reverted tasks.json must REFUSE the next write (naming
-    // count + missing ids + census) and ALARM the next read (orient exits
-    // non-zero).  The script unsets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/
-    // GIT_OBJECT_DIRECTORY/GIT_NAMESPACE before its git init — the GIT_DIR
-    // leak was the incident's mechanism, and the script must not depend on
-    // the hook having already unset it.  Wired here because `zig build test`
-    // is the standing tooling gate (AGENTS.md).
-    const store_census_regression = b.addSystemCommand(&.{ "sh", "tools/regression-store-census.sh" });
-    store_census_regression.cwd = b.path(".");
-    test_step.dependOn(&store_census_regression.step);
+    // ── T944/S10: store-loss detector controls (S10-STORE-1..4 + SMOKE-4) ─
+    // Five arms (A16 atomic census, A17 write refusal, A18 orient alarm,
+    // A19 retirement bookkeeping, SMOKE-4 end-to-end incident scenario)
+    // against a scratch store + scratch repo, each shown red first then green.
+    // The seeded-defect arm is the 2026-08-24 59-task loss shape: a
+    // hand-reverted tasks.json must REFUSE the next write (naming count +
+    // missing ids + census) and ALARM the next read (orient exits non-zero).
+    // The script unsets GIT_DIR/GIT_WORK_TREE/GIT_INDEX_FILE/GIT_OBJECT_DIRECTORY/
+    // GIT_NAMESPACE before its git init — the GIT_DIR leak was the incident's
+    // mechanism, and the script must not depend on the hook having already
+    // unset it. Wired here because `zig build test` is the standing tooling gate.
+    const store_loss_regression = b.addSystemCommand(&.{ "sh", "tools/regression-store-loss.sh" });
+    store_loss_regression.cwd = b.path(".");
+    test_step.dependOn(&store_loss_regression.step);
 
     // ── T864: status docs must agree with the task store ────────────────
     // Sprint planning documents (docs/epics/**/STATUS.md) are a module with no

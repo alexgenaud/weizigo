@@ -54,7 +54,7 @@ is a floor and a third pass will raise it.
 
 ## 4. Two retractions. Do not repeat them.
 
-**`ox-alpha` is not unreliable at protocol compliance.** That claim was made three times by this seat
+**`oxalpha` is not unreliable at protocol compliance.** That claim was made three times by this seat
 and is withdrawn on two independent grounds: the nonce check **passes on a JSON-mode lane even with an
 empty model reply**, because the harness echoes the prompt (which carries the nonce) back to stdout — so
 it cannot fail there and falsely accuses elsewhere; and the operator observes explicit upstream `429`
@@ -117,7 +117,7 @@ often the source of unnecessary complexity and failure. **The per-model limit of
 — the module knows only totals and families — so the seat enforces it by hand.
 
 For important findings and audits, use **one model per family** — one Claude, one DeepSeek, one Ollama,
-plus ox-alpha when responsive. Family diversity is what separates a property of the problem from a habit
+plus oxalpha when responsive. Family diversity is what separates a property of the problem from a habit
 of one provider; the disjoint what-is halves are the proof.
 
 ## 9. How to talk to the operator

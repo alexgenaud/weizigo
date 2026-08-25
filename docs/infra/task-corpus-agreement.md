@@ -11,7 +11,7 @@ Two blind derivations of the same three axes (`task_type`, `task_scope`, `capabi
 | lane | model | brief | method | corpus file |
 |---|---|---|---|---|
 | T817 | `deepseek-v4-flash` | seed from `tools/model-profiles.py`, then beat it | brief-aware five-stage classifier + legacy comparison | `docs/infra/task-corpus.jsonl` |
-| T818 | `ox-alpha` | build its own method | deterministic cascade over title/brief/deliverables/runs | `docs/infra/task-corpus-b/` |
+| T818 | `oxalpha` | build its own method | deterministic cascade over title/brief/deliverables/runs | `docs/infra/task-corpus-b/` |
 | T820 | `deepseek-v4-pro` | byte-identical to T818’s | tiered scoring over title/slug, paths, body fallback | `docs/infra/task-corpus-c/` |
 
 The amendment from the orchestration seat (2026-08-24) split the original single comparison into **two separate experiments**:
@@ -80,7 +80,7 @@ T817 reported the legacy classifier at 21/27 = 78% and the brief classifier at 2
 
 ### 3.1 Coverage and honesty
 
-| | T818 (`ox-alpha`) | T820 (`deepseek-v4-pro`) |
+| | T818 (`oxalpha`) | T820 (`deepseek-v4-pro`) |
 |---|---|---|
 | universe | 579 ids (`_sys` excluded, `--bundle` included) | 578 ids (`_sys` and `--bundle` excluded) |
 | rows processed | 579/579 | 578/578 |
@@ -118,7 +118,7 @@ Against the T819 ruling:
 
 | miner | matches / total | accuracy |
 |---|---|---|
-| T818 (`ox-alpha`) | 176/578 | 30.4% |
+| T818 (`oxalpha`) | 176/578 | 30.4% |
 | T820 (`deepseek-v4-pro`) | 210/578 | 36.3% |
 
 T820 is modestly better overall. The per-class shape is more informative than the single score:
@@ -279,7 +279,7 @@ For each task and each field, the merged corpus should record the level of certa
 The three intended `audit`/derivation ledger rows were prepared but **not committed** because `docs/infra/model-task-metrics.jsonl` is currently held by `T843` (`claude-sonnet-5`). The rows are recorded in `findings/T819-corpus-agreement.json` under `proposed_model_task_metrics_rows` and should be appended once T843 clears its hold:
 
 - `deepseek-v4-flash` / T817: holdout brief accuracy 27/27; live legacy accuracy 19/27.
-- `ox-alpha` / T818: adjudicated type match 176/578.
+- `oxalpha` / T818: adjudicated type match 176/578.
 - `deepseek-v4-pro` / T820: adjudicated type match 210/578.
 
 ---

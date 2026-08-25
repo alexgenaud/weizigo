@@ -214,12 +214,12 @@ canon = {
         "alpha", "beta", "gamma",
         "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
         "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
-        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "oxalpha",
     ],
     "strip_suffix": ":cloud",
     "serving_tags": {
         "kimi-k2.7-code": "kimi-k2.7",
-        "stealth/ox-alpha": "ox-alpha",
+        "stealth/ox-alpha": "oxalpha",
     },
 }
 with open(os.path.join(work, "canonicalizer.json"), "w") as f:

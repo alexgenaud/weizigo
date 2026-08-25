@@ -279,7 +279,7 @@ measured).** Two derivations, neither invented:
   |---|---|---|---|---|---|---|
   | `claude` | 76 | 73 | 626 | 899 | 13661 | **1024** (ceil(p90/256)·256) |
   | `deepseek` | 351 | 246 | 472 | 2768 | 12296 | **2816** (ceil(p90/256)·256) |
-  | `pi`/openrouter (`ox-alpha`) | 9 | 9 | 517 | 994 | 994 | **1024** — n=9, low-confidence, flag for re-measurement once ox-alpha volume grows |
+  | `pi`/openrouter (`oxalpha`) | 9 | 9 | 517 | 994 | 994 | **1024** — n=9, low-confidence, flag for re-measurement once oxalpha volume grows |
   | ollama-cloud (`glm-5.2`/`minimax-m3`/`kimi-k2.7`, served remotely) | 13 | 12 | ~700 | ~3210 | 3210 | **3328** — n=13, low-confidence, same flag |
 
   Rounding rule stated, not invented: `default = ceil(p90_nonzero / 256 MB) * 256 MB` — headroom

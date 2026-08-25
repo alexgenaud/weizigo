@@ -15,7 +15,7 @@
 //    Liability for damages denied.       //
 ////////////////////////////////////////////
 //
-// T924 — 4×4.D3 writes-off tractability probe (ox-alpha/T924, 2026-08-25).
+// T924 — 4×4.D3 writes-off tractability probe (oxalpha/T924, 2026-08-25).
 //
 // Question (CLAIMS.md 4x4.D3): is the 4×4 KO_SENSITIVE-column regeneration
 // with memo_writes=false (Track A, ADR-0013) *tractable*? Nobody has measured

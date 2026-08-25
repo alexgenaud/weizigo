@@ -23,7 +23,7 @@ eight rulings are DECIDED, this spec does not reopen them), the existing tools i
 `S05-startup-surfaces/spec.md` (the `orient` sprint, whose startup-prose diet ruling 7 builds on).
 
 **Inputs.** seed §1–§8 + Acceptance + Feedstock + Out-of-scope · `orchestration-layer-spec.md`
-§7c.11–34 · `model-registry.md` (short-name table, T732 ox-alpha baseline) · T712/T713/T709/T578
+§7c.11–34 · `model-registry.md` (short-name table, T732 oxalpha baseline) · T712/T713/T709/T578
 bundles (feedstock rows) · T747 (landmark gate) · T738/T739 (dashboard trim precedent).
 
 **One line.** One policy file every reader reads, one dashboard every human reads, one arbiter
@@ -165,7 +165,7 @@ with no stated rollup. Counted at `8c00704`, the disagreement is deeper than a d
 |---|---|---|
 | ollama models | family `ollama`, **SPEND** (quota handled by a separate model-level `DENY`) | family `ollama-cloud`, **OFF** |
 | Fable | family `fable`, RESERVED | family `claude-fable`, RESERVED |
-| ox-alpha | **absent** → `other` → SPEND by default fallthrough | family `ox-alpha`, SPEND by ruling |
+| oxalpha | **absent** → `other` → SPEND by default fallthrough | family `oxalpha`, SPEND by ruling |
 
 So the same model resolves to a different family *name* and, for the three ollama models, a
 different *appetite*, depending on which reader is asked. Armed as
@@ -204,7 +204,7 @@ ORC-POL-5's worked example.
 | local (qwen) | `PROBE` | **1** | *"ONLY when we believe/hope to get some good test results"* |
 | claude (opus / sonnet / haiku) | `SPEND` | **4** | *"available but dice roll leans deepseek, all else equal"* |
 | deepseek (dspro / dsflash) | `SPEND` | **5** | *"reliably available"* |
-| ox-alpha | `SPEND` | **9** | *"test whenever you get the opportunity"* |
+| oxalpha | `SPEND` | **9** | *"test whenever you get the opportunity"* |
 
 The dial is per **model** (the family numbers above are the family *default dials* — §7c.11's
 "bulk convenience"); the class is per **family**. A model with no dial row inherits its family's
@@ -265,7 +265,7 @@ down *right now*) stays in the store/run-records, never in the policy file — t
     {"family": "local",        "class": "PROBE",    "dial": 1, "owner": "operator", "reason": "ONLY when we believe/hope to get some good test results (operator 2026-08-23)", "expiry": null},
     {"family": "claude",       "class": "SPEND",    "dial": 4, "owner": "operator", "reason": "available but dice roll leans deepseek, all else equal (operator 2026-08-23)", "expiry": null},
     {"family": "deepseek",     "class": "SPEND",    "dial": 5, "owner": "operator", "reason": "reliably available (operator 2026-08-23)", "expiry": null},
-    {"family": "ox-alpha",     "class": "SPEND",    "dial": 9, "owner": "operator", "reason": "test whenever you get the opportunity (operator 2026-08-23; supersedes T732 RESERVED and the rev-2 dial 6)", "expiry": "blind-test-reveal"}
+    {"family": "oxalpha",     "class": "SPEND",    "dial": 9, "owner": "operator", "reason": "test whenever you get the opportunity (operator 2026-08-23; supersedes T732 RESERVED and the rev-2 dial 6)", "expiry": "blind-test-reveal"}
   ],
   "model_dials": [],
   "caps": [
@@ -307,7 +307,7 @@ RESERVED is a §7c.12 "should" fact (never auto-drawn), not a "can" dial. The pa
 exactly `0–9` plus a reserved sentinel; anything else is a parse error.
 
 Rev 1 built this id's rationale on `oxalpha` as RESERVED's sole real-world subject. **That is no
-longer true**: the operator flipped ox-alpha to free/SPEND on 2026-08-23 (`2ec4f93`, recorded in
+longer true**: the operator flipped oxalpha to free/SPEND on 2026-08-23 (`2ec4f93`, recorded in
 `landmark-waypoints-seed-2026-08-23.md` §5), three hours after this spec's pin. RESERVED's only
 remaining member is `claude-fable-5` **as a family appetite**, not as a per-model dial — so the
 category still exists but has **no per-model subject at all**, and the §12 `[design-open]`
@@ -316,9 +316,9 @@ Design should not spend a cycle on it; the sentinel-vs-string choice is deferred
 is actually RESERVED per-model, and the recommendation (explicit string) stands as the answer
 for that day.
 
-There is a second, live problem this id must own. `tools/fleet-keeper.sh` has **no ox-alpha row
-at any granularity**: `family_of("ox-alpha")` → `"other"` → `APPETITE.get("other", "SPEND")` →
-SPEND. The keeper therefore never honoured RESERVED for ox-alpha — before the 2026-08-23 ruling
+There is a second, live problem this id must own. `tools/fleet-keeper.sh` has **no oxalpha row
+at any granularity**: `family_of("oxalpha")` → `"other"` → `APPETITE.get("other", "SPEND")` →
+SPEND. The keeper therefore never honoured RESERVED for oxalpha — before the 2026-08-23 ruling
 it would have auto-dispatched an identity-sealed model, and it is *accidentally* correct now.
 Armed as `TestAppetiteDial.test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend`
 (T802). ORC-PLAN-3 step 1 must fix the fallthrough, not inherit it: **an unknown model resolves
@@ -379,7 +379,7 @@ The two row flags — `reserved` (the §1 reserved task types: deep holistic rev
 verification, spec/design adjudication; never one-off/general) and `probe` (exploration-only rows;
 never during a measured suite run) — are row-declared in the bundle header and read by the one
 parser (ORC-REG-2); their position in the registration contract is design's (ORC-REG-3's field
-list grows by two), their **semantics** are normative here. An `ox-alpha` at dial 9 is drawn at
+list grows by two), their **semantics** are normative here. An `oxalpha` at dial 9 is drawn at
 every reasonable opportunity *because* it passes (1)–(3) on the rows where it is qualified and
 then carries the maximum weight — not because it bypasses any of them.
 
@@ -439,16 +439,16 @@ will not lapse on its own.
 **Worked example — one real task type, dial ordered, one dial moves by 1 (ORC-POL-9).** Take
 **audit** (27 % of task-type share, §1). A plain audit row (no `reserved`/`probe` flag):
 
-- **class admits**: `claude` (opus, sonnet, haiku), `deepseek` (dspro, dsflash), `ox-alpha`.
+- **class admits**: `claude` (opus, sonnet, haiku), `deepseek` (dspro, dsflash), `oxalpha`.
   `ollama-cloud` is OFF (glm, minimax, kimi out); `claude-fable` is RESERVED and audit is not a
   reserved task type (fable out); `local` is PROBE and audit is not probe-flagged (qwen out).
 - **dial orders** (all at family defaults; no `model_dials` override): weights opus 4 · sonnet 4 ·
-  haiku 4 · dspro 5 · dsflash 5 · ox-alpha 9, sum 31. Draw shares: ox-alpha 9/31 ≈ 29 %; dspro
+  haiku 4 · dspro 5 · dsflash 5 · oxalpha 9, sum 31. Draw shares: oxalpha 9/31 ≈ 29 %; dspro
   and dsflash 5/31 ≈ 16 % each; opus, sonnet, haiku 4/31 ≈ 13 % each. (Assuming each admitted
   candidate passes §5 or is unmeasured — D027 admits unmeasured; a §5 failure drops out regardless
   of dial.)
 - **one dial moves by 1**: raise haiku 4 → 5. Sum becomes 32; haiku rises 4/31 ≈ 12.9 % → 5/32 ≈
-  15.6 %, ox-alpha falls 9/31 ≈ 29.0 % → 9/32 ≈ 28.1 %, the other four fall by the same
+  15.6 %, oxalpha falls 9/31 ≈ 29.0 % → 9/32 ≈ 28.1 %, the other four fall by the same
   renormalization. The effect is exactly the dial's: a +1 raises one model's draw share and
   lowers every other survivor's — it never removes anyone, and it never reaches a candidate the
   class or qualification gate already dropped.
@@ -512,7 +512,7 @@ that did not exist at the pin; the corrected store numbers below are T810's own 
    ollama-cloud   OFF        5    (deny: glm, minimax, kimi — quota; see §14 rev 3→4 for the
                                   operator's 2026-08-24 return-to-SPEND ruling)
    local          PROBE      1
-   ox-alpha       SPEND      —    (free while the blind test runs, 2026-08-23)
+   oxalpha       SPEND      —    (free while the blind test runs, 2026-08-23)
 ● benched       (none benched at HEAD — deepseek-v4-flash last benched 2026-08-20, T544 failures=6, now clear)
 ◇ queue         in_progress 3 (T527 T700 T723) · dispatchable 26 · blocked 1
                (illustrative ◇ — real store census at the pin, per T810 R5; the rev-3
@@ -961,7 +961,7 @@ itself past that.
    (b)** — an unshipped pre-pass cannot audit a model-spawn.
 2. **RESERVED encoding** (ORC-POL-6): `-1` sentinel vs explicit `"appetite": "RESERVED"` string.
    **Recommend the explicit string** — but **DEFERRED, no live consumer** (amended T802, T778
-   finding 4): ox-alpha was RESERVED's only per-model subject and is now free/SPEND, so design
+   finding 4): oxalpha was RESERVED's only per-model subject and is now free/SPEND, so design
    would be choosing an encoding for an empty category. **Amended T813:** moot for a new reason —
    RESERVED/PROBE are class values with row-flag conditions (ORC-POL-9), not values on the dial
    axis, so there is no sentinel to encode; the class is a distinct field (`"class": "RESERVED"`),
@@ -1030,7 +1030,7 @@ and 6 are documentary-exempt and now say so, row 7 → ORC-REG-1's conformance a
 | 1 | major | ORC-CTRL-1 | universal-coverage claim withdrawn; armed count **stated as 22 of 31**, the 9 unarmed **enumerated by id**; the 4 load-bearing ones T778 named are armed here | the 5 new RED arms below, each `expectedFailure` with its owning step |
 | 2 | major | ORC-PLAN-4/5 | re-pinned 75 → **80** at `8c00704`, 5 uncounted scripts placed (19/16/45/0); reframed as pin drift, not an authoring error (75 was correct at `a1415fe`) | `TestDispositionCount` — null + seeded control + live check |
 | 3 | major | ORC-DASH-4, ORC-DASH-5, ORC-ACC-1 | the T766-retired `window_budgets` meter removed from the pane, its data source, and **the acceptance bar** | `TestRetiredMeter` (T822: the meter's knobs are gone from every tracked source — a documentary row held by the deletion's absence) |
-| 4 | major | ORC-POL-5, ORC-POL-6, §12.2 | ox-alpha RESERVED → free/SPEND per `2ec4f93`; RESERVED restated as a category with **no per-model member**; the sentinel-vs-string design-open **deferred as moot** | `test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend` |
+| 4 | major | ORC-POL-5, ORC-POL-6, §12.2 | oxalpha RESERVED → free/SPEND per `2ec4f93`; RESERVED restated as a category with **no per-model member**; the sentinel-vs-string design-open **deferred as moot** | `test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend` |
 | 5 | medium | header | one sentence stating T772 (`soloPick`/assignment) and this spec (appetite/caps/cooldowns) are distinct subsystems — no amendment was owed | documentary (no mechanism to observe) |
 | 6 | medium | ORC-GOAL-2 | line counts recomputed: 3479 @`a1415fe` → **3608** @`8c00704`; both columns kept because the delta is the finding; T811 later corrected the pin figure to 3461 | documentary (no mechanism to observe; the census content is held by `TestAbsorptionTargetsAreLive` and ORC-PLAN-4) |
 | 7 | minor | ORC-REG-1 | "collide gracefully" resolved: **refuse**, naming the alternative filename | ORC-REG-1's conformance arm (T822): `test_direct_tasks_json_edits_fail_mechanically` |

@@ -3,7 +3,7 @@
 
 Before T801 the serving-tag -> canonical-label transform
 (strip `:cloud`, `kimi-k2.7-code` -> `kimi-k2.7`,
-`stealth/ox-alpha` -> `ox-alpha`) was reimplemented in three Python tools and
+`stealth/ox-alpha` -> `oxalpha`) was reimplemented in three Python tools and
 drifted (token-capture lacked the stealth mapping; the runner did not
 canonicalize at all — three ledger rows and every run record carried the
 `stealth/ox-alpha` serving tag).  The transform now lives in ONE place —

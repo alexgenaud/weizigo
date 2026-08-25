@@ -171,7 +171,7 @@ class EnvIsolatedTestCase(unittest.TestCase):
 CANONICAL_MODELS_PER_REGISTRY = {
     "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
     "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
-    "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+    "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "oxalpha",
     "gemini-3.7-flash",
 }
 
@@ -223,7 +223,7 @@ class TestResolveModel(EnvIsolatedTestCase):
     def test_pi_stealth_ox_alpha(self):
         model, live_tag, err = sa._resolve_model("pi", "stealth/ox-alpha", {})
         self.assertIsNone(err)
-        self.assertEqual(model, "ox-alpha")
+        self.assertEqual(model, "oxalpha")
         self.assertEqual(live_tag, "stealth/ox-alpha")
 
     def test_pi_unknown_serving_tag_refused(self):
@@ -256,7 +256,7 @@ class TestResolveModel(EnvIsolatedTestCase):
          "the working kimi tag today (model-registry.md)"),
         ("ollama", "qwen3.8:27b-mlx", {}, "qwen3.8:27b-mlx", False, "local MLX tag"),
         ("ollama", "qwen3.8:27b-mlx:cloud", {}, "qwen3.8:27b-mlx", False, "cloud tag, table hit"),
-        ("pi", "stealth/ox-alpha", {}, "ox-alpha", False, "T732 stealth serving tag"),
+        ("pi", "stealth/ox-alpha", {}, "oxalpha", False, "T732 stealth serving tag"),
         ("deepseek", None, {"dspro": True}, "deepseek-v4-pro", False, "flag-selected"),
         ("deepseek", None, {"dsflash": True}, "deepseek-v4-flash", False, "flag-selected"),
         ("claude", "claude-opus-5", {}, "claude-opus-5", False, "canonical"),

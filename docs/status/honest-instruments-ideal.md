@@ -1,6 +1,6 @@
 # Honest instruments — ideal design (blind course)
 
-**Task:** T857 · **Author:** ox-alpha/T857 · **Date:** 2026-08-24
+**Task:** T857 · **Author:** oxalpha/T857 · **Date:** 2026-08-24
 **Landmark:** advances L1 (the dashboard tells the truth)
 
 **Blindness statement.** This document was designed from scratch against the

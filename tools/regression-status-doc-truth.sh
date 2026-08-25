@@ -381,8 +381,8 @@ python3 - "$WORK/armC-seeded.md" <<'PYEOF'
 import sys
 p = sys.argv[1]
 s = open(p, encoding="utf-8").read()
-before = "| arm A (untracked) | T857 | ox-alpha | **ARMS**"
-after = "| arm A (untracked) | T857 | ox-alpha | **ACTIVE**"
+before = "| arm A (untracked) | T857 | oxalpha | **ARMS**"
+after = "| arm A (untracked) | T857 | oxalpha | **ACTIVE**"
 assert before in s, "seeded doc no longer matches the expected row shape — S11 changed"
 open(p, "w", encoding="utf-8").write(s.replace(before, after))
 PYEOF

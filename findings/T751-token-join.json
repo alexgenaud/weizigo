@@ -73,14 +73,14 @@
       "glm-5.2": "4/6",
       "kimi-k2.7": "2/4",
       "minimax-m3": "2/3",
-      "ox-alpha": "1/3",
+      "oxalpha": "1/3",
       "qwen3.8:27b-mlx": "0/2"
     },
     "unjoined_task_ids": ["T447", "T371", "T451", "T453", "T626", "T831", "T830", "T886", "T887", "T706"],
     "unjoined_root_cause": "the ledger has no reading for these (task_id, model) pairs — T447 pre-dated the capture machinery; T371/T451/T453/T626/T830/T831/T886/T887 dispatched as non-deepseek labels with no --session; T706's 4 unjoined rows are sibling model pairs (deepseek-v4-flash's T706 vs deepseek-v4-pro's T706) where only one model has a reading. These are HONEST UNKNOWN, not a join defect."
   },
   "t746_baseline_numbers_preserved": {
-    "t746_coverage": "575 readings of 1069 ledger rows = 53.7% (post-backfill); ollama-cloud family had zero, now 124; ox-alpha had zero, now 5",
+    "t746_coverage": "575 readings of 1069 ledger rows = 53.7% (post-backfill); ollama-cloud family had zero, now 124; oxalpha had zero, now 5",
     "t751_metric_coverage": "27 of 52 metric rows joined = 51.9%",
     "comparison_note": "these are different denominators (the ledger vs the metric record) and measure different things. The ledger census is 'every dispatched lane has a reading'; the metric census is 'every QUALITY record has a cost'. The T751 gap is mostly T447 (the audit race pre-dating capture) and a handful of older verdict rows."
   },

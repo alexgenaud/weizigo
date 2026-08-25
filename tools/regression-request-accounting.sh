@@ -184,9 +184,9 @@ python3 - "$WORK" <<'PYEOF'
 import json, os, sys
 work = sys.argv[1]
 runs = os.path.join(work, "untracked", "runs")
-# a pi/openrouter lane dispatched without --session (the ox-alpha shape)
+# a pi/openrouter lane dispatched without --session (the oxalpha shape)
 with open(os.path.join(runs, "T920.json"), "w") as f:
-    json.dump({"task": "T920", "model": "ox-alpha",
+    json.dump({"task": "T920", "model": "oxalpha",
                "command": "pi --provider openrouter --model stealth/ox-alpha -p 'x'",
                "start": "2026-08-24T05:00:00Z", "end": "2026-08-24T05:10:00Z",
                "session_path": None,
@@ -213,7 +213,7 @@ OUT=$(python3 "$TOOL" --root "$WORK" --now "2026-08-24T10:00:00Z" --window-secon
 python3 - "$OUT" <<'PYEOF'
 import json, sys
 r = json.loads(sys.argv[1])
-ox = r["models"]["ox-alpha"]
+ox = r["models"]["oxalpha"]
 assert ox["requests"] == 0, ox
 assert ox["unattributable_attempts"] == 1, ox
 assert ox["unattributable_reasons"], ox

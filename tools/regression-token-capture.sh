@@ -89,12 +89,12 @@ json.dump({
         "alpha", "beta", "gamma",
         "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
         "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
-        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+        "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "oxalpha",
     ],
     "strip_suffix": ":cloud",
     "serving_tags": {
         "kimi-k2.7-code": "kimi-k2.7",
-        "stealth/ox-alpha": "ox-alpha",
+        "stealth/ox-alpha": "oxalpha",
     },
 }, open(sys.argv[1], "w"))
 PYEOF
@@ -779,6 +779,151 @@ if [ "$K_OUT" = "OK" ]; then
     pass "band math: peak/off-peak/override boundaries + unparseable None"
 else
     fail "rate band unit: $K_OUT"
+fi
+
+# ── L. T751: no --session -> cwd-slug fallback scan produces a reading ─
+# The original defect: a pi/ollama lane dispatched with NO --session wrote
+# its session JSONL to the shared cwd-slug dir, and the runner declared
+# UNKNOWN with the false assertion that the file "cannot be attributed to
+# this lane".  T751's fix: fall back to the cwd-slug scan (the same join
+# token-backfill.py ran retroactively), joining on task + start within a
+# few seconds, BEFORE declaring UNKNOWN.  This arm is the control that
+# would have caught the original defect: a lane launched with no --session,
+# asserting a reading IS produced and its source names the fallback.
+# RED against the pre-T751 code: the record said UNKNOWN with "cannot be
+# attributed" and no reading was produced.
+cat > fake-pi-cwdslug <<'SHIM'
+#!/usr/bin/env python3
+# A fake pi lane dispatched with NO --session: it writes its session JSONL
+# to the cwd-slug dir (WEIZIGO_PI_SESSIONS_DIR, the test hook for the
+# runner's _pi_session_scan_target), then prints its reply.  The session
+# header's timestamp is ~now (the runner stamped `start` ~0.5s before
+# spawning this shim, so the join gap is < 1s, well within the 5s
+# tolerance).  NB: the task id is all-digits (T9001) because the fallback
+# joins on extract_task, which captures only T\d+ — a fixture id that no
+# real dispatch uses, so MANAGENT_RUN_IDENTITY (the enclosing dispatch's
+# id, when this regression runs inside a worker) never collides to nest.
+import json, os, sys, time
+d = os.environ.get("WEIZIGO_PI_SESSIONS_DIR")
+if d:
+    os.makedirs(d, exist_ok=True)
+    ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    path = os.path.join(d, "T9001.jsonl")
+    with open(path, "w") as f:
+        f.write(json.dumps({"type": "session", "version": 3,
+            "id": "t751-fb-sess", "timestamp": ts, "cwd": "/repo"}) + "\n")
+        f.write(json.dumps({"type": "message", "id": "u1",
+            "message": {"role": "user", "content": [{"type": "text",
+                "text": "Follow untracked/T9001-fallback.md"}]}}) + "\n")
+        f.write(json.dumps({"type": "message", "id": "a1",
+            "message": {"role": "assistant",
+                "provider": "deepseek", "model": "deepseek-v4-pro",
+                "usage": {"input": 100, "output": 50, "cacheRead": 200,
+                          "cacheWrite": 0, "reasoning": 0,
+                          "totalTokens": 350}}}) + "\n")
+sys.stdout.write("pi cwd-slug lane output\n")
+sys.exit(0)
+SHIM
+chmod +x fake-pi-cwdslug
+
+# The fallback's session dir is the cwd-slug dir the runner scans; inject it
+# via the test hook so the shim and the runner agree on a scratch location.
+FB_SESSIONS="$WORK/fb-sessions"
+mkdir -p "$FB_SESSIONS"
+
+echo "  L. T751: no --session -> cwd-slug fallback scan produces a reading"
+export MANAGENT_TASK_ID=T9001
+export WEIZIGO_PI_SESSIONS_DIR="$FB_SESSIONS"
+OUT_L=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
+        -- ./fake-pi-cwdslug --provider deepseek --model deepseek-v4-pro \
+           -p 'hi' 2>"$WORK/pi-l.err")
+RC=$?
+unset MANAGENT_TASK_ID
+unset WEIZIGO_PI_SESSIONS_DIR
+
+if [ "$RC" -ne 0 ]; then
+    fail "fallback lane runner rc=$RC"; sed 's/^/    | /' "$WORK/pi-l.err" | head -20
+else
+    REC="$WORK/untracked/runs/T9001.json"
+    if test -f "$REC" && python3 -c "
+import json,sys
+d=json.load(open('$REC'))
+# the reading IS produced — not UNKNOWN
+assert d.get('tokens_in')==300, d            # 100 fresh + 200 cache_read
+assert d.get('tokens_fresh')==100, d
+assert d.get('tokens_cache_read')==200, d
+assert d.get('tokens_out')==50, d
+# the source NAMES the fallback (the control that would have caught the
+# original defect: a no---session lane producing a reading at all)
+assert d.get('tokens_source')=='pi-session-jsonl-fallback', d
+# T751 trust grades: a retroactive-style session-scan is trusted=false
+assert d.get('tokens_trusted') is False, d
+assert d.get('tokens_corroborated')=='run-record', d
+assert d.get('session_id')=='t751-fb-sess', d
+assert d.get('session_path','').endswith('T9001.jsonl'), d
+# the old false assertion is GONE from the reason
+mr = d.get('tokens_missing_reason') or ''
+assert 'cannot be attributed' not in mr, mr
+print('OK')" 2>/dev/null | grep -q OK; then
+        pass "no---session fallback: reading produced, source=pi-session-jsonl-fallback, trusted=false"
+    else
+        fail "no---session fallback run record"; cat "$REC" 2>/dev/null | head -20
+    fi
+    if grep -q "tokens_in=300 tokens_out=50 tokens_fresh=100 tokens_cache_read=200" "$WORK/pi-l.err"; then
+        pass "no---session fallback trailer carries the split"
+    else
+        fail "no---session fallback trailer"; grep "tokens" "$WORK/pi-l.err" | sed 's/^/    | /'
+    fi
+    LED="$WORK/untracked/tokens/tokens.jsonl"
+    if test -f "$LED" && python3 -c "
+import json,sys
+for line in open('$LED'):
+    e=json.loads(line)
+    if e.get('task')=='T9001':
+        assert e.get('tokens_in')==300 and e.get('tokens_fresh')==100, e
+        assert e.get('source')=='pi-session-jsonl-fallback', e
+        assert e.get('trusted') is False, e
+        assert e.get('corroborated')=='run-record', e
+        print('OK')" 2>/dev/null | grep -q OK; then
+        pass "no---session fallback ledger carries the reading + trust grades"
+    else
+        fail "no---session fallback ledger"; cat "$LED" 2>/dev/null | head -5
+    fi
+fi
+
+# ── L2. T751: no --session, no matching session -> honest UNKNOWN ─────────
+# The residue: after the fallback, a lane whose cwd-slug dir has NO session
+# matching task + start is honestly UNKNOWN — with a reason that says the
+# scan was TRIED, never the old false "cannot be attributed" assertion.
+echo "  L2. T751: no --session, no matching session -> honest UNKNOWN (scan tried)"
+FB_EMPTY="$WORK/fb-empty"
+mkdir -p "$FB_EMPTY"
+export MANAGENT_TASK_ID=T9002
+export WEIZIGO_PI_SESSIONS_DIR="$FB_EMPTY"
+OUT_L2=$("$RUNNER" --no-prepend-zig --no-host-guard --max-wall 30 \
+         -- ./fake-pi-nosession --provider deepseek --model deepseek-v4-pro \
+            -p 'hi' 2>"$WORK/pi-l2.err")
+RC=$?
+unset MANAGENT_TASK_ID
+unset WEIZIGO_PI_SESSIONS_DIR
+
+if [ "$RC" -ne 0 ]; then
+    fail "honest-UNKNOWN lane runner rc=$RC"; sed 's/^/    | /' "$WORK/pi-l2.err" | head -20
+else
+    REC="$WORK/untracked/runs/T9002.json"
+    if test -f "$REC" && python3 -c "
+import json,sys
+d=json.load(open('$REC'))
+assert d.get('tokens_in') is None, d
+mr = d.get('tokens_missing_reason') or ''
+assert 'no session matched' in mr, mr
+assert 'cannot be attributed' not in mr, mr
+assert d.get('tokens_trusted') is None, d
+print('OK')" 2>/dev/null | grep -q OK; then
+        pass "honest-UNKNOWN: reason says scan tried, never the false assertion"
+    else
+        fail "honest-UNKNOWN record"; cat "$REC" 2>/dev/null | head -20
+    fi
 fi
 
 if [ "$FAIL" -eq 0 ]; then

@@ -94,7 +94,7 @@ provenance is named — no axis is open-ended, because an open-ended axis is an 
 **LAT-DIM-1 (the model axis is the canonical roster).** The model axis is the canonical label
 list, single source `docs/infra/model-registry.md` ("as of 2026-08-23": `claude-opus-5`,
 `claude-sonnet-5`, `claude-fable-5`, `claude-haiku-4-5-20251001`, `deepseek-v4-pro`,
-`deepseek-v4-flash`, `glm-5.2`, `minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx`, `ox-alpha`).
+`deepseek-v4-flash`, `glm-5.2`, `minimax-m3`, `kimi-k2.7`, `qwen3.8:27b-mlx`, `oxalpha`).
 Records write the canonical label; short names are presentation only (the T276 rule). The
 lattice reads the roster from `managent models` (the T317 single source), never from a
 hardcoded copy.
@@ -477,8 +477,8 @@ lands, scope-factor relevance renders `(unknown)` and the output says "pending".
 short JSONL keys must be re-keyed onto D027's eight by reading each row (LAT-DIM-4). The count
 of remapped keys and any unmappable key are findings, stated in the render.
 
-**LAT-FLAG-4 (ox-alpha appetite reconciled).** The registry's current stance is the operator's
-2026-08-23 "use ox-alpha liberally" ruling (recorded in `docs/status/landmark-waypoints-seed-
+**LAT-FLAG-4 (oxalpha appetite reconciled).** The registry's current stance is the operator's
+2026-08-23 "use oxalpha liberally" ruling (recorded in `docs/status/landmark-waypoints-seed-
 2026-08-23.md` §5 and the model-registry stealth entry). Any stale `RESERVED` record is a record
 defect; the lattice reads the canonical registry, never a hardcoded appetite, so it inherits the
 correction rather than re-enacting the old value.

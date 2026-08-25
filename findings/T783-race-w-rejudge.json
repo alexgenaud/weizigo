@@ -89,7 +89,7 @@
         "A": ["lane-3", "lane-2", "lane-1"],
         "B": ["lane-2", "lane-3", "lane-1"]
       },
-      "reading": "lane-3 (the ox-alpha-consistent self-aware lane) leads overall (45 vs 43 vs 31). On Section A it leads by a wide margin (22 vs 19 vs 16) on C1/C2/C3/C5; on Section B lane-2 edges it (24 vs 23) because lane-2's residue note is more precisely localized to the in-file \u00a77/Amendments 1\u20132 and it preserves the file-ownership serializer. lane-1 is last on both sections: a false residue-exclusivity claim (C4), a dropped W0 hard gate (C5), and two undisclosed dead citations (C3)."
+      "reading": "lane-3 (the oxalpha-consistent self-aware lane) leads overall (45 vs 43 vs 31). On Section A it leads by a wide margin (22 vs 19 vs 16) on C1/C2/C3/C5; on Section B lane-2 edges it (24 vs 23) because lane-2's residue note is more precisely localized to the in-file \u00a77/Amendments 1\u20132 and it preserves the file-ownership serializer. lane-1 is last on both sections: a false residue-exclusivity claim (C4), a dropped W0 hard gate (C5), and two undisclosed dead citations (C3)."
     },
     "decisive_differentiators": [
       "Citation integrity (C3, Section A): both moved paths (PHASES.md, old LANDMARKS.md) are dead at HEAD in all three bodies; lane-3 discloses + migrates, lane-1/lane-2 cite silently, and lane-2 additionally makes a false positive 'every path cited exists at HEAD' claim. This is the single largest Section-A gap.",

@@ -4,7 +4,7 @@
 glm-5.2/T866, then deepseek-v4-flash/T896 · **Date:** 2026-08-24
 **Landmark:** advances `L1 (the dashboard tells the truth)` — Stream 2's single final document.
 **Inputs audited:** three independent inventories produced against HEAD `faa5628-dirty` on 2026-08-24 —
-arm A (deepseek-v4-pro/T858), arm B (ox-alpha/T860), and arm C (claude-sonnet-5/T869, the blind third
+arm A (deepseek-v4-pro/T858), arm B (oxalpha/T860), and arm C (claude-sonnet-5/T869, the blind third
 pass) — all held in the untracked `stream2-whatis` working area (cited only in prose here; a path
 citation to `untracked/` fails the commit gate).
 

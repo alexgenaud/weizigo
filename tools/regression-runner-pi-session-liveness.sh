@@ -6,7 +6,7 @@
 # buffers stdout to completion, so a lane that IS reading its bundle and
 # working writes only to its session JSONL — under `--session <path>`, or
 # ~/.pi/agent/sessions/<cwd-slug>/ when no --session was passed — and looks
-# silent to a stdout sensor.  T735 attempt 2 (ox-alpha) was killed at
+# silent to a stdout sensor.  T735 attempt 2 (oxalpha) was killed at
 # 600.9 s with 40 assistant turns and 19,060 output tokens already in its
 # session file; T616 (claude, Race F) died the same way with its 43 KB
 # deliverable on disk.  T773: a liveness fuse for a buffered lane must not

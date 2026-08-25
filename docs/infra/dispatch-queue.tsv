@@ -52,7 +52,7 @@ T709	25	3600	DISCUSS	reconcile rc=0 with deliverables — edits dispatch verific
 T772	26	3600	DISCUSS	cost ladder quality gate — needs a policy ruling on what 'quality' gates on
 T833	27	3600	DISCUSS	qwen appetite down to 1 — roster config; operator's call
 T837	28	3600	DISCUSS	C3 toward zero — 42 register rows; a wrong absorb corrupts the epistemic ledger
-T916	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (ox-alpha; may 429 — T941 classifies never-served separately)
+T916	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (oxalpha; may 429 — T941 classifies never-served separately)
 T917	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (deepseek-v4-flash)
 T918	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (deepseek-v4-pro)
 T919	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (kimi-k2.7 — ollama is allowed HERE: race data is the stated exception)

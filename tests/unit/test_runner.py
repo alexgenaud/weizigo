@@ -288,6 +288,138 @@ class TestTokenCapture(unittest.TestCase):
             self.assertIsNone(tok["tokens_in"])
             self.assertIn("unreadable", tok["missing_reason"])
 
+    def test_claude_envelope_is_trusted_true(self):
+        # SHOULD (T751): a dispatch-time claude envelope reading carries
+        # trusted=true (the harness's own usage envelope) and a trust reason.
+        envelope = json.dumps({
+            "type": "result", "subtype": "success", "result": "x",
+            "is_error": False, "session_id": "s1",
+            "usage": {"input_tokens": 10, "output_tokens": 5,
+                      "cache_read_input_tokens": 2,
+                      "cache_creation_input_tokens": 0},
+        })
+        tok = self._capture_claude(envelope)
+        self.assertTrue(tok["trusted"])
+        self.assertEqual(tok["corroborated"], "none")
+        self.assertIn("trusted_reason", tok)
+
+    def test_pi_session_per_lane_is_trusted_true(self):
+        # SHOULD (T751): a per-lane --session reading (the dispatcher named
+        # the file) is dispatch-time and trusted=true.
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "s.jsonl")
+            with open(path, "w") as fh:
+                fh.write(json.dumps({"type": "session", "id": "sess-x"}) + "\n")
+                fh.write(json.dumps({"type": "message", "message": {
+                    "role": "assistant",
+                    "usage": {"input": 40, "cacheRead": 10, "output": 20},
+                }}) + "\n")
+            tok = RUNNER._capture_tokens(
+                argv=["pi", "--session", path],
+                claude_json_lane=False, stdout_text="", stderr_text="",
+                task_identity=None, repo_root=None,
+                start_ts="2026-08-23T00:00:00Z", rc=0,
+            )
+            self.assertTrue(tok["trusted"])
+            self.assertEqual(tok["source"], "pi-session-jsonl")
+
+    def test_no_session_falls_back_to_cwd_slug_scan(self):
+        # SHOULD (T751): a pi/ollama lane dispatched with NO --session still
+        # gets a reading — the meter falls back to the cwd-slug session-scan
+        # (the same scan token-backfill.py ran retroactively), joining on
+        # task + start within a few seconds.  The reading's source names the
+        # fallback; it is trusted=false (a session-scan, not the harness's
+        # own usage envelope) and corroborated=run-record when the session's
+        # dominant model agrees with the dispatch's --model.
+        # NB: extract_task captures only digits (T\d+), so the fixture task
+        # id is all-digits (T751 — this row's own id, used as a fixture).
+        with tempfile.TemporaryDirectory() as sessions:
+            spath = os.path.join(sessions, "T751.jsonl")
+            with open(spath, "w") as fh:
+                fh.write(json.dumps({"type": "session", "id": "fb-1",
+                    "timestamp": "2026-08-23T00:00:01Z",
+                    "cwd": "/repo"}) + "\n")
+                fh.write(json.dumps({"type": "message", "id": "u1",
+                    "message": {"role": "user", "content": [
+                        {"type": "text",
+                         "text": "Follow untracked/T751-fallback.md"}]}}) + "\n")
+                fh.write(json.dumps({"type": "message", "id": "a1",
+                    "message": {"role": "assistant",
+                        "provider": "deepseek", "model": "deepseek-v4-pro",
+                        "usage": {"input": 100, "output": 50,
+                                  "cacheRead": 200, "cacheWrite": 0,
+                                  "reasoning": 0,
+                                  "totalTokens": 350}}}) + "\n")
+            with _env(WEIZIGO_PI_SESSIONS_DIR=sessions):
+                tok = RUNNER._capture_tokens(
+                    argv=["pi", "--provider", "deepseek",
+                          "--model", "deepseek-v4-pro", "-p", "hi"],
+                    claude_json_lane=False, stdout_text="", stderr_text="",
+                    task_identity="T751", repo_root=None,
+                    start_ts="2026-08-23T00:00:00Z", rc=0,
+                )
+            self.assertIsNotNone(tok["tokens_in"])
+            self.assertEqual(tok["tokens_in"], 300)  # 100 fresh + 200 cache_read
+            self.assertEqual(tok["tokens_fresh"], 100)
+            self.assertEqual(tok["tokens_cache_read"], 200)
+            self.assertEqual(tok["tokens_out"], 50)
+            self.assertEqual(tok["source"], "pi-session-jsonl-fallback")
+            self.assertFalse(tok["trusted"])
+            self.assertEqual(tok["corroborated"], "run-record")
+            self.assertEqual(tok["session_id"], "fb-1")
+            self.assertIsNotNone(tok["session_path"])
+
+    def test_no_session_no_match_is_honest_unknown(self):
+        # SHOULD (T751): when the fallback scan finds no session matching
+        # task + start, the reading is UNKNOWN with a reason that says the
+        # scan was tried — never the old false assertion that the file
+        # "cannot be attributed to this lane".
+        with tempfile.TemporaryDirectory() as sessions:
+            with _env(WEIZIGO_PI_SESSIONS_DIR=sessions):
+                tok = RUNNER._capture_tokens(
+                    argv=["pi", "--provider", "deepseek",
+                          "--model", "deepseek-v4-pro", "-p", "hi"],
+                    claude_json_lane=False, stdout_text="", stderr_text="",
+                    task_identity="T751", repo_root=None,
+                    start_ts="2026-08-23T00:00:00Z", rc=0,
+                )
+            self.assertIsNone(tok["tokens_in"])
+            self.assertIsNotNone(tok["missing_reason"])
+            self.assertNotIn("cannot be attributed", tok["missing_reason"])
+            self.assertIn("no session matched", tok["missing_reason"])
+
+    def test_no_session_model_conflict_is_unknown_not_misattributed(self):
+        # SHOULD (T751): a session whose dominant model DISAGREES with the
+        # dispatch's --model is not attributed to this lane (it is a
+        # concurrent lane for the same task) — the reading stays UNKNOWN,
+        # never a mis-attributed reading.
+        with tempfile.TemporaryDirectory() as sessions:
+            spath = os.path.join(sessions, "T751.jsonl")
+            with open(spath, "w") as fh:
+                fh.write(json.dumps({"type": "session", "id": "fb-2",
+                    "timestamp": "2026-08-23T00:00:01Z",
+                    "cwd": "/repo"}) + "\n")
+                fh.write(json.dumps({"type": "message", "id": "u1",
+                    "message": {"role": "user", "content": [
+                        {"type": "text",
+                         "text": "Follow untracked/T751-fallback.md"}]}}) + "\n")
+                fh.write(json.dumps({"type": "message", "id": "a1",
+                    "message": {"role": "assistant",
+                        "provider": "deepseek", "model": "deepseek-v4-flash",
+                        "usage": {"input": 1, "output": 1,
+                                  "cacheRead": 0, "cacheWrite": 0,
+                                  "reasoning": 0, "totalTokens": 2}}}) + "\n")
+            with _env(WEIZIGO_PI_SESSIONS_DIR=sessions):
+                tok = RUNNER._capture_tokens(
+                    argv=["pi", "--provider", "deepseek",
+                          "--model", "deepseek-v4-pro", "-p", "hi"],
+                    claude_json_lane=False, stdout_text="", stderr_text="",
+                    task_identity="T751", repo_root=None,
+                    start_ts="2026-08-23T00:00:00Z", rc=0,
+                )
+            self.assertIsNone(tok["tokens_in"])
+            self.assertIn("model conflict", tok["missing_reason"])
+
 
 # ── model label (priority 3) ──────────────────────────────────────────────
 
@@ -303,12 +435,12 @@ class TestModelFromArgv(unittest.TestCase):
                 "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
                 "claude-haiku-4-5-20251001", "deepseek-v4-pro",
                 "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7",
-                "qwen3.8:27b-mlx", "ox-alpha",
+                "qwen3.8:27b-mlx", "oxalpha",
             ],
             "strip_suffix": ":cloud",
             "serving_tags": {
                 "kimi-k2.7-code": "kimi-k2.7",
-                "stealth/ox-alpha": "ox-alpha",
+                "stealth/ox-alpha": "oxalpha",
             },
         })
 
@@ -326,11 +458,11 @@ class TestModelFromArgv(unittest.TestCase):
 
     def test_model_from_argv_canonicalizes_serving_tag(self):
         # SHOULD (T801, closes T751): a serving tag never reaches a record;
-        # canonicalize stealth/ox-alpha -> ox-alpha and kimi-code -> kimi.
+        # canonicalize stealth/ox-alpha -> oxalpha and kimi-code -> kimi.
         self.assertEqual(
             RUNNER._model_from_argv(["pi", "--model", "stealth/ox-alpha"],
                                     canonicalizer=self._canon()),
-            "ox-alpha",
+            "oxalpha",
         )
         self.assertEqual(
             RUNNER._model_from_argv(["ollama", "launch", "pi",

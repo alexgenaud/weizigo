@@ -1,6 +1,6 @@
 # T818 — corpus blind second pass: notes (method v6, complete)
 
-Author: ox-alpha/T818 · 2026-08-23 · Landmark: advances L1 (the delegation-evidence lattice)
+Author: oxalpha/T818 · 2026-08-23 · Landmark: advances L1 (the delegation-evidence lattice)
 
 ## Blind declaration
 

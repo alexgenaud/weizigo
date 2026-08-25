@@ -57,7 +57,7 @@ cheating.
 | arm | label | colour (2026-08-23) | what it pins |
 |---|---|---|---|
 | happy path: dispatch → stub works → row closes pass → work lands | OUTCOME | GREEN | the lifecycle itself, through `bin/dispatch` (nohup detach, poll to done, deliverable on disk) |
-| exit 0 without reading the bundle fails on the nonce | OUTCOME | GREEN | the 2026-08-23 ox-alpha double-catch (two lanes, exit 0 in 38 s and 64 s) — a standing arm |
+| exit 0 without reading the bundle fails on the nonce | OUTCOME | GREEN | the 2026-08-23 oxalpha double-catch (two lanes, exit 0 in 38 s and 64 s) — a standing arm |
 | declared deliverable absent at verification time fails on deliverables | OUTCOME | GREEN | sabotage model: write+commit+close, then delete — the only honest way to reach verification with a deliverable missing (the done gate refuses an uncommitted/missing deliverable, T278) |
 | row left in_progress fails for exit 0 and non-zero; died worker leaves no zombie | OUTCOME | GREEN | the kimi incident (rc=0 + open row) and the died-worker case (rc≠0, healed back to dispatchable) |
 | fail-found with the work done verifies PASS | OUTCOME | GREEN | "believe the work, not the text" (T411) — the verdict text is trusted in neither direction |
@@ -114,7 +114,7 @@ Every failure mode the fleet has actually seen is one configuration:
 | fleet failure | stub configuration |
 |---|---|
 | kimi lazy "OK." (exit 0, nothing) | `STUB_SILENT=1 STUB_CLAIM=0 STUB_CLOSE=0 STUB_WRITE=0 STUB_EXIT=0` |
-| ox-alpha exit-0-without-work (2026-08-23, 38 s/64 s) | same as above |
+| oxalpha exit-0-without-work (2026-08-23, 38 s/64 s) | same as above |
 | claimed-then-abandoned (rc=0, row open) | `STUB_CLAIM=1 STUB_CLOSE=0 STUB_WRITE=0 STUB_EXIT=0` |
 | died worker (crash/timeout after claiming) | `STUB_CLAIM=1 STUB_CLOSE=0 STUB_WRITE=0 STUB_EXIT=1` |
 | sabotage (deliverable destroyed after close) | `STUB_SABOTAGE=1` |

@@ -73,7 +73,7 @@ stop-if-early instruction.
 - **The 42 unbacked PROVEN claims: recovery, not demotion** (operator ruling). Nothing has
   been recovered, re-run, or demoted yet; T875 is the registered first step and waits for
   his go. Do not strip statuses.
-- **Both ox-alpha retractions stand** (nonce check read its own prompt; provider 429s
+- **Both oxalpha retractions stand** (nonce check read its own prompt; provider 429s
   recorded as clean empty runs). Do not infer model quality from empty runs.
 - **AGENTS.md carries the no-deferral ruling** (2026-08-24): weigh, recommend, defend with
   doubts; fetch missing facts; never hand back a decision. It binds this seat first.

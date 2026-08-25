@@ -158,7 +158,7 @@ merge of ideal against actual is deferred.
 
 ### Risk on record
 
-`ox-alpha` authored two of the four arms and the operator observes it halting early in his own console.
+`oxalpha` authored two of the four arms and the operator observes it halting early in his own console.
 **Round 2 must not depend on it.** Its reputation for unreliable protocol compliance has separately been
 **retracted** — that was measured by a check which passes on a JSON-mode lane even with an empty reply,
 so it was reading our own prompt back.

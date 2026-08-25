@@ -400,7 +400,7 @@ class RoundtripLifecycle(unittest.TestCase):
     def test_exit_zero_without_work_fails_nonce(self):
         """OUTCOME — a worker that exits 0 without reading the bundle (or
         doing any work) fails verification on the nonce.  The 2026-08-23
-        ox-alpha double-catch (two lanes, exit 0 in 38 s and 64 s) — a
+        oxalpha double-catch (two lanes, exit 0 in 38 s and 64 s) — a
         standing arm."""
         w = self.make("T8002")
         env = w.env_with_stub(STUB_SILENT="1", STUB_CLAIM="0",
@@ -640,7 +640,7 @@ RoundtripLifecycle.ARMS = {
     "test_happy_path_dispatch_roundtrip_closes_and_passes": (
         "OUTCOME", "happy path: dispatch → stub works → row closes pass → work lands"),
     "test_exit_zero_without_work_fails_nonce": (
-        "OUTCOME", "exit 0 without reading the bundle fails on the nonce (ox-alpha double-catch)"),
+        "OUTCOME", "exit 0 without reading the bundle fails on the nonce (oxalpha double-catch)"),
     "test_declared_deliverable_absent_fails_verification": (
         "OUTCOME", "declared deliverable absent at verification time fails on deliverables"),
     "test_open_row_after_worker_exit_fails_either_exit_code": (

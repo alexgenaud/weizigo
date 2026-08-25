@@ -27,13 +27,13 @@ store wins.
 ## 1. Measurement integrity
 
 - `DONE` 448 lost token readings recovered; ledger coverage 20% → 53%.
-- `DONE` glm, minimax, kimi, ox-alpha had **never** been metered; now are.
+- `DONE` glm, minimax, kimi, oxalpha had **never** been metered; now are.
 - `DONE` Token counts proven **not rankable** — CV 0.14–0.34 over 20 repeats (T774).
 - `DONE` Cost removed from model selection; picker now `solo-least-data` (T772).
 - `DONE` `canon_tag` parity — a serving tag was reaching the ledger.
 - `DONE` Within-model variance measured: 22/28/33/36/37 on one brief — n=1 orders nothing.
 - `TODO` **Nothing writes the model-perf ledger automatically.** 24 rows across 72 cells; 59 empty;
-  ox-alpha 0 of 8 despite 7 completed tasks. Deepest remaining measurement gap.
+  oxalpha 0 of 8 despite 7 completed tasks. Deepest remaining measurement gap.
 - `TODO` T750 record canary_recall / fabricated_citations / unique_catch; retire `thoroughness`.
 - `TODO` T751 token join + trust grades end to end.
 - `BLOCKED` T819 three-way corpus agreement (waits on T818's close).
@@ -124,7 +124,7 @@ store wins.
 
 ## 9. Model roster
 
-- `DONE` Ollama returned; ox-alpha onboarded and measured (7 tasks, best clean-pass rate).
+- `DONE` Ollama returned; oxalpha onboarded and measured (7 tasks, best clean-pass rate).
 - `DONE` Appetite equalised in code; the 0–9 dial **specced but not implemented** — eight models at
   `spend` is *permitted-equally*, which is weaker than *drawn-equally*.
 - `TODO` Implement the dial; retire `conserve` (no branch — behaves as `spend`) or give it meaning.

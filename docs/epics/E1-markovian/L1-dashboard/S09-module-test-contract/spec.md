@@ -721,6 +721,9 @@ Disposition vocabulary: `repair` (fix code/fixture) · `repoint` (re-aim the ass
 `deploy` (self-heals via `zig build deploy-*`) · `not-precommit` (slow/stateful; full-suite tier).
 
 <!-- machine: known-red (format: known-red <script> <owner> <disposition>; parsed at line start) -->
+known-red tools/regression-store-census.sh T953 repair
+known-red tools/regression-ollama-dispatcher.sh T953 repair
+known-red tools/regression-managent-duty.sh T953 repair
 known-red tools/regression-argus-doctor.sh T442 repair
 known-red tools/regression-battery-baselines.sh stream2b-green not-precommit
 known-red tools/regression-battery-sweep.sh stream2b-green not-precommit

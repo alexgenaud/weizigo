@@ -74,7 +74,7 @@
   ],
   "operator_rulings_beyond_agenda": [
     "ROLES.md and the delegation docs are reduced to principles — 'more principles and less prescriptive; depend on reliable simple robust tooling rather than fluffy agent role prose; LESS IS BEST' — queued as T769.",
-    "The fable seat takes ongoing responsibility for the refactorization (delegation, tooling, prose, processes); ox-alpha/T745 stood down to read-only advisor; oversight handover accepted and anchored as seat row T771."
+    "The fable seat takes ongoing responsibility for the refactorization (delegation, tooling, prose, processes); oxalpha/T745 stood down to read-only advisor; oversight handover accepted and anchored as seat row T771."
   ],
   "incidents_disclosed": [
     "suggest-then-edit dropped holds= on four fresh registrations (T761-T763, T765) — the exact T735/T749 parser family; repaired by retire + re-register through add --auto --bundle, which parses holds correctly. Fresh evidence for S05 ORC-REG-2 (one parser, three call sites).",

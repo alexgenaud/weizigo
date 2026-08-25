@@ -49,7 +49,7 @@ delta at one instant, not a timeline — coarser than the pi harness below,
 and stated as a limitation, not hidden.
 
 ### `pi` harness (deepseek, ollama's glm-5.2/minimax-m3/kimi-k2.7, local
-qwen, openrouter/ox-alpha) — count from the session transcript
+qwen, openrouter/oxalpha) — count from the session transcript
 
 When the dispatcher passes `--session <path>` (T662), the runner stamps
 `session_path` on the run record and the path holds the resumable session
@@ -131,7 +131,7 @@ traffic," which is false; there is no measurement to report.
 ## Deliberately unmeasurable, and why
 
 - **A `pi`/`ollama`/`openrouter` lane with no `--session` at dispatch**
-  (`session_path` is `None` on the run record — the ox-alpha/openrouter
+  (`session_path` is `None` on the run record — the oxalpha/openrouter
   lanes today, per fact 6). The default-location session file
   (`~/.pi/agent/sessions/<cwd-slug>/`) is shared by every concurrent lane in
   that directory and cannot be attributed to one task without a

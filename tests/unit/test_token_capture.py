@@ -63,7 +63,7 @@ class TestCanonTag(unittest.TestCase):
 
     def test_stealth_serving_tag_never_reaches_a_record(self):
         # the T276/T746 rule: the serving tag must not survive into a record
-        self.assertEqual(tc.canon_tag("stealth/ox-alpha"), "ox-alpha")
+        self.assertEqual(tc.canon_tag("stealth/ox-alpha"), "oxalpha")
 
     def test_canonical_passthrough(self):
         for m in tc.CANONICAL_MODELS:
@@ -72,7 +72,7 @@ class TestCanonTag(unittest.TestCase):
     def test_none_and_empty_and_whitespace(self):
         self.assertEqual(tc.canon_tag(None), "")
         self.assertEqual(tc.canon_tag(""), "")
-        self.assertEqual(tc.canon_tag("  ox-alpha \n"), "ox-alpha")
+        self.assertEqual(tc.canon_tag("  oxalpha \n"), "oxalpha")
 
     def test_arm_table_is_registry_driven(self):
         """Every serving-tag arm must be traceable to the registry doc."""
@@ -149,7 +149,7 @@ class TestExtractTask(unittest.TestCase):
         fixed in T794)."""
         prompt = ("Context: untracked/T700-old-bundle.md has background.\n"
                   "Follow untracked/T794-token_capture.md\n"
-                  "FIRST: bin/managent claim T794 --agent ox-alpha")
+                  "FIRST: bin/managent claim T794 --agent oxalpha")
         self.assertEqual(tc.extract_task(prompt), "T794")
 
 

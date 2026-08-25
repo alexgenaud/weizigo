@@ -28,7 +28,7 @@ corrected the one before it.
 
 | row | result |
 |---|---|
-| **T924** (ox-alpha) | ladder 2×2→4×4 writes-off. Clean through 4×3 (20,878/20,878, zero skips). 4×4: **125 of 1,287 sampled roots unsolved** at a 20 M-node cap. Projected **202.5–1,620 h** single-threaded. |
+| **T924** (oxalpha) | ladder 2×2→4×4 writes-off. Clean through 4×3 (20,878/20,878, zero skips). 4×4: **125 of 1,287 sampled roots unsolved** at a 20 M-node cap. Projected **202.5–1,620 h** single-threaded. |
 | **T929** (dsflash) | that mean was **unweighted** and distorted by per-layer sampling caps. Population-weighted: **282,104.8 nodes/root, 7.585× lower**, projecting **26.8–214.7 h**. And the shape: **the 125 capped roots are 9.71% of samples but 92.6% of measured nodes** — a pathological tail on a cheap bulk. |
 | **T930** (dspro) | `finishParallel` scales **5.1× at 18 cores** with contiguous chunks, **11.5× at 16** round-robin. Cause named: the work list is deepest-first, so cheap roots pile into low thread ids. 4×4 becomes **~1–6 days realistic**. |
 
@@ -87,7 +87,7 @@ and nothing reports the disagreement. Five briefs (T915, T922, T923, T926, T927)
 are inert until **T931** lands the general sync. T880's `holds --sync` is the precedent; generalise,
 do not add another per-field verb.
 
-## 5. ox-alpha: the diagnosis was wrong for weeks
+## 5. oxalpha: the diagnosis was wrong for weeks
 
 **B4 said "does not reliably echo the dispatch nonce — protocol compliance unreliable". That was
 wrong.** The operator produced the cause from his console: **HTTP 429,
@@ -97,7 +97,7 @@ twenty retries, all refused — and `tools/runner` recorded **exit 0**.
 The lanes were never non-compliant. **They were never served.** Our dispatch rate was 18 claims in
 nine hours, so the pressure is other users of a shared pool.
 
-**ox-alpha is off the dispatch list** until telemetry can tell provider death from model behaviour.
+**oxalpha is off the dispatch list** until telemetry can tell provider death from model behaviour.
 Its *capability* reading stands — 37/40, best in the C3 field, and T924's ladder was first-rate
 science. This is a lane-reliability finding.
 

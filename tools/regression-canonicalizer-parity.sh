@@ -3,7 +3,7 @@
 #
 # T801 — ONE parity control over the canonicalizer, covering every registry
 # tag and all four implementations.  The serving-tag -> canonical transform
-# (strip `:cloud`, kimi-k2.7-code -> kimi-k2.7, stealth/ox-alpha -> ox-alpha)
+# (strip `:cloud`, kimi-k2.7-code -> kimi-k2.7, stealth/ox-alpha -> oxalpha)
 # used to be implemented four times (src/managent/main.zig canonicalizeModelTag,
 # tools/token-capture.py canon_tag, tools/model-profiles.py canon_tag,
 # tools/runner._model_from_argv) and drifted: token-capture lacked the stealth
@@ -159,7 +159,7 @@ serving_cases = [
     ("kimi-k2.7:cloud", "kimi-k2.7", ":cloud strip (do NOT dispatch, but maps)"),
     ("kimi-k2.7-code", "kimi-k2.7", "serving tag, never a canonical"),
     ("kimi-k2.7-code:cloud", "kimi-k2.7", "the kimi tag today"),
-    ("stealth/ox-alpha", "ox-alpha", "ox-alpha serving tag"),
+    ("stealth/ox-alpha", "oxalpha", "oxalpha serving tag"),
     ("qwen3.8:27b-mlx", "qwen3.8:27b-mlx", "local qwen (already canonical)"),
 ]
 for tag, expected, why in serving_cases:
@@ -208,7 +208,7 @@ def write_fixture(serving_tags):
 # seed: fake/model -> deepseek-v4-pro must map through every READER (the Zig
 # binary's table is fixed at compile time; the fixture seam is the readers')
 os.environ["WEIZIGO_CANONICALIZER_JSON"] = write_fixture(
-    {"kimi-k2.7-code": "kimi-k2.7", "stealth/ox-alpha": "ox-alpha",
+    {"kimi-k2.7-code": "kimi-k2.7", "stealth/ox-alpha": "oxalpha",
      "fake/model": "deepseek-v4-pro"})
 mt._CACHE.clear()
 seeded = reader_results("fake/model")
@@ -218,7 +218,7 @@ if set(seeded.values()) != {"deepseek-v4-pro"}:
 
 # un-seed: remove fake/model -> every reader must reject it
 os.environ["WEIZIGO_CANONICALIZER_JSON"] = write_fixture(
-    {"kimi-k2.7-code": "kimi-k2.7", "stealth/ox-alpha": "ox-alpha"})
+    {"kimi-k2.7-code": "kimi-k2.7", "stealth/ox-alpha": "oxalpha"})
 mt._CACHE.clear()
 unseeded = reader_results("fake/model")
 if set(unseeded.values()) != {"REJECT"}:
@@ -232,7 +232,7 @@ print("    seeded map + unseed-reject both hold across the four implementations"
 
 # ── (5) the runner's write-time canonicalization (the RED arm pre-T801) ──
 print("  5. runner canonicalizes a serving tag at write time (was RED pre-T801)")
-if runner._model_from_argv(["pi", "--model", "stealth/ox-alpha"], canonicalizer=rules) != "ox-alpha":
+if runner._model_from_argv(["pi", "--model", "stealth/ox-alpha"], canonicalizer=rules) != "oxalpha":
     print("    FAIL: runner._model_from_argv did not canonicalize stealth/ox-alpha")
     fail += 1
 if runner._model_from_argv(["pi", "--model", "kimi-k2.7-code:cloud"], canonicalizer=rules) != "kimi-k2.7":

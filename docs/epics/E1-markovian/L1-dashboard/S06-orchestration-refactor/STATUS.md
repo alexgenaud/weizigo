@@ -105,8 +105,8 @@ Two smaller facts from the same log, both live evidence for ids the spec argues 
 - **226 title-limit refusals across 6 rows.** The keeper's last two actions before going idle were
   refusals of T548 on a 41-character title. ORC-GATE-1 demotes display preferences to warnings on
   doctrine; this is the measurement — a taste gate blocked real dispatches, repeatedly.
-- **`tools/fleet-keeper.sh` has no ox-alpha row at all**, so it resolves to `other` → SPEND by
-  default fallthrough. It never honoured RESERVED for ox-alpha and is only accidentally correct
+- **`tools/fleet-keeper.sh` has no oxalpha row at all**, so it resolves to `other` → SPEND by
+  default fallthrough. It never honoured RESERVED for oxalpha and is only accidentally correct
   since the 2026-08-23 ruling. Step 1's rule must be **unknown model → refusal, never a default
   appetite**.
 

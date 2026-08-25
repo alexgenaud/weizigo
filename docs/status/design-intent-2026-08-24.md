@@ -49,7 +49,7 @@ field.
 
 ### The corpus three-way (T817/T818/T820 → T819)
 **T817's brief deliberately differs.** Flash was told to *start from* `model-profiles.py`'s keyword
-classifier and beat it; ox-alpha and dspro were told to build their own method, and their briefs are
+classifier and beat it; oxalpha and dspro were told to build their own method, and their briefs are
 **byte-identical to each other**. So:
 - **T818 vs T820 is a clean two-model comparison.**
 - **T817 is a separate experiment**: does seeding from the existing classifier help, or anchor you to

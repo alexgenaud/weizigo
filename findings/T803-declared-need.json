@@ -34,7 +34,7 @@
     "table": [
       {"provider": "claude", "n_present": 76, "n_nonzero": 73, "p50_mb": 626, "p90_mb": 899, "max_mb": 13661, "recommended_default_mb": 1024},
       {"provider": "deepseek", "n_present": 351, "n_nonzero": 246, "p50_mb": 472, "p90_mb": 2768, "max_mb": 12296, "recommended_default_mb": 2816},
-      {"provider": "pi/openrouter (ox-alpha)", "n_present": 9, "n_nonzero": 9, "p50_mb": 517, "p90_mb": 994, "max_mb": 994, "recommended_default_mb": 1024, "caveat": "n=9, low confidence, flag for re-measurement as ox-alpha volume grows"},
+      {"provider": "pi/openrouter (oxalpha)", "n_present": 9, "n_nonzero": 9, "p50_mb": 517, "p90_mb": 994, "max_mb": 994, "recommended_default_mb": 1024, "caveat": "n=9, low confidence, flag for re-measurement as oxalpha volume grows"},
       {"provider": "ollama-cloud (glm-5.2/minimax-m3/kimi-k2.7, served remotely)", "n_present": 13, "n_nonzero": 12, "p50_mb": 700, "p90_mb": 3210, "max_mb": 3210, "recommended_default_mb": 3328, "caveat": "n=13, low confidence, same flag"},
       {"provider": "qwen3.8:27b-mlx resident task's OWN dispatched pid (not the daemon)", "n_present": 2, "n_nonzero": 2, "p50_mb": 521, "p90_mb": 521, "max_mb": 521, "recommended_default_mb": "NOT USED — see resident_model_declaration below; declaring the task-pid figure here would be D1 again, just moved into a registration field"}
     ],

@@ -165,13 +165,13 @@ for pair in "ollama glm-5.2" "ollama minimax-m3" "ollama kimi-k2.7" "ollama qwen
     fi
 done
 # pi canonical (no ollama validation; arm A only).
-OUT=$(cd "$ROOT" && "$SUBAGENT" --provider pi --model ox-alpha --override-admission=t890-regression --dry-run "$WORK/target.md" 2>&1)
+OUT=$(cd "$ROOT" && "$SUBAGENT" --provider pi --model oxalpha --override-admission=t890-regression --dry-run "$WORK/target.md" 2>&1)
 rc=$?
 tag="$(pi_tag "$OUT")"
 if [ "$rc" -eq 0 ] && [ "$tag" = "stealth/ox-alpha" ]; then
-    echo "    PASS: pi ox-alpha → stealth/ox-alpha"
+    echo "    PASS: pi oxalpha → stealth/ox-alpha"
 else
-    echo "    FAIL: pi ox-alpha → expected stealth/ox-alpha, got '$tag' (rc=$rc)"; echo "$OUT" | sed 's/^/      | /'; NULL_FAIL=1
+    echo "    FAIL: pi oxalpha → expected stealth/ox-alpha, got '$tag' (rc=$rc)"; echo "$OUT" | sed 's/^/      | /'; NULL_FAIL=1
 fi
 [ "$NULL_FAIL" -ne 0 ] && FAIL=1
 

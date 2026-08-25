@@ -1,9 +1,9 @@
-# T926 lane death — ox-alpha, 2026-08-25
+# T926 lane death — oxalpha, 2026-08-25
 
 Preserved because the originals are volatile (`untracked/runs/`, `untracked/log/`) and this is
 the evidence for OPEN.md **B4**, rewritten the same day.
 
-`run-record.json` — the runner's own record: **exit 0, wall 37.4 s, rss 158 MB, model ox-alpha,
+`run-record.json` — the runner's own record: **exit 0, wall 37.4 s, rss 158 MB, model oxalpha,
 tokens null.**
 
 `lane-death.log` — the last 20 lines of the lane log. The sequence that matters:

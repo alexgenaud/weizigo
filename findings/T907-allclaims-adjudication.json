@@ -4,7 +4,7 @@
  "model": "claude-fable-5",
  "claims": [],
  "new_rows": [],
- "notes": "Adjudication of the all-claims evidence race (lanes T903 deepseek-v4-pro, T904 ox-alpha, T905 glm-5.2). No claim status changed. Verdicts over 233 rows: BACKED 145, ADJACENT 3, PROSE-ONLY 85, DANGLING 0, UNCHECKABLE 0, UNKNOWN 0. Defects (non-BACKED on PROVEN/MEASUREMENT/FALSE/SUPERSEDED rows): 53 of 150 — rerunnable 42, lost 8, report 2, stale-at-HEAD 1. Seat's measurement confirmed within ±1 (233 all-three, 97/95/41, pairwise 43/66/57%, 70 straight BACKED-vs-PROSE-ONLY; the ±1 is one duplicated oxalpha row). Boundary finding: 67 of the 70 disagreements are the same artifact under different rules (stipulations, research notes that report numbers, text/argument claims, status-relative grading) — the brief left 'establishes' undefined; 3 are oxalpha crediting uncited artifacts. Model finding: dspro's what_i_checked was one template on 194/233 rows — it graded by citation type without opening artifacts. Lane agreement with this adjudication: oxalpha 169/233, glm 166/233, dspro 125/233; defect recall 27/46/49 of 53; false flags 2/25/42. Canary recall 2/2 for every lane (GLOBAL.H1-CENSUS, CODE.RESOLVER-CONTROLS); fabricated_citations 0 for every lane (hand-checked). Most load-bearing least-backed family: the uncommitted 3x3 E2 range-aware self-play output (3x3.C3, 3x3.E2-RUN1/RUN2, 3x3.E3, GLOBAL.E2-SANITY, GLOBAL.C3, GLOBAL.C4). --thinking caveat carried: lanes ran before the flag was threaded; rankings are of models-as-served on 2026-08-24. Inbox polled at every checkpoint; no directives received. Deliverable: docs/epistemic/claims-evidence-audit.md.",
+ "notes": "Adjudication of the all-claims evidence race (lanes T903 deepseek-v4-pro, T904 oxalpha, T905 glm-5.2). No claim status changed. Verdicts over 233 rows: BACKED 145, ADJACENT 3, PROSE-ONLY 85, DANGLING 0, UNCHECKABLE 0, UNKNOWN 0. Defects (non-BACKED on PROVEN/MEASUREMENT/FALSE/SUPERSEDED rows): 53 of 150 — rerunnable 42, lost 8, report 2, stale-at-HEAD 1. Seat's measurement confirmed within ±1 (233 all-three, 97/95/41, pairwise 43/66/57%, 70 straight BACKED-vs-PROSE-ONLY; the ±1 is one duplicated oxalpha row). Boundary finding: 67 of the 70 disagreements are the same artifact under different rules (stipulations, research notes that report numbers, text/argument claims, status-relative grading) — the brief left 'establishes' undefined; 3 are oxalpha crediting uncited artifacts. Model finding: dspro's what_i_checked was one template on 194/233 rows — it graded by citation type without opening artifacts. Lane agreement with this adjudication: oxalpha 169/233, glm 166/233, dspro 125/233; defect recall 27/46/49 of 53; false flags 2/25/42. Canary recall 2/2 for every lane (GLOBAL.H1-CENSUS, CODE.RESOLVER-CONTROLS); fabricated_citations 0 for every lane (hand-checked). Most load-bearing least-backed family: the uncommitted 3x3 E2 range-aware self-play output (3x3.C3, 3x3.E2-RUN1/RUN2, 3x3.E3, GLOBAL.E2-SANITY, GLOBAL.C3, GLOBAL.C4). --thinking caveat carried: lanes ran before the flag was threaded; rankings are of models-as-served on 2026-08-24. Inbox polled at every checkpoint; no directives received. Deliverable: docs/epistemic/claims-evidence-audit.md.",
  "verdict_counts": {
   "BACKED": 145,
   "ADJACENT": 3,
@@ -416,7 +416,7 @@
    "templated_what_i_checked_rows": 194,
    "verdict_entropy": 0.57
   },
-  "ox-alpha": {
+  "oxalpha": {
    "lane": "T904",
    "agree_233": 169,
    "agree_evidential_150": 119,

@@ -400,7 +400,7 @@ const canonical_models = [_][]const u8{
     "minimax-m3",
     "kimi-k2.7",
     "qwen3.8:27b-mlx",
-    "ox-alpha",
+    "oxalpha",
     "gemini-3.7-flash",
 };
 
@@ -431,7 +431,7 @@ fn printCanonicalModels(w: Writers) void {
 /// one source instead of reimplementing it and drifting.
 const serving_tag_map = [_]struct { serving: []const u8, canonical: []const u8 }{
     .{ .serving = "kimi-k2.7-code", .canonical = "kimi-k2.7" },
-    .{ .serving = "stealth/ox-alpha", .canonical = "ox-alpha" },
+    .{ .serving = "stealth/ox-alpha", .canonical = "oxalpha" },
     .{ .serving = "google/gemini-3.7-flash", .canonical = "gemini-3.7-flash" },
 };
 
@@ -462,7 +462,7 @@ test "canonicalizeModelTag: serving tags and :cloud strip map to canonical" {
         .{ "minimax-m3:cloud", "minimax-m3" },
         .{ "kimi-k2.7-code", "kimi-k2.7" },
         .{ "kimi-k2.7-code:cloud", "kimi-k2.7" },
-        .{ "stealth/ox-alpha", "ox-alpha" },
+        .{ "stealth/ox-alpha", "oxalpha" },
     };
     for (cases) |c| {
         try std.testing.expectEqualStrings(c[1], canonicalizeModelTag(c[0]));
@@ -519,10 +519,10 @@ const model_families = [_]ModelFamily{
     .{ .model = "minimax-m3", .family = "ollama-cloud" },
     .{ .model = "kimi-k2.7", .family = "ollama-cloud" },
     .{ .model = "qwen3.8:27b-mlx", .family = "local" },
-    // T732: ox-alpha — stealth model, family UNKNOWN (identity sealed pending
+    // T732: oxalpha — stealth model, family UNKNOWN (identity sealed pending
     // reveal).  Its own family keeps it out of the auto-draw roster; re-keyed
     // to the real family on reveal.
-    .{ .model = "ox-alpha", .family = "ox-alpha" },
+    .{ .model = "oxalpha", .family = "oxalpha" },
     // T938: gemini-3.7-flash (operator-verified headless 2026-08-25).
     // The `google` family is a vendor family so a later gemini-pro can
     // join it (the same shape ollama-cloud / local use).  SPEND appetite
@@ -544,9 +544,9 @@ const family_appetite = [_]FamilyAppetite{
     .{ .family = "claude-fable", .appetite = .reserved },
     .{ .family = "deepseek", .appetite = .spend },
     .{ .family = "local", .appetite = .probe },
-    // T732: ox-alpha is in the equal-opportunity set per the 2026-08-23
+    // T732: oxalpha is in the equal-opportunity set per the 2026-08-23
     // operator ruling (T746).
-    .{ .family = "ox-alpha", .appetite = .spend },
+    .{ .family = "oxalpha", .appetite = .spend },
     // T938: gemini-3.7-flash — same equal-opportunity set as the eight
     // named in the 2026-08-24 operator ruling.  Vendor family so a later
     // gemini-pro joins the same class without re-keying.
@@ -13948,25 +13948,26 @@ test "assign: every canonical model has a family and appetite mapping" {
     }
 }
 
-test "assign: nine-model spend roster; fable RESERVED and qwen PROBE excluded" {
+test "assign: ten-model spend roster; fable RESERVED and qwen PROBE excluded" {
     var prng = std.Random.DefaultPrng.init(0);
     var res = try assignModel(null, &.{}, prng.random());
     defer freeAssignResult(&res);
 
-    // T834 (operator ruling 2026-08-24): ollama-cloud is SPEND again
-    // (glm/minimax/kimi back), fable RESERVED, qwen PROBE → the qualified
-    // list is the operator's eight equal-opportunity models PLUS ox-alpha
-    // (dial 9, "test whenever you get the opportunity").
-    try std.testing.expectEqual(@as(usize, 9), res.candidates.len);
+    // T834 + T938: ollama-cloud and google are SPEND (glm/minimax/kimi/gflash),
+    // fable RESERVED, qwen PROBE → the qualified list is the operator's
+    // equal-opportunity models PLUS oxalpha (dial 9).
+    try std.testing.expectEqual(@as(usize, 10), res.candidates.len);
     var saw_glm = false;
     var saw_minimax = false;
     var saw_kimi = false;
     var saw_ox = false;
+    var saw_gflash = false;
     for (res.candidates) |c| {
         if (std.mem.eql(u8, c, "glm-5.2")) saw_glm = true;
         if (std.mem.eql(u8, c, "minimax-m3")) saw_minimax = true;
         if (std.mem.eql(u8, c, "kimi-k2.7")) saw_kimi = true;
-        if (std.mem.eql(u8, c, "ox-alpha")) saw_ox = true;
+        if (std.mem.eql(u8, c, "oxalpha")) saw_ox = true;
+        if (std.mem.eql(u8, c, "gemini-3.7-flash")) saw_gflash = true;
         try std.testing.expect(!std.mem.eql(u8, c, "qwen3.8:27b-mlx"));
         try std.testing.expect(!std.mem.eql(u8, c, "claude-fable-5"));
     }
@@ -13974,6 +13975,7 @@ test "assign: nine-model spend roster; fable RESERVED and qwen PROBE excluded" {
     try std.testing.expect(saw_minimax);
     try std.testing.expect(saw_kimi);
     try std.testing.expect(saw_ox);
+    try std.testing.expect(saw_gflash);
     var saw_reserved = false;
     var saw_probe = false;
     for (res.reasons) |r| {
@@ -13986,9 +13988,9 @@ test "assign: nine-model spend roster; fable RESERVED and qwen PROBE excluded" {
 
 test "assign: single qualified candidate forces method=forced" {
     var prng = std.Random.DefaultPrng.init(0);
-    // Exclude claude, flash, ollama-cloud and ox-alpha → only
-    // deepseek-v4-pro remains (ollama-cloud is SPEND again per T834).
-    const excl = [_][]const u8{ "claude", "deepseek-v4-flash", "ollama-cloud", "ox-alpha" };
+    // Exclude claude, flash, ollama-cloud, oxalpha and google → only
+    // deepseek-v4-pro remains (ollama-cloud and google are SPEND per T834/T938).
+    const excl = [_][]const u8{ "claude", "deepseek-v4-flash", "ollama-cloud", "oxalpha", "google" };
     var res = try assignModel(null, &excl, prng.random());
     defer freeAssignResult(&res);
     try std.testing.expectEqualStrings("forced", res.method);
@@ -14005,7 +14007,7 @@ test "assign: named model is preferred, qualified list still recorded" {
     try std.testing.expectEqualStrings("claude-fable-5", res.model);
     // fable is RESERVED, so it is not in the qualified list — but the list is
     // still recorded so a later reader sees what was passed over.
-    try std.testing.expectEqual(@as(usize, 9), res.candidates.len);
+    try std.testing.expectEqual(@as(usize, 10), res.candidates.len);
     var saw_note = false;
     for (res.reasons) |r| {
         if (std.mem.indexOf(u8, r, "preferred by row (outside qualified list)") != null) saw_note = true;

@@ -13,7 +13,7 @@ four things in order: verify equal treatment, run the race, run a control arm, w
 of the eight entrants. Two reasons, stated instead of worked around:
 
 1. This task was claimed by a leaf worker with no dispatch authority for this brief.
-2. `ox-alpha` carries `appetite: spend` in the family-appetite table
+2. `oxalpha` carries `appetite: spend` in the family-appetite table
    (`src/managent/main.zig:537`) — a deliberate real-cost designation. Spending against it on a
    comparison whose own precondition (Step 0) turns out not to hold would be spending to produce a
    number the brief itself says not to trust.
@@ -45,7 +45,7 @@ confirmed.**
 
 ### The argv: not identical beyond provider and model name
 
-|                    | deepseek (pro/flash) | ollama (glm-5.2 / minimax-m3 / kimi-k2.7) | pi (ox-alpha) | claude (opus/sonnet) |
+|                    | deepseek (pro/flash) | ollama (glm-5.2 / minimax-m3 / kimi-k2.7) | pi (oxalpha) | claude (opus/sonnet) |
 |---|---|---|---|---|
 | binary shape | `pi --provider deepseek --model <m>` | `ollama launch pi --model <m>:cloud -y --` | `pi --provider openrouter --model stealth/ox-alpha` | `claude -p '<prompt>' --model <m>` |
 | `--mode json` | **yes** | no | **yes** (added by T891) | n/a — carries `--output-format json` instead |
@@ -75,7 +75,7 @@ model actually writing it. This is `D085` (confirmed on the real `verify_dispatc
 
 Splitting the eight entrants by whether their lane, **as measured today**, carries `--mode json`:
 
-- **Echo-confounded (3 of 8):** `deepseek-v4-pro`, `deepseek-v4-flash`, `ox-alpha`. A nonce
+- **Echo-confounded (3 of 8):** `deepseek-v4-pro`, `deepseek-v4-flash`, `oxalpha`. A nonce
   reading here is biased toward a false PASS — the D085 test showed identical (non-complying)
   model behaviour scored PASS under `--mode json` and FAIL without it.
 - **Not echo-confounded (5 of 8), for two different reasons:** `glm-5.2`, `minimax-m3`,
@@ -90,14 +90,14 @@ as designed" for this specific metric**, independent of the four-flag argv table
 
 ### A new risk this measurement surfaces, not present in T862 or T891's findings
 
-`T891` fixed `ox-alpha`'s observability by adding `--mode json` + `--session` to the pi/openrouter
+`T891` fixed `oxalpha`'s observability by adding `--mode json` + `--session` to the pi/openrouter
 lane (it previously had neither and ran with, per T891, "no stdout liveness stream at all"). That
-fix is correct on its own terms — it gives `ox-alpha` a token-rate meter it never had. But it also
-moves `ox-alpha` from the "not echo-confounded" group into the "echo-confounded" group for the
+fix is correct on its own terms — it gives `oxalpha` a token-rate meter it never had. But it also
+moves `oxalpha` from the "not echo-confounded" group into the "echo-confounded" group for the
 *nonce* channel specifically, because `--mode json` is the same flag that causes the D085 echo. The
 observability fix and the compliance-measurement confound are opposite pulls on the same flag, and
 T891 (scoped to telemetry, not to `dispatch_verify.py`) did not have to reconcile them. Before any
-future race scores `ox-alpha`'s nonce column, this needs a decision: either accept its nonce reads
+future race scores `oxalpha`'s nonce column, this needs a decision: either accept its nonce reads
 are now confounded like deepseek's, or change `nonce_ok` to check a location JSON mode does not echo
 into (e.g. a designated field in the parsed reply object, not raw stdout).
 
@@ -128,7 +128,7 @@ next section.
 
 The brief refers to "one model has four recorded instances of 'skipped the nonce and the close.'"
 Counting `verified=fail` lines in `docs/infra/model-perf.md` per model (re-measured 2026-08-25,
-stable across a concurrent edit to that file during this task): `ox-alpha` has exactly **four** —
+stable across a concurrent edit to that file during this task): `oxalpha` has exactly **four** —
 `T848` (logged twice), `T849`, `T860` — the only model at that count. This matches.
 
 Disposition of each, using the harness facts established above (not re-litigated, cited):
@@ -137,10 +137,10 @@ Disposition of each, using the harness facts established above (not re-litigated
   landed (14:35:18Z). `T862`'s findings establish that the runner's auto-close net was gated on
   `args.task_id`, which is `None` for every lane dispatched via `bin/subagent` (identity travels on
   `MANAGENT_TASK_ID` + `--arbiter-id` instead) — so **the net never fired for any lane**, not just
-  `ox-alpha`'s, until the fix. Both tasks were later completed and closed successfully under other
+  `oxalpha`'s, until the fix. Both tasks were later completed and closed successfully under other
   models (`T848` by `deepseek-v4-pro`, `T849` by `glm-5.2`), consistent with a row that stayed open
-  through a harness gap rather than through `ox-alpha` producing no work. **These two instances are
-  a false attribution and should be retracted from `ox-alpha`'s protocol-compliance record** — the
+  through a harness gap rather than through `oxalpha` producing no work. **These two instances are
+  a false attribution and should be retracted from `oxalpha`'s protocol-compliance record** — the
   defect was universal and is now fixed, confirmed by this task re-running
   `tools/regression-lane-telemetry-parity.sh` (all arms PASS).
 - **`T860` — `fail=nonce` ("skipped the nonce").** `bin/managent show T860` carries the seat's own
@@ -165,22 +165,22 @@ task did not run.
 ## Ledger cells (Step 4)
 
 No entrant ran, so no new `model-task-cells.md` / `model-perf.md` row is written for any of the
-eight under task type `protocol`. The existing four `ox-alpha` cells above keep their prior
+eight under task type `protocol`. The existing four `oxalpha` cells above keep their prior
 `verified=fail` values in the log (append-only; not edited by this row) with the disposition above
 recorded here as the current reading of them — three **untrusted-as-attributed** (harness bug,
 fixed), one **open**.
 
 ## What has to be true before Steps 1–2 can run for real
 
-1. A dispatcher with authority to spend against `ox-alpha`'s `appetite: spend` budget, and standing
+1. A dispatcher with authority to spend against `oxalpha`'s `appetite: spend` budget, and standing
    authorization to run 16 live entrant calls (two rows × eight models) — outside this leaf task's
    scope.
 2. A nonce-verification channel that does not degrade when `--mode json` is present — either accept
    and name the asymmetry per entrant (as this row does) rather than pooling it into one column, or
    change `dispatch_verify.py`'s `nonce_ok` check to read a location JSON mode does not echo into.
-3. A decision on `ox-alpha`'s newly-introduced echo exposure (above) before its nonce column is
+3. A decision on `oxalpha`'s newly-introduced echo exposure (above) before its nonce column is
    compared to `ollama`'s or `claude`'s on the same axis.
 
 Until then, this document is the result: not a ranking, a statement that the race's own
-precondition does not hold, plus the one finding (the retraction of three of `ox-alpha`'s four
+precondition does not hold, plus the one finding (the retraction of three of `oxalpha`'s four
 recorded failures) that survives independent of whether the race ever runs.

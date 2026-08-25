@@ -77,3 +77,17 @@
 {"task_id": "T635", "model": "deepseek-v4-pro", "exit_code": 124, "wall_seconds": 1732.7, "healed_by": "dispatcher", "timestamp": "2026-08-22T15:05:56Z"}
 {"task_id": "T638", "model": "deepseek-v4-flash", "exit_code": 124, "wall_seconds": 1901.4, "healed_by": "dispatcher", "timestamp": "2026-08-22T15:22:16Z"}
 {"task_id": "T654", "model": "claude-opus-5", "exit_code": 1, "wall_seconds": 835.3, "healed_by": "dispatcher", "timestamp": "2026-08-22T17:34:15Z", "unreached": "provider-429"}
+{"task_id": "T842", "model": "minimax-m3", "exit_code": 1, "wall_seconds": 2902.2, "healed_by": "dispatcher", "timestamp": "2026-08-24T07:43:58Z", "unreached": "provider-429"}
+{"task_id": "T841", "model": "kimi-k2.7", "exit_code": 1, "wall_seconds": 2909.0, "healed_by": "dispatcher", "timestamp": "2026-08-24T07:44:05Z", "unreached": "provider-429"}
+{"task_id": "T840", "model": "glm-5.2", "exit_code": 1, "wall_seconds": 2928.9, "healed_by": "dispatcher", "timestamp": "2026-08-24T07:44:25Z", "unreached": "provider-429"}
+{"task_id": "T872", "model": "deepseek-v4-pro", "exit_code": -15, "wall_seconds": 4406.3, "healed_by": "dispatcher", "timestamp": "2026-08-24T18:09:15Z"}
+{"task_id": "T887", "model": "claude-sonnet-5", "exit_code": 124, "wall_seconds": 1220.1, "healed_by": "dispatcher", "timestamp": "2026-08-24T18:31:20Z"}
+{"task_id": "T902", "model": "claude-opus-5", "exit_code": 1, "wall_seconds": 103.4, "healed_by": "dispatcher", "timestamp": "2026-08-24T21:02:15Z", "unreached": "provider-429"}
+{"task_id": "T863", "model": "claude-sonnet-5", "exit_code": 1, "wall_seconds": 158.6, "healed_by": "dispatcher", "timestamp": "2026-08-24T21:02:28Z", "unreached": "provider-429"}
+{"task_id": "T908", "model": "minimax-m3", "exit_code": 1, "wall_seconds": 636.3, "healed_by": "dispatcher", "timestamp": "2026-08-24T22:06:52Z", "unreached": "provider-429"}
+{"task_id": "T751", "model": "glm-5.2", "exit_code": 1, "wall_seconds": 825.9, "healed_by": "dispatcher", "timestamp": "2026-08-24T22:06:53Z", "unreached": "provider-429"}
+{"task_id": "T764", "model": "minimax-m3", "exit_code": 1, "wall_seconds": 6039.3, "healed_by": "dispatcher", "timestamp": "2026-08-24T22:40:32Z", "unreached": "provider-429"}
+{"task_id": "T902", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 3207.0, "healed_by": "dispatcher", "timestamp": "2026-08-24T22:45:44Z"}
+{"task_id": "T912", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 279.9, "healed_by": "dispatcher", "timestamp": "2026-08-24T23:30:57Z"}
+{"task_id": "T912", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 242.9, "healed_by": "dispatcher", "timestamp": "2026-08-24T23:47:01Z"}
+{"task_id": "T912", "model": "claude-opus-5", "exit_code": 124, "wall_seconds": 212.9, "healed_by": "dispatcher", "timestamp": "2026-08-25T01:32:59Z"}

@@ -99,7 +99,7 @@ emergent dimensions (handled by note-don't-score).
   always demands simple robust elegance.
 - **No bandwidth split is specified** between science and tooling: do both; dispatch
   whatever is spec'd and ready.
-- **ox-alpha:** free while the blind test runs; test and compare it at every reasonable
+- **oxalpha:** free while the blind test runs; test and compare it at every reasonable
   opportunity; never penalize it on speed (throttling from popularity was observed).
   Identity reveals later; on reveal, update data and adjust — no pre-built ceremony.
 - **Science-starvation visibility:** one dashboard datum (queue head shows a science-row

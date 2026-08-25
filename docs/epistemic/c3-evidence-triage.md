@@ -166,7 +166,7 @@ row (oxalpha and glm alone earned both (a) rows).
 
 | lane | model | substance /40 | effort: real paths (named) | median `what_i_checked` | discernment (entropy) | character of errors |
 |---|---|---|---|---|---|---|
-| T886 | ox-alpha | **37** | 36 (71) | 261 | 0.96 | best in race: found the uncommitted capture AND the committed logs; correct env flags; the only lane to design genuine positive/negative control runs. Rare misses: re-run proposed where source sufficed (PASS-NOKO) |
+| T886 | oxalpha | **37** | 36 (71) | 261 | 0.96 | best in race: found the uncommitted capture AND the committed logs; correct env flags; the only lane to design genuine positive/negative control runs. Rare misses: re-run proposed where source sufficed (PASS-NOKO) |
 | T887 | claude-sonnet-5 | **35** | 35 (95) | 407 | 0.95 | found the most committed evidence; line-pinned citations (e.g. `retro.zig:96-98`, the register-pin vs HEAD drift on PASS-NOKO); invented class (d) via "(already committed)" annotations — answered the operator's question over the brief's schema. Cost: dropped one row (M4A, 43/44), one unresolvable path per score.py |
 | T881 | claude-opus-5 | **33** | 42 (106) | 520 | 0.88 | strong on committed-output recognition (consist log + eye-prune stdout); sharpest analysis prose (ADR0003-AREA "welds two propositions"; MEMO-XROOT "the defect is removed at HEAD"); co-caught M4A staleness. Bias: empiricist — proposes a probe even on definitional rows |
 | T882 | deepseek-v4-pro | **32** | 34 (76) | 251 | 0.77 | balanced; clean inspection-vs-run distinction; careful (c) resolutions citing the right basis. Missed the eye-prune stdout (proposed battery re-runs); 6 commands unresolvable per score.py |

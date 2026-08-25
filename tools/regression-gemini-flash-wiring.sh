@@ -5,7 +5,7 @@
 #
 # Why this exists: the operator verified the model headless on 2026-08-25
 # with `pi --provider openrouter --model google/gemini-3.7-flash` and asked
-# it be wired like ox-alpha.  Six surfaces must move in step (T317 single
+# it be wired like oxalpha.  Six surfaces must move in step (T317 single
 # source of truth; T801 one canonicalizer, not four):
 #
 #   1. src/managent/main.zig canonical_models[] — the canonical label
@@ -46,7 +46,7 @@
 #      and the hard-coded list in run-record-model-backfill.py both
 #      include the new label (drift would be a finding).
 #   C. NULL: every pre-existing canonical model still resolves exactly
-#      as before (ox-alpha, deepseek-v4-pro, deepseek-v4-flash, etc.).
+#      as before (oxalpha, deepseek-v4-pro, deepseek-v4-flash, etc.).
 #   D. SEEDED DEFECT: `gflashx`, `google/gemini-3.7-pro`, and `gflash`
 #      AS A STORED LABEL are each REFUSED by name — not silently mapped
 #      to something real.  A near-miss that canonicalizes to an existing
@@ -155,7 +155,7 @@ echo "        C. null — every pre-existing canonical label still resolves to i
 NULL_FAIL=0
 for m in claude-opus-5 claude-sonnet-5 claude-fable-5 claude-haiku-4-5-20251001 \
          deepseek-v4-pro deepseek-v4-flash glm-5.2 minimax-m3 kimi-k2.7 \
-         qwen3.8:27b-mlx ox-alpha; do
+         qwen3.8:27b-mlx oxalpha; do
     got="$("$MG" canonicalize "$m" 2>/dev/null || true)"
     if [ "$got" != "$m" ]; then
         echo "           FAIL: $m canonicalized to '$got' (should be self)"
@@ -163,7 +163,7 @@ for m in claude-opus-5 claude-sonnet-5 claude-fable-5 claude-haiku-4-5-20251001 
     fi
 done
 # pre-existing serving-tag mappings must still work
-for pair in "kimi-k2.7-code:cloud:kimi-k2.7" "stealth/ox-alpha:ox-alpha"; do
+for pair in "kimi-k2.7-code:cloud:kimi-k2.7" "stealth/ox-alpha:oxalpha"; do
     raw="${pair%%:*}"; expected="${pair##*:}"
     got="$("$MG" canonicalize "$raw" 2>/dev/null || true)"
     if [ "$got" != "$expected" ]; then
@@ -263,7 +263,7 @@ except Exception as e:
     fail += 1
 
 # E4: pre-existing models still round-trip (regression guard)
-for canon, raw in [("ox-alpha", "stealth/ox-alpha"),
+for canon, raw in [("oxalpha", "stealth/ox-alpha"),
                    ("kimi-k2.7", "kimi-k2.7-code:cloud")]:
     try:
         got = mt.canon_tag(raw)

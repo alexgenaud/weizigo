@@ -61,7 +61,7 @@
   "no_shows": [
     {"entrant": "T841", "model": "kimi-k2.7", "result": "exit 1, wall 2909s, nothing on disk — closed abandoned. No findings file, no patch. Recorded as a measurement, not scored."},
     {"entrant": "T842", "model": "minimax-m3", "result": "exit 1, wall 2902s, nothing on disk — closed abandoned. No findings file, no patch. Recorded as a measurement, not scored."},
-    {"entrant": "ox-alpha", "result": "never entered the field at all (per amendment §1)."}
+    {"entrant": "oxalpha", "result": "never entered the field at all (per amendment §1)."}
   ],
 
   "t840_defects_confirmed": [
@@ -98,9 +98,9 @@
   },
 
   "amendment_items_addressed": {
-    "1_field_of_three": "Judged exactly T838/T839/T840; T841/T842/ox-alpha recorded as no-shows, not scored against the three that exist.",
+    "1_field_of_three": "Judged exactly T838/T839/T840; T841/T842/oxalpha recorded as no-shows, not scored against the three that exist.",
     "2_clean_baseline": "Confirmed empty diff efa747d..HEAD and clean git status on both files before applying anything.",
-    "3_session_confound": "Not directly exercised (my independent fixture used a pi-style --session file for all three, which is the readable-lane shape); no entrant was penalized for an unreadable ox-alpha-style lane because none of my checks used one. Noted for completeness rather than scored.",
+    "3_session_confound": "Not directly exercised (my independent fixture used a pi-style --session file for all three, which is the readable-lane shape); no entrant was penalized for an unreadable oxalpha-style lane because none of my checks used one. Noted for completeness rather than scored.",
     "4_t771_retired": "Not reproduced or tested — T771 is retired per the amendment; no fixture referencing it was constructed.",
     "5_operators_reading": "Weighed as evidence that T840's RATE column can render a real number on a genuinely live lane (9.1/s, 14.3/s observed) — consistent with what I independently found (T840 does render a live, non-fabricated number). It is NOT evidence about the two regressions (D2, D3) or the aggregation defect (D1), none of which the operator's smoke-test was positioned to see: D2 needs a transcript-less orphaned task in view, D3 needs the freshness column specifically inspected, D1 needs a multi-turn transcript where the largest turn is not the last. His reading and my findings are consistent, not in conflict — they simply examined different parts of the same patch.",
     "6_ledger_written": "Five rows appended to docs/infra/model-task-metrics.jsonl: T838, T839, T840 (patch entrants) + T841, T842 (no-shows)."

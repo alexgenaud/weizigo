@@ -102,7 +102,7 @@ PYP
 
   # ── a pinned model wins over the mechanized draw ────────────────────────
   # A race arm is only a race arm if it runs on the model it is an arm FOR.
-  # Race J pins ox-alpha / dsflash / dspro / kimi / sonnet / gemini-flash onto
+  # Race J pins oxalpha / dsflash / dspro / kimi / sonnet / gemini-flash onto
   # T916-T920 and T939; letting `assign` redraw them would silently turn six
   # sealed lanes into six lanes of whatever was cheapest, and the judge would
   # never know. `managent agent <id> <model>` is how a row gets pinned, and

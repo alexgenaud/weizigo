@@ -134,7 +134,7 @@ a disposition.
 1. **The tree moved under the sweep.** Three lanes were committing. A script that reads the live store
    or the live working tree got a reading of *that moment*. Sections 3 and 5 mark every such entry.
 2. **`zig build test`'s module-level reds are out of this population.** `docs/infra/suite-truth.md`
-   records `RED module main` — three stale `assign:` test expectations after `ox-alpha` moved to SPEND
+   records `RED module main` — three stale `assign:` test expectations after `oxalpha` moved to SPEND
    appetite. I did not re-run `zig test src/managent/main.zig` (it is the slowest step and the tree was
    being rebuilt by another lane). The suite-truth manifest's diagnosis is test drift, not a logic
    defect, and I have no reason to dispute it — but it is **inherited, not verified here**, and the

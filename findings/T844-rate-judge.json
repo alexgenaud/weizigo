@@ -12,7 +12,7 @@
     "entrants": 3,
     "patches": ["T838", "T839", "T840"],
     "abandoned": ["T841 (kimi-k2.7)", "T842 (minimax-m3)"],
-    "no_shows": ["ox-alpha"]
+    "no_shows": ["oxalpha"]
   },
   "methodology": "Applied each patch in isolation at pinned base efa747d, verified clean apply against expected files (untracked/watch-fleet.sh, tools/regression-watch-fleet.sh only), examined regression test results and rendered frames, and assessed aggregation correctness per D083 directive",
   "critical_directive_d083": {

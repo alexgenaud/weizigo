@@ -1,6 +1,6 @@
 # 4x4.D3 — is 4×4 tractable with memo writes off? Measured: no.
 
-**Task:** T924 (`ox-alpha`), 2026-08-25. **Recovered by the T914 seat from the lane transcript**
+**Task:** T924 (`oxalpha`), 2026-08-25. **Recovered by the T914 seat from the lane transcript**
 — the lane ran the full ladder and both arms, then exited 0 without writing this file or its
 findings. The runner's auto-close correctly declined (T862 ·3) and left the row open. Every number
 below is a line the probe printed; none is re-derived.

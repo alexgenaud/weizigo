@@ -28,13 +28,13 @@ The three defects in `tools/goban-scaling-capture.sh` (T914, written
 | D regime mismatch (claim writes-off, no RETRO_SOUND) | FAIL: KeyError on `regime_claimed` | PASS: regime_observed=memo-reuse, mismatch=true, stderr warns |
 | **exit code** | **1** | **0** |
 
-## Sibling evidence (ox-alpha's T926 attempt, NOT this worker)
+## Sibling evidence (oxalpha's T926 attempt, NOT this worker)
 
-The parent `docs/evidence/T926/` directory carries ox-alpha's
+The parent `docs/evidence/T926/` directory carries oxalpha's
 T926 lane-death evidence: `README.md`, `lane-death.log`,
-`run-record.json`.  That was ox-alpha's B4 analysis of the
+`run-record.json`.  That was oxalpha's B4 analysis of the
 T926 task having no claim/done recorded before this worker
 (minimax-m3) took over the row.  Read together with the
 `capture-tool-defects/` subdir it tells the lane-history:
-ox-alpha died at 37.4 s with no claim (429s upstream),
+oxalpha died at 37.4 s with no claim (429s upstream),
 minimax-m3 was re-dispatched and the work completed.

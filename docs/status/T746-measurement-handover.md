@@ -11,7 +11,7 @@ done** — six rows, listed in §7.
 ## 0. The question and the answer
 
 The operator asked: *do we have confidence we are measuring and recording the right things
-about models?* The decision it serves: placing `ox-alpha` against `claude-opus-5`,
+about models?* The decision it serves: placing `oxalpha` against `claude-opus-5`,
 `claude-sonnet-5`, `deepseek-v4-pro` and `deepseek-v4-flash` across the real task mix.
 
 **Answer: not yet — but the gap was recording, not measuring.** The readings mostly existed and
@@ -26,7 +26,7 @@ Three of those four are now fixed on disk. What remains is tooling, and it is qu
 
 ## 1. Operator rulings recorded this session (2026-08-23)
 
-1. **`ox-alpha` is used liberally, not reserved.** *"use oxalpha liberally"*; *"I want to compare
+1. **`oxalpha` is used liberally, not reserved.** *"use oxalpha liberally"*; *"I want to compare
    Opus, Sonnet, DSPro, and Flash to oxalpha to get a sense of its strengths and weaknesses and
    where it lands on a ladder for our most frequent and important task types and phases."*
    The `RESERVED` appetite in the record was a **record defect** — see §3.1.
@@ -48,8 +48,8 @@ Three of those four are now fixed on disk. What remains is tooling, and it is qu
 
 | # | defect | evidence |
 |---|---|---|
-| 1 | `ox-alpha` excluded from **every** mechanized assignment | `bin/managent assign --dry-run` → `ox-alpha: family ox-alpha appetite RESERVED (reserved task types only)` |
-| 2 | 80% of the token ledger was UNKNOWN; the ollama-cloud family had **zero** readings ever | 621 rows, 127 readings; `glm-5.2` 0, `minimax-m3` 0, `kimi-k2.7` 0, `ox-alpha` 0 |
+| 1 | `oxalpha` excluded from **every** mechanized assignment | `bin/managent assign --dry-run` → `oxalpha: family oxalpha appetite RESERVED (reserved task types only)` |
+| 2 | 80% of the token ledger was UNKNOWN; the ollama-cloud family had **zero** readings ever | 621 rows, 127 readings; `glm-5.2` 0, `minimax-m3` 0, `kimi-k2.7` 0, `oxalpha` 0 |
 | 3 | the ledger's own reason for the UNKNOWNs was **false** | it asserts the pi session file *"cannot be attributed to this lane"*; `tools/token-capture.py` attributes it, and now has |
 | 4 | `cost: null` in **24 of 24** rows of `model-task-metrics.jsonl` while readings sat on disk | nothing joins `untracked/runs/*.json` → the metrics record |
 | 5 | the cost ladder has **no quality gate** and routes solo rows to the worst-measured discriminator | §4.1 |
@@ -61,16 +61,16 @@ Three of those four are now fixed on disk. What remains is tooling, and it is qu
 
 ## 3. Fixed on disk this session
 
-### 3.1 The `ox-alpha` appetite record — corrected
+### 3.1 The `oxalpha` appetite record — corrected
 `docs/infra/model-registry.md` §Stealth model now records **SPEND**, with the operator's words,
 and states that the mislabel was load-bearing rather than cosmetic. The **read-only advisor**
 scope (T745) is recorded as a *scope* limit, not an appetite limit — and it costs little for
 placement, since audit is 27% of volume and spec review is the growth cell, both read-only.
 
 **Owed, one line, not applied here:** `src/managent/main.zig:321` still carries
-`.{ .family = "ox-alpha", .appetite = .reserved }`. That file is serialized behind
+`.{ .family = "oxalpha", .appetite = .reserved }`. That file is serialized behind
 T760/T767/T768/T770, so it belongs in Fable's batch. **Until it lands, no mechanized pick can
-draw ox-alpha** — this is the shortest path to unblocking the comparison the operator asked for.
+draw oxalpha** — this is the shortest path to unblocking the comparison the operator asked for.
 
 ### 3.2 Retroactive token recovery — 448 lanes
 New tool `tools/token-backfill.py`. The readings were never lost, only un-joined: when a
@@ -84,7 +84,7 @@ dispatcher passed no `--session`, `pi` wrote to `~/.pi/agent/sessions/<cwd-slug>
 | `glm-5.2` | 0 | 81 |
 | `minimax-m3` | 0 | 32 |
 | `kimi-k2.7` | 0 | 11 |
-| `ox-alpha` | 0 | **5** |
+| `oxalpha` | 0 | **5** |
 | `deepseek-v4-pro` | 29 | 201 |
 | `deepseek-v4-flash` | 25 | 171 |
 
@@ -106,7 +106,7 @@ recorded at all. Re-running appends nothing (idempotent).
 Every recovered row carries `trusted: false`, `source: pi-session-jsonl-retro`, and
 `corroborated: run-record | task-only | none`. **Evidence grades are not flattened.**
 
-### 3.3 `ox-alpha`'s five lanes, recovered
+### 3.3 `oxalpha`'s five lanes, recovered
 | task | shape | start | in (fresh / cache) | out | turns | corroborated |
 |---|---|---|---|---|---|---|
 | T735 #1 | audit-adversarial | 10:11:42Z | 1,596,905 (113,257 / 1,483,648) | 16,657 | 39 | run-record |
@@ -115,14 +115,14 @@ Every recovered row carries `trusted: false`, `source: pi-session-jsonl-retro`, 
 | T745 | advisor | 10:58:00Z | 6,634,961 (547,409 / 6,087,552) | 44,762 | 125 | none |
 | T754 | — | 11:53:01Z | 399,829 (105,237 / 294,592) | 7,540 | 15 | run-record |
 
-Note the cache ratio: ~93% of ox-alpha's input is cache reads. Any cost comparison that sums
+Note the cache ratio: ~93% of oxalpha's input is cache reads. Any cost comparison that sums
 `tokens_in` without the fresh/cache split — as `tokens.jsonl` did before T558's split reached it
 — overstates it by more than an order of magnitude. Same hazard applies to `claude-opus-5`.
 
 ### 3.4 `canon_tag` parity
-`tools/token-capture.py` now maps `stealth/ox-alpha` → `ox-alpha` and carries `ox-alpha` in
+`tools/token-capture.py` now maps `stealth/ox-alpha` → `oxalpha` and carries `oxalpha` in
 `CANONICAL_MODELS`, matching `src/managent/main.zig`'s `canonicalizeModelTag`. Before this, any
-per-canonical-label aggregation dropped ox-alpha **silently** instead of loudly.
+per-canonical-label aggregation dropped oxalpha **silently** instead of loudly.
 
 The underlying smell for Fable: the canonicalizer exists in **four** places —
 `src/managent/main.zig`, `tools/token-capture.py`, `tools/model-profiles.py`,
@@ -169,7 +169,7 @@ read the trust grade rather than average retro numbers into a live pick.
 
 ### 4.2 The liveness fuse killed a working lane and diagnosed the model (row T773)
 
-`ox-alpha`/T735 attempt 2, killed at 600.9 s:
+`oxalpha`/T735 attempt 2, killed at 600.9 s:
 > `startup liveness timeout 600s (10'00) — agent lane produced no output since launch (bundle
 > never read?)`
 
@@ -183,7 +183,7 @@ claim about the model that the evidence refutes. A guard may state what it measu
 attribute a cause it did not measure — the `killed_by` discipline already ratified for the
 token-limit guard.
 
-This lands hardest on ox-alpha, because every ox-alpha lane uses the raw `pi` invocation the
+This lands hardest on oxalpha, because every oxalpha lane uses the raw `pi` invocation the
 operator wants kept.
 
 ---
@@ -230,7 +230,7 @@ empty; G35 was caught by no lane.
 
 ---
 
-## 6. `ox-alpha` placement (row T753) and the n bar
+## 6. `oxalpha` placement (row T753) and the n bar
 
 Order, cheapest reliable first:
 1. **Free — the two lanes that already ran.** T735 (audit-adversarial) and T744 (spec) hold
@@ -244,12 +244,12 @@ Order, cheapest reliable first:
    and a read-only shape compatible with the advisor scope.
 
 **The n bar, derived rather than chosen:** a 15-point spread on a 30-point rubric means n=2
-yields a band, not an order. So **n=3 before any tier claim on ox-alpha; n=2 licenses
+yields a band, not an order. So **n=3 before any tier claim on oxalpha; n=2 licenses
 `provisional`; a single run licenses nothing regardless of margin.** methodology §5's emission
 gate (anchored · n≥2 · ≥2 qualified models at different cost) stands unchanged beneath it.
 
 **Grader independence caveat, new and specific:** G3 requires a grader outside the lane's family.
-ox-alpha's family is **UNKNOWN**, so that guarantee cannot be given — it may share a family with
+oxalpha's family is **UNKNOWN**, so that guarantee cannot be given — it may share a family with
 a lane it is graded against. Record the weaker guarantee explicitly rather than implying G3 held.
 
 **On the reveal:** it is a **relabel, not an epoch bump**. Learning a model's name is not
@@ -267,12 +267,12 @@ uncounted — two separate questions, recorded separately on the day. Recorded i
 | **T773** | stdout liveness fuse killed a working lane and diagnosed the model | dispatchable |
 | **T750** | record `canary_recall` + `fabricated_citations` + `unique_catch`; retire `thoroughness`; backfill from T706/T626/T557 | dispatchable |
 | **T751** | runner falls back to the cwd-slug scan; trust grades end-to-end; the metrics join | dispatchable (rewritten per ruling 2) |
-| **T752** | ox-alpha reveal checklist: matrix column, per-surface treatment, the relabel-not-epoch ruling | dispatchable |
-| **T753** | ox-alpha placement against opus / sonnet / dspro / flash | blocked on T730 (rewritten per ruling 1) |
+| **T752** | oxalpha reveal checklist: matrix column, per-surface treatment, the relabel-not-epoch ruling | dispatchable |
+| **T753** | oxalpha placement against opus / sonnet / dspro / flash | blocked on T730 (rewritten per ruling 1) |
 
-Plus the **one-line unblock**: `src/managent/main.zig:321` `ox-alpha` appetite
+Plus the **one-line unblock**: `src/managent/main.zig:321` `oxalpha` appetite
 `.reserved` → the operator's liberal stance. Serialized behind the other `main.zig` rows; until
-it lands, no mechanized pick can draw ox-alpha.
+it lands, no mechanized pick can draw oxalpha.
 
 **Cross-cutting items for the refactorization sprint, in severity order:**
 1. Qualification before cost, everywhere a model is chosen (T772). This is the difference
@@ -309,7 +309,7 @@ it lands, no mechanized pick can draw ox-alpha.
 
 No grade was re-run: every score cited is read from committed findings. The censuses of
 `untracked/runs/`, `untracked/tokens/` and the pi session directory are mine and reproducible
-from the tools named. `findings/T730-ruling.json` does not exist yet, so ox-alpha's audit cell is
+from the tools named. `findings/T730-ruling.json` does not exist yet, so oxalpha's audit cell is
 not yet a reading and T753 is correctly blocked. The retro readings are **validated on the
 parser and corroborated on attribution, not validated end-to-end** — the ledger structurally
 cannot do that, and the operator's ruling 3 is the right posture toward them regardless.

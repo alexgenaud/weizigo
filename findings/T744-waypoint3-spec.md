@@ -1,7 +1,7 @@
 # Waypoint-3 decomposition spec — A–Z reverification as registerable rows
 
 ```
-Task:   T744 · Role: worker · Model: ox-alpha · Date: 2026-08-23 · At HEAD 3ce328e
+Task:   T744 · Role: worker · Model: oxalpha · Date: 2026-08-23 · At HEAD 3ce328e
 Status: PROPOSAL — one of five independent Race-I lanes; the seat synthesizes, the operator ratifies.
 Inputs: DIRECTION.md §5 + Amendments 1–2 (ratified) · PHASES.md · CLAIMS.md (231 live rows,
         claimlint C0 at HEAD, run 2026-08-23) · register-tree-map.md · AXIOMS.md §3 (tree) ·

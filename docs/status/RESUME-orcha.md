@@ -8,7 +8,7 @@ the first five minutes.
 ## Standing operator orders (2026-08-24) — these bind the seat
 
 - **Reserve Fable.** Standing.
-- **Use ox-alpha liberally.** Standing. Credit is effectively unlimited; race it against everything.
+- **Use oxalpha liberally.** Standing. Credit is effectively unlimited; race it against everything.
 - **Probe qwen infrequently.** A convenience, not a priority.
 - **All other models get roughly equal opportunity.** Do not let habit concentrate work.
 - **Steady pace over parallelism.** Run more serially even where tasks could run conflict-free.
@@ -34,7 +34,7 @@ the first five minutes.
 | **ollama** | **100% of the 5-hour window consumed**, resets ~11:00 local; 17.8% weekly. All three ollama workers died simultaneously when it hit. **Do not dispatch ollama until reset**, then one at a time. |
 | **claude** | ~21% of the 5-hour window, 4h to reset; a significant fraction of the weekly. Returned `provider-429` earlier at only 4 runs — upstream strain, not our volume. Use, but not for bulk. |
 | **deepseek** | 124M tokens / 807 requests today, no recorded ceiling. The bulk workhorse. |
-| **ox-alpha** | effectively unlimited. **Prefer it.** |
+| **oxalpha** | effectively unlimited. **Prefer it.** |
 
 ## The minimax lesson — act on this before re-enabling ollama
 

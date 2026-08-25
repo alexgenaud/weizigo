@@ -36,7 +36,7 @@ boilerplate, models as registry entries.**
 7. **Startup-prose diet** — `managent orient`'s ≤150-line preamble is the only boilerplate,
    injected at dispatch; briefs carry task-specific content only.
 8. **Provider seam** — providers as data; acceptance: onboarding a new model costs one
-   registry entry (T732's findings record today's baseline: the ox-alpha onboarding cost).
+   registry entry (T732's findings record today's baseline: the oxalpha onboarding cost).
 
 ## Acceptance for the sprint
 

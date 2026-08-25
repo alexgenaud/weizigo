@@ -13,7 +13,7 @@ Where a cell is empty and a choice is still forced, `model-ladders.md` holds the
 ## Cost stance — RETIRED (2026-08-21, T565; superseded by measurement-methodology.md §1 the appetite table)
 
 The 2026-08-18 "cost stance while it holds" (Ollama-first for leaf rows, flash-over-pro,
-pro-for-heavy-work, fable-sparingly, qwen-costs-the-machine) is **superseded** by the appetite
+pro-for-heavy-work, fable-sparingly, qwenlocal-costs-the-machine) is **superseded** by the appetite
 config in `measurement-methodology.md` §1 (levels OFF/PROBE/CONSERVE/SPEND/RESERVED, the
 family budget states as of 2026-08-21, and the hard reservations). Per that table: ollama-cloud
 is OFF→SPEND on a human flip (~48h ±24h, never a calendar auto-trust), claude is CONSERVE,

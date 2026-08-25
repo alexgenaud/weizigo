@@ -530,7 +530,7 @@ PY
 
     # DONE rows: completed time (store `done`, UTC ISO -> local HH:MM) + verdict
     python3 - "$T.json" "$MAX_ROWS" > "$T.done.rows" <<'PY'
-import json,sys,time,calendar
+import json,sys,time,calendar,os,glob
 d=json.load(open(sys.argv[1]))
 rows=[((v.get('done') or ''),k) for k,v in d.items() if v.get('status')=='done']
 rows.sort(reverse=True)
@@ -540,15 +540,94 @@ def hm(ts):
         utc=time.strptime(ts[:19],'%Y-%m-%dT%H:%M:%S')
         return time.strftime('%H:%M',time.localtime(calendar.timegm(utc)))
     except Exception: return '--:--'
+# DONE carries PROGRESS's columns (operator, 2026-08-25): model, total elapsed,
+# and the run's AVERAGE rate over its whole life.  Wall comes from the run
+# record (the measured figure the runner wrote); the store's claimed->done
+# delta is the fallback and is NOT the same thing -- it includes time the row
+# sat closed-but-unclaimed.  Tokens come from the token ledger, the same source
+# PROGRESS uses.  A reading we do not have prints '-', never 0 and never a
+# guess (the S11 contract: UNKNOWN is not zero).
+led={}
+try:
+    for line in open('untracked/tokens/tokens.jsonl'):
+        line=line.strip()
+        if not line: continue
+        try: r=json.loads(line)
+        except Exception: continue
+        t=r.get('task'); n=r.get('tokens_out'); ts=r.get('ts') or ''
+        if not t or n is None: continue
+        cl=(d.get(t) or {}).get('claimed') or ''
+        if cl and ts and ts < cl: continue
+        pv=led.get(t)
+        if pv is None or ts>=pv[0]: led[t]=(ts,n)
+except Exception: pass
+def wall_of(k,v):
+    try:
+        rr=json.load(open(os.path.join('untracked/runs',k+'.json')))
+        w=rr.get('wall')
+        if w: return float(w)
+    except Exception: pass
+    try:
+        a=calendar.timegm(time.strptime((v.get('claimed') or '')[:19],'%Y-%m-%dT%H:%M:%S'))
+        b=calendar.timegm(time.strptime((v.get('done') or '')[:19],'%Y-%m-%dT%H:%M:%S'))
+        if b>a: return float(b-a)
+    except Exception: pass
+    return None
+def dshort(sec):
+    if sec is None: return '-'
+    s=int(sec)
+    if s<60: return "%ds"%s
+    if s<3600: return "%d'%02d"%(s//60,s%60)
+    return "%dh%02d"%(s//3600,(s%3600)//60)
+def session_tokens(k):
+    # The token ledger's join is broken for recent rows: it records
+    # tokens_out UNKNOWN with missing_reason "no session matched" while the
+    # session file sits in untracked/tokens/sessions/<task>.*.jsonl.  Summing
+    # the transcript directly is a BETTER reading than the ledger's UNKNOWN,
+    # not a fabricated one -- it is the same source PROGRESS reads in flight.
+    # Registered as a defect; see T931.  Returns None when there is no file,
+    # so the column still prints '-' rather than 0.
+    try:
+        cand=sorted(glob.glob(os.path.join('untracked/tokens/sessions',k+'.*.jsonl')),
+                    key=os.path.getmtime, reverse=True)
+    except Exception: return None
+    if not cand: return None
+    tot=0
+    try:
+        for line in open(cand[0]):
+            try: o=json.loads(line)
+            except Exception: continue
+            u=o.get('usage') or (o.get('message') or {}).get('usage') or {}
+            if isinstance(u,dict):
+                val=u.get('output') or u.get('output_tokens')
+                if val:
+                    try: tot+=int(val)
+                    except Exception: pass
+    except Exception: return None
+    return tot or None
+def model_of(k,v):
+    m=v.get('model') or v.get('agent') or ''
+    if not m:
+        try: m=json.load(open(os.path.join('untracked/runs',k+'.json'))).get('model') or ''
+        except Exception: m=''
+    return m
 for done,k in rows[:int(sys.argv[2])]:
-    v=(d.get(k) or {}).get('verdict','') or '?'
-    if v=='pass-with-findings': v='findings'
-    elif v=='fail-found': v='fail'
-    print('%s\t%s\t%s' % (k,v,hm(done)))
+    v=d.get(k) or {}
+    vd=v.get('verdict','') or '?'
+    if vd=='pass-with-findings': vd='findings'
+    elif vd=='fail-found': vd='fail'
+    w=wall_of(k,v)
+    tok=led.get(k,(None,None))[1]
+    if tok is None: tok=session_tokens(k)
+    if tok and w and w>0: rate="%.1f/s"%(tok/w)
+    elif tok: rate="%d"%tok
+    else: rate='-'
+    print('%s\t%s\t%s\t%s\t%s\t%s' % (k,vd,hm(done),model_of(k,v),dshort(w),rate))
 PY
-    while IFS=$(printf '\t') read -r t v tm; do
+    while IFS=$(printf '\t') read -r t v tm md du rt; do
         [ -z "$t" ] && continue
-        printf '  %-5s %-3s %-9s %-6s %s\n' "$t" "$(lm "$t")" "$v" "$tm" "$(desc "$t")" | fit >> "$T.done"
+        printf '  %-5s %-3s %-9s %-6s %-8s %-6s %-8s %s\n' "$t" "$(lm "$t")" "$v" "$tm" \
+            "$(mdl "$md")" "$du" "$rt" "$(desc "$t")" | fit >> "$T.done"
     done < "$T.done.rows"
     python3 - "$T.json" > "$T.openstat" <<'PYS'
 import json,sys,os,re
@@ -617,17 +696,22 @@ for k in disp[:cap]:
     lanes.append(start+dur); lanes.sort()
     for h in holds: free_at[h]=start+dur
 def fmt(s):
+    # 3 chars, no decimals (operator, 2026-08-25): now 30s 5m 30m 90m 2h 23h 47h 2d 10d 99d.
+    # Each unit runs to 99 before promoting, so 90m reads as 90m not 1.5h.
     if s is None: return '?'
     if s<=0: return 'now'
-    if s<3600: return "%dm"%round(s/60)
-    if s<86400: return "%.1fh"%(s/3600)
-    return "%.1fd"%(s/86400)
+    if s<60: return "%ds"%s
+    m=round(s/60)
+    if m<100: return "%dm"%m
+    h=round(s/3600)
+    if h<48: return "%dh"%h
+    return "%dd"%min(round(s/86400),99)
 for k,s in out: print("%s\t%s"%(k,fmt(s)))
 PYQ
     while IFS=$(printf '\t') read -r t eta; do
         [ -z "$t" ] && continue
         st=$(awk -F'\t' -v t="$t" '$1==t{print $2}' "$T.openstat" 2>/dev/null)
-        printf '  %-5s %-3s %-8s %5s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$eta" "$(desc "$t")" | fit >> "$T.open"
+        printf '  %-5s %-3s %-8s %3s  %s\n' "$t" "$(lm "$t")" "${st:-open}" "$eta" "$(desc "$t")" | fit >> "$T.open"
     done < "$T.openq"
 
     np=$(grep -c . "$T.prog" 2>/dev/null); nc=$(grep -c . "$T.conc" 2>/dev/null); nr=$(grep -c . "$T.recent" 2>/dev/null)

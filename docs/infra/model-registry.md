@@ -15,7 +15,7 @@ claude-opus-5 · claude-sonnet-5 · claude-fable-5 · claude-haiku-4-5-20251001
 deepseek-v4-pro · deepseek-v4-flash
 glm-5.2 · minimax-m3 · kimi-k2.7
 qwen3.8:27b-mlx
-ox-alpha
+oxalpha
 gemini-3.7-flash
 ```
 
@@ -43,8 +43,8 @@ render through it and hold no second copy.
 | `glm` | `glm-5.2` | `glm-5.2:cloud` |
 | `minimax` | `minimax-m3` | `minimax-m3:cloud` |
 | `kimi` | `kimi-k2.7` | `kimi-k2.7-code:cloud` |
-| `qwen` | `qwen3.8:27b-mlx` | local (MLX) |
-| `oxalpha` | `ox-alpha` | `stealth/ox-alpha` |
+| `qwenlocal` | `qwen3.8:27b-mlx` | local (MLX) |
+| `oxalpha` | `oxalpha` | `stealth/ox-alpha` |
 | `gflash` | `gemini-3.7-flash` | `google/gemini-3.7-flash` |
 
 Distinct short names are needed only when two models with confusable names run at the
@@ -62,7 +62,7 @@ From the serving-tag probe (claude-opus-5/orcha), one `ollama run <tag> "say rea
 | `kimi-k2.7-code:cloud` | answers | **the kimi tag today** (both tags map to canonical `kimi-k2.7`) |
 | `kimi-k2-thinking:cloud` | `retired at 2026-06-16` (vendor) | dead |
 | `qwen3.8:27b-mlx` | local, 18 GB MLX | the local qwen tag (`qwen3.8` in the pi/Ollama path) |
-| `stealth/ox-alpha` | answers (operator-verified headless, 2026-08-23) | the ox-alpha tag — serving tag only, never stored (canonical `ox-alpha`) |
+| `stealth/ox-alpha` | answers (operator-verified headless, 2026-08-23) | the oxalpha tag — serving tag only, never stored (canonical `oxalpha`) |
 | `google/gemini-3.7-flash` | answers (operator-verified headless, 2026-08-25) | the gemini-3.7-flash tag — serving tag only, never stored (canonical `gemini-3.7-flash`) |
 
 `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working kimi
@@ -90,7 +90,7 @@ family, the kind of permission; the S06 spec ORC-POL-3 separation, T813):
 | `kimi-k2.7` | 5 | spend | ollama-cloud returns from OFF |
 | `minimax-m3` | 5 | spend | " |
 | `glm-5.2` | 5 | spend | " |
-| `ox-alpha` | 9 | spend | *"make extra use … race against all others"* |
+| `oxalpha` | 9 | spend | *"make extra use … race against all others"* |
 | `gemini-3.7-flash` | 5 | spend | equal opportunity (T938) |
 | `claude-fable-5` | 1 | reserved | *"continue to reserve Fable"* |
 | `qwen3.8:27b-mlx` | (unchanged) | (unchanged) | local family, T833's — do not pre-empt |
@@ -99,8 +99,8 @@ family, the kind of permission; the S06 spec ORC-POL-3 separation, T813):
 five-level `Appetite` enum (`off / probe / conserve / spend / reserved`) — there is no
 numeric dial field (the S06 spec ORC-POL-3 mechanism is spec, not implementation). So the
 2026-08-24 ruling is expressed in code only as its **class** half: the eight
-equal-opportunity models and ox-alpha are all `spend`, Fable is `reserved`, qwen is
-`probe`. The **dial** half — equal *rate* (dial 5 everywhere, ox-alpha 9) — is
+equal-opportunity models and oxalpha are all `spend`, Fable is `reserved`, qwen is
+`probe`. The **dial** half — equal *rate* (dial 5 everywhere, oxalpha 9) — is
 **unexpressed**. Consequence, stated plainly: the current table is
 *permitted-equally* (all eight are eligible for the draw), which is **weaker** than
 *drawn-equally* (an equal rate/eagerness). The dial lands with S06 pass 1 (the policy
@@ -113,22 +113,22 @@ ollama-cloud `OFF`/dial 0 → `SPEND`/dial 5, and claude dial
 4 → 5 (the 2026-08-23 table set claude at 4, "dice roll leans deepseek"; the 2026-08-24
 ruling sets all eight at 5 — equal opportunity).
 
-## Stealth model — ox-alpha (T732, 2026-08-23)
+## Stealth model — oxalpha (T732, 2026-08-23)
 
-- **label:** `ox-alpha` · **family:** UNKNOWN (identity sealed) · **provider:** openrouter ·
+- **label:** `oxalpha` · **family:** UNKNOWN (identity sealed) · **provider:** openrouter ·
   **harness:** pi (headless `pi --provider openrouter --model stealth/ox-alpha -p …`)
 - **serving tag:** `stealth/ox-alpha` — a serving tag only; it never reaches the ledger
-  (records store the canonical label `ox-alpha`).
+  (records store the canonical label `oxalpha`).
 - **appetite:** **SPEND — corrected 2026-08-23 (T746).** The earlier `RESERVED` entry recorded a
   reservation the operator never made; his instruction was *"use oxalpha liberally"* and
   *"compare Opus, Sonnet, DSPro and Flash to oxalpha to get a sense of its strengths and
   weaknesses and where it lands on a ladder for our most frequent and important task types
   and phases."* The mislabel was load-bearing, not cosmetic: `bin/managent assign --dry-run`
-  excluded ox-alpha from **every** mechanized pick with the reason
-  `ox-alpha: family ox-alpha appetite RESERVED (reserved task types only)` — i.e. the record
+  excluded oxalpha from **every** mechanized pick with the reason
+  `oxalpha: family oxalpha appetite RESERVED (reserved task types only)` — i.e. the record
   blocked the exact comparison it was supposed to serve.
   **Landed 2026-08-23** (seed commit `2ec4f93`): `src/managent/main.zig:322` now reads
-  `.{ .family = "ox-alpha", .appetite = .spend }`, so mechanized picks can draw ox-alpha.
+  `.{ .family = "oxalpha", .appetite = .spend }`, so mechanized picks can draw oxalpha.
   The earlier note here saying the one-liner was still owed is superseded by that commit.
 - **scope:** read-only advisor (T745, 2026-08-23) — a *scope* limit, not an appetite limit.
   Dispatch it liberally on read-only work; audit (27% of volume) and spec/design review are
@@ -141,10 +141,10 @@ ruling sets all eight at 5 — equal opportunity).
   under the new label. If the reveal *also* discloses a version change, that is an epoch bump
   and those cells are labelled and uncounted — the two are separate questions and must be
   recorded separately on the day.
-- **token capture:** ox-alpha is dispatched as raw `pi --provider openrouter --model
+- **token capture:** oxalpha is dispatched as raw `pi --provider openrouter --model
   stealth/ox-alpha -p …`, which the operator confirms works and which may be the *better*
   API-key pattern (2026-08-23). It bypasses `tools/runner`'s `--session` meter, so all five
-  ox-alpha lanes were first recorded UNKNOWN. They are **not** unattributable: the cwd-slug
+  oxalpha lanes were first recorded UNKNOWN. They are **not** unattributable: the cwd-slug
   session scan in `tools/token-capture.py` recovers every one of them, and
   `tools/token-backfill.py` (T746) appended the readings — T735 ×2, T744, T745, T754, all
   five corroborated against an independent run record where one exists. The durable fix is

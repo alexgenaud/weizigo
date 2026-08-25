@@ -180,18 +180,18 @@ class TestAppetiteDial(unittest.TestCase):
 
     # CHARACTERIZATION — the latent RESERVED hole. Owner: T802 census.
     def test_keeper_has_no_row_for_ox_alpha_so_it_falls_through_to_spend(self):
-        """TODAY: `tools/fleet-keeper.sh` has no ox-alpha row at all.
+        """TODAY: `tools/fleet-keeper.sh` has no oxalpha row at all.
 
-        `family_of("ox-alpha")` -> "other" -> `APPETITE.get("other", "SPEND")`
+        `family_of("oxalpha")` -> "other" -> `APPETITE.get("other", "SPEND")`
         -> SPEND.  The 2026-08-23 operator ruling makes SPEND the *right*
         answer by luck; before it, the keeper would have auto-dispatched an
         identity-sealed RESERVED model.  The keeper never honoured RESERVED
-        for ox-alpha; managent did.  Pinned so step 1 fixes the fallthrough
+        for oxalpha; managent did.  Pinned so step 1 fixes the fallthrough
         rather than inheriting it.
         """
-        self.assertNotIn("ox-alpha", keeper_family_map(),
-                         "keeper now knows ox-alpha — re-read this arm")
-        self.assertIn("ox-alpha", managent_model_families())
+        self.assertNotIn("oxalpha", keeper_family_map(),
+                         "keeper now knows oxalpha — re-read this arm")
+        self.assertIn("oxalpha", managent_model_families())
 
     @unittest.expectedFailure  # RED — owner: ORC-PLAN-3 step 1 (policy reader)
     def test_appetite_dial_accepts_zero_through_nine_per_model(self):

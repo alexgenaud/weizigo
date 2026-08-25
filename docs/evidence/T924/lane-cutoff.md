@@ -1,4 +1,4 @@
-# T924 — the ox-alpha lane was served, then cut off
+# T924 — the oxalpha lane was served, then cut off
 
 Extracted by the T935 seat, 2026-08-25, from the lane's own session file
 (`untracked/tokens/sessions/T924.1787629767763894000.37456.0.jsonl`, 146 records, 1,374,643 bytes)
@@ -9,7 +9,7 @@ storage; this document is the committed evidence.
 
 | field | value |
 |---|---|
-| model | `ox-alpha` (serving tag `stealth/ox-alpha`, provider openrouter) |
+| model | `oxalpha` (serving tag `stealth/ox-alpha`, provider openrouter) |
 | start / end | 2026-08-25T03:49:27Z - 04:57:58Z |
 | wall | 4,110.6 s |
 | CPU | 2,560.4 s (**62% utilisation** - it was computing, not idling) |
@@ -82,5 +82,5 @@ It was interrupted while correcting itself, not after neglecting to write.
 
 `tools/runner` recorded `exit 0` for a run the provider refused to finish. Three distinct outcomes
 are currently one value: ran and finished, ran and was killed, and **never served / cut off**.
-That is **T934**. The standing B4 diagnosis - "ox-alpha does not reliably echo the nonce, protocol
+That is **T934**. The standing B4 diagnosis - "oxalpha does not reliably echo the nonce, protocol
 compliance unreliable" - was built on this reading and was wrong for weeks.

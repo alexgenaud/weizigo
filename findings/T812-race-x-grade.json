@@ -94,7 +94,7 @@
       "metrics_detail": "task_type: audit (stated inline), task_scope: {files_read: 14, lines_read: ~4800, writes: 0, scope_class: subsystem} (✓ stated inline), capabilities: described (✓), claims_load_bearing: 3 (✓ stated inline), verified/unverified: 8/0 (✓ stated), fabricated_citations: 0 (✓), sample_size: exhaustive (✓). Metrics not in the JSON schema, all stated in the notes field instead. Different format but complete."
     },
     {
-      "entrant": "T809 (ox-alpha)",
+      "entrant": "T809 (oxalpha)",
       "verdict": "RATIFIABLE-WITH-AMENDMENTS",
       "findings_count": 7,
       "by_severity": {"major": 2, "medium": 2, "minor": 3},
@@ -115,7 +115,7 @@
   "ranking": [
     {
       "rank": 1,
-      "entrant": "T809 (ox-alpha)",
+      "entrant": "T809 (oxalpha)",
       "reason": "Best overall analysis. Correct verdict (RATIFIABLE-WITH-AMENDMENTS shows clearer judgment than FAIL-FOUND for a spec with major but patchable defects). Found the five-doors issue as a missing id, articulated it crisply. Included honest unknowns and 'what verifies cleanly' section. Best severity discipline (no inflation). Metrics supplied. Did NOT find the POL-13 issue or ORC-POL-5 omission, but audited rev 2 (both are rev 3 issues) — not a fault."
     },
     {

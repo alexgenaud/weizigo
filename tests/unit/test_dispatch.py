@@ -48,7 +48,7 @@ mocked at the seam bin/dispatch itself defines: row_state / directive_policy /
 window_policy / subprocess.run), host-insensitive, and write nothing outside
 a tempfile directory.
 
-First-run colours (2026-08-23, ox-alpha/T805):
+First-run colours (2026-08-23, oxalpha/T805):
   * RED (1): TestModelResolution.test_every_registry_short_name_accepted —
     docs/infra/model-registry.md §"Short names" is ruled THE one short-name
     mapping (T739), but bin/dispatch's ALIASES carries only dspro/dsflash,
@@ -281,7 +281,7 @@ class TestCanonicalizeModel(EnvIsolatedTestCase):
 
     def test_stealth_serving_tag_maps_to_ledger_label(self):
         # The serving tag must never reach the ledger; the canonical label must.
-        self.assertEqual(dp.canonicalize_model("stealth/ox-alpha"), "ox-alpha")
+        self.assertEqual(dp.canonicalize_model("stealth/ox-alpha"), "oxalpha")
 
 
 class TestModelResolution(EnvIsolatedTestCase):
@@ -295,7 +295,7 @@ class TestModelResolution(EnvIsolatedTestCase):
         "deepseek-v4-pro": "deepseek", "deepseek-v4-flash": "deepseek",
         "glm-5.2": "ollama", "minimax-m3": "ollama",
         "kimi-k2.7": "ollama", "qwen3.8:27b-mlx": "ollama",
-        "ox-alpha": "pi",
+        "oxalpha": "pi",
     }
 
     def test_registry_sync_MODELS_covers_exactly_the_registry(self):
@@ -320,7 +320,7 @@ class TestModelResolution(EnvIsolatedTestCase):
             ("qwen3.8:27b-mlx:cloud", "qwen3.8:27b-mlx", "ollama"),
             ("dspro", "deepseek-v4-pro", "deepseek"),
             ("dsflash", "deepseek-v4-flash", "deepseek"),
-            ("stealth/ox-alpha", "ox-alpha", "pi"),
+            ("stealth/ox-alpha", "oxalpha", "pi"),
         ]
         for raw, canon, provider in table:
             with self.subTest(raw=raw):
@@ -329,10 +329,10 @@ class TestModelResolution(EnvIsolatedTestCase):
                 self.assertEqual(got, canon)
                 self.assertEqual(prov, provider)
                 # the serving tag itself must appear in FLAGS at most, and
-                # ox-alpha's pi tag is exactly stealth/ox-alpha (T732).
+                # oxalpha's pi tag is exactly stealth/ox-alpha (T732).
                 if raw == "stealth/ox-alpha":
                     self.assertIn("stealth/ox-alpha", flags)
-                    self.assertNotIn("ox-alpha", flags)
+                    self.assertNotIn("oxalpha", flags)
 
     def test_unknown_tag_refused_loudly(self):
         canon, err, _, _ = dp.resolve_model("made-up-model-v9")

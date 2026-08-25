@@ -2181,7 +2181,7 @@ def _argv_session_path(argv):
 # pi buffers stdout to completion, so a working lane can be silent on the
 # stream for its whole run while appending continuously to its session
 # JSONL.  The stdout-only startup fuse (T586) killed such lanes and blamed
-# them: T735 attempt 2 (ox-alpha) died at 600.9 s with 40 assistant turns
+# them: T735 attempt 2 (oxalpha) died at 600.9 s with 40 assistant turns
 # and 19,060 output tokens already in its session file; T616 (claude, Race
 # F) died the same way with its 43 KB deliverable on disk; the note
 # "bundle never read?" was a causal claim about the model the evidence
@@ -2241,7 +2241,7 @@ def _pi_session_fallback_scan(tc, sessions_dir, task_identity, start_ts,
 
     Joins on task + start within PI_SESSION_FALLBACK_TOLERANCE_S seconds
     (pi writes its session header ~1-1.3 s after the runner stamps `start`,
-    measured on the ox-alpha lanes).  Returns a (status, reading) pair:
+    measured on the oxalpha lanes).  Returns a (status, reading) pair:
       ('match',    {tokens_in, tokens_out, tokens_fresh, tokens_cache_read,
                     source, session_id, session_path, corroborated, gap_s})
       ('conflict', None) — a session matched on task+start but its dominant

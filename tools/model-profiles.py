@@ -166,7 +166,7 @@ dominant dimension falls back to correctness), ties by diversity (more
 distinct types with data), then by the least data, then lexicographic label.
 
 Canonical model labels and the log-tag canonicalization (strip :cloud,
-kimi-k2.7-code -> kimi-k2.7, stealth/ox-alpha -> ox-alpha) are RESOLVED from
+kimi-k2.7-code -> kimi-k2.7, stealth/ox-alpha -> oxalpha) are RESOLVED from
 src/managent/main.zig canonicalizeModelTag via tools/model_tags.py — one
 canonicalizer, not four (T801); an unrecognized tag is rejected, never
 passed through unchanged.

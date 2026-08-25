@@ -1,9 +1,9 @@
 {
   "task_id": "T809",
   "date": "2026-08-23",
-  "model": "ox-alpha",
-  "identifier": "ox-alpha/T809",
-  "audited_by": "ox-alpha/T809",
+  "model": "oxalpha",
+  "identifier": "oxalpha/T809",
+  "audited_by": "oxalpha/T809",
   "verify_nonce": "NONCE-09bac8950d4f2fd6",
   "audit_target": {
     "artifact": "docs/epics/E1-markovian/L1-dashboard/S06-orchestration-refactor/spec.md",
@@ -78,7 +78,7 @@
     }
   ],
   "what_verifies_cleanly": [
-    "Both appetite tables verified disagreeing exactly as amended: fleet-keeper.sh:325 DEFAULT_APPETITE (ollama SPEND, fable RESERVED, no ox-alpha → 'other' fallthrough) vs main.zig family_appetite at 8c00704 (ollama-cloud OFF, claude-fable RESERVED, ox-alpha spend) — same model, different family name, different appetite for the three ollama models.",
+    "Both appetite tables verified disagreeing exactly as amended: fleet-keeper.sh:325 DEFAULT_APPETITE (ollama SPEND, fable RESERVED, no oxalpha → 'other' fallthrough) vs main.zig family_appetite at 8c00704 (ollama-cloud OFF, claude-fable RESERVED, oxalpha spend) — same model, different family name, different appetite for the three ollama models.",
     "cooldown_set() verified as described: os.listdir + basename membership, OSError → True dead-man's switch (tools/fleet-keeper.sh:399-408).",
     "All four §7c rulings consumed normatively verified at their text: §7c.11 (dial 0–9 per MODEL — confirming T802's finding that it lives only in prose), §7c.12 (can/should), §7c.15 (lane_cap deepseek 6 / ollama-cloud 5 / claude 3 / fable 1 / local 1 — matches the caps worked example value-for-value), §7c.18 (kernel-attested identity Security Must, embedded in the runaway_streak ruling), §7c.21 (two-tier closure + audit cap), §7c.33 (fan-out 3).",
     "All ten cited commits resolve with matching subjects/times (2ec4f93, cf7fc68, be87b34, e842dbf, 1b8baa0, e946739, b436c63, 11b69b8, 5d6fe6f, 402922f). Regression-script counts verified at all three pins: 75 @a1415fe, 80 @8c00704, 81 live — matching the spec's own drift table.",

@@ -7,14 +7,14 @@
  "instrument": "source edit of src/managent/main.zig (family_appetite table + 4 assign tests) and prose edit of docs/infra/model-registry.md — no epistemic claim rows",
  "claims": [],
  "new_rows": [],
- "headline": "ollama-cloud is SPEND again (OFF → SPEND), the eight equal-opportunity models plus ox-alpha are all spend-class, Fable stays reserved — and the operator's equal-opportunity dial 5 is NOT expressible because the 0–9 dial exists in no code, only in the S06 spec.",
+ "headline": "ollama-cloud is SPEND again (OFF → SPEND), the eight equal-opportunity models plus oxalpha are all spend-class, Fable stays reserved — and the operator's equal-opportunity dial 5 is NOT expressible because the 0–9 dial exists in no code, only in the S06 spec.",
  "operator_words": "We can now use Ollama again. Set APPETITE to use Opus, Sonnet, Haiku, DSPro, Flash, Kimi K2.7, Minimax-m3, and GLM-5.2 with equal opportunity (same APPETITE 0-9 score), continue to reserve Fable. Make extra use of oxalpha (race against all others).",
  "changes": [
   {
    "file": "src/managent/main.zig",
    "action": "family_appetite: ollama-cloud .off → .spend. No other family's value changed.",
-   "diff_table": "ollama-cloud: off → spend (CHANGED) · claude: spend · claude-fable: reserved · deepseek: spend · local: probe · ox-alpha: spend",
-   "tests_updated": "4 assign tests re-pinned to the nine-model roster (the eight equal-opportunity models + ox-alpha at spend): 'nine-model spend roster' (was 'OFF family absent'), 'single qualified candidate forces method=forced' (now excludes ollama-cloud + ox-alpha too), 'named model is preferred' (candidate count 5 → 9), plus the round-trip fixture re-pinned to a still-true RESERVED reason string.",
+   "diff_table": "ollama-cloud: off → spend (CHANGED) · claude: spend · claude-fable: reserved · deepseek: spend · local: probe · oxalpha: spend",
+   "tests_updated": "4 assign tests re-pinned to the nine-model roster (the eight equal-opportunity models + oxalpha at spend): 'nine-model spend roster' (was 'OFF family absent'), 'single qualified candidate forces method=forced' (now excludes ollama-cloud + oxalpha too), 'named model is preferred' (candidate count 5 → 9), plus the round-trip fixture re-pinned to a still-true RESERVED reason string.",
    "test_result": "zig test src/managent/main.zig → 46/46 passed"
   },
   {
@@ -23,7 +23,7 @@
   }
  ],
  "dial_exists_in_code": "NO. src/managent/main.zig carries only the five-level Appetite enum (off / probe / conserve / spend / reserved); there is no 0–9 numeric dial field. The S06 spec ORC-POL-3 (T813, 'the dial and the class are two first-class configurations') defines the dial but the spec itself notes 'the 0–9 dial exists in no tracked source file'.",
- "what_is_unexpressed": "The ruling's dial half — equal RATE (dial 5 for all eight, ox-alpha 9) — is unexpressed. The class half lands: all eight equal-opportunity models and ox-alpha are spend, Fable reserved, qwen probe. So the table is permitted-equally (all eight eligible for the draw), which is WEAKER than drawn-equally (equal eagerness). The dial is not faked by overloading the enum; the ruling is therefore not fully satisfied in code until S06 pass 1 lands the policy file.",
+ "what_is_unexpressed": "The ruling's dial half — equal RATE (dial 5 for all eight, oxalpha 9) — is unexpressed. The class half lands: all eight equal-opportunity models and oxalpha are spend, Fable reserved, qwen probe. So the table is permitted-equally (all eight eligible for the draw), which is WEAKER than drawn-equally (equal eagerness). The dial is not faked by overloading the enum; the ruling is therefore not fully satisfied in code until S06 pass 1 lands the policy file.",
  "serving_tag_verification": {
   "method": "one ollama run <tag> \"say ready\" per tag (the registry's own probe) plus one bin/dispatch --dry-run per tag (depth relaxed to 2 for the dry-run only — a leaf at the delegation cap; --dry-run spawns nothing, so no dispatch occurred)",
   "glm-5.2:cloud": "answers (\"Ready.\"); dry-run T529 → glm-5.2 (ollama) — resolves",
@@ -33,9 +33,9 @@
  },
  "assign_control": {
   "command": "bin/managent assign T529 --dry-run --json",
-  "candidates": ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7", "ox-alpha"],
+  "candidates": ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7", "oxalpha"],
   "exclusions": ["claude-fable-5: family claude-fable appetite RESERVED (reserved task types only)", "qwen3.8:27b-mlx: family local appetite PROBE (probe-flagged rows only)"],
-  "verdict": "all eight equal-opportunity models appear (plus ox-alpha = 9 candidates), Fable does not, and each exclusion reason names the class — matches the brief's control."
+  "verdict": "all eight equal-opportunity models appear (plus oxalpha = 9 candidates), Fable does not, and each exclusion reason names the class — matches the brief's control."
  },
  "note_for_s06_pass1": "The appetite table is compiled into src/managent/main.zig with no file or environment override, so a roster change the operator wanted immediately cost a source edit, a rebuild, a deploy, and a slot in a seven-task one-writer chain (T767 → T768 → T775 → T786/T798 → T815 → T816 → T833 queue behind this head). That is exactly the blocker S06 pass 1 (the policy file) exists to remove; this task is the worked example.",
  "side_benefit": "Brings src/managent/main.zig in step with tools/fleet-keeper.sh on the ollama row (fleet-keeper already treats ollama as SPEND with a model-level default-deny). The S06 spec's T802 census 'two appetite tables, disagreeing' listed ollama (main.zig OFF vs fleet-keeper SPEND) as one of the three disagreements; that row is now reconciled at SPEND.",

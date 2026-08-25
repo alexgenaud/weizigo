@@ -63,7 +63,7 @@ Prices are deliberately NOT surfaced: the tokens-now-prices-later doctrine
 Model tags are canonicalized by RESOLVING the single transform
 (src/managent/main.zig canonicalizeModelTag via tools/model_tags.py) — one
 canonicalizer, not four (T801): strip `:cloud`, `kimi-k2.7-code` ->
-`kimi-k2.7`, `stealth/ox-alpha` -> `ox-alpha`; an unrecognized non-empty tag
+`kimi-k2.7`, `stealth/ox-alpha` -> `oxalpha`; an unrecognized non-empty tag
 is rejected, never passed through unchanged.
 
 Task: T521 · Role: worker · Model: deepseek-v4-flash · Date: 2026-08-20
@@ -132,7 +132,7 @@ def canon_tag(tag):
     (src/managent/main.zig canonicalizeModelTag via `managent models --tags`)
     — a thin reader, not a second copy (T801).
 
-    STRICT boundary: `stealth/ox-alpha` -> `ox-alpha` and
+    STRICT boundary: `stealth/ox-alpha` -> `oxalpha` and
     `kimi-k2.7-code:cloud` -> `kimi-k2.7` exactly as managent does; an
     unrecognized non-empty tag raises UnknownModelTag instead of being passed
     through unchanged (pass-through is how a serving tag reached the ledger,

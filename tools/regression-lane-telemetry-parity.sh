@@ -9,7 +9,7 @@
 # pass-with-findings on Defect 2 (the auto-close net) only; Defect 1 — the
 # missing --session / --mode json flags on the pi/openrouter lane — was
 # never in T862's scope (its holds, parsed under the T880 bug, reached only
-# bin/dispatch).  The pi/ox-alpha lane is still launched tonight with
+# bin/dispatch).  The pi/oxalpha lane is still launched tonight with
 # neither --mode json (stdout liveness) nor --session (the token meter the
 # rate column reads), so it reports UNKNOWN on the operator's screen and
 # runs with no stdout stream — the least observable lane we dispatch.
@@ -84,7 +84,7 @@ echo "=== regression-lane-telemetry-parity (T891) ==="
 
 # ── A. pi lane carries --mode json + --session (RED before fix) ───────────
 echo "  A. pi/openrouter argv carries --mode json + --session (RED before fix)"
-OUT=$(run_dry --provider pi --model ox-alpha)
+OUT=$(run_dry --provider pi --model oxalpha)
 CMD=$(cmd_line "$OUT")
 TEL=$(tele_line "$OUT")
 MJ=$(tele_field "$TEL" "mode_json")
@@ -158,7 +158,7 @@ else
     echo "$CMD" | sed 's/^/      | /'
 fi
 # E2: pi/openrouter with --thinking=high → cmd carries --thinking high
-OUT=$(run_dry --provider pi --model ox-alpha --thinking=high)
+OUT=$(run_dry --provider pi --model oxalpha --thinking=high)
 CMD=$(cmd_line "$OUT")
 TEL=$(tele_line "$OUT")
 TH=$(tele_field "$TEL" "thinking")

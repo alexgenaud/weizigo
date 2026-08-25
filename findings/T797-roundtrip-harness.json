@@ -17,7 +17,7 @@
       "via": "bin/dispatch (nohup detach, poll store to done, deliverable on disk)"
     },
     {
-      "scenario": "exit 0 without reading the bundle → fails on the nonce (2026-08-23 ox-alpha double-catch)",
+      "scenario": "exit 0 without reading the bundle → fails on the nonce (2026-08-23 oxalpha double-catch)",
       "arm": "test_exit_zero_without_work_fails_nonce",
       "label": "OUTCOME",
       "first_run_colour": "GREEN",
