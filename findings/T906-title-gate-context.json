@@ -1,0 +1,57 @@
+{
+  "task_id": "T906",
+  "date": "2026-08-24",
+  "model": "deepseek-v4-flash",
+  "identifier": "deepseek-v4-flash/T906",
+  "description": "T906 context dump — red/green transcripts, smoke, corpus measurements, offender census, suite evidence. Companion to findings/T906-title-gate.json.",
+  "claims": [],
+  "new_rows": [],
+  "red_regression_pre_fix": "\n  T906 regression: title gate at registration\n    1. seeded: 60-char title refused at add, naming title + length; 40-char registers\n       FAIL: rc=0; expected a title-length refusal naming 60 and 40:\n       | managent bc5a8e1-dirty built 2026-08-24T21:12:46Z zig 0.16.0\n       |   registered T906A1  [set: A]  [dispatchable]\n       FAIL: T906A1 present in the store despite the refusal\n       PASS: 40-char title registered (rc=0)\n    2. null: legal short title registers; store row carries title; show names it\n       FAIL: stored title is '' (expected 'title gate fixture')\n       FAIL: show does not name the row's title\n    3. null: bundle with no title line refused with the missing-title message\n       FAIL: rc=0; expected a missing-title-line refusal:\n       |   registered T906C1  [set: A]  [dispatchable]\n       PASS: missing-title message is distinct from the over-long message\n       FAIL: T906C1 present in the store despite the refusal\n    4. boundary: 40 passes, 41 refused (off-by-one pin)\n       FAIL: rc=0; expected refusal naming 41 and 40:\n       |   registered T906D1  [set: A]  [dispatchable]\n    5. seeded: suggest refuses a 41-char slug; a 40-char slug registers\n       FAIL: rc=0; expected suggest to refuse the over-long slug:\n       |   suggested T880  [set: A]  [dispatchable]\n       PASS: suggest accepted the 40-char slug (rc=0)\n    6. seeded: add --auto refuses a 60-char-title bundle\n       FAIL: rc=0; expected the mint path to refuse too:\n       |   registered T882  [set: A]  [dispatchable]\n\n  T906 title gate: SOME CHECKS FAILED\n",
+  "green_regression_post_fix": "\n  T906 regression: title gate at registration\n    1. seeded: 60-char title refused at add, naming title + length; 40-char registers\n       PASS: add refused the 60-char title (rc=1), naming the length and limit\n       PASS: refused row not registered\n       PASS: 40-char title registered (rc=0)\n    2. null: legal short title registers; store row carries title; show names it\n       PASS: store row carries the title\n       PASS: show displays the stored title (the row survives its brief)\n    3. null: bundle with no title line refused with the missing-title message\n       PASS: no-title-line bundle refused for that reason (rc=1)\n       PASS: missing-title message is distinct from the over-long message\n       PASS: refused row not registered\n    4. boundary: 40 passes, 41 refused (off-by-one pin)\n       PASS: 41-char title refused (rc=1), naming 41 and 40\n    5. seeded: suggest refuses a 41-char slug; a 40-char slug registers\n       PASS: suggest refused the 41-char slug (rc=1)\n       PASS: suggest accepted the 40-char slug (rc=0)\n    6. seeded: add --auto refuses a 60-char-title bundle\n       PASS: add --auto refused the 60-char title (rc=1)\n\n  T906 title gate: ALL CHECKS PASS\n",
+  "smoke_real_refusal": "add T9011 (bundle title: 'place ox-alpha against opus / sonnet / dspro / flash on the task types that matter', 82 chars — the T753-shaped complaint):\n  error: title `place ox-alpha against opus / sonnet / dspro / flash on the task types that matter` is 82 chars, over the 40-char limit (DELEGATOR.md §Task titles).\n  The title is a display surface, not a summary: a title that needs more than\n  40 chars is a sign the task is two tasks. Shorten it; the long form goes\n  in the brief's body.\n  rc=1; no row registered.",
+  "smoke_real_acceptance": "add T9012 (title 'gate lives where rows are made', 27 chars):\n  registered T9012  [set: A]  [dispatchable]\n  rc=0.\n  show T9012 prints 'title: gate lives where rows are made';\n  the store row carries \"title\": \"gate lives where rows are made\";\n  after deleting the brief file, show still names the row from the store.",
+  "corpus_measurements": {
+    "briefs_with_managent_header": {
+      "total": 825,
+      "ok": 465,
+      "over_40": 285,
+      "over_40_pct": 34.5,
+      "no_title_line": 75,
+      "worst_chars": 139,
+      "worst_file": "untracked/T407-six-game-divergence-matrix.md",
+      "measurement_note": "untracked/*.md whose first 50 lines contain a `<!--managent` header; title extracted with the shared grammar `^#\\s+\\S+\\s+(?:\\u2014|--|-)\\s+(.+?)\\s*$`. The brief's cited 271/726 (37%) is directionally confirmed; worst-139 reproduces exactly; the corpus is live so exact denominators differ by window and population definition."
+    },
+    "kanban_rows_with_existing_bundle": {
+      "total": 523,
+      "ok": 339,
+      "over_40": 160,
+      "over_40_pct": 30.6,
+      "no_title_line": 24,
+      "missing_bundle": 13,
+      "worst_chars": 139
+    }
+  },
+  "offender_list": "findings/T906-title-gate-offenders.json — 9 dispatchable rows (blocked: 0): 8 over-40 titles (T535 46, T709 64, T715 43, T798 44, T825 69 + duties DARGUS 52, DCLAIM 45, DRPLAY 68), 1 dangling bundle (T735 — the row's stored bundle path is unreadable, points at untracked/T734-race-g-oxalpha-shadow.md which does not exist; the row's own file untracked/T735-race-g-oxalpha-shadow.md has a legal 27-char title). Suggested short title per row for the seat to apply; several rows are held by other tasks — this task does not edit them (fix forward).",
+  "unit_tests": "zig test src/managent/main.zig — 59/59 (four new T906 probes: bundleTitlePortion mirrors the shared grammar incl. lettered/duty ids; missing/empty title line refused; title field serialize→parse round-trip + legacy null; the 40-char boundary constant).",
+  "targeted_regressions": {
+    "regression-title-gate.sh": "0 (NEW — red pre-fix, green post-fix, wired into build.zig)",
+    "regression-task-taxonomy.sh": "0",
+    "regression-bundle-header-parse.sh": "0",
+    "regression-managent-landmark.sh": "0 (corpus sweep now classifies title-gate vs landmark refusals: 125 title-gate, 23 landmark in the sweepable subset)",
+    "regression-managent-store-write-utf8.sh": "0 (fixture titles shortened: were 55/44 chars — the gate correctly refused them)",
+    "regression-dispatch.sh": "0 (arms 17-18 seed the bad-title row directly into the store — the pre-gate population — so dispatch's re-assert is still exercised)",
+    "regression-managent-lanes.sh": "0",
+    "regression-managent-store-pollution.sh": "0 (fixture title line gained a `—` separator)",
+    "regression-store-census.sh": "0"
+  },
+  "baseline_red_verified_unchanged": [
+    "regression-dispatch-verification.sh (identical FAIL signature to sweep-pre)",
+    "regression-dispatch-caps.sh (identical cascade to sweep-pre)",
+    "regression-subagent-prompt.sh (8/8 identical FAIL lines)",
+    "regression-managent-lock.sh (same SIGKILL->flock RC=134 class, different binary stamp)",
+    "regression-managent-status-json.sh, regression-directive-kill.sh, regression-claim-lifecycle.sh, regression-window-resilience.sh, regression-watch-fleet.sh (baseline TIMEOUT), regression-fleet-keeper.sh, regression-argus-doctor.sh, regression-task-id-archive.sh, regression-battery-baselines.sh — all baseline rc=1 in sweep-pre"
+  ],
+  "zig_build_test": "ran end-to-end (tools/runner-guarded): 114/132 steps succeeded (17 failed); 1369/1370 tests passed (1 skipped). Failing steps: 13 sh scripts baseline-red (above) + regression-precommit.sh and regression-ollama-dispatcher.sh (SWEEP-CONTRACT §4-excluded ambient classes) + TWO zig test steps (managent, vb_fixpoint) that die in the build-runner --listen protocol with 'internal test runner failure: EndOfStream' AFTER all tests pass. PROVEN NOT THIS WAVE: a minimal isolated build (tiny build.zig running ONLY the managent test step) fails identically with HEAD's committed main.zig (no T906 code), with the index version (foreign staged hunks, no T906), and with the working tree (T906) — the T635 OS-entropy draw test's stderr output precedes the death in all three, and the build summary reports zero test assertion failures. vb_fixpoint is a module this wave never touched and dies the same way. The suite's zig test steps are unreliable under the build runner on this host with zig 0.16.0_1 (pre-existing/environmental; T880's earlier clean suite notwithstanding); the sh-script sweep remains the reliable gate.",
+  "commit_scope_note": "src/managent/main.zig carried FOREIGN STAGED content at claim time (the resume-surface/STATE.md retirement work, staged 2026-08-24 23:43-23:48 by another console — the T891/T902 incident class). This wave's commit isolates authorship: the index's main.zig is reconstructed as HEAD + T906 hunks only (git hash-object/update-index under the git-commit-mine flock), so the foreign hunks stay in the working tree unstaged for their owner to commit. Findings, regression script, offender list, build.zig, bin/dispatch, the four touched regression scripts, and the offender generator are committed normally. tasks.json NOT committed (fleet-wide concurrent diff would absorb other consoles' state under this message).",
+  "notes": "Two failure modes, two messages (acceptance 2): missing title line -> 'bundle <path> has no `# <id> — <title>` line (DELEGATOR.md §Task titles)...'; over-long -> 'title `<t>` is <n> chars, over the 40-char limit...'. Boundary (acceptance 3): exactly 40 registers, exactly 41 refused — pinned in regression arm 4. Null control (acceptance 2): legal title registers with the title stored on the row. Offender list (acceptance 4): findings/T906-title-gate-offenders.json with counts. zig build test + sweep superset (acceptance 5): above + sweep-post comparison in /tmp/weizigo/T906/sweep-post."
+}

@@ -344,14 +344,16 @@ def main(argv):
                  "\n  bin/subagent resolves the brief the same way — fix the "
                  "bundle first.")
 
-    # ── title-length gate (T505) ───────────────────────────────────────
-    # The title is the brief's `# T<nnn> — <title>` line (DELEGATOR.md
+    # ── title-length gate (T505, re-assert since T906) ──────────────
+    # The title is the brief's `# <id> — <title>` line (DELEGATOR.md
     # §Task titles: one line, under 40 chars). It is a display surface —
-    # watch-fleet, the perf ledger, PROGRESS/DONE/OPEN all read it. The gate
-    # lives here, in bin/dispatch, NOT in src/managent (serial-held by
-    # T485/486/487/497) and NOT in bin/dispatch's claude logic (T494). A
-    # brief whose title portion exceeds 40 chars refuses dispatch, naming
-    # the title and the limit; a brief with no title line is malformed.
+    # watch-fleet, the perf ledger, PROGRESS/DONE/OPEN all read it. The
+    # gate lives at REGISTRATION (`managent add`/`suggest`, T906) — a row
+    # cannot be created with a bad title; this copy is a cheap re-assert
+    # that catches pre-T906 rows (271 of 726 briefs measured over 40
+    # chars) and bundles edited after registration. A brief whose title
+    # portion exceeds 40 chars refuses dispatch, naming the title and the
+    # limit; a brief with no title line is malformed.
     bundle_path = hits[0]
     try:
         with open(bundle_path, encoding="utf-8") as bf:
@@ -360,7 +362,11 @@ def main(argv):
         sys.exit(f"dispatch: REFUSED — cannot read bundle {bundle_path}: {e}")
 
     title = None
-    title_re = re.compile(r"^#\s+T\d+\s+(?:\u2014|--|-)\s+(.+?)\s*$")
+    # T906: the id token is any non-whitespace run (`\S+`), matching the
+    # registration gate's parse — the fleet mints `T<digits>` ids, but
+    # duties are `DARGUS`/`STANDING-*` and the 40-char rule is about the
+    # TITLE portion, not the id's shape.  The separator is `—`, `--` or `-`.
+    title_re = re.compile(r"^#\s+\S+\s+(?:\u2014|--|-)\s+(.+?)\s*$")
     for line in bundle_content.splitlines():
         m = title_re.match(line)
         if m:

@@ -90,9 +90,9 @@ PY
 write_bundle() { # $1 id  $2 findings-path (or "" for none)
     local id="$1" fp="$2"
     if [ -n "$fp" ]; then
-        printf '<!--managent set=A deliverables=%s-->\n# %s bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$fp" "$id" > "untracked/$id.md"
+        printf '<!--managent set=A deliverables=%s-->\n# %s — bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$fp" "$id" > "untracked/$id.md"
     else
-        printf '<!--managent set=A deliverables=-->\n# %s bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$id" > "untracked/$id.md"
+        printf '<!--managent set=A deliverables=-->\n# %s — bundle\n**Landmark:** none directly; unblocks regression fixture\n' "$id" > "untracked/$id.md"
     fi
 }
 

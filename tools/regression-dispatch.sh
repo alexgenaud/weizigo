@@ -579,12 +579,44 @@ else
     FAIL=1
 fi
 
-# ── T505 arms: brief-title length gate (≤40 chars) at dispatch ──────────
+# ── T505/T906 arms: brief-title length gate (≤40 chars) ────────────────
 # The 40-char title rule (DELEGATOR.md §Task titles) was violated three
-# times in one session.  The gate lives in bin/dispatch (not src/managent,
-# which is serial-held by T485/486/487/497; not bin/dispatch's claude
-# logic, which T494 owns).  A brief whose `# T<id> — <title>` title
-# portion exceeds 40 chars refuses dispatch, naming the title and limit.
+# times in one session.  Since T906 the gate lives at REGISTRATION
+# (`managent add`/`suggest` refuse a missing or over-long title), so a
+# bad-title row can no longer be CREATED through add — these arms seed the
+# row DIRECTLY into the store instead (the pre-T906 population, and the
+# bundle-edited-after-registration case), and assert that bin/dispatch's
+# re-assert still refuses before a worker's tokens are spent.
+#
+# seed_dispatchable_row <id> — write a dispatchable row straight into the
+# scratch store (bypassing add, which the registration gate now guards),
+# with the bundle path pointing at the fixture bundle on disk.
+seed_dispatchable_row() {  # $1=id
+    python3 - "$STORE" "$1" <<'PY'
+import json, sys
+store, uid = sys.argv[1], sys.argv[2]
+try:
+    d = json.load(open(store))
+except Exception:
+    d = {}
+d[uid] = {
+    "status": "dispatchable", "agent": None, "model": "deepseek-v4-flash",
+    "bundle": f"untracked/{uid}-bundle.md", "set": "C", "holds": [],
+    "needs": [], "caps": [], "added": "2026-08-01T00:00:00Z",
+    "claimed": None, "done": None, "dispatched": None, "dispatched_to": None,
+    "note": None, "verdict": None, "verdict_note": None, "claim_count": 0,
+    "acceptance": None, "skip_acceptance_reason": None, "amendments": [],
+    "epitaph": None, "duty": False, "due_after": 5, "last_chunk_closes": 0,
+    "last_chunk_ts": None, "last_chunk_verdict": None, "last_chunk_findings": None,
+    "task_type": "infra", "scope_class": None,
+}
+if "_sys" not in d:
+    d["_sys"] = {"next_id": 9000, "directive_next": 1, "assertion_next": 1, "closes": 0, "duty_migrated": True}
+json.dump(d, open(store, "w"), indent=1)
+PY
+    weizigo_reset_census "$STORE"   # direct write bypasses the census (T855)
+}
+
 echo " 16. T505 null: 39-char title dispatches (dry-run)"
 seed_task_titled T995 findings/T995-result.json "$(title_of_len 39)"
 OUT=$(cd "$ROOT" && "$DISPATCH" T995 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
@@ -597,7 +629,9 @@ else
 fi
 
 echo " 17. T505 seeded: 41-char title refuses dispatch, naming title + limit"
-seed_task_titled T996 findings/T996-result.json "$(title_of_len 41)"
+printf '<!--managent set=C type=infra deliverables=findings/T996-result.json-->\n# T996 — %s\n**Landmark:** none directly; unblocks regression fixture\n' "$(title_of_len 41)" \
+    > "$WORK/untracked/T996-bundle.md"
+seed_dispatchable_row T996
 OUT=$(cd "$ROOT" && "$DISPATCH" T996 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "40" && echo "$OUT" | grep -qi "title"; then
@@ -610,10 +644,10 @@ if [ -e "$WORK/untracked/log/t996.log" ]; then
     echo "    FAIL: title refusal spawned a dispatch (log exists)"; FAIL=1
 fi
 
-echo " 18. T505 seeded: brief with no `# T<id> — title` line refuses dispatch"
+echo " 18. T505 seeded: brief with no `# <id> — title` line refuses dispatch"
 printf '<!--managent set=C type=infra deliverables=docs/T997-x.txt-->\nno title line here\n**Landmark:** none directly; unblocks regression fixture\n' \
     > "$WORK/untracked/T997-bundle.md"
-"$MG" add T997 >/dev/null 2>&1
+seed_dispatchable_row T997
 OUT=$(cd "$ROOT" && "$DISPATCH" T997 deepseek-v4-flash --dry-run --test-root="$WORK" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -qi "title"; then

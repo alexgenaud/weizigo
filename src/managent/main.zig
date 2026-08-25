@@ -136,6 +136,12 @@ const TaskState = struct {
     // panel).  Empty when the assignment came from the legacy draw.
     shape_reasons: [][]const u8 = &.{},
     bundle: []const u8 = "",
+    // T906: the brief's title PORTION (`# T<n> — <title>`, the text after
+    // the id and separator), recorded at registration so a row whose brief
+    // is deleted keeps its name.  null = legacy (a row predating the
+    // field) — never back-filled with a guess, and never a gate input
+    // (the gate runs on the live bundle at registration).
+    title: ?[]const u8 = null,
     set: u8 = 'A',
     holds: [][]const u8 = &.{},
     needs: [][]const u8 = &.{},
@@ -3053,6 +3059,9 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("bundle")) |bv| {
             if (bv == .string) ts.bundle = try alloc.dupe(u8, bv.string);
         }
+        if (obj.object.get("title")) |tlv| {
+            if (tlv == .string) ts.title = try alloc.dupe(u8, tlv.string);
+        }
         if (obj.object.get("set")) |sv2| {
             if (sv2 == .string and sv2.string.len == 1) ts.set = sv2.string[0];
         }
@@ -3295,6 +3304,13 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
 
         try buf.appendSlice(alloc, ",\n    \"bundle\": ");
         try writeJsonString(buf, ts.bundle);
+
+        if (ts.title) |tl| {
+            try buf.appendSlice(alloc, ",\n    \"title\": ");
+            try writeJsonString(buf, tl);
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"title\": null");
+        }
 
         try buf.appendSlice(alloc, ",\n    \"set\": ");
         try writeJsonString(buf, &.{ts.set});
@@ -3955,6 +3971,13 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         // landmark — the T592 defect multiplied five ways by brief-cloning.
         enforceBundleLandmark(w, io, bundle_path);
 
+        // T906: refuse a bundle whose title is missing or over 40 chars —
+        // the gate lives here, where the row is CREATED, not only at
+        // dispatch (T753/T880 registered through add and never met it).
+        // The returned title is recorded on the row so a deleted brief
+        // cannot erase the row's name.
+        const title_owned = titleGateForBundle(w, io, bundle_path, id);
+
         // T760: refuse a need on an unregistered ID (silent forever-block);
         // the escape records an amendment on the row.
         var amendments: [][]const u8 = &.{};
@@ -3982,6 +4005,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
             .agent = null,
             .model = model_for_task,
             .bundle = bundle_path,
+            .title = title_owned,
             .set = meta.set,
             .holds = meta.holds,
             .needs = meta.needs,
@@ -4076,6 +4100,11 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
     // landmark — the T592 defect multiplied five ways by brief-cloning.
     enforceBundleLandmark(w, io, bundle_path);
 
+    // T906: the registration title gate — same call as the auto path, so
+    // both add entry points refuse identically.  The title is recorded on
+    // the row (a deleted brief cannot erase the row's name).
+    const title_owned = titleGateForBundle(w, io, bundle_path, id);
+
     // T760: refuse a need on an unregistered ID (silent forever-block);
     // the escape records an amendment on the row.
     var amendments: [][]const u8 = &.{};
@@ -4102,6 +4131,7 @@ fn cmdAdd(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8,
         .agent = null,
         .model = model_for_task,
         .bundle = bundle_path,
+        .title = title_owned,
         .set = meta.set,
         .holds = meta.holds,
         .needs = meta.needs,
@@ -4538,6 +4568,20 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         std.process.exit(1);
     };
 
+    // T906: the registration title gate on the sibling path.  suggest
+    // CREATES a row and writes the brief, and the slug IS the title
+    // (`# T<id> — <slug>`) — so the same 40-char rule binds here, refused
+    // before the bundle file exists (no litter from a refused slug).  A
+    // gate that guards only `add` would leave a second door open — the
+    // exact pattern this row is about.
+    if (slug.len > title_max_len) {
+        w.diag("error: suggest slug `{s}` is {d} chars, over the {d}-char limit (DELEGATOR.md §Task titles).\n", .{ slug, slug.len, title_max_len });
+        w.diag("  The slug becomes the brief's title; a title that needs more than {d} chars\n", .{title_max_len});
+        w.diag("  is a sign the task is two tasks. Shorten the slug; the long form goes in the\n", .{});
+        w.diag("  brief's body.\n", .{});
+        std.process.exit(1);
+    }
+
     // Model: --model flag, or PI_MODEL env var, or "unknown"
     const model_flag = getFlagValue(args, "--model");
     var model_owned = false;
@@ -4624,6 +4668,7 @@ fn cmdSuggest(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const
         .agent = null,
         .model = model_for_task,
         .bundle = rel_bundle,
+        .title = try alloc.dupe(u8, slug),
         .set = set,
         .holds = &.{},
         .needs = &.{},
@@ -4674,6 +4719,93 @@ fn readBundleTitle(io: std.Io, bundle_abs: []const u8) ?[]const u8 {
     return null;
 }
 
+// ── T906: the registration title gate ───────────────────────────────────
+// The 40-char title rule (DELEGATOR.md §Task titles) was enforced only at
+// bin/dispatch, after the row already existed — 271 of 726 briefs (37%)
+// carried a longer title, and the operator reads them one line per lane.
+// The gate now lives where rows are CREATED: `managent add` (both paths)
+// and `managent suggest` refuse a bundle whose title is missing or longer
+// than 40 chars, naming the title and the limit.  bin/dispatch keeps its
+// own check as a cheap re-assert: pre-gate rows (the 271) and bundles
+// edited after registration are only ever caught there, and it already
+// reads the same title line.  Two failure modes, two messages — a missing
+// title line is refused for THAT reason, an over-long title for its own.
+const title_max_len: usize = 40;
+
+/// T906: the brief's title PORTION — the text after the id and its
+/// separator in the first `# <id> — <title>` line.  The grammar mirrors
+/// bin/dispatch's title_re (`^#\s+\S+\s+(?:\u2014|--|-)\s+(.+?)\s*$`)
+/// so registration and dispatch cannot disagree about what a title is, and
+/// the 40-char rule measures THIS portion (the id and separator are not
+/// part of the title).  The id token is any non-whitespace run — the fleet
+/// mints `T<digits>` ids, but duties are `DARGUS`/`STANDING-*` and the
+/// fixtures use arbitrary ids; the rule is about the TITLE, not the id's
+/// shape.  The meta comment line may precede the title, so it is skipped.
+/// Returns null when the bundle is unreadable or has no matching title
+/// line.  (readBundleTitle — the scope-bin reader — returns the whole
+/// first `# ` line; this is the strict parse.)
+fn bundleTitlePortion(io: std.Io, bundle_abs: []const u8) ?[]const u8 {
+    const content = std.Io.Dir.cwd().readFileAlloc(io, bundle_abs, alloc, .unlimited) catch return null;
+    defer alloc.free(content);
+    var lines = std.mem.splitScalar(u8, content, '\n');
+    while (lines.next()) |line| {
+        const trimmed = std.mem.trim(u8, line, " \t\r");
+        if (trimmed.len == 0) continue;
+        if (std.mem.startsWith(u8, trimmed, "<!--")) continue; // meta header
+        if (!std.mem.startsWith(u8, trimmed, "# ")) continue; // not a title line
+        // `# <id> <sep> <title>` — mirror dispatch's regex: `\s+` (one or
+        // more whitespace) before AND after the separator.
+        const rest = std.mem.trimStart(u8, trimmed[2..], " \t");
+        if (rest.len == 0) continue;
+        var i: usize = 0;
+        while (i < rest.len and rest[i] != ' ' and rest[i] != '\t') i += 1; // id token
+        if (i == 0 or i >= rest.len or (rest[i] != ' ' and rest[i] != '\t')) continue;
+        const after_id = std.mem.trimStart(u8, rest[i..], " \t");
+        const sep: []const u8 = if (std.mem.startsWith(u8, after_id, "\u{2014}"))
+            "\u{2014}"
+        else if (std.mem.startsWith(u8, after_id, "--"))
+            "--"
+        else if (std.mem.startsWith(u8, after_id, "-"))
+            "-"
+        else
+            continue;
+        const after_sep = after_id[sep.len..];
+        if (after_sep.len == 0 or (after_sep[0] != ' ' and after_sep[0] != '\t')) continue;
+        const after_ws = std.mem.trimStart(u8, after_sep, " \t");
+        if (after_ws.len == 0) continue; // separator with no title
+        return alloc.dupe(u8, std.mem.trimEnd(u8, after_ws, " \t\r")) catch null;
+    }
+    return null;
+}
+
+/// T906: the registration title gate.  Returns an OWNED copy of the title
+/// portion on success; on a violation it prints the refusal (naming the
+/// bundle, and the title/length/limit for the over-long case) and exits 1
+/// BEFORE any store write — a row cannot be created with a bad title.  The
+/// caller frees the returned slice and stores it on the row (T906: a row
+/// whose brief is deleted keeps its name).
+fn titleGateForBundle(w: Writers, io: std.Io, bundle_path: []const u8, id: []const u8) []const u8 {
+    const title = bundleTitlePortion(io, bundle_path);
+    defer if (title) |t| alloc.free(t);
+    const t = title orelse {
+        w.diag("error: bundle {s} has no `# {s} — <title>` line (DELEGATOR.md §Task titles).\n", .{ bundle_path, id });
+        w.diag("  Every brief opens with that line; the title is the display surface the fleet\n", .{});
+        w.diag("  dashboard and the perf ledger read, one line per lane. Add it before registration.\n", .{});
+        std.process.exit(1);
+    };
+    if (t.len > title_max_len) {
+        w.diag("error: title `{s}` is {d} chars, over the {d}-char limit (DELEGATOR.md §Task titles).\n", .{ t, t.len, title_max_len });
+        w.diag("  The title is a display surface, not a summary: a title that needs more than\n", .{});
+        w.diag("  {d} chars is a sign the task is two tasks. Shorten it; the long form goes\n", .{title_max_len});
+        w.diag("  in the brief's body.\n", .{});
+        std.process.exit(1);
+    }
+    return alloc.dupe(u8, t) catch {
+        std.process.exit(1);
+    };
+}
+
+/// R2 the deliverables fit no bin.  Named, never forced.
 /// T786: the scope residue taxonomy — R1 the row declares no deliverables;
 /// R2 the deliverables fit no bin.  Named, never forced.
 const ScopeResidue = enum { none, r1_no_deliverables, r2_mixed };
@@ -7632,6 +7764,11 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     // ── stdout: the data ──
     w.data("\n", .{});
     w.data("  {s}  {s}\n", .{ id, statusToString(ts.status) });
+    // T906: the title is recorded at registration, so a row whose brief
+    // was deleted still has a name.  Legacy rows (null) render nothing.
+    if (ts.title) |tl| {
+        w.data("    title:    {s}\n", .{tl});
+    }
     w.data("    bundle:   {s}\n", .{ts.bundle});
     w.data("    set:      {c}\n", .{ts.set});
     if (ts.holds.len > 0) {
@@ -14276,6 +14413,149 @@ test "T880: deliverables= header accepts space-separated lists" {
     try std.testing.expectEqual(@as(usize, 2), dels2.len);
     try std.testing.expectEqualStrings("a.zig", dels2[0]);
     try std.testing.expectEqualStrings("b.zig", dels2[1]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T906 tests — the registration title gate
+// ═══════════════════════════════════════════════════════════════════════════════
+// The 40-char title rule lived only at bin/dispatch; 271 of 726 briefs
+// (37%) were registered with longer titles through `add`.  The gate now
+// lives where rows are created, and the title PORTION shares dispatch's
+// grammar (`^#\s+\S+\s+(?:\u2014|--|-)\s+(.+?)\s*$` — any id token, not
+// just `T\d+`; the rule is about the title, not the id's shape) so the
+// two entry points cannot disagree about what a title is.
+
+// scratch bundle path helper for the T906 parse probes
+fn t906Bundle(io: std.Io, title_line: []const u8) []const u8 {
+    std.Io.Dir.cwd().createDirPath(io, "/tmp/weizigo") catch {};
+    const path = "/tmp/weizigo/T906-probe-bundle.md";
+    const file = std.Io.Dir.createFileAbsolute(io, path, .{}) catch {
+        return "";
+    };
+    defer file.close(io);
+    file.writeStreamingAll(io, "<!--managent set=A type=infra deliverables=docs/x.md-->\n") catch {};
+    file.writeStreamingAll(io, title_line) catch {};
+    file.writeStreamingAll(io, "\n**Landmark:** advances `L1 (the dashboard tells the truth)` — fixture\n") catch {};
+    return path;
+}
+
+fn t906Title(io: std.Io, title_line: []const u8) ?[]const u8 {
+    const path = t906Bundle(io, title_line);
+    defer std.Io.Dir.deleteFileAbsolute(io, path) catch {};
+    const t = bundleTitlePortion(io, path);
+    defer if (t) |x| alloc.free(x);
+    if (t) |x| return alloc.dupe(u8, x) catch null;
+    return null;
+}
+
+test "T906: bundleTitlePortion mirrors dispatch's title regex" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+
+    // em-dash separator (the canonical brief shape)
+    const t1 = t906Title(io, "# T1 — short title").?;
+    defer alloc.free(t1);
+    try std.testing.expectEqualStrings("short title", t1);
+
+    // ASCII -- and single - separators
+    const t2 = t906Title(io, "# T2 -- dash dash").?;
+    defer alloc.free(t2);
+    try std.testing.expectEqualStrings("dash dash", t2);
+    const t3 = t906Title(io, "# T3 - single dash").?;
+    defer alloc.free(t3);
+    try std.testing.expectEqualStrings("single dash", t3);
+
+    // the title PORTION excludes the id and separator (the 40-char rule
+    // measures only the title)
+    const long = "t" ** 60;
+    const t4 = t906Title(io, "# T4 — " ++ long).?;
+    defer alloc.free(t4);
+    try std.testing.expectEqual(@as(usize, 60), t4.len);
+
+    // a non-`T\d+` id token still parses (duties are DARGUS/STANDING-*,
+    // fixtures use arbitrary ids — the rule is about the title, not the
+    // id's shape; dispatch's re-assert uses the same grammar)
+    const t5 = t906Title(io, "# T880S1 — s1").?;
+    defer alloc.free(t5);
+    try std.testing.expectEqualStrings("s1", t5);
+    const t6 = t906Title(io, "# DARGUS — run argus once").?;
+    defer alloc.free(t6);
+    try std.testing.expectEqualStrings("run argus once", t6);
+
+    // a meta line before the title is skipped, not treated as the title
+    const t7 = t906Title(io, "# T5 — real title").?;
+    defer alloc.free(t7);
+    try std.testing.expectEqualStrings("real title", t7);
+}
+
+test "T906: bundleTitlePortion refuses a missing or empty title line" {
+    var threaded = std.Io.Threaded.init(alloc, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
+
+    // no `# ` line at all
+    const path1 = t906Bundle(io, "no title line here");
+    defer std.Io.Dir.deleteFileAbsolute(io, path1) catch {};
+    try std.testing.expect(bundleTitlePortion(io, path1) == null);
+
+    // a heading with no separator after the id (`# plain heading`)
+    const path2 = t906Bundle(io, "# plain heading");
+    defer std.Io.Dir.deleteFileAbsolute(io, path2) catch {};
+    try std.testing.expect(bundleTitlePortion(io, path2) == null);
+
+    // separator with no title after it
+    const path3 = t906Bundle(io, "# T3 — ");
+    defer std.Io.Dir.deleteFileAbsolute(io, path3) catch {};
+    try std.testing.expect(bundleTitlePortion(io, path3) == null);
+
+    // no whitespace between id and separator (dispatch's regex needs \s+)
+    const path4 = t906Bundle(io, "# T4—no space");
+    defer std.Io.Dir.deleteFileAbsolute(io, path4) catch {};
+    try std.testing.expect(bundleTitlePortion(io, path4) == null);
+}
+
+test "T906: title field round-trips serialize → parse; legacy rows parse null" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .dispatchable,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-24T00:00:00Z",
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-24T00:00:00Z");
+    ts.title = try alloc.dupe(u8, "the gate is on the right door");
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expectEqualStrings("the gate is on the right door", p.title.?);
+
+    // a legacy row without the field parses to null (never guessed)
+    const legacy =
+        \\{
+        \\  "TY": {"status":"dispatchable","agent":null,"model":null,"bundle":"untracked/TY.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var legacy_state = try parseStateJson(legacy);
+    defer freeState(&legacy_state);
+    try std.testing.expect(legacy_state.get("TY").?.title == null);
+}
+
+test "T906: the 40-char boundary is a named constant" {
+    // The off-by-one pin lives in the CLI regression (40 registers, 41
+    // refuses); here the constant is the single source the gate and the
+    // message agree on.
+    try std.testing.expectEqual(@as(usize, 40), title_max_len);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

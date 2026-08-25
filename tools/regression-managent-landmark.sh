@@ -137,25 +137,25 @@ else
 fi
 
 # ── null: valid declarations register unchanged ───────────────────────────
-cat > "$WORK/untracked/T682OK-bundle.md" <<'EOF'
+cat > "$WORK/untracked/T6821-bundle.md" <<'EOF'
 <!--managent set=A type=infra deliverables=docs/z.md-->
-# T682OK — valid landmark
+# T6821 — valid landmark
 
 **Landmark:** advances `L1 (the dashboard tells the truth)` — a gate that trips on good input is worse than no gate.
 EOF
-OUT=$("$MG" add T682OK --bundle "$WORK/untracked/T682OK-bundle.md" 2>&1); RC=$?
+OUT=$("$MG" add T6821 --bundle "$WORK/untracked/T6821-bundle.md" 2>&1); RC=$?
 if [ "$RC" -eq 0 ]; then
     echo "    PASS: valid landmark registers (rc=0)"
 else
     echo "    FAIL: rc=$RC; valid landmark refused: $OUT"; FAIL=1
 fi
-cat > "$WORK/untracked/T682NONE-bundle.md" <<'EOF'
+cat > "$WORK/untracked/T6822-bundle.md" <<'EOF'
 <!--managent set=A type=infra deliverables=docs/w.md-->
-# T682NONE — sanctioned no-landmark form
+# T6822 — sanctioned no-landmark form
 
 **Landmark:** none directly; unblocks T352
 EOF
-OUT=$("$MG" add T682NONE --bundle "$WORK/untracked/T682NONE-bundle.md" 2>&1); RC=$?
+OUT=$("$MG" add T6822 --bundle "$WORK/untracked/T6822-bundle.md" 2>&1); RC=$?
 if [ "$RC" -eq 0 ]; then
     echo "    PASS: 'none directly' form registers (rc=0)"
 else
@@ -168,22 +168,32 @@ fi
 # T786: legacy bundles predate the type= key, so the sweep passes
 # `--type infra` (the flag rescues a missing key by design) — the arm tests
 # the LANDMARK gate, not the type gate.
-swept=0; refused=0; census=0
+swept=0; refused=0; census=0; title_refused=0; landmark_refused=0
 for f in "$PROJECT"/untracked/*.md; do
     [ -f "$f" ] || continue
     if ! grep -q '\*\*Landmark:\*\*' "$f"; then census=$((census+1)); continue; fi
     if ! head -50 "$f" | grep -q '<!--managent .*set='; then continue; fi
     bid="T682SWEEP-$(basename "$f" | tr -c '[:alnum:]' '_' | cut -c1-24)"
-    if "$MG" add "$bid" --bundle "$f" --type infra >/dev/null 2>&1; then
+    if OUT=$("$MG" add "$bid" --bundle "$f" --type infra 2>&1); then
         swept=$((swept+1))
     else
         refused=$((refused+1))
-        echo "    refused (expected if malformed): $(basename "$f")"
+        # T906: the sweep now exercises the registration title gate too —
+        # 271 of 726 corpus briefs (37%) carry a title over 40 chars, so a
+        # refusal here is usually the TITLE gate, not the landmark gate.
+        # Classify by message so the two populations are never conflated.
+        if echo "$OUT" | grep -q "40-char limit\|§Task titles"; then
+            title_refused=$((title_refused+1))
+            echo "    title-gate refusal (T906: title > 40 chars or no title line): $(basename "$f")"
+        else
+            landmark_refused=$((landmark_refused+1))
+            echo "    landmark refusal (expected if malformed): $(basename "$f")"
+        fi
     fi
 done
-echo "    corpus sweep: $swept registered, $refused refused; file census: $census untracked/*.md with no **Landmark:** line (all untracked files, briefs and non-briefs; the kanban-row census is in findings/T682-landmark-gate.json)"
+echo "    corpus sweep: $swept registered, $refused refused ($title_refused title-gate, $landmark_refused landmark); file census: $census untracked/*.md with no **Landmark:** line (all untracked files, briefs and non-briefs; the kanban-row census is in findings/T682-landmark-gate.json)"
 if [ "$refused" -gt 0 ]; then
-    echo "    NOTE: refusals above are expected ONLY for malformed declarations (e.g. a task id instead of a landmark id, or a mid-line marker). A refusal of a valid declaration is a defect."
+    echo "    NOTE: landmark refusals above are expected ONLY for malformed declarations (e.g. a task id instead of a landmark id, or a mid-line marker). Title-gate refusals are the pre-T906 corpus population (271 of 726 briefs measured over 40 chars) — the registration gate binds new registrations, historical titles are the record (T906 scope item 3)."
 fi
 
 # ── suggest: template carries the line; created bundle is add-able ────────

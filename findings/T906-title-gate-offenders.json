@@ -1,0 +1,109 @@
+{
+ "task_id": "T906",
+ "date": "2026-08-24",
+ "model": "deepseek-v4-flash",
+ "claims": [],
+ "new_rows": [],
+ "rule": "DELEGATOR.md §Task titles: one line, under 40 chars (the title PORTION after `# <id> — `)",
+ "limit": 40,
+ "rows_measured": 9,
+ "counts": {
+  "dispatchable": 9,
+  "blocked": 0,
+  "over40": 8,
+  "no-title-line": 0,
+  "dangling": 1
+ },
+ "offenders": [
+  {
+   "id": "DARGUS",
+   "status": "dispatchable",
+   "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DARGUS-run-argus-once.md",
+   "title": "run argus once and act on what it reports, per chunk",
+   "length": 52,
+   "class": "over40",
+   "duty": true,
+   "suggested": "run argus once and act on what it"
+  },
+  {
+   "id": "DCLAIM",
+   "status": "dispatchable",
+   "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DCLAIM-verify-one-unbacked-claim.md",
+   "title": "verify one prose-only PROVEN claim, per chunk",
+   "length": 45,
+   "class": "over40",
+   "duty": true,
+   "suggested": "verify one prose-only PROVEN claim, per"
+  },
+  {
+   "id": "DRPLAY",
+   "status": "dispatchable",
+   "bundle": "/Users/alex/Project/Zig/weizigo/untracked/DRPLAY-random-game-falsification.md",
+   "title": "play one game against the oracle and check its prediction, per chunk",
+   "length": 68,
+   "class": "over40",
+   "duty": true,
+   "suggested": "play one game against the oracle and"
+  },
+  {
+   "id": "T535",
+   "status": "dispatchable",
+   "bundle": "untracked/T535-stage4-clean-story-spec.md",
+   "title": "Stage-4 clean-story spec (console, spec-first)",
+   "length": 46,
+   "class": "over40",
+   "duty": false,
+   "suggested": "Stage-4 clean-story spec"
+  },
+  {
+   "id": "T709",
+   "status": "dispatchable",
+   "bundle": "untracked/T709-dispatch-verify-deliverable-reconcile.md",
+   "title": "reconcile rc=0 deliverable path before a race is called complete",
+   "length": 64,
+   "class": "over40",
+   "duty": false,
+   "suggested": "reconcile rc=0 deliverable path before"
+  },
+  {
+   "id": "T715",
+   "status": "dispatchable",
+   "bundle": "untracked/T715-host-guard-incident-record.md",
+   "title": "record the incident in the guard design doc",
+   "length": 43,
+   "class": "over40",
+   "duty": false,
+   "suggested": "record the incident in the guard design"
+  },
+  {
+   "id": "T735",
+   "status": "dispatchable",
+   "bundle": "untracked/T734-race-g-oxalpha-shadow.md",
+   "title": null,
+   "length": 0,
+   "class": "dangling",
+   "duty": false,
+   "suggested": "T735: stored bundle path is unreadable — fix the row's bundle path or its brief"
+  },
+  {
+   "id": "T798",
+   "status": "dispatchable",
+   "bundle": "untracked/T798-kill-visible-in-kanban.md",
+   "title": "a harness kill must be visible in the kanban",
+   "length": 44,
+   "class": "over40",
+   "duty": false,
+   "suggested": "a harness kill must be visible in the"
+  },
+  {
+   "id": "T825",
+   "status": "dispatchable",
+   "bundle": "untracked/T825-c3-buckets-bc.md",
+   "title": "C3 buckets (b) and (c): commit-or-repoint 29, downgrade-or-rescope 13",
+   "length": 69,
+   "class": "over40",
+   "duty": false,
+   "suggested": "C3 buckets (b) and (c)"
+  }
+ ]
+}
