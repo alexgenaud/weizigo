@@ -56,6 +56,7 @@
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/../tools/lib/scratch-repo.sh"   # T873: weizigo_reset_census for direct store writes
 ROOT="$(cd "$HERE/.." && pwd)"
 DISPATCH="$ROOT/bin/dispatch"
 RUNNER="$ROOT/tools/runner"
@@ -106,12 +107,14 @@ rec_done() {
 }
 seed() {  # $1 = JSON body of one or more task records (no trailing comma)
     printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1}\n}\n' "$1" > "$STORE"
+    weizigo_reset_census "$STORE"   # T873: direct write bypasses the S10 census
 }
 # dispatchable row + a valid bundle (title gate T505 needs a <40-char title)
 mkbundle() {  # $1 = task id
     cat > "untracked/$1-bundle.md" <<EOF
 <!--managent set=A deliverables=findings/$1.json-->
 # $1 — directive kill seeded
+**Landmark:** advances \`L1 (dispatch tooling)\` — fixture
 
 Seeded fixture bundle for the T625 directive-kill regression.
 EOF
