@@ -76,6 +76,10 @@ ALLOWED_PATTERNS = [
     r"claude --dangerously-skip-permissions",
 ]
 
+def is_caffeinate_proc(cmd):
+    first_tok = cmd.strip().split()[0] if cmd.strip() else ""
+    return os.path.basename(first_tok) == "caffeinate"
+
 def is_project_cmd(cmd):
     if REPO_ROOT in cmd:
         return True
@@ -133,7 +137,7 @@ def scan_processes(custom_ps_lines=None):
             continue
 
         # Check for caffeinate: attribute by ancestry (T952)
-        if "caffeinate" in cmd:
+        if is_caffeinate_proc(cmd):
             is_ours = is_project_cmd(cmd) or has_project_ancestor(pid, proc_map)
             if not is_ours:
                 # External / harness caffeinate (e.g. Claude Code console claude --dangerously-skip-permissions) -> exempt (not ours)
