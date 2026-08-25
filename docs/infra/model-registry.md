@@ -231,3 +231,27 @@ a fleet-critical control — never for cheap audits and never for long-running o
 pre-normalization spellings. The 2026-08-18 cost stance ("Ollama-first for leaf rows") is
 **retired** — superseded by measurement-methodology.md §1 (the appetite table), per §8 of that
 file.
+
+## Credentials and API keys (T940, 2026-08-25)
+
+**API keys live registered inside `pi`, not in environment variables.** Credentials are not
+passed in `argv` and are **not required in the environment**. Dispatchers (`bin/dispatch`,
+`bin/subagent`) do not gate on environment variables like `DEEPSEEK_API_KEY`,
+`OPENROUTER_API_KEY`, or `OLLAMA_API_KEY`.
+
+**Evidence (measured headless 2026-08-25 across all three providers with variables unset):**
+
+```
+$ env -u OPENROUTER_API_KEY pi --provider openrouter --model google/gemini-3.7-flash -p 'Reply with exactly: OK'
+rc 0   STDOUT: OK
+
+$ env -u OLLAMA_API_KEY ollama launch pi --model kimi-k2.7-code:cloud -y -- -p 'Reply with exactly: OK'
+rc 0   STDOUT: OK
+
+$ env -u DEEPSEEK_API_KEY pi --provider deepseek --model deepseek-v4-flash -p 'Reply with exactly: OK'
+rc 0   STDOUT: OK
+```
+
+When credentials are missing or invalid, `pi` surfaces the authoritative error from the
+provider (with an authentication error message and non-zero exit code), rather than the fleet
+inventing pre-flight capability checks that become stale when configuration methods change.

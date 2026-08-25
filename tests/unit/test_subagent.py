@@ -172,6 +172,7 @@ CANONICAL_MODELS_PER_REGISTRY = {
     "claude-opus-5", "claude-sonnet-5", "claude-fable-5",
     "claude-haiku-4-5-20251001", "deepseek-v4-pro", "deepseek-v4-flash",
     "glm-5.2", "minimax-m3", "kimi-k2.7", "qwen3.8:27b-mlx", "ox-alpha",
+    "gemini-3.7-flash",
 }
 
 
@@ -802,6 +803,14 @@ class TestMainRouting(unittest.TestCase):
         rc, out, _ = _run_main(
             ["--provider", "deepseek", "--dsflash", self.target, "--dry-run"],
             self.BASE_ENV)
+        self.assertEqual(rc, 0)
+        self.assertIn("deepseek-v4-flash", out)
+
+    def test_deepseek_dry_run_success_with_no_api_key(self):
+        env = {k: v for k, v in self.BASE_ENV.items() if k != "DEEPSEEK_API_KEY"}
+        rc, out, _ = _run_main(
+            ["--provider", "deepseek", "--dsflash", self.target, "--dry-run"],
+            env)
         self.assertEqual(rc, 0)
         self.assertIn("deepseek-v4-flash", out)
 

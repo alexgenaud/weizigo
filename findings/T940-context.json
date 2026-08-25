@@ -1,0 +1,8 @@
+{
+  "task_id": "T940",
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T940 (API keys live in pi, not the environment).\n\n1. Target problem:\n   Operator requested removing API-key environment variables from their profile after registering keys directly in pi. `bin/subagent` had a hard-coded check requiring `DEEPSEEK_API_KEY` to be non-empty in `os.environ`, which would have caused immediate false refusals across all deepseek dispatches once the variable was removed.\n\n2. Implementation details:\n   - In `bin/subagent`: deleted the `if provider == 'deepseek' and not test_worker: if not os.environ.get('DEEPSEEK_API_KEY'): sys.exit(...)` check and updated usage docstring.\n   - In `tools/bakeoff.sh`: deleted the parallel check in `execute()`.\n   - In `build.zig`: wired `tools/regression-no-key-env-guard.sh` as `no_key_env_guard_regression`.\n   - In `docs/infra/model-registry.md`: added §'Credentials and API keys (T940, 2026-08-25)' with verbatim headless probe outputs.\n   - In `tests/unit/test_subagent.py`: added `gemini-3.7-flash` to canonical set and added `test_deepseek_dry_run_success_with_no_api_key`.\n\n3. Verification:\n   - Regression suite `tools/regression-no-key-env-guard.sh`: 6/6 arms passed.\n   - Unit suite `tests/unit/test_subagent.py`: 54/54 passed.\n   - Zig unit tests `zig test src/main.zig -O ReleaseSafe`: 135/135 passed.\n   - No kanban mutation during test runs."
+}

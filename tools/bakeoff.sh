@@ -678,9 +678,6 @@ def preflight(lanes, wall):
         elif fam == "deepseek":
             if shutil.which("pi") is None:
                 die("deepseek lane requested but no `pi` binary on PATH")
-            if not os.environ.get("DEEPSEEK_API_KEY"):
-                die("deepseek lane requested but DEEPSEEK_API_KEY is not set "
-                    "(credentials travel by environment, never argv)")
         elif fam == "ollama":
             if shutil.which("ollama") is None:
                 die("ollama lane requested but no `ollama` binary on PATH")

@@ -699,6 +699,15 @@ pub fn build(b: *std.Build) void {
     gemini_flash_wiring_regression.cwd = b.path(".");
     test_step.dependOn(&gemini_flash_wiring_regression.step);
 
+    // ── T940: API keys live in pi (no env guard) ──────────────────────
+    // API keys are registered in pi and resolved internally by pi without
+    // requiring environment variables. These controls assert that
+    // bin/subagent and bin/dispatch succeed in dry-run with DEEPSEEK_API_KEY,
+    // OPENROUTER_API_KEY, and OLLAMA_API_KEY unset from the environment.
+    const no_key_env_guard_regression = b.addSystemCommand(&.{ "sh", "tools/regression-no-key-env-guard.sh" });
+    no_key_env_guard_regression.cwd = b.path(".");
+    test_step.dependOn(&no_key_env_guard_regression.step);
+
     // ── T890: one serving-tag path (bin/subagent) ─────────────────────
     // The 2026-08-24 defect: `bin/subagent --provider ollama --model
     // kimi-k2.7:cloud` was accepted (both kimi tags canonicalize to
