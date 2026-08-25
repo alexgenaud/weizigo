@@ -1,0 +1,9 @@
+{
+  "task_id": "T957",
+  "date": "2026-08-25",
+  "model": "nemotron-49b",
+  "audited_by": "nemotron-49b/T957",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE audit of all 24 assigned rows: 12 nemotron disjoint rows plus 12 shared controls. Records and analysis are in docs/audits/done-audit-2026-08-25/nemotron/. No rows were left unreached. Judged 21/24 verdicts accurate, 18 absorbed yes, 2 partial, 4 no, and 24/24 independently evidenced. Recommended reopenings: T598 (missed shared-brief S3 action), T638 (G15 remains pending after watchdog kill), and T943 (false-positive acceptance regression). T862 has an explicitly disclosed lane-construction follow-up but its pass-with-findings close is accurate. No claim-status changes are proposed. Inbox was empty at all checkpoints; no directive IDs require recording."
+}
