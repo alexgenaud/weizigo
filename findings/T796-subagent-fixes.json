@@ -1,0 +1,9 @@
+{
+  "task_id": "T796",
+  "date": "2026-08-25",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "T796 — subagent fixes from unit tests. The two code deliverables (bin/subagent and tests/unit/_load.py) were already committed by T796 (d60c626) and remain unchanged. This pass verified them and repaired the test/regression fallout that later commits introduced. (1) tests/unit/test_subagent.py expected the pre-T890 _resolve_model 2-tuple; T890 added live_tag as the third return value, so every call site was updated to unpack (canonical, live_tag, error) and assert live_tag where load-bearing. The stale characterization case for 'kimi-k2-thinking:cloud' (silent non-canonical label) is now a refusal test because T890 bounds the :cloud fallback with the live-tag map. (2) tools/regression-dispatch-verification.sh extracted the committed bin/subagent/dispatch_verify/window_policy contract into a scratch repo but not tools/runner; T821's arbiter-preview call crashed every arm with FileNotFoundError. Added extraction of tools/runner plus its stdlib-only top-level imports (directive_policy.py, model_tags.py) so the scratch repo is again a faithful host. Verification: python3 tests/unit/test_subagent.py passes (50/50); python3 tests/unit/run.py has one unrelated failure (test_s06_conformance.TestDispositionCount counts 96 vs 83 regression scripts). Shell regressions touching bin/subagent all pass under depth=1: tools/regression-depth-enforcement.sh, tools/regression-dispatch-verification.sh, tools/regression-session-capture.sh, tools/regression-subagent-prompt.sh. The retired resident-gate script (T821) exits 0 immediately as documented.",
+  "audited_by": null
+}

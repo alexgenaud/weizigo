@@ -181,45 +181,54 @@ class TestResolveModel(EnvIsolatedTestCase):
     def test_claude_every_canonical_label_accepted(self):
         for label in sorted(sa.CLAUDE_MODELS):
             with self.subTest(label=label):
-                model, err = sa._resolve_model("claude", label, {})
+                model, live_tag, err = sa._resolve_model("claude", label, {})
                 self.assertIsNone(err)
                 self.assertEqual(model, label)
+                self.assertEqual(live_tag, label)
 
     def test_claude_unknown_label_refused(self):
-        model, err = sa._resolve_model("claude", "claude-haiku-3", {})
+        model, live_tag, err = sa._resolve_model("claude", "claude-haiku-3", {})
         self.assertIsNone(model)
+        self.assertIsNone(live_tag)
         self.assertIn("is not a canonical claude label", err)
 
     def test_claude_missing_model_refused(self):
-        model, err = sa._resolve_model("claude", None, {})
+        model, live_tag, err = sa._resolve_model("claude", None, {})
         self.assertIsNone(model)
+        self.assertIsNone(live_tag)
         self.assertIn("is required", err)
 
     def test_deepseek_dspro_and_dsflash(self):
-        model, err = sa._resolve_model("deepseek", None, {"dspro": True})
+        model, live_tag, err = sa._resolve_model("deepseek", None, {"dspro": True})
         self.assertIsNone(err)
         self.assertEqual(model, "deepseek-v4-pro")
-        model, err = sa._resolve_model("deepseek", None, {"dsflash": True})
+        self.assertEqual(live_tag, "deepseek-v4-pro")
+        model, live_tag, err = sa._resolve_model("deepseek", None, {"dsflash": True})
         self.assertIsNone(err)
         self.assertEqual(model, "deepseek-v4-flash")
+        self.assertEqual(live_tag, "deepseek-v4-flash")
 
     def test_deepseek_neither_or_both_refused(self):
-        model, err = sa._resolve_model("deepseek", None, {})
+        model, live_tag, err = sa._resolve_model("deepseek", None, {})
         self.assertIsNone(model)
+        self.assertIsNone(live_tag)
         self.assertIn("name exactly one model", err)
-        model, err = sa._resolve_model("deepseek", None, {"dspro": True, "dsflash": True})
+        model, live_tag, err = sa._resolve_model("deepseek", None, {"dspro": True, "dsflash": True})
         self.assertIsNone(model)
+        self.assertIsNone(live_tag)
         self.assertIn("name exactly one model", err)
 
     def test_pi_stealth_ox_alpha(self):
-        model, err = sa._resolve_model("pi", "stealth/ox-alpha", {})
+        model, live_tag, err = sa._resolve_model("pi", "stealth/ox-alpha", {})
         self.assertIsNone(err)
         self.assertEqual(model, "ox-alpha")
+        self.assertEqual(live_tag, "stealth/ox-alpha")
 
     def test_pi_unknown_serving_tag_refused(self):
-        model, err = sa._resolve_model("pi", "stealth/made-up", {})
+        model, live_tag, err = sa._resolve_model("pi", "stealth/made-up", {})
         self.assertIsNone(model)
-        self.assertIn("is not a known pi serving tag", err)
+        self.assertIsNone(live_tag)
+        self.assertIn("is not a known pi", err)
 
     def test_bare_model_flag_no_crash(self):
         """T792 fix: `--model` with no value (parse_argv yields True, not a
@@ -227,8 +236,9 @@ class TestResolveModel(EnvIsolatedTestCase):
         RED before the fix (TypeError from the ollama branch); GREEN after."""
         for provider in ("claude", "pi", "ollama"):
             with self.subTest(provider=provider):
-                model, err = sa._resolve_model(provider, True, {})
+                model, live_tag, err = sa._resolve_model(provider, True, {})
                 self.assertIsNone(model)
+                self.assertIsNone(live_tag)
                 self.assertIn("is required", err)
 
     # -- the registry table itself ------------------------------------------
@@ -251,36 +261,53 @@ class TestResolveModel(EnvIsolatedTestCase):
         ("claude", "claude-sonnet-5", {}, "claude-sonnet-5", False, "canonical"),
         ("claude", "claude-fable-5", {}, "claude-fable-5", False, "canonical"),
         ("claude", "claude-haiku-4-5-20251001", {}, "claude-haiku-4-5-20251001", False, "canonical"),
-        # -- CHARACTERIZATION: the ollama fallback gap (T792 finding) --
+        # -- T890: the :cloud-stripping fallback is now bounded by the live-
+        #    tag map.  kimi-k2.7:cloud still resolves at _resolve_model, but
+        #    the launch door in main() refuses it because it does not match
+        #    the derived live tag (kimi-k2.7-code:cloud).
         ("ollama", "kimi-k2.7:cloud", {}, "kimi-k2.7", False,
-         "CHARACTERIZATION: model-registry.md documents this exact tag as "
-         "'Error: model not found — do NOT dispatch', yet the table routes "
-         "it identically to its working sibling kimi-k2.7-code:cloud"),
-        ("ollama", "kimi-k2-thinking:cloud", {}, "kimi-k2-thinking", False,
-         "CHARACTERIZATION: retired tag (model-registry.md), not in "
-         "OLLAMA_TAG_TO_CANONICAL; the :cloud-stripping fallback accepts it "
-         "and returns a label that is NOT in canonical_models"),
+         "T890: _resolve_model still resolves this documented-broken tag, "
+         "but main() refuses it before launch"),
     ]
 
     def test_registry_table(self):
         for provider, raw_model, flags, expected_model, expect_error, note in self.REGISTRY_TABLE:
             with self.subTest(provider=provider, raw_model=raw_model, note=note):
-                model, err = sa._resolve_model(provider, raw_model, flags)
+                model, live_tag, err = sa._resolve_model(provider, raw_model, flags)
                 if expect_error:
                     self.assertIsNone(model)
+                    self.assertIsNone(live_tag)
                     self.assertIsNotNone(err)
                 else:
                     self.assertIsNone(err)
                     self.assertEqual(model, expected_model)
+                    if provider == "pi":
+                        self.assertEqual(live_tag, "stealth/ox-alpha")
+                    elif provider == "deepseek":
+                        self.assertEqual(live_tag, expected_model)
+                    elif provider == "claude":
+                        self.assertEqual(live_tag, expected_model)
+                    elif provider == "ollama":
+                        # live tag is derived from canonical; local qwen tag is its own live tag
+                        if expected_model == "qwen3.8:27b-mlx":
+                            self.assertEqual(live_tag, "qwen3.8:27b-mlx")
+                        else:
+                            self.assertTrue(
+                                live_tag.endswith(":cloud"),
+                                f"expected :cloud live tag for {expected_model}, got {live_tag}")
+                            self.assertEqual(
+                                sa.OLLAMA_TAG_TO_CANONICAL.get(live_tag, live_tag.rstrip(":cloud")),
+                                expected_model)
 
-    def test_characterization_fallback_can_yield_noncanonical_label(self):
-        """CHARACTERIZATION (not a defect fixed here): an ollama tag outside
-        OLLAMA_TAG_TO_CANONICAL is never validated against the canonical
-        set -- a retired/typo'd tag silently produces a label nothing else
-        recognises, instead of an error a human would see immediately."""
-        model, err = sa._resolve_model("ollama", "kimi-k2-thinking:cloud", {})
-        self.assertIsNone(err)
-        self.assertNotIn(model, CANONICAL_MODELS_PER_REGISTRY)
+    def test_unknown_ollama_tag_refused_after_t890(self):
+        """T890 now refuses an ollama tag that canonicalizes to a label
+        outside the live-tag map. The old :cloud-stripping fallback that
+        silently returned a non-canonical label is gone."""
+        model, live_tag, err = sa._resolve_model("ollama", "kimi-k2-thinking:cloud", {})
+        self.assertIsNone(model)
+        self.assertIsNone(live_tag)
+        self.assertIsNotNone(err)
+        self.assertIn("REFUSED", err)
 
     def test_every_table_hit_is_canonical(self):
         """SHOULD: every tag bin/subagent's OWN tables claim to know about

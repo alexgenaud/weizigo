@@ -116,6 +116,14 @@ git -C "$ROOT" show HEAD:tools/dispatch_verify.py > "$WORK/tools/dispatch_verify
 # ModuleNotFoundError and every arm failed (pre-existing red introduced by
 # T677, fixed here so the contract-under-test is the complete commit).
 git -C "$ROOT" show HEAD:tools/window_policy.py > "$WORK/tools/window_policy.py" || { echo "FATAL: HEAD:tools/window_policy.py extract failed" >&2; exit 2; }
+# T821 (2026-08-24): HEAD:bin/subagent runs tools/runner --arbiter-preview
+# before launch; the scratch repo needs the runner and the stdlib-only
+# modules it imports at module top, or the preview subprocess crashes with
+# FileNotFoundError / ModuleNotFoundError.
+git -C "$ROOT" show HEAD:tools/runner > "$WORK/tools/runner" || { echo "FATAL: HEAD:tools/runner extract failed" >&2; exit 2; }
+git -C "$ROOT" show HEAD:tools/directive_policy.py > "$WORK/tools/directive_policy.py" || { echo "FATAL: HEAD:tools/directive_policy.py extract failed" >&2; exit 2; }
+git -C "$ROOT" show HEAD:tools/model_tags.py > "$WORK/tools/model_tags.py" || { echo "FATAL: HEAD:tools/model_tags.py extract failed" >&2; exit 2; }
+chmod +x "$WORK/tools/runner"
 # T630: the four refusal fixtures (committed shapes extracted from the real
 # 2026-08-20/22 logs; provenance in tools/fixtures/README.md) are part of
 # the contract-under-test — the refusal arms seed worker logs from them.
