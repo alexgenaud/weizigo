@@ -1,0 +1,11 @@
+{
+  "answer": "Authored the engineering specification for T936 (run 4x4.D3 to completion) in untracked/races/A-spec/gflash/spec.md as a sealed Race A arm. The spec establishes 6 normative decisions with 6 corresponding acceptance arms: (1) strictly detached execution under caffeinate -i -s, (2) 20,000,000 per-root node cap with isolated censored tail queueing, (3) strict statistical separation of closed vs censored metrics (never folding censored bounds into sample means), (4) mandatory 3-stage pre-flight control verification (null control matching 4x3 byte-for-byte, seeded-defect contiguous imbalance detector > 1.40, and killed-run checkpoint recovery), (5) bounded 48h wall stop / 40GB RSS limit with 10-minute incremental atomic checkpointing, and (6) complete telemetry manifest including per-thread imbalance and per-layer stratification breakdown.",
+  "claims": [],
+  "date": "2026-08-25",
+  "identifier": "gemini-3.7-flash/T974",
+  "landmark": "L2 (proven 4x4 values)",
+  "model": "gemini-3.7-flash",
+  "new_rows": [],
+  "notes": "Spec-only task: no solve run, no code modified, no register rows proposed. Numbers re-verified against repository evidence (docs/research/4x4-d3-tractability.md, docs/research/4x4-d3-weighted-projection.md, docs/research/parallel-finisher-cost.md, docs/evidence/T924/per-root.csv, docs/evidence/T929/per-layer-recovery.csv, docs/evidence/T932/production-4x3.csv). Written strictly within untracked/races/A-spec/gflash/. Inbox checked throughout with 0 pending directives.",
+  "task_id": "T974"
+}
