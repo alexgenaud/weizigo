@@ -86,6 +86,7 @@
 
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/../tools/lib/scratch-repo.sh"   # T873: weizigo_reset_census for direct store writes
 ROOT="$(cd "$HERE/.." && pwd)"
 DISPATCH="$ROOT/bin/dispatch"
 MG=""
@@ -131,11 +132,13 @@ rec_inprog() {
 }
 seed() {  # $1 = JSON body of one or more task records (no trailing comma)
     printf '{\n  %s,\n  "_sys": {"next_id": 9000, "directive_next": 1}\n}\n' "$1" > "$STORE"
+    weizigo_reset_census "$STORE"   # T873: direct write bypasses the S10 census
 }
 mkbundle() {  # $1 = task id — title gate (T505) needs a <40-char title
     cat > "untracked/$1-bundle.md" <<EOF
 <!--managent set=A deliverables=findings/$1.json-->
 # $1 — window resilience seeded
+**Landmark:** advances \`L1 (dispatch tooling)\` — fixture
 
 Seeded fixture bundle for the T628/T677 window-resilience regression.
 EOF
@@ -243,14 +246,17 @@ nudged_ok = st.get("nudge_at") == FUTURE and not st.get("nudged")
 ev2 = window_policy.watch(os.environ["WORK"], now=FUTURE, jitter_max=0)
 st2 = window_policy.load_state(os.environ["WORK"]).get("claude") or {}
 probe_ok = st2.get("nudged") is True and st2.get("probe_until") is not None
-cap_ok = window_policy.effective_cap("claude", os.environ["WORK"], now=FUTURE, configured=3) == 1
+# T873/R19: effective_cap was retired by T766 (cf7fc68, the predictive
+# window-budget gate is gone). The probe mechanism survives; assert probe
+# state via the surviving API instead of the retired cap-sizing.
+probe_active_ok = window_policy.probe_active("claude", os.environ["WORK"], now=FUTURE)
 print("    armed events: %s" % ev1)
 print("    reset events: %s" % ev2)
-print("    nudge_at ok=%s probe ok=%s cap-during-probe==1: %s" % (nudged_ok, probe_ok, cap_ok))
-sys.exit(0 if (nudged_ok and probe_ok and cap_ok) else 1)
+print("    nudge_at ok=%s probe ok=%s probe_active=%s" % (nudged_ok, probe_ok, probe_active_ok))
+sys.exit(0 if (nudged_ok and probe_ok and probe_active_ok) else 1)
 PYEOF
 if [ $? -eq 0 ]; then
-    echo "    PASS: nudge scheduled at reset, fired at reset+jitter, probe cap = 1"
+    echo "    PASS: nudge scheduled at reset, fired at reset+jitter, probe active"
 else
     echo "    FAIL: nudge/probe state machine wrong"
     FAIL=1
@@ -406,10 +412,11 @@ python3 - <<'PYEOF'
 import os, sys
 sys.path.insert(0, os.environ["ROOT"] + "/tools")
 import window_policy  # noqa: E402
+# T873/R19: meter_level was retired by T766 (cf7fc68). The appetite
+# meter (HARD-OFF/CONSERVE/SPEND) is gone; regulation is COOLDOWN-only.
 cds = window_policy.family_cooldown(os.environ["WORK"], now=1787402820)
-lv = window_policy.meter_level("claude", os.environ["WORK"], now=1787402820)
-print("    cooldowns=%s meter_level=%s" % (cds, lv))
-sys.exit(0 if not cds and lv == "SPEND" else 1)
+print("    cooldowns=%s" % (cds,))
+sys.exit(0 if not cds else 1)
 PYEOF
 PYOK=$?
 OUT=$(cd "$WORK" && "$DISPATCH" T6778 claude-sonnet-5 --test-root="$WORK" --dry-run 2>&1)
@@ -426,7 +433,7 @@ fi
 
 # ── C1. anticipation: near-exhausted meter refuses an over-budget claude ─
 # lane at dispatch with an honest reason; a deepseek lane is unaffected.
-echo "  C1. anticipation: synthetic near-exhausted meter → claude refused at dispatch, deepseek proceeds"
+echo "  C1. retired budget gate (T766): near-exhausted meter no longer refuses; claude proceeds, deepseek proceeds"
 clear_fixtures
 seed "$(rec_disp T6779)"
 mkbundle T6779
@@ -451,13 +458,14 @@ OUT=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T6779 claude-s
 CRC=$?
 DOUT=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T6779 deepseek-v4-flash --test-root="$WORK" --dry-run 2>&1)
 DRC=$?
-if [ "$CRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'REFUSED' \
-   && printf '%s' "$OUT" | grep -q 'window budget' \
-   && printf '%s' "$OUT" | grep -q '6,000' \
+# T873/R19: T766 (cf7fc68) retired the predictive window-budget gate —
+# WEIZIGO_WINDOW_BUDGET_CLAUDE is no longer read, so a near-exhausted meter
+# must NOT refuse. Both lanes dry-run through, the honest post-T766 behavior.
+if [ "$CRC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'dry-run T6779' \
    && [ "$DRC" -eq 0 ] && printf '%s' "$DOUT" | grep -q 'dry-run T6779'; then
-    echo "    PASS: claude refused (honest reason, used=6000 named); deepseek unaffected"
+    echo "    PASS: retired budget gate does not refuse (claude rc=0, deepseek rc=0)"
 else
-    echo "    FAIL: claude_rc=$CRC deepseek_rc=$DRC; expected claude REFUSED (window budget, 6000) and deepseek dry-run rc=0"
+    echo "    FAIL: claude_rc=$CRC deepseek_rc=$DRC; expected both dry-runs rc=0 (budget gate retired by T766)"
     printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -6
     FAIL=1
 fi
@@ -688,11 +696,15 @@ else
     FAIL=1
 fi
 
-# ── F1. seeded (T736): the BUDGET refusal has the same recorded ─────────
-# override as the cooldown (T677 parity): reason required, appended to
-# untracked/fleet-window-overrides.jsonl as kind=budget, loud, and the
-# budget flag NEVER bypasses the cooldown gate (cross-guard).
-echo "  F1. seeded: --override-window-budget=<reason> records the reason and proceeds (T736)"
+# ── F1. (T766): the predictive window-budget gate is RETIRED ──────────
+# T766 (cf7fc68) deleted the T736 token-budget meter from window_policy.py
+# and removed --override-window-budget handling from bin/dispatch. This arm
+# validates the retirement: (a) a near-exhausted meter no longer refuses a
+# claude dispatch; (b) --override-window-budget is no longer a recognized
+# flag (dispatch refuses with a usage/unknown-argument error, not a budget
+# verdict); (c) the cooldown gate T766 KEPT still refuses a claude lane in
+# cooldown on its own — the two are independent and the cooldown stands.
+echo "  F1. retired budget gate (T766): no refusal, override flag gone, cooldown stands"
 clear_fixtures
 seed "$(rec_disp T7361)"
 mkbundle T7361
@@ -713,71 +725,30 @@ for i, ti in enumerate((3000, 3000)):
     with open(os.path.join(os.environ["WORK"], "untracked", "runs", tid + ".json"), "w") as f:
         json.dump(rec, f)
 PYEOF
-# (a) without the override the budget refusal names the numbers AND the
-# override path (the hint is the discoverability half of the escape hatch)
+# (a) the budget gate no longer refuses — claude dry-runs through even with
+#     a near-exhausted meter and WEIZIGO_WINDOW_BUDGET_CLAUDE set.
 OUT=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run 2>&1)
 CRC=$?
-if [ "$CRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'REFUSED' \
-   && printf '%s' "$OUT" | grep -q 'window budget' \
-   && printf '%s' "$OUT" | grep -q '6,000' \
-   && printf '%s' "$OUT" | grep -q 'override-window-budget'; then
-    echo "    PASS(a): budget refusal names the numbers and the override path"
+if [ "$CRC" -eq 0 ] && printf '%s' "$OUT" | grep -q 'dry-run T7361'    && ! printf '%s' "$OUT" | grep -qi 'window budget'; then
+    echo "    PASS(a): retired budget gate does not refuse (claude dry-run rc=0, no budget verdict)"
 else
-    echo "    FAIL(a): claude_rc=$CRC — expected REFUSED naming numbers + override hint; got:"
+    echo "    FAIL(a): claude_rc=$CRC — expected dry-run rc=0 with no budget refusal (gate retired by T766); got:"
     printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -6
     FAIL=1
 fi
-# (b) with the override, dispatch proceeds (dry-run) and warns loudly
-OV=$(cd "$WORK" && WEIZIGO_WINDOW_BUDGET_CLAUDE=5000 "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run \
-    --override-window-budget="operator checked provider dashboard manually" 2>&1)
-OVRC=$?
-if [ "$OVRC" -eq 0 ] && printf '%s' "$OV" | grep -q 'dry-run T7361' \
-   && printf '%s' "$OV" | grep -qi 'OVERRIDDEN'; then
-    echo "    PASS(b): override proceeds (dry-run) with a loud warning"
+# (b) --override-window-budget is no longer a recognized flag.
+OVR=$(cd "$WORK" && "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run \
+    --override-window-budget="operator checked" 2>&1)
+OVRRC=$?
+if [ "$OVRRC" -ne 0 ] && printf '%s' "$OVR" | grep -qi 'usage\|unknown\|unrecognized\|override-window-budget'; then
+    echo "    PASS(b): --override-window-budget is no longer recognized (rc=$OVRRC)"
 else
-    echo "    FAIL(b): override_rc=$OVRC — expected dry-run rc=0 + OVERRIDDEN warning; got:"
-    printf '%s' "$OV" | sed 's/^/      claude | /' | tail -6
+    echo "    FAIL(b): override rc=$OVRRC — expected the flag to be rejected (removed by T766); got:"
+    printf '%s' "$OVR" | sed 's/^/      claude | /' | tail -4
     FAIL=1
 fi
-# (c) the record is append-only with kind=budget, the reason and the meter
-# numbers (a dry-run records nothing — the decision is only recorded when
-# it executes)
-python3 - <<'PYEOF'
-import json, os, sys
-sys.path.insert(0, os.environ["ROOT"] + "/tools")
-import window_policy  # noqa: E402
-root = os.environ["WORK"]
-bc = {"used": 6000, "estimate": 3000, "remaining": -4000, "budget": 5000}
-p = window_policy.record_budget_override(root, "T7361", "claude", bc,
-                                         "operator checked provider dashboard manually")
-lines = open(p).read().splitlines()
-ok = len(lines) == 1
-if ok:
-    rec = json.loads(lines[0])
-    ok = rec["kind"] == "budget" and rec["reason"] == "operator checked provider dashboard manually" \
-         and rec["family"] == "claude" and rec["task"] == "T7361" \
-         and rec["used"] == 6000 and rec["budget"] == 5000
-print("    override record: %s" % (lines[0] if lines else "(none)"))
-sys.exit(0 if ok else 1)
-PYEOF
-if [ $? -eq 0 ]; then
-    echo "    PASS(c): override recorded append-only with kind=budget, reason and meter numbers"
-else
-    echo "    FAIL(c): override record missing or wrong"
-    FAIL=1
-fi
-# (d) a bare flag without a reason is refused (reason-required)
-OUT=$(cd "$WORK" && "$DISPATCH" T7361 claude-sonnet-5 --test-root="$WORK" --dry-run --override-window-budget 2>&1)
-DRC=$?
-if [ "$DRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'requires a reason'; then
-    echo "    PASS(d): bare override flag without a reason is refused"
-else
-    echo "    FAIL(d): bare override rc=$DRC — expected usage refusal naming the reason requirement"
-    printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -4
-    FAIL=1
-fi
-# (e) cross-guard: the budget override NEVER bypasses the cooldown gate —
-# the two overrides are distinct escape hatches, not one master key
+# (c) the cooldown gate T766 kept still refuses a claude lane in cooldown,
+#     independent of the retired budget gate.
 clear_fixtures
 seed "$(rec_disp T7362)"
 mkbundle T7362
@@ -794,13 +765,13 @@ rec = {
 with open(os.path.join(os.environ["WORK"], "untracked", "runs", "t7362.json"), "w") as f:
     json.dump(rec, f)
 PYEOF
-OUT=$(cd "$WORK" && "$DISPATCH" T7362 claude-sonnet-5 --test-root="$WORK" --dry-run --override-window-budget="trying to dodge the cooldown" 2>&1)
+OUT=$(cd "$WORK" && "$DISPATCH" T7362 claude-sonnet-5 --test-root="$WORK" --dry-run 2>&1)
 CRC=$?
 if [ "$CRC" -eq 1 ] && printf '%s' "$OUT" | grep -qi 'REFUSED' \
    && printf '%s' "$OUT" | grep -qi 'cooldown'; then
-    echo "    PASS(e): budget override does not bypass the cooldown gate"
+    echo "    PASS(c): cooldown gate still refuses a claude lane in cooldown (stands without the budget gate)"
 else
-    echo "    FAIL(e): claude_rc=$CRC — expected REFUSED (cooldown) despite the budget override; got:"
+    echo "    FAIL(c): claude_rc=$CRC — expected REFUSED (cooldown); got:"
     printf '%s' "$OUT" | sed 's/^/      claude | /' | tail -6
     FAIL=1
 fi
