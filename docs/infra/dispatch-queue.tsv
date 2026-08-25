@@ -6,6 +6,8 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T943	0	5400	AUTO	moving-parts inventory + a check that fails on an undocumented process — operator: no undocumented moving parts
+T942	2	3600	AUTO	DONE rate divides one run's tokens by another run's wall — T924 read 14476/s, true 10.9/s
 T934	2	3600	AUTO	a provider refusing service must not exit 0 — the instrument behind the B4 misdiagnosis; gates trustworthy race judging
 T938	0	5400	AUTO	wire gemini-3.7-flash (gflash) into the fleet — enables the race arm T939
 T940	0	3600	AUTO	API keys live in pi; the DEEPSEEK_API_KEY guard is a false refusal waiting for a profile edit
