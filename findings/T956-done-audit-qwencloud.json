@@ -1,0 +1,9 @@
+{
+  "task_id": "T956",
+  "date": "2026-08-25",
+  "model": "qwen3.8-27b",
+  "audited_by": "qwen3.8-27b/T956",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE audit, qwencloud arm. 24/24 rows reached (12 disjoint + 12 shared control); no unexamined rows. Census: verdicts accurate 22/24 (inaccurate: T943 pass-over-red-acceptance, T907 blocked-understates-complete-work); work complete/partial/none = 19/2/3; absorbed yes/partial/no = 19/2/3; verified/self-reported/unverifiable = 23/1/0; useful yes/mixed/no = 21/1/2. Single most important pattern: the close is the weak link, not the work — every pass row's deliverables are in git, but three store-side mechanisms diverge verdict from reality (runner auto-close outruns a red gate: T943; pre-commit hook on a sibling's dirty file converts 100%-complete work into 'blocked': T907; store rollback loses verdict history and forces seat reconstruction: T792/T803/T799, T679 clobbered until T716). Disproof condition: if cross-arm grading shows other auditors flagging work-quality defects far more often than close-mechanism defects on the same controls. Re-open recommendations: T943 (verdict correction + runner rule: no auto-pass while declared acceptance is red), T907 (re-close pass-with-findings), T679 (commit the untracked findings file — it is cited by T703 and the S09 spec, a write-only record). Rows without run records (pre-run-record era, absence recorded not inferred): T365, T387, T421. Incidents: (1) this arm's uncommitted directory was deleted mid-run at ~17:30 CEST by something outside the task; everything re-collected and committed early thereafter. (2) managent claim T956 was lost to a store rewrite mid-run and re-claimed. Deliverables: collector.py (mechanical), judgements.py (thinking half, per-row evidence in *_reason fields), records.json (24 rows), analysis.md. No claim status changes proposed; no new register rows."
+}
