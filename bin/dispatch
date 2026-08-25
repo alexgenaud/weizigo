@@ -13,7 +13,13 @@ Usage:
             minimax-m3:cloud, qwen3.8:27b-mlx:cloud; dspro/dsflash for the
             deepseek pair; claude-fable-5 / claude-opus-5 / claude-sonnet-5 /
             claude-haiku-4-5-20251001 for the claude pair; stealth/ox-alpha
-            (→ oxalpha) for the pi/openrouter pair).  claude labels
+            (→ oxalpha), google/gemini-3.7-flash (→ gemini-3.7-flash),
+            openai/gpt-5.6-luna-pro (→ gpt-5.6-luna-pro),
+            qwen/qwen3.8-27b (→ qwen3.8-27b),
+            nvidia/nemotron-3.5-lightning (→ nemotron-3.5-lightning),
+            upstage/solar-pro4 (→ solar-pro4) for the pi/openrouter pair;
+            the four short-name aliases join dspro/dsflash/gflash in
+            ALIASES).  claude labels
             route to bin/subagent's claude provider, which launches a
             headless `claude -p` session in the Claude Code harness — never
             through the Anthropic API from here (T494; the prohibition is
@@ -136,6 +142,13 @@ MODELS = {
     # openrouter backend, the vendor prefix `google/` plays the part
     # `stealth/` plays there.  Operator-verified headless 2026-08-25.
     "gemini-3.7-flash":          ("pi", ["--model", "google/gemini-3.7-flash"]),
+    # T954: four openrouter models, same shape — pi harness, openrouter
+    # backend, vendor prefix on the serving tag, canonical label in the
+    # ledger.  All four operator-verified headless 2026-08-25.
+    "gpt-5.6-luna-pro":          ("pi", ["--model", "openai/gpt-5.6-luna-pro"]),
+    "qwen3.8-27b":               ("pi", ["--model", "qwen/qwen3.8-27b"]),
+    "nemotron-3.5-lightning":    ("pi", ["--model", "nvidia/nemotron-3.5-lightning"]),
+    "solar-pro4":                ("pi", ["--model", "upstage/solar-pro4"]),
 }
 
 # Input-convenience aliases (same shape managent accepts).
@@ -145,6 +158,13 @@ ALIASES = {
     # T938: operator's shortname for gemini-3.7-flash (joins dspro/dsflash
     # in the alias table; never a stored label).
     "gflash": "gemini-3.7-flash",
+    # T954: operator's shortnames for the four openrouter models — input
+    # aliases only; they join the table and the registry's §Short names,
+    # and appear nowhere else (never a stored label).
+    "gptluna": "gpt-5.6-luna-pro",
+    "qwencloud": "qwen3.8-27b",
+    "nemotron": "nemotron-3.5-lightning",
+    "solarpro": "solar-pro4",
 }
 
 
@@ -162,6 +182,15 @@ def canonicalize_model(raw: str) -> str:
     # T938: google/ gemini serving tag → canonical label, matching managent.
     if s == "google/gemini-3.7-flash":
         return "gemini-3.7-flash"
+    # T954: four openrouter serving tags → canonical labels, matching managent.
+    if s == "openai/gpt-5.6-luna-pro":
+        return "gpt-5.6-luna-pro"
+    if s == "qwen/qwen3.8-27b":
+        return "qwen3.8-27b"
+    if s == "nvidia/nemotron-3.5-lightning":
+        return "nemotron-3.5-lightning"
+    if s == "upstage/solar-pro4":
+        return "solar-pro4"
     return s
 
 

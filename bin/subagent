@@ -267,6 +267,14 @@ PI_TAG_TO_CANONICAL = {
     # `google/` vendor prefix in place of `stealth/`.  Operator-verified
     # headless 2026-08-25; canonical label is what the ledger stores.
     "google/gemini-3.7-flash": "gemini-3.7-flash",
+    # T954: four openrouter serving tags → canonical labels (T954 naming
+    # table).  All operator-verified headless 2026-08-25.  qwen/qwen3.8-27b
+    # is the CLOUD model — distinct from the local qwen3.8:27b-mlx, which
+    # is not a pi tag at all.
+    "openai/gpt-5.6-luna-pro": "gpt-5.6-luna-pro",
+    "qwen/qwen3.8-27b": "qwen3.8-27b",
+    "nvidia/nemotron-3.5-lightning": "nemotron-3.5-lightning",
+    "upstage/solar-pro4": "solar-pro4",
 }
 
 # T890: canonical label → the ONE live serving tag the host dispatches with.
@@ -292,6 +300,12 @@ CANONICAL_TO_PI_TAG = {
     # T938: gemini-3.7-flash — same shape; the inverse of
     # PI_TAG_TO_CANONICAL above (T890 single source of truth).
     "gemini-3.7-flash": "google/gemini-3.7-flash",
+    # T954: four openrouter models — the inverse of PI_TAG_TO_CANONICAL
+    # above (T890 single source of truth).
+    "gpt-5.6-luna-pro": "openai/gpt-5.6-luna-pro",
+    "qwen3.8-27b": "qwen/qwen3.8-27b",
+    "nemotron-3.5-lightning": "nvidia/nemotron-3.5-lightning",
+    "solar-pro4": "upstage/solar-pro4",
 }
 
 # Load-time consistency: every live tag must canonicalize back to the

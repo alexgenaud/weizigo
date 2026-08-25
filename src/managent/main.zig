@@ -483,6 +483,16 @@ const canonical_models = [_][]const u8{
     "qwen3.8:27b-mlx",
     "oxalpha",
     "gemini-3.7-flash",
+    // T954: four openrouter models, wired 2026-08-25 in the gemini-3.7-flash
+    // shape — canonical label vendor-free + versioned; the vendor prefix is
+    // the serving tag's business (serving_tag_map below), never the ledger's.
+    // qwen3.8-27b is the CLOUD model (family alibaba); the local
+    // qwen3.8:27b-mlx above is a DIFFERENT model (family local, T833) — the
+    // two must never canonicalize onto each other.
+    "gpt-5.6-luna-pro",
+    "qwen3.8-27b",
+    "nemotron-3.5-lightning",
+    "solar-pro4",
 };
 
 fn isCanonicalModel(s: []const u8) bool {
@@ -514,6 +524,12 @@ const serving_tag_map = [_]struct { serving: []const u8, canonical: []const u8 }
     .{ .serving = "kimi-k2.7-code", .canonical = "kimi-k2.7" },
     .{ .serving = "stealth/ox-alpha", .canonical = "oxalpha" },
     .{ .serving = "google/gemini-3.7-flash", .canonical = "gemini-3.7-flash" },
+    // T954: four openrouter serving tags (operator-verified headless
+    // 2026-08-25).  A serving tag on the left never reaches a record.
+    .{ .serving = "openai/gpt-5.6-luna-pro", .canonical = "gpt-5.6-luna-pro" },
+    .{ .serving = "qwen/qwen3.8-27b", .canonical = "qwen3.8-27b" },
+    .{ .serving = "nvidia/nemotron-3.5-lightning", .canonical = "nemotron-3.5-lightning" },
+    .{ .serving = "upstage/solar-pro4", .canonical = "solar-pro4" },
 };
 
 /// The generic serving-tag suffix stripped before the map is applied.
@@ -544,6 +560,12 @@ test "canonicalizeModelTag: serving tags and :cloud strip map to canonical" {
         .{ "kimi-k2.7-code", "kimi-k2.7" },
         .{ "kimi-k2.7-code:cloud", "kimi-k2.7" },
         .{ "stealth/ox-alpha", "oxalpha" },
+        .{ "google/gemini-3.7-flash", "gemini-3.7-flash" },
+        // T954: four openrouter serving tags -> canonical labels
+        .{ "openai/gpt-5.6-luna-pro", "gpt-5.6-luna-pro" },
+        .{ "qwen/qwen3.8-27b", "qwen3.8-27b" },
+        .{ "nvidia/nemotron-3.5-lightning", "nemotron-3.5-lightning" },
+        .{ "upstage/solar-pro4", "solar-pro4" },
     };
     for (cases) |c| {
         try std.testing.expectEqualStrings(c[1], canonicalizeModelTag(c[0]));
@@ -554,6 +576,12 @@ test "canonicalizeModelTag: serving tags and :cloud strip map to canonical" {
     }
     // an unrecognized tag is NOT canonical — the boundary rejects it
     try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("kimi-k2-thinking:cloud")));
+    // T954 seeded near-misses: refused, never silently mapped
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("openai/gpt-5.6-luna")));
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("qwen/qwen3.8-max")));
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("qwen3.8:27b"))); // colon form is the LOCAL model
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("nvidia/nemotron-3.5")));
+    try std.testing.expect(!isCanonicalModel(canonicalizeModelTag("upstage/solar-pro3")));
 }
 
 // ── T635: mechanized model assignment (ruling 33) ──────────────────────────
@@ -609,6 +637,14 @@ const model_families = [_]ModelFamily{
     // join it (the same shape ollama-cloud / local use).  SPEND appetite
     // places it in the equal-opportunity set (operator ruling 2026-08-24).
     .{ .model = "gemini-3.7-flash", .family = "google" },
+    // T954: four openrouter models (operator-verified headless 2026-08-25).
+    // Vendor families (openai / alibaba / nvidia / upstage) so a later
+    // sibling model joins the same family without re-keying.  qwen3.8-27b
+    // is family alibaba — NOT the local qwen3.8:27b-mlx (family local).
+    .{ .model = "gpt-5.6-luna-pro", .family = "openai" },
+    .{ .model = "qwen3.8-27b", .family = "alibaba" },
+    .{ .model = "nemotron-3.5-lightning", .family = "nvidia" },
+    .{ .model = "solar-pro4", .family = "upstage" },
 };
 
 // family → appetite, mirroring measurement-methodology.md §1 (2026-08-22).
@@ -632,6 +668,13 @@ const family_appetite = [_]FamilyAppetite{
     // named in the 2026-08-24 operator ruling.  Vendor family so a later
     // gemini-pro joins the same class without re-keying.
     .{ .family = "google", .appetite = .spend },
+    // T954: the four new openrouter families — same equal-opportunity class
+    // (the operator's dial-5 set; appetite is spend, never a rank/pricing
+    // annotation — model selection is the operator's concern, T954).
+    .{ .family = "openai", .appetite = .spend },
+    .{ .family = "alibaba", .appetite = .spend },
+    .{ .family = "nvidia", .appetite = .spend },
+    .{ .family = "upstage", .appetite = .spend },
 };
 
 fn familyOf(model: []const u8) ?[]const u8 {
@@ -14514,26 +14557,35 @@ test "assign: every canonical model has a family and appetite mapping" {
     }
 }
 
-test "assign: ten-model spend roster; fable RESERVED and qwen PROBE excluded" {
+test "assign: fourteen-model spend roster; fable RESERVED and qwen PROBE excluded" {
     var prng = std.Random.DefaultPrng.init(0);
     var res = try assignModel(null, &.{}, prng.random());
     defer freeAssignResult(&res);
 
-    // T834 + T938: ollama-cloud and google are SPEND (glm/minimax/kimi/gflash),
-    // fable RESERVED, qwen PROBE → the qualified list is the operator's
-    // equal-opportunity models PLUS oxalpha (dial 9).
-    try std.testing.expectEqual(@as(usize, 10), res.candidates.len);
+    // T834 + T938 + T954: ollama-cloud, google, openai, alibaba, nvidia and
+    // upstage are SPEND (glm/minimax/kimi, gemini-3.7-flash, and the four
+    // openrouter models), fable RESERVED, qwen PROBE → the qualified list is
+    // the operator's equal-opportunity models PLUS oxalpha (dial 9): 14.
+    try std.testing.expectEqual(@as(usize, 14), res.candidates.len);
     var saw_glm = false;
     var saw_minimax = false;
     var saw_kimi = false;
     var saw_ox = false;
     var saw_gflash = false;
+    var saw_luna = false;
+    var saw_qwen27 = false;
+    var saw_lightning = false;
+    var saw_solar4 = false;
     for (res.candidates) |c| {
         if (std.mem.eql(u8, c, "glm-5.2")) saw_glm = true;
         if (std.mem.eql(u8, c, "minimax-m3")) saw_minimax = true;
         if (std.mem.eql(u8, c, "kimi-k2.7")) saw_kimi = true;
         if (std.mem.eql(u8, c, "oxalpha")) saw_ox = true;
         if (std.mem.eql(u8, c, "gemini-3.7-flash")) saw_gflash = true;
+        if (std.mem.eql(u8, c, "gpt-5.6-luna-pro")) saw_luna = true;
+        if (std.mem.eql(u8, c, "qwen3.8-27b")) saw_qwen27 = true;
+        if (std.mem.eql(u8, c, "nemotron-3.5-lightning")) saw_lightning = true;
+        if (std.mem.eql(u8, c, "solar-pro4")) saw_solar4 = true;
         try std.testing.expect(!std.mem.eql(u8, c, "qwen3.8:27b-mlx"));
         try std.testing.expect(!std.mem.eql(u8, c, "claude-fable-5"));
     }
@@ -14542,6 +14594,10 @@ test "assign: ten-model spend roster; fable RESERVED and qwen PROBE excluded" {
     try std.testing.expect(saw_kimi);
     try std.testing.expect(saw_ox);
     try std.testing.expect(saw_gflash);
+    try std.testing.expect(saw_luna);
+    try std.testing.expect(saw_qwen27);
+    try std.testing.expect(saw_lightning);
+    try std.testing.expect(saw_solar4);
     var saw_reserved = false;
     var saw_probe = false;
     for (res.reasons) |r| {
@@ -14554,9 +14610,10 @@ test "assign: ten-model spend roster; fable RESERVED and qwen PROBE excluded" {
 
 test "assign: single qualified candidate forces method=forced" {
     var prng = std.Random.DefaultPrng.init(0);
-    // Exclude claude, flash, ollama-cloud, oxalpha and google → only
-    // deepseek-v4-pro remains (ollama-cloud and google are SPEND per T834/T938).
-    const excl = [_][]const u8{ "claude", "deepseek-v4-flash", "ollama-cloud", "oxalpha", "google" };
+    // Exclude claude, flash, ollama-cloud, oxalpha, google, openai, alibaba,
+    // nvidia and upstage → only deepseek-v4-pro remains (ollama-cloud, google
+    // and the four T954 families are SPEND per T834/T938/T954).
+    const excl = [_][]const u8{ "claude", "deepseek-v4-flash", "ollama-cloud", "oxalpha", "google", "openai", "alibaba", "nvidia", "upstage" };
     var res = try assignModel(null, &excl, prng.random());
     defer freeAssignResult(&res);
     try std.testing.expectEqualStrings("forced", res.method);
@@ -14573,7 +14630,7 @@ test "assign: named model is preferred, qualified list still recorded" {
     try std.testing.expectEqualStrings("claude-fable-5", res.model);
     // fable is RESERVED, so it is not in the qualified list — but the list is
     // still recorded so a later reader sees what was passed over.
-    try std.testing.expectEqual(@as(usize, 10), res.candidates.len);
+    try std.testing.expectEqual(@as(usize, 14), res.candidates.len);
     var saw_note = false;
     for (res.reasons) |r| {
         if (std.mem.indexOf(u8, r, "preferred by row (outside qualified list)") != null) saw_note = true;

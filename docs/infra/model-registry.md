@@ -8,7 +8,7 @@ claims.
 ## Canonical labels (single source: `bin/managent models`)
 
 `managent models` is the T317 single source for the canonical label list
-(`src/managent/main.zig` `canonical_models`). As of 2026-08-23:
+(`src/managent/main.zig` `canonical_models`). As of 2026-08-25:
 
 ```
 claude-opus-5 · claude-sonnet-5 · claude-fable-5 · claude-haiku-4-5-20251001
@@ -17,6 +17,7 @@ glm-5.2 · minimax-m3 · kimi-k2.7
 qwen3.8:27b-mlx
 oxalpha
 gemini-3.7-flash
+gpt-5.6-luna-pro · qwen3.8-27b · nemotron-3.5-lightning · solar-pro4
 ```
 
 **Rule (T276, 2026-08-02, human ruling):** model spellings in records use the canonical
@@ -46,6 +47,15 @@ render through it and hold no second copy.
 | `qwenlocal` | `qwen3.8:27b-mlx` | local (MLX) |
 | `oxalpha` | `oxalpha` | `stealth/ox-alpha` |
 | `gflash` | `gemini-3.7-flash` | `google/gemini-3.7-flash` |
+| `gptluna` | `gpt-5.6-luna-pro` | `openai/gpt-5.6-luna-pro` |
+| `qwencloud` | `qwen3.8-27b` | `qwen/qwen3.8-27b` |
+| `nemotron` | `nemotron-3.5-lightning` | `nvidia/nemotron-3.5-lightning` |
+| `solarpro` | `solar-pro4` | `upstage/solar-pro4` |
+
+(T954, 2026-08-25: the four openrouter rows above are input aliases only — they join
+the existing short names in `bin/dispatch` ALIASES and appear nowhere else: not in a
+kanban row, not in the perf ledger, not in a findings file. Every short name in this
+table's first column is unique.)
 
 Distinct short names are needed only when two models with confusable names run at the
 same time.
@@ -64,6 +74,10 @@ From the serving-tag probe (claude-opus-5/orcha), one `ollama run <tag> "say rea
 | `qwen3.8:27b-mlx` | local, 18 GB MLX | the local qwen tag (`qwen3.8` in the pi/Ollama path) |
 | `stealth/ox-alpha` | answers (operator-verified headless, 2026-08-23) | the oxalpha tag — serving tag only, never stored (canonical `oxalpha`) |
 | `google/gemini-3.7-flash` | answers (operator-verified headless, 2026-08-25) | the gemini-3.7-flash tag — serving tag only, never stored (canonical `gemini-3.7-flash`) |
+| `openai/gpt-5.6-luna-pro` | answers (operator-verified headless, 2026-08-25) | the gpt-5.6-luna-pro tag — serving tag only, never stored (canonical `gpt-5.6-luna-pro`) |
+| `qwen/qwen3.8-27b` | answers (operator-verified headless, 2026-08-25) | the qwen3.8-27b tag — serving tag only, never stored (canonical `qwen3.8-27b`) |
+| `nvidia/nemotron-3.5-lightning` | answers (operator-verified headless, 2026-08-25) | the nemotron-3.5-lightning tag — serving tag only, never stored (canonical `nemotron-3.5-lightning`) |
+| `upstage/solar-pro4` | answers (operator-verified headless, 2026-08-25) | the solar-pro4 tag — serving tag only, never stored (canonical `solar-pro4`) |
 
 `bin/subagent --provider ollama --model kimi-k2.7-code:cloud` is the working kimi
 invocation. Claude lanes need `WEIZIGO_BAKEOFF_ALLOW_CLAUDE=1` (authorized per
@@ -92,18 +106,23 @@ family, the kind of permission; the S06 spec ORC-POL-3 separation, T813):
 | `glm-5.2` | 5 | spend | " |
 | `oxalpha` | 9 | spend | *"make extra use … race against all others"* |
 | `gemini-3.7-flash` | 5 | spend | equal opportunity (T938) |
+| `gpt-5.6-luna-pro` | 5 | spend | equal opportunity (T954) |
+| `qwen3.8-27b` | 5 | spend | equal opportunity (T954) |
+| `nemotron-3.5-lightning` | 5 | spend | equal opportunity (T954) |
+| `solar-pro4` | 5 | spend | equal opportunity (T954) |
 | `claude-fable-5` | 1 | reserved | *"continue to reserve Fable"* |
 | `qwen3.8:27b-mlx` | (unchanged) | (unchanged) | local family, T833's — do not pre-empt |
 
 **The 0–9 dial does NOT exist in code.** `src/managent/main.zig` carries only the
 five-level `Appetite` enum (`off / probe / conserve / spend / reserved`) — there is no
 numeric dial field (the S06 spec ORC-POL-3 mechanism is spec, not implementation). So the
-2026-08-24 ruling is expressed in code only as its **class** half: the eight
-equal-opportunity models and oxalpha are all `spend`, Fable is `reserved`, qwen is
-`probe`. The **dial** half — equal *rate* (dial 5 everywhere, oxalpha 9) — is
-**unexpressed**. Consequence, stated plainly: the current table is
-*permitted-equally* (all eight are eligible for the draw), which is **weaker** than
-*drawn-equally* (an equal rate/eagerness). The dial lands with S06 pass 1 (the policy
+2026-08-24 ruling is expressed in code only as its **class** half: the twelve
+equal-opportunity models (the eight of the ruling + gemini-3.7-flash per T938
++ the four openrouter models per T954) and oxalpha are all `spend`, Fable is
+`reserved`, qwen is `probe`. The **dial** half — equal *rate* (dial 5
+everywhere, oxalpha 9) — is **unexpressed**. Consequence, stated plainly: the
+current table is *permitted-equally* (all twelve are eligible for the draw),
+which is **weaker** than *drawn-equally* (an equal rate/eagerness). The dial lands with S06 pass 1 (the policy
 file); this task is the worked example of why the compiled-in table must move out of
 `main.zig` (see findings/T834-appetite.json).
 

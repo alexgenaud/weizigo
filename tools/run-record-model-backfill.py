@@ -65,12 +65,23 @@ def _load_canonicalizer():
             "claude-haiku-4-5-20251001", "deepseek-v4-pro",
             "deepseek-v4-flash", "glm-5.2", "minimax-m3", "kimi-k2.7",
             "qwen3.8:27b-mlx", "oxalpha", "gemini-3.7-flash",
+            # T954: four openrouter models, 2026-08-25 — the copy is
+            # extended (not migrated to the seam) because
+            # regression-gemini-flash-wiring.sh arm E5 parses this list and
+            # asserts equality with the managent binary; removing the copy
+            # breaks that arm (T938's file is not in T954's surface list).
+            "gpt-5.6-luna-pro", "qwen3.8-27b",
+            "nemotron-3.5-lightning", "solar-pro4",
         ],
         "strip_suffix": ":cloud",
         "serving_tags": {
             "kimi-k2.7-code": "kimi-k2.7",
             "stealth/ox-alpha": "oxalpha",
             "google/gemini-3.7-flash": "gemini-3.7-flash",
+            "openai/gpt-5.6-luna-pro": "gpt-5.6-luna-pro",
+            "qwen/qwen3.8-27b": "qwen3.8-27b",
+            "nvidia/nemotron-3.5-lightning": "nemotron-3.5-lightning",
+            "upstage/solar-pro4": "solar-pro4",
         },
     })
 

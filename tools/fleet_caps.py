@@ -125,6 +125,14 @@ FAMILY = {
     # uncapped (a cap can be added by the operator via FLEET_FAMILY_CAP
     # when one is needed).
     "gemini-3.7-flash": "google",
+    # T954: four openrouter models — vendor families so a later sibling
+    # joins the same family without re-keying.  None is in DEFAULT_FAMILY_CAP
+    # below: openrouter has no recorded ceiling for any of them (same
+    # uncapped posture as google — a cap is the operator's to add).
+    "gpt-5.6-luna-pro": "openai",
+    "qwen3.8-27b": "alibaba",
+    "nemotron-3.5-lightning": "nvidia",
+    "solar-pro4": "upstage",
 }
 
 # ── defaults (derivations in the module docstring — T845 §4) ─────────────

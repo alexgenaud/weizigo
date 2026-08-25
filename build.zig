@@ -699,6 +699,37 @@ pub fn build(b: *std.Build) void {
     gemini_flash_wiring_regression.cwd = b.path(".");
     test_step.dependOn(&gemini_flash_wiring_regression.step);
 
+    // ── T954: four openrouter models wiring controls ────────────────
+    // Operator-verified headless 2026-08-25 (`pi --provider openrouter
+    // --model <tag>`, rc 0, key inside pi — no env guard, T940); wired in
+    // the gemini-3.7-flash shape (canonical label vendor-free + versioned,
+    // vendor prefix on the serving tag, short name an input alias only).
+    // These controls pin the wiring across the six surfaces that must move
+    // in step (T317 single source; T801 one canonicalizer): managent
+    // canonical_models[] / serving_tag_map / model_families[] /
+    // family_appetite[]; bin/dispatch MODELS / ALIASES / canonicalize_model;
+    // bin/subagent PI_TAG_TO_CANONICAL / CANONICAL_TO_PI_TAG; the readers
+    // (model_tags, model-profiles, runner, the hard-coded backfill copy);
+    // tools/fleet_caps.py FAMILY; and docs/infra/model-registry.md.  Arms:
+    // A. canonical list includes the four labels, B. serving tags resolve,
+    // C. null (every pre-existing label + serving tag + alias unchanged),
+    // D. seeded defects (gptlunax / openai/gpt-5.6-luna / qwen/qwen3.8-max
+    // / qwen3.8:27b / nvidia/nemotron-3.5 / upstage/solar-pro3 all refused
+    // by name; short names never stored), E. round-trip across managent +
+    // model_tags + model-profiles + runner + backfill copy (drift is a
+    // finding), F. real dry-run dispatch resolves to
+    // `pi --model <serving tag>` AND via the short-name aliases, G. T317
+    // sync (every canonical in bin/dispatch's MODELS), H. the short names
+    // are aliases ONLY (no source / doc / findings / binary stores them
+    // outside ALIASES + the §Short names table), I. fleet_caps.py family
+    // map (openrouter uncapped — invent nothing), J. unique short names in
+    // the registry, K. assign draws from the 14-model spend roster and can
+    // draw each of the four by name.  Scratch store + scratch repo only —
+    // never the live kanban.
+    const openrouter_four_wiring_regression = b.addSystemCommand(&.{ "sh", "tools/regression-openrouter-four-wiring.sh" });
+    openrouter_four_wiring_regression.cwd = b.path(".");
+    test_step.dependOn(&openrouter_four_wiring_regression.step);
+
     // ── T940: API keys live in pi (no env guard) ──────────────────────
     // API keys are registered in pi and resolved internally by pi without
     // requiring environment variables. These controls assert that
