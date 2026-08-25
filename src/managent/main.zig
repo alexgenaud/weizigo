@@ -213,7 +213,88 @@ const TaskState = struct {
     // inferred from a brief's verbs — rows without graded evidence carry none.
     task_type: ?[]const u8 = null,
     scope_class: ?[]const u8 = null,
+    // T798: per-attempt execution and kill history.  Each attempt records
+    // attempt number, model, start, wall, exit, signal, killed_by in the
+    // T629 vocabulary, killed reason, and provenance source.  null = UNKNOWN
+    // (legacy row where run records were missing — never guessed as 0 kills).
+    attempts: ?[]const Attempt = null,
 };
+
+const Attempt = struct {
+    attempt: u32 = 1,
+    model: ?[]const u8 = null,
+    start: ?[]const u8 = null,
+    wall: ?f64 = null,
+    exit: ?i32 = null,
+    signal: ?i32 = null,
+    killed_by: ?[]const u8 = null,
+    killed: ?[]const u8 = null,
+    source: ?[]const u8 = null,
+};
+
+const valid_killed_by = [_][]const u8{
+    "none",
+    "provider-limit",
+    "provider-auth",
+    "provider-connection",
+    "directive",
+    "wall",
+    "cpu",
+    "rss",
+    "liveness",
+    "watchdog",
+    "harness-error",
+};
+
+fn isValidKilledBy(s: []const u8) bool {
+    for (valid_killed_by) |k| {
+        if (std.mem.eql(u8, k, s)) return true;
+    }
+    return false;
+}
+
+fn countKilledAttempts(attempts: []const Attempt) u32 {
+    var count: u32 = 0;
+    for (attempts) |att| {
+        if (att.killed_by) |kb| {
+            if (!std.mem.eql(u8, kb, "none")) count += 1;
+        }
+    }
+    return count;
+}
+
+fn classifyKilledBy(killed_by_opt: ?[]const u8, killed_opt: ?[]const u8, kill_class_opt: ?[]const u8, exit_opt: ?i64, signal_opt: ?i64) []const u8 {
+    if (killed_by_opt) |kb| {
+        for (valid_killed_by) |vk| {
+            if (std.mem.eql(u8, vk, kb)) return vk;
+        }
+    }
+    if (kill_class_opt) |kc| {
+        if (std.mem.eql(u8, kc, "directive")) return "directive";
+        if (std.mem.eql(u8, kc, "liveness")) return "liveness";
+    }
+    if (killed_opt) |k| {
+        var lower_buf: [256]u8 = undefined;
+        const lower = if (k.len <= lower_buf.len) std.ascii.lowerString(&lower_buf, k) else k;
+        if (std.mem.indexOf(u8, lower, "directive") != null) return "directive";
+        if (std.mem.indexOf(u8, lower, "liveness") != null) return "liveness";
+        if (std.mem.indexOf(u8, lower, "progress timeout") != null) return "watchdog";
+        if (std.mem.indexOf(u8, lower, "wall ceiling") != null) return "wall";
+        if (std.mem.indexOf(u8, lower, "cpu ceiling") != null) return "cpu";
+        if (std.mem.indexOf(u8, lower, "rss cap") != null or std.mem.indexOf(u8, lower, "host memory pressure") != null) return "rss";
+        return "harness-error";
+    }
+    if (exit_opt) |ex| {
+        if (ex == 124) return "wall";
+        if (ex == 137) return "harness-error";
+        if (ex == 143) return "harness-error";
+        if (ex == 0) return "none";
+    }
+    if (signal_opt) |_| {
+        return "harness-error";
+    }
+    return "none";
+}
 
 const valid_verdicts = [_][]const u8{ "pass", "pass-with-findings", "fail-found", "blocked", "abandoned" };
 
@@ -1401,7 +1482,7 @@ const mutating_verbs = [_][]const u8{
     "needs",   "agent",  "verdict", "archive", "amend", "sync",
     "tell",    "inbox",  "dispatch", "suggest", "next", "ping",
     "standing", "assert", "retire", "duty", "reap", "assign", "shape",
-    "lanes", "backfill-taxonomy", "archive-runs",
+    "lanes", "backfill-taxonomy", "archive-runs", "backfill-kills",
 };
 
 fn refuseLiveWrite(w: Writers, cmd: []const u8, why: []const u8) noreturn {
@@ -1714,6 +1795,8 @@ pub fn main(init: std.process.Init.Minimal) !void {
         try cmdOrient(w, io, repo_root, state_path, args);
     } else if (std.mem.eql(u8, cmd, "lanes")) {
         try cmdLanes(w, io, repo_root, state_path, args);
+    } else if (std.mem.eql(u8, cmd, "backfill-kills")) {
+        try cmdBackfillKills(w, io, repo_root, state_path, args);
     } else {
         w.diag("unknown command: {s}\n", .{cmd});
         std.process.exit(1);
@@ -3257,6 +3340,49 @@ fn parseStateJson(content: []const u8) !StateMap {
         if (obj.object.get("scope_class")) |sc| {
             if (sc == .string) ts.scope_class = try alloc.dupe(u8, sc.string);
         }
+        // T798: per-attempt execution and kill history.
+        if (obj.object.get("attempts")) |att_val| {
+            if (att_val == .array) {
+                var list = std.ArrayList(Attempt).empty;
+                for (att_val.array.items) |item| {
+                    if (item != .object) continue;
+                    var att = Attempt{};
+                    if (item.object.get("attempt")) |av| {
+                        if (av == .integer) att.attempt = @intCast(av.integer);
+                    }
+                    if (item.object.get("model")) |mv| {
+                        if (mv == .string) att.model = try alloc.dupe(u8, mv.string);
+                    }
+                    if (item.object.get("start")) |sv| {
+                        if (sv == .string) att.start = try alloc.dupe(u8, sv.string);
+                    }
+                    if (item.object.get("wall")) |wv| {
+                        att.wall = switch (wv) {
+                            .float => @floatCast(wv.float),
+                            .integer => @floatFromInt(wv.integer),
+                            else => null,
+                        };
+                    }
+                    if (item.object.get("exit")) |ev| {
+                        if (ev == .integer) att.exit = @intCast(ev.integer);
+                    }
+                    if (item.object.get("signal")) |sigv| {
+                        if (sigv == .integer) att.signal = @intCast(sigv.integer);
+                    }
+                    if (item.object.get("killed_by")) |kbv| {
+                        if (kbv == .string) att.killed_by = try alloc.dupe(u8, kbv.string);
+                    }
+                    if (item.object.get("killed")) |kv| {
+                        if (kv == .string) att.killed = try alloc.dupe(u8, kv.string);
+                    }
+                    if (item.object.get("source")) |srcv| {
+                        if (srcv == .string) att.source = try alloc.dupe(u8, srcv.string);
+                    }
+                    try list.append(alloc, att);
+                }
+                ts.attempts = try list.toOwnedSlice(alloc);
+            }
+        }
 
         try state.put(alloc, task_id, ts);
     }
@@ -3559,6 +3685,69 @@ fn serializeState(state: *StateMap, buf: *std.ArrayList(u8)) !void {
             try writeJsonString(buf, sc);
         } else {
             try buf.appendSlice(alloc, ",\n    \"scope_class\": null");
+        }
+
+        // T798: per-attempt history on the task
+        if (ts.attempts) |atts| {
+            try buf.appendSlice(alloc, ",\n    \"attempts\": [");
+            for (atts, 0..) |att, ai| {
+                if (ai > 0) try buf.appendSlice(alloc, ",");
+                try buf.appendSlice(alloc, "\n      {");
+                try buf.appendSlice(alloc, "\n        \"attempt\": ");
+                try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{att.attempt}));
+                if (att.model) |m| {
+                    try buf.appendSlice(alloc, ",\n        \"model\": ");
+                    try writeJsonString(buf, m);
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"model\": null");
+                }
+                if (att.start) |s| {
+                    try buf.appendSlice(alloc, ",\n        \"start\": ");
+                    try writeJsonString(buf, s);
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"start\": null");
+                }
+                if (att.wall) |w_val| {
+                    try buf.appendSlice(alloc, ",\n        \"wall\": ");
+                    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d:.1}", .{w_val}));
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"wall\": null");
+                }
+                if (att.exit) |e| {
+                    try buf.appendSlice(alloc, ",\n        \"exit\": ");
+                    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{e}));
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"exit\": null");
+                }
+                if (att.signal) |sig| {
+                    try buf.appendSlice(alloc, ",\n        \"signal\": ");
+                    try buf.appendSlice(alloc, try std.fmt.allocPrint(alloc, "{d}", .{sig}));
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"signal\": null");
+                }
+                if (att.killed_by) |kb| {
+                    try buf.appendSlice(alloc, ",\n        \"killed_by\": ");
+                    try writeJsonString(buf, kb);
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"killed_by\": null");
+                }
+                if (att.killed) |k| {
+                    try buf.appendSlice(alloc, ",\n        \"killed\": ");
+                    try writeJsonString(buf, k);
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"killed\": null");
+                }
+                if (att.source) |src| {
+                    try buf.appendSlice(alloc, ",\n        \"source\": ");
+                    try writeJsonString(buf, src);
+                } else {
+                    try buf.appendSlice(alloc, ",\n        \"source\": null");
+                }
+                try buf.appendSlice(alloc, "\n      }");
+            }
+            try buf.appendSlice(alloc, "\n    ]");
+        } else {
+            try buf.appendSlice(alloc, ",\n    \"attempts\": null");
         }
 
         try buf.appendSlice(alloc, "\n  }");
@@ -5454,6 +5643,25 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
         std.process.exit(1);
     }
 
+    // ── T798: attempt and kill history ──
+    // Load any run records for this task from untracked/runs/ and attach to the row.
+    if (ts_ptr.attempts == null) {
+        const loaded_attempts = readAttemptsForTask(w, io, repo_root, id) catch &.{};
+        if (loaded_attempts.len > 0) {
+            ts_ptr.attempts = loaded_attempts;
+        }
+    }
+    const killed_count = if (ts_ptr.attempts) |atts| countKilledAttempts(atts) else 0;
+
+    // T798: an empty verdict note over a killed attempt is refused (T616, T638).
+    // A pass over a kill requires one sentence explaining why it stands.
+    if (killed_count > 0 and (std.mem.eql(u8, verdict_str, "pass") or std.mem.eql(u8, verdict_str, "pass-with-findings")) and (verdict_note_str == null or verdict_note_str.?.len == 0)) {
+        unlockStore();
+        w.diag("\n  REJECTED: {s} has {d} killed attempt(s) but no verdict note.\n", .{ id, killed_count });
+        w.diag("  A pass over a killed attempt requires --note <text> explaining why it stands.\n", .{});
+        std.process.exit(1);
+    }
+
     // ── T390: claim-at-close gate (before any store mutation) ──
     // A claim recorded within CLAIM_TO_DONE_REFUSE_SECS of this done is the
     // claim-at-close pattern — proof the row ran unprotected.  Refuse and
@@ -5754,6 +5962,11 @@ fn cmdDone(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     }
 
     w.diag("\n  {s} done  [set: {c}]  [verdict: {s}]", .{ id, ts_ptr.set, verdict_str });
+    if (ts_ptr.attempts) |atts| {
+        if (atts.len > 1 or killed_count > 0) {
+            w.diag("  [attempts: {d}, {d} killed]", .{ atts.len, killed_count });
+        }
+    }
     if (unblocked.items.len > 0) {
         w.diag("  [unblocks:", .{});
         for (unblocked.items) |ub| {
@@ -6843,6 +7056,16 @@ fn printSection(w: Writers, label: []const u8, ids: []const []const u8, state: *
         }
         if (ts.verdict) |v| {
             w.data(", verdict={s}", .{v});
+            if (ts.attempts) |atts| {
+                const killed = countKilledAttempts(atts);
+                if (atts.len > 1 or killed > 0) {
+                    if (killed > 0) {
+                        w.data(" (attempt {d}, {d} killed)", .{ atts.len, killed });
+                    } else {
+                        w.data(" (attempt {d})", .{ atts.len });
+                    }
+                }
+            }
         }
         // T894: one column, two meanings — elapsed for a running/done row,
         // expected wall for one not yet dispatched; UNKNOWN, never a guess.
@@ -7145,6 +7368,16 @@ fn printResumeSection(w: Writers, label: []const u8, ids: []const []const u8, st
         if (ts.agent != null) {
             const ident = agentIdentifier(ts, tid) catch tid;
             w.data(" ({s})", .{ident});
+        }
+        if (ts.attempts) |atts| {
+            const killed = countKilledAttempts(atts);
+            if (atts.len > 1 or killed > 0) {
+                if (killed > 0) {
+                    w.data(" [att {d}, {d} killed]", .{ atts.len, killed });
+                } else {
+                    w.data(" [att {d}]", .{ atts.len });
+                }
+            }
         }
         w.data(" — {s}\n", .{rel});
     }
@@ -8138,6 +8371,28 @@ fn cmdShow(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8
     } else {
         w.data("    scope_class: UNKNOWN\n", .{});
     }
+    // T798: attempts / kill history
+    if (ts.attempts) |atts| {
+        if (atts.len == 0) {
+            w.data("    attempts: -- none --\n", .{});
+        } else {
+            const killed = countKilledAttempts(atts);
+            w.data("    attempts: {d} ({d} killed)\n", .{ atts.len, killed });
+            for (atts) |att| {
+                w.data("      #{d}", .{att.attempt});
+                if (att.model) |m| w.data(" model={s}", .{m});
+                if (att.start) |s| w.data(" start={s}", .{s});
+                if (att.wall) |wl| w.data(" wall={d:.1}s", .{wl});
+                if (att.exit) |ex| w.data(" exit={d}", .{ex});
+                if (att.signal) |sig| w.data(" signal={d}", .{sig});
+                if (att.killed_by) |kb| w.data(" killed_by={s}", .{kb});
+                if (att.killed) |k| w.data(" ({s})", .{k});
+                w.data("\n", .{});
+            }
+        }
+    } else {
+        w.data("    attempts: UNKNOWN\n", .{});
+    }
     if (ts.amendments.len > 0) {
         w.data("    amendments ({d}):\n", .{ts.amendments.len});
         for (ts.amendments) |am| {
@@ -8849,6 +9104,7 @@ const usage_text = \\
         \\  managent resume           derive the resume surface from tasks.json + git + claimlint + the RESUME-* handover pointer
         \\  managent orient           generate the ≤150-line worker preamble (principles + gates + kanban + activity)
         \\  managent lanes            census T-ID ↔ findings drift (unregistered findings / missing-findings rows); --backfill mints+closes the orphans
+        \\  managent backfill-kills   reconstruct attempt/kill history from untracked/runs/ & attribute model from findings
         \\  managent help             show this help
         \\
         \\Options:
@@ -8941,6 +9197,17 @@ fn freeState(state: *StateMap) void {
         for (ts.scope_targets) |t| alloc.free(t);
         alloc.free(ts.scope_targets);
         if (ts.scope_note) |sn| alloc.free(sn);
+        // T798: attempts
+        if (ts.attempts) |atts| {
+            for (atts) |att| {
+                if (att.model) |m| alloc.free(m);
+                if (att.start) |s| alloc.free(s);
+                if (att.killed_by) |kb| alloc.free(kb);
+                if (att.killed) |k| alloc.free(k);
+                if (att.source) |src| alloc.free(src);
+            }
+            alloc.free(atts);
+        }
     }
     state.deinit(alloc);
 }
@@ -9765,6 +10032,169 @@ fn readRunRecords(w: Writers, io: std.Io, repo_root: []const u8, tids: []const [
         w.diag("run-records: opened {d} of {d} .json entries for {d} in-progress row(s)\n", .{ opened, json_entries, tids.len });
     }
     return result;
+}
+
+/// T798: read all run records for a given task ID from untracked/runs/ and
+/// map them to Attempt structs in the T629 vocabulary.
+fn readAttemptsForTask(w: Writers, io: std.Io, repo_root: []const u8, tid: []const u8) ![]Attempt {
+    _ = w;
+    const runs_dir = std.fs.path.join(alloc, &.{ repo_root, "untracked", "runs" }) catch return &.{};
+    defer alloc.free(runs_dir);
+
+    var dir = std.Io.Dir.cwd().openDir(io, runs_dir, .{}) catch |err| {
+        if (err == error.FileNotFound) return &.{};
+        return &.{};
+    };
+    defer dir.close(io);
+
+    const sanitized = try sanitizeRunIdentity(tid);
+    defer alloc.free(sanitized);
+
+    const bare_name = try std.fmt.allocPrint(alloc, "{s}.json", .{sanitized});
+    defer alloc.free(bare_name);
+    const dot_prefix = try std.fmt.allocPrint(alloc, "{s}.", .{sanitized});
+    defer alloc.free(dot_prefix);
+
+    var attempts_list = std.ArrayList(Attempt).empty;
+    errdefer {
+        for (attempts_list.items) |att| {
+            if (att.model) |m| alloc.free(m);
+            if (att.start) |s| alloc.free(s);
+            if (att.killed_by) |kb| alloc.free(kb);
+            if (att.killed) |k| alloc.free(k);
+            if (att.source) |src| alloc.free(src);
+        }
+        attempts_list.deinit(alloc);
+    }
+
+    var it = dir.iterate();
+    while (it.next(io) catch null) |entry| {
+        if (entry.kind != .file) continue;
+        if (!std.mem.endsWith(u8, entry.name, ".json")) continue;
+
+        var is_match = false;
+        var attempt_num_from_fn: ?u32 = null;
+
+        if (std.mem.eql(u8, entry.name, bare_name)) {
+            is_match = true;
+        } else if (std.mem.startsWith(u8, entry.name, dot_prefix)) {
+            const mid = entry.name[dot_prefix.len .. entry.name.len - 5];
+            if (mid.len > 0) {
+                var all_digits = true;
+                for (mid) |ch| {
+                    if (!std.ascii.isDigit(ch)) {
+                        all_digits = false;
+                        break;
+                    }
+                }
+                if (all_digits) {
+                    is_match = true;
+                    attempt_num_from_fn = std.fmt.parseInt(u32, mid, 10) catch null;
+                }
+            }
+        }
+
+        if (!is_match) continue;
+
+        const abs = std.fs.path.join(alloc, &.{ runs_dir, entry.name }) catch continue;
+        defer alloc.free(abs);
+
+        const content = std.Io.Dir.cwd().readFileAlloc(io, abs, alloc, .unlimited) catch continue;
+        defer alloc.free(content);
+
+        const trimmed = std.mem.trim(u8, content, " \r\n");
+        if (trimmed.len == 0) continue;
+
+        var parsed = std.json.parseFromSlice(std.json.Value, alloc, trimmed, .{ .allocate = .alloc_always }) catch continue;
+        defer parsed.deinit();
+
+        if (parsed.value != .object) continue;
+        const obj = parsed.value.object;
+
+        const run_task = runRecStr(obj, "task");
+        if (run_task.len > 0 and !std.mem.eql(u8, run_task, tid)) continue;
+
+        const attempt_in_rec = runRecOptI64(obj, "attempt");
+        const attempt_num: u32 = if (attempt_in_rec) |ai|
+            @intCast(@max(1, ai))
+        else if (attempt_num_from_fn) |an|
+            an
+        else
+            1;
+
+        const raw_model = runRecOptStr(obj, "model");
+        const raw_start = runRecOptStr(obj, "start");
+        const raw_wall: ?f64 = if (obj.get("wall")) |v| switch (v) {
+            .float => @floatCast(v.float),
+            .integer => @floatFromInt(v.integer),
+            else => null,
+        } else null;
+        const raw_exit: ?i32 = if (runRecOptI64(obj, "exit")) |e| @intCast(e) else null;
+        const raw_signal: ?i32 = if (runRecOptI64(obj, "signal")) |s| @intCast(s) else null;
+        const raw_killed = runRecOptStr(obj, "killed");
+        const raw_killed_by = runRecOptStr(obj, "killed_by");
+        const raw_kill_class = runRecOptStr(obj, "kill_class");
+
+        const kb_classified = classifyKilledBy(
+            raw_killed_by,
+            raw_killed,
+            raw_kill_class,
+            if (raw_exit) |e| @as(i64, e) else null,
+            if (raw_signal) |s| @as(i64, s) else null,
+        );
+
+        const att = Attempt{
+            .attempt = attempt_num,
+            .model = if (raw_model) |m| try alloc.dupe(u8, m) else null,
+            .start = if (raw_start) |s| try alloc.dupe(u8, s) else null,
+            .wall = raw_wall,
+            .exit = raw_exit,
+            .signal = raw_signal,
+            .killed_by = try alloc.dupe(u8, kb_classified),
+            .killed = if (raw_killed) |k| try alloc.dupe(u8, k) else null,
+            .source = try alloc.dupe(u8, entry.name),
+        };
+
+        var replaced = false;
+        for (attempts_list.items, 0..) |existing, idx| {
+            if (existing.attempt == attempt_num) {
+                if (existing.exit == null and att.exit != null) {
+                    if (existing.model) |m| alloc.free(m);
+                    if (existing.start) |s| alloc.free(s);
+                    if (existing.killed_by) |kb| alloc.free(kb);
+                    if (existing.killed) |k| alloc.free(k);
+                    if (existing.source) |src| alloc.free(src);
+                    attempts_list.items[idx] = att;
+                    replaced = true;
+                    break;
+                } else {
+                    if (att.model) |m| alloc.free(m);
+                    if (att.start) |s| alloc.free(s);
+                    if (att.killed_by) |kb| alloc.free(kb);
+                    if (att.killed) |k| alloc.free(k);
+                    if (att.source) |src| alloc.free(src);
+                    replaced = true;
+                    break;
+                }
+            }
+        }
+        if (!replaced) {
+            try attempts_list.append(alloc, att);
+        }
+    }
+
+    if (attempts_list.items.len == 0) {
+        attempts_list.deinit(alloc);
+        return &.{};
+    }
+
+    std.mem.sort(Attempt, attempts_list.items, {}, struct {
+        fn lt(_: void, a: Attempt, b: Attempt) bool {
+            return a.attempt < b.attempt;
+        }
+    }.lt);
+
+    return try attempts_list.toOwnedSlice(alloc);
 }
 
 /// True when a process with this pid exists (POSIX kill(pid, 0) probe).
@@ -12713,10 +13143,43 @@ fn cmdLanes(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             }
             if (!in_list) continue;
         }
+        // Parse findings JSON for model attribution (T798: one door to close)
+        var model_canon: ?[]const u8 = null;
+        var model_unknown_r: ?[]const u8 = null;
+        const findings_abs = if (std.fs.path.isAbsolute(e.path))
+            try alloc.dupe(u8, e.path)
+        else
+            try std.fs.path.join(alloc, &.{ repo_root, e.path });
+        defer alloc.free(findings_abs);
+
+        if (std.Io.Dir.cwd().readFileAlloc(io, findings_abs, alloc, .unlimited) catch null) |fcontent| {
+            defer alloc.free(fcontent);
+            if (std.json.parseFromSlice(std.json.Value, alloc, fcontent, .{ .allocate = .alloc_always }) catch null) |fparsed| {
+                defer fparsed.deinit();
+                if (fparsed.value == .object) {
+                    if (fparsed.value.object.get("model")) |mv| {
+                        if (mv == .string and mv.string.len > 0) {
+                            const canon = canonicalizeModelTag(mv.string);
+                            if (isCanonicalModel(canon)) {
+                                model_canon = try alloc.dupe(u8, canon);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (model_canon == null) {
+            model_unknown_r = try std.fmt.allocPrint(alloc, "recovered by lanes --backfill from {s}", .{e.path});
+        }
+
         const note = try std.fmt.allocPrint(alloc, "T716 backfill: minted+closed an orphaned lane — findings existed, the row was clobbered before any committed store captured it (findings/T716-unregistered-lanes.json)", .{});
-        const ts = TaskState{
+        var ts = TaskState{
             .status = .done,
-            .model = null,
+            .model = if (model_canon) |m| try alloc.dupe(u8, m) else try alloc.dupe(u8, "unattributed"),
+            .agent = if (model_canon) |m| try alloc.dupe(u8, m) else null,
+            .model_source = if (model_canon != null) try alloc.dupe(u8, "findings") else null,
+            .model_unknown_reason = model_unknown_r,
             .bundle = try alloc.dupe(u8, ""),
             .set = 'A',
             .shape = try alloc.dupe(u8, "solo"),
@@ -12727,6 +13190,11 @@ fn cmdLanes(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
             .verdict_note = try alloc.dupe(u8, "work delivered and graded before the row was minted (T716 backfill)"),
             .impression_waiver = try alloc.dupe(u8, "T716 backfill: pre-mint work, graded before the row existed — no impression owed"),
         };
+        if (model_canon) |m| alloc.free(m);
+        const atts = readAttemptsForTask(w, io, repo_root, e.id) catch &.{};
+        if (atts.len > 0) {
+            ts.attempts = atts;
+        }
         try state.put(alloc, try alloc.dupe(u8, e.id), ts);
         minted += 1;
     }
@@ -12734,6 +13202,104 @@ fn cmdLanes(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u
 
     w.data("lanes: minted+closed {d} row(s)\n", .{minted});
     std.process.exit(0);
+}
+
+// ── backfill-kills — reconstruct attempt history and attribute models ────────
+
+fn cmdBackfillKills(w: Writers, io: std.Io, repo_root: []const u8, state_path: []const u8, args: [][]const u8) !void {
+    _ = args;
+    try lockStore(io, state_path);
+    defer unlockStore();
+    var state = try readState(io, state_path);
+
+    var updated_attempts: u32 = 0;
+    var tasks_with_kills: u32 = 0;
+    var tasks_unknown: u32 = 0;
+    var attributed_models: u32 = 0;
+
+    var it = state.iterator();
+    while (it.next()) |entry| {
+        const tid = entry.key_ptr.*;
+        const ts_ptr = entry.value_ptr;
+
+        // 1. Reconstruct attempt history from untracked/runs/
+        if (ts_ptr.attempts == null) {
+            const atts = readAttemptsForTask(w, io, repo_root, tid) catch &.{};
+            if (atts.len > 0) {
+                ts_ptr.attempts = atts;
+                updated_attempts += 1;
+                if (countKilledAttempts(atts) > 0) {
+                    tasks_with_kills += 1;
+                }
+            } else {
+                tasks_unknown += 1;
+            }
+        } else {
+            if (countKilledAttempts(ts_ptr.attempts.?) > 0) {
+                tasks_with_kills += 1;
+            }
+        }
+
+        // 2. Attribute model from findings if model is null and status is done
+        if (ts_ptr.status == .done and ts_ptr.model == null) {
+            const findings_dir_path = try std.fs.path.join(alloc, &.{ repo_root, "findings" });
+            defer alloc.free(findings_dir_path);
+
+            var fdir = std.Io.Dir.cwd().openDir(io, findings_dir_path, .{}) catch null;
+            if (fdir) |*fd| {
+                defer fd.close(io);
+                var fiter = fd.iterate();
+                var found_model: ?[]const u8 = null;
+                var findings_fname: ?[]const u8 = null;
+
+                while (fiter.next(io) catch null) |fentry| {
+                    if (fentry.kind != .file) continue;
+                    if (!std.mem.endsWith(u8, fentry.name, ".json")) continue;
+                    if (taskIdFromFindingsPath(fentry.name)) |ftid| {
+                        if (std.mem.eql(u8, ftid, tid)) {
+                            findings_fname = try alloc.dupe(u8, fentry.name);
+                            const fabs = try std.fs.path.join(alloc, &.{ findings_dir_path, fentry.name });
+                            defer alloc.free(fabs);
+                            if (std.Io.Dir.cwd().readFileAlloc(io, fabs, alloc, .unlimited) catch null) |fcontent| {
+                                defer alloc.free(fcontent);
+                                if (std.json.parseFromSlice(std.json.Value, alloc, fcontent, .{ .allocate = .alloc_always }) catch null) |fparsed| {
+                                    defer fparsed.deinit();
+                                    if (fparsed.value == .object) {
+                                        if (fparsed.value.object.get("model")) |mv| {
+                                            if (mv == .string and mv.string.len > 0) {
+                                                const canon = canonicalizeModelTag(mv.string);
+                                                if (isCanonicalModel(canon)) {
+                                                    found_model = try alloc.dupe(u8, canon);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (found_model) |fm| {
+                    ts_ptr.model = fm;
+                    ts_ptr.agent = try alloc.dupe(u8, fm);
+                    ts_ptr.model_source = try alloc.dupe(u8, "findings");
+                    attributed_models += 1;
+                } else if (findings_fname) |ff| {
+                    ts_ptr.model = try alloc.dupe(u8, "unattributed");
+                    ts_ptr.model_unknown_reason = try std.fmt.allocPrint(alloc, "recovered by backfill from findings/{s}", .{ff});
+                    attributed_models += 1;
+                }
+                if (findings_fname) |ff| alloc.free(ff);
+            }
+        }
+    }
+
+    try writeStateLocked(io, state_path, &state);
+
+    w.data("backfill-kills: {d} task(s) updated with attempt history ({d} task(s) carrying kill history, {d} left UNKNOWN)\n", .{ updated_attempts, tasks_with_kills, tasks_unknown });
+    w.data("backfill-kills: {d} task(s) attributed from findings\n", .{attributed_models});
 }
 
 // ── liveness — show last heartbeat per in_progress task ──────────────────────
@@ -15121,4 +15687,92 @@ test "taxonomy: legacy row without type/scope fields parses to UNKNOWN (null, no
     // must never be read as a guessed type or a zero bin.
     try std.testing.expect(ts.task_type == null);
     try std.testing.expect(ts.scope_class == null);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// T798 tests — execution attempts and kill history
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test "attempts: round-trip serialize → parse" {
+    var state = StateMap{};
+    defer freeState(&state);
+
+    var ts = TaskState{
+        .status = .done,
+        .bundle = "untracked/TX-bundle.md",
+        .set = 'A',
+        .added = "2026-08-25T00:00:00Z",
+    };
+    ts.bundle = try alloc.dupe(u8, "untracked/TX-bundle.md");
+    ts.added = try alloc.dupe(u8, "2026-08-25T00:00:00Z");
+
+    var atts = std.ArrayList(Attempt).empty;
+    try atts.append(alloc, Attempt{
+        .attempt = 1,
+        .model = try alloc.dupe(u8, "deepseek-v4-pro"),
+        .start = try alloc.dupe(u8, "2026-08-25T01:00:00Z"),
+        .wall = 120.5,
+        .exit = 124,
+        .signal = 9,
+        .killed_by = try alloc.dupe(u8, "wall"),
+        .killed = try alloc.dupe(u8, "wall ceiling 120s"),
+        .source = try alloc.dupe(u8, "TX.1.json"),
+    });
+    try atts.append(alloc, Attempt{
+        .attempt = 2,
+        .model = try alloc.dupe(u8, "deepseek-v4-pro"),
+        .start = try alloc.dupe(u8, "2026-08-25T02:00:00Z"),
+        .wall = 45.0,
+        .exit = 0,
+        .signal = null,
+        .killed_by = try alloc.dupe(u8, "none"),
+        .killed = null,
+        .source = try alloc.dupe(u8, "TX.json"),
+    });
+    ts.attempts = try atts.toOwnedSlice(alloc);
+
+    try state.put(alloc, try alloc.dupe(u8, "TX"), ts);
+
+    var buf = std.ArrayList(u8).empty;
+    defer buf.deinit(alloc);
+    try serializeState(&state, &buf);
+
+    var parsed = try parseStateJson(buf.items);
+    defer freeState(&parsed);
+    const p = parsed.get("TX").?;
+    try std.testing.expect(p.attempts != null);
+    try std.testing.expectEqual(@as(usize, 2), p.attempts.?.len);
+    try std.testing.expectEqual(@as(u32, 1), p.attempts.?[0].attempt);
+    try std.testing.expectEqualStrings("wall", p.attempts.?[0].killed_by.?);
+    try std.testing.expectEqual(@as(?i32, 124), p.attempts.?[0].exit);
+    try std.testing.expectEqual(@as(u32, 2), p.attempts.?[1].attempt);
+    try std.testing.expectEqualStrings("none", p.attempts.?[1].killed_by.?);
+    try std.testing.expectEqual(@as(?i32, 0), p.attempts.?[1].exit);
+}
+
+test "attempts: legacy row without attempts field parses to UNKNOWN (null, not empty)" {
+    const content =
+        \\{
+        \\  "TX": {"status":"done","agent":null,"model":null,"bundle":"untracked/TX-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-22T00:00:00Z","claim_count":0}
+        \\}
+    ;
+    var state = try parseStateJson(content);
+    defer freeState(&state);
+    const ts = state.get("TX").?;
+    // Absence is UNKNOWN — old rows predate the field and must parse as null
+    try std.testing.expect(ts.attempts == null);
+}
+
+test "attempts: classifyKilledBy maps runner kill reasons to T629 vocabulary" {
+    try std.testing.expectEqualStrings("wall", classifyKilledBy("wall", null, null, null, null));
+    try std.testing.expectEqualStrings("wall", classifyKilledBy(null, "wall ceiling 1200s reached", null, null, null));
+    try std.testing.expectEqualStrings("rss", classifyKilledBy(null, "RSS cap 50 MB exceeded", null, null, null));
+    try std.testing.expectEqualStrings("rss", classifyKilledBy(null, "host memory pressure", null, null, null));
+    try std.testing.expectEqualStrings("watchdog", classifyKilledBy(null, "progress timeout 600s", null, null, null));
+    try std.testing.expectEqualStrings("directive", classifyKilledBy(null, "directive D001 PAUSE", null, null, null));
+    try std.testing.expectEqualStrings("directive", classifyKilledBy(null, null, "directive", null, null));
+    try std.testing.expectEqualStrings("liveness", classifyKilledBy(null, "liveness timeout", null, null, null));
+    try std.testing.expectEqualStrings("wall", classifyKilledBy(null, null, null, 124, null));
+    try std.testing.expectEqualStrings("harness-error", classifyKilledBy(null, null, null, 137, null));
+    try std.testing.expectEqualStrings("none", classifyKilledBy(null, null, null, 0, null));
 }

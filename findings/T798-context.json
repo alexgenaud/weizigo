@@ -1,0 +1,26 @@
+{
+  "claims": [],
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "new_rows": [],
+  "task_id": "T798",
+  "context": {
+    "brief": "untracked/T798-kill-visible-in-kanban.md",
+    "deliverables": [
+      "src/managent/main.zig",
+      "tools/regression-kill-history.sh",
+      "findings/T798-kill-record.json",
+      "findings/T798-context.json"
+    ],
+    "acceptance_command": "sh tools/regression-kill-history.sh",
+    "acceptance_status": "pass",
+    "controls": [
+      "Control 1: seeded close over killed attempt records attempt history & shows in status",
+      "Control 2: seeded refusal of empty verdict note over killed attempt",
+      "Control 3: null control for task with clean attempts leaves status rendering unchanged",
+      "Control 4: backfill-kills idempotence",
+      "Control 5: missing run records render attempts: UNKNOWN, never 0",
+      "Control 6: lanes --backfill model attribution (one door)"
+    ]
+  }
+}

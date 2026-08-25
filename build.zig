@@ -913,6 +913,14 @@ pub fn build(b: *std.Build) void {
     store_loss_regression.cwd = b.path(".");
     test_step.dependOn(&store_loss_regression.step);
 
+    // ── T798: kills visible in the kanban ──────────────────────────────
+    // Covers the 5 controls: attempt history recording at close, refusal of
+    // empty verdict notes over killed attempts, null control, backfill
+    // idempotence, and UNKNOWN rendering for missing run records.
+    const kill_history_regression = b.addSystemCommand(&.{ "sh", "tools/regression-kill-history.sh" });
+    kill_history_regression.cwd = b.path(".");
+    test_step.dependOn(&kill_history_regression.step);
+
     // ── T864: status docs must agree with the task store ────────────────
     // Sprint planning documents (docs/epics/**/STATUS.md) are a module with no
     // suite, and one of them lied twice in a single session (S11: ambiguous

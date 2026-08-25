@@ -1,0 +1,8 @@
+{
+  "claims": [],
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "new_rows": [],
+  "notes": "T798 — kills visible in the kanban: per-attempt history on the task schema, refused empty verdict notes over killed attempts, attempts/kills rendering across surfaces, idempotent backfill from untracked/runs/, and one-door model attribution on lanes --backfill.\n\nDELIVERABLES & CONTROLS:\n- src/managent/main.zig: added attempts: ?[]const Attempt to TaskState; classifyKilledBy mapping runner kill reasons into the T629 vocabulary; readAttemptsForTask reading untracked/runs/; cmdDone recording attempts and refusing empty verdict notes over killed attempts; cmdStatus/cmdResume/cmdShow rendering attempt counts and kill counts (missing records render UNKNOWN, null control unchanged); cmdLanes extracting canonical model or explicit unknown reason; cmdBackfillKills reconstructor.\n- tools/regression-kill-history.sh: six controls passing (seeded close over kill, seeded refusal of empty note over kill, null control with clean attempt, idempotence of backfill, missing records rendering UNKNOWN, one door model attribution).\n- build.zig: wired tools/regression-kill-history.sh into test_step as kill_history_regression.\n\nCENSUS RESULTS:\n- Reconstructed execution history across 358 tasks from untracked/runs/ (23 tasks carrying killed attempts, 225 tasks left UNKNOWN where records were absent).\n- Backfilled model attribution across 184 done tasks (including T674, T679, T683, T685, T687, T690, T691, T692, T693) with model_source='findings'.\n- T735 cited as resolved per brief (retired unrun on 2026-08-25 in T935).\n- Acceptance command 'sh tools/regression-kill-history.sh' executed and 100% GREEN.",
+  "task_id": "T798"
+}
