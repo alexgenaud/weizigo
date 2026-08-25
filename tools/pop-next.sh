@@ -145,7 +145,22 @@ except Exception: print('')" 2>/dev/null)
     return 0
   fi
   echo "pop-next: dispatching $pick -> $model"
-  bin/dispatch "$pick" "$model" --wall=7200 2>&1 | tail -1
+  # Print the WHOLE refusal, not the last line. `| tail -1` here threw away
+  # every line but the last of bin/dispatch's message, so a complete refusal --
+  # "REFUSED — title `...` is 44 chars, over the 40-char limit ... Shorten it;
+  # the long form goes in the brief's body" -- reached the log as nothing but
+  # "the long form goes in the brief's body". The dispatcher then retried the
+  # same row 22 times over 22 minutes with no task id in the log, and the
+  # operator asked whether it was working. The gate named its subject; this
+  # line discarded it. On success bin/dispatch's last line is the summary, so
+  # keep that shape for the success case only.
+  out=$(bin/dispatch "$pick" "$model" --wall=7200 2>&1); rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "$out" | tail -1
+  else
+    echo "pop-next: dispatch REFUSED $pick (rc=$rc) — full message follows:"
+    echo "$out" | sed 's/^/  | /'
+  fi
 }
 
 # ── the loop runs a FRESH child each tick ────────────────────────────────
