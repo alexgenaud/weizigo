@@ -396,12 +396,16 @@ PYT
     # own process, and dedupe by task id (a chain yields several matches).
     for p in $(pgrep -f "Follow untracked/T[0-9]+" 2>/dev/null); do
         cmd=$(ps -o command= -p "$p" 2>/dev/null)
-        # Skip only the fleet script's OWN process (argv IS the script
-        # invocation). A mere mention of watch-fleet.sh in an argv is not the
-        # script — T493's own worker argv lists the deliverable path and must
-        # not be hidden.
+        # Skip the fleet script's OWN process (argv IS the script invocation).
+        # Also skip any worker whose argv literally carries the script name
+        # "watch-fleet.sh" — that string is the dashboard's own filename, and
+        # a bundle called e.g. untracked/T991-watch-fleet.sh is a test fixture
+        # borrowing the script's name, not a real worker. The substring
+        # "watch-fleet" alone (no .sh) is the bundle path of a real worker
+        # (e.g. T492-watch-fleet-keypress-reset.md) and must NOT be skipped.
         case "$cmd" in
             sh*"$0"|bash*"$0"|*" /bin/sh "*"$0"*) continue ;;
+            *"watch-fleet.sh"*) continue ;;
         esac
         t=$(echo "$cmd" | sed -n 's/.*Follow untracked\/\(T[0-9]*\).*/\1/p' | head -1)
         [ -z "$t" ] && continue
