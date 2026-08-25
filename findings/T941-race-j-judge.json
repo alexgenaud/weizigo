@@ -1,0 +1,249 @@
+{
+  "task_id": "T941",
+  "date": "2026-08-25",
+  "model": "gpt-5.6-luna-pro",
+  "audited_by": "gpt-5.6-luna-pro/T941",
+  "claims": [],
+  "new_rows": [],
+  "arm_runs": [
+    {
+      "task_id": "T916",
+      "model": "oxalpha",
+      "script": "untracked/race-j/ox-alpha/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 767.7,
+      "output": "== A1: admission refusal (L2, ram-policy §4.1) ==\nPASS       a1-refuse-exit3  standalone admit with avail=1000 need=10000 refuses (observed rc=3)\nPASS       a1-verdict-json  refusal verdict carries admit:false (/var/folders/x5/k8b1s03x3h1frb6cl_17w1hr0000gn/T//weizigo/regression-runner-guard.70222/a1.out)\nPASS       a1-ledger-unmutated  a refusal mutates nothing: identity NOT admitted into the ledger (row stays dispatchable)\nPASS       a1-null-admits  null control: same need with avail=100000 admits (observed rc=0)\nPASS       a1-committed-sum  committed lane counts against the next candidate (avail 10000, held 4000, want 8000 -> refuse; observed rc=3)\nPASS       a1-launch-refused  launch path refuses pre-spawn (observed rc=3)\nPASS       a1-launch-nospawn  nothing spawned on refusal: child marker file absent\nPASS       a1-launch-names-reason  refusal names itself loudly on stderr (ARBITER REFUSED)\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a1-red  reserve-floor deleted -> mutant admits (rc=0); exit-3 assertion detects it\n== A2: wall-band RAM declaration boundaries (bin/subagent, T913) ==\n[subagent] T631 WARNING: pin failed (git show HEAD:tools/dispatch_verify.py exited 128) — importing the working-tree copy of tools/dispatch_verify.py; a mid-edit file CAN reach this verifier\nPASS       a2-boundaries  band-start convention holds: 59->768, 60->1792, 599->1792, 600->3072, 1799->3072, 1800->4608\nRED-CAUGHT a2-red  600s boundary shifted by 1s -> boundary assertion detects the off-by-one\nPASS       a2-unparseable-top-band  unparseable expected-wall declares the top band 4608 (safe direction; got 4608)\n== A3: --max-wall terminates a silent child, attribution intact ==\nPASS       a3-exit124  silent child past max-wall=2 killed; runner exit 124 (observed rc=124)\nPASS       a3-names-guard  kill line names the guard (stderr contains 'wall ceiling')\nPASS       a3-attributable  run record attributes the kill: killed_by=wall signal=9\nPASS       a3-budget-recorded  record joins the kill to its wall budget (wall_budget=2)\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a3-red  wall ceiling disarmed -> mutant lets the child finish (rc=0); exit-124 assertion detects it\n== A4: kernel pressure ALARM fires sustained, never kills (L3) ==\nPASS       a4-child-survives  critical pressure does NOT kill the child; runner exits clean (observed rc=0)\nPASS       a4-alarm-fires  sustained pressure raises the ALARM (dwell 3 polls >= 2s)\nPASS       a4-record-alarm  alarm recorded in the run record (host_alarms=1)\nPASS       a4-names-consumer  alarm NAMES the largest host process (consumer='/Library/Bitdefender/AVP/product/bin/BDLDaemon.app/Contents/MacOS/BDLDaemon')\nPASS       a4-no-kill-stamp  never kills: record shows normal exit=0 and NO killed_by (got 'none')\nPASS       a4-null-no-alarm  null control: level 1 produces no alarm\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a4-red  alarm threshold raised past critical -> no ALARM; alarm-present assertion detects it\n== A5: every run record declares its kind (T895) ==\nPASS       a5-kind-declared  dispatch record carries run_kind='dispatch' (writer-declared, reader never infers)\nPASS       a5-kind-reason  kind carries its REASON ('no live un-finalized record holds this identity')\nPASS       a5-attempt  attempt numbered (attempt=1)\nPASS       a5-exit-forwarded  child's own exit forwarded (sh exit 7 -> runner rc=7)\nPASS       a5-nested-segregated  nested run lands under runs/nested/ (1 record(s)); bare dispatch slot untouched\nmutant: 2 occurrence(s) replaced\nRED-CAUGHT a5-red  run_kind stamp removed -> record lacks the field; declaration assertion detects it\n\n== summary ==\ngreen arms : 25/25 passed\nred controls: 5/5 caught their defect\nGUARD GREEN (and provably sensitive)\nreal 30.38\nuser 5.28\nsys 3.42\nRC=0\n"
+    },
+    {
+      "task_id": "T917",
+      "model": "deepseek-v4-flash",
+      "script": "untracked/race-j/dsflash/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 717.0,
+      "output": "=== A1 — admission refusal: refused, not killed, nothing spawned, row stays dispatchable ===\n    PASS: refused before spawn (exit 3), nothing killed, nothing spawned, row stays dispatchable\n    RED confirmed: defected runner admitted+spawned (rc=0, marker=yes) — the refusal assertion catches the break\n\n    PASS: fit admits, runs, completes, and its admission entry is released on exit\n\n=== A2 — wall-band RAM declaration at each boundary (60/600/1800 s; T913 §3.2) ===\n    PASS: 59→768 60→1792 599→1792 600→3072 1799→3072 1800→4608 1801→4608\n    RED confirmed: off-by-one at 60 s shifts every boundary (rc=1: BAND-MISMATCH: [(60, 1792, 768)]) — the boundary assertion catches the T912 class\n\n=== A3 — --max-wall ceiling: silent child terminated, termination attributable ===\n    PASS: killed at the ceiling, exit 124, record killed_by=wall signal=9\n    RED confirmed: defected runner let the silent child finish (rc=0) — the wall-ceiling assertion catches the break\n\n=== A4 — L3 kernel-pressure alarm (ram-policy §4.4): fires, never kills (INV-1) ===\n    NOTE (canary): the brief's literal 'kills the lane when the host crosses\n    its pressure threshold' is FALSE-AS-SCOPED — T821 deleted the host-\n    condition kill verb; the guard now ALARMS (names the consumer, appends\n    host_alarms) and per INV-1 never kills.  This arm asserts the alarm;\n    A7 asserts the only memory kill that exists (the RSS overrun stop).\n    PASS: alarm fired (level 2, consumer named, host_alarms recorded) and the lane survived — fired, never killed\n    RED confirmed (half 1): defected runner never alarmed on sustained pressure — the alarm-fire assertion catches the break\n    RED confirmed (half 2): a pressure-kill defect makes the lane die (rc=124, no survivor) — the never-kills assertion catches the T821-deleted behaviour returning\n\n=== A5 — run record written with kind declared (T364/T895), so reap reads the dispatch record ===\n    PASS: record written with task, run_kind=dispatch, exit, end, pid — the shape reap reads\n    RED confirmed: defected runner wrote no run record (rc=0) — the record-kind assertion catches the F6 class\n\n=== A7 — RSS-cap overrun stop (INV-4): the only memory kill, and it is the task's OWN overrun ===\n    PASS: 200 MB over a declared 100 MB (cap 125) → stopped, killed_by=rss, released\n    RED confirmed: defected runner let the 200 MB overrun complete (rc=0) — the overrun-stop assertion catches the break\n\n==========================================================================\nassertion summary (green rc = real tools/runner, red rc = seeded-defect copy):\n  A1 admission-refusal        green=3 (3=refused)   red=0   RED=YES\n  A1 null (fit+release)       green=0\n  A2 band-boundaries          green=0 (0)           red=1   RED=YES\n  A3 wall-ceiling             green=124 (124)         red=0   RED=YES\n  A4 alarm-fires              green=0 (0)           red1=0 RED=YES\n  A4 never-kills              green=0               red2=124 RED=YES\n  A5 record-kind              green=0 (0)           red=0   RED=YES\n  A7 rss-overrun-stop         green=124 (124)         red=0   RED=YES\n==========================================================================\n=== regression-runner-guard (dsflash): ALL CONTROLS PASSED — every assertion green, every red reproduced ===\n    PASS: live heartbeat.jsonl — no lines appended during the run\nreal 30.49\nuser 6.39\nsys 3.41\nRC=0\n"
+    },
+    {
+      "task_id": "T918",
+      "model": "deepseek-v4-pro",
+      "script": "untracked/race-j/dspro/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 632.9,
+      "output": "========================================================================\nT918 regression-runner-guard — tools/runner coverage gate (dspro lane)\nPROJECT=/Users/alex/Project/Zig/weizigo\n\n=== A1 — admission refusal (refused, not killed, row stays dispatchable) ===\n  GREEN (standalone --arbiter-admit): avail 5000 MB, declared 4608 MB\n  -> projected 392 MB < reserve 4608 MB, must REFUSE with exit 3.\n    PASS: refused (exit 3), row stays dispatchable\n  GREEN (full launch): the same decision before spawn — nothing may run.\n    PASS: exit 3 and no process spawned (marker absent)\n  RED (seeded defect): _arbiter_decide made to admit unconditionally.\n    RED confirmed: the same check now sees exit 0 and '\"admit\": true' — assertion is sensitive\n\n=== A3 — --max-wall termination is attributable ===\n  GREEN: silent child outlives --max-wall 2 -> exit 124, killed_by=wall.\n    PASS: exit 124, 'wall ceiling' named, killed_by=wall in the run record\n  RED (seeded defect): the wall check disabled -> child completes instead.\n    RED confirmed: wall ceiling never fired, child completed (exit 0) — assertion is sensitive\n\n=== A4 — L3 memory-pressure backstop (alarm, never kill) ===\n  GREEN: injected kernel pressure level 4, sustained -> ALARM, child survives.\n    PASS: exit 0, ALARM names a consumer, host_alarms recorded, nothing killed\n  RED (seeded defect): re-introduce a kill on the pressure alarm.\n    RED confirmed: seeded kill-on-pressure produced exit 124 + a KILL line — the 'never kills' assertion catches it\n\n=== A5 — run record written with its kind declared ===\n  GREEN: a dispatch writes untracked/runs/<task>.json with run_kind=dispatch.\n    PASS: record present, run_kind=dispatch, run_kind_reason present\n  RED (seeded defect): record written WITHOUT run_kind.\n    RED confirmed: the kind-less record reads run_kind=None — the assertion catches it\n\n========================================================================\n=== regression-runner-guard: ALL CONTROLS PASSED ===\n    PASS: live heartbeat.jsonl — no lines appended during the run\nreal 18.43\nuser 3.52\nsys 1.67\nRC=0\n"
+    },
+    {
+      "task_id": "T919",
+      "model": "kimi-k2.7",
+      "script": "untracked/race-j/kimi/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 692.1,
+      "output": "== A1: admission refusal (L2, ram-policy §4.1) ==\nPASS       a1-refuse-exit3  standalone admit with avail=1000 need=10000 refuses (observed rc=3)\nPASS       a1-verdict-json  refusal verdict carries admit:false\nPASS       a1-ledger-unmutated  a refusal mutates nothing: identity NOT admitted into the ledger (row stays dispatchable)\nPASS       a1-null-admits  null control: same need with avail=100000 admits (observed rc=0)\nPASS       a1-committed-sum  committed lane counts against the next candidate (avail 10000, held 4000, want 8000 -> refuse; observed rc=3)\nPASS       a1-launch-refused  launch path refuses pre-spawn (observed rc=3)\nPASS       a1-launch-nospawn  nothing spawned on refusal: child marker file absent\nPASS       a1-launch-names-reason  refusal names itself loudly on stderr (ARBITER REFUSED)\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a1-red  reserve-floor deleted -> mutant admits (rc=0); exit-3 assertion detects it\n== A2: wall-band RAM declaration boundaries (bin/subagent, T913) ==\nPASS       a2-boundaries  wall-band boundaries match ram-policy.md §3.2 (observed rc=0)\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a2-red  boundary shifted '< 600' -> '<= 600' (600 s under-declares); assertion detects it\n== A3: --max-wall termination is attributable ==\nPASS       a3-wall-kill-exit124  silent child past --max-wall=2 exits runner 124 (observed rc=124)\nPASS       a3-wall-kill-named  stderr names the guard (wall ceiling ...)\nPASS       a3-record-exists  run record written\nPASS       a3-killed-by-wall  run record killed_by='wall' (observed 'wall')\nPASS       a3-signal-9  run record signal=9 (observed '9')\nPASS       a3-wall-budget-recorded  run record wall_budget=2 (observed '2')\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a3-red  wall-ceiling disarmed -> child finishes (rc=0); exit-124 assertion detects it\n== A4: memory-pressure host guard (L3, ram-policy §4.4) ==\nPASS       a4-clean-exit  injected pressure 4: child completes, runner exits 0 (observed rc=0)\nPASS       a4-alarm-line  stderr ALARM names level-4 pressure\nPASS       a4-record-host-alarms  run record host_alarms non-empty (observed count=1)\nPASS       a4-no-killed-by  pressure alarm never kills: killed_by absent/null (observed '')\nPASS       a4-record-exit-0  run record exit=0 (observed '0')\nPASS       a4-null-no-alarm  level 1 (normal): no ALARM line on stderr\nmutant: 1 occurrence(s) replaced\nRED-CAUGHT a4-red  threshold 'level>=2' -> 'level>=5': critical pressure raises no alarm; assertion detects it\n== A5: run record kind declared (T895) ==\nPASS       a5-child-exit-forwarded  child exit 7 forwarded verbatim (observed rc=7)\nPASS       a5-record-exists  run record written\nPASS       a5-run-kind-dispatch  run record run_kind='dispatch' (observed 'dispatch')\nPASS       a5-run-kind-reason  run record run_kind_reason non-empty\nPASS       a5-attempt-1  run record attempt=1 (observed '1')\nPASS       a5-nested-rc  nested child exit 11 forwarded (observed rc=11)\nPASS       a5-nested-file  nested record exists under untracked/runs/nested/\nPASS       a5-nested-kind  nested record run_kind='nested' (observed 'nested')\nPASS       a5-dispatch-slot-kept  dispatch slot bare record kept with run_kind='dispatch' (observed 'dispatch')\nmutant: 2 occurrence(s) replaced\nRED-CAUGHT a5-red  run_kind field removed -> assertion fails on mutant\n== Summary ==\nPASS       a1-refuse-exit3  standalone admit with avail=1000 need=10000 refuses (observed rc=3)\nPASS       a1-verdict-json  refusal verdict carries admit:false\nPASS       a1-ledger-unmutated  a refusal mutates nothing: identity NOT admitted into the ledger (row stays dispatchable)\nPASS       a1-null-admits  null control: same need with avail=100000 admits (observed rc=0)\nPASS       a1-committed-sum  committed lane counts against the next candidate (avail 10000, held 4000, want 8000 -> refuse; observed rc=3)\nPASS       a1-launch-refused  launch path refuses pre-spawn (observed rc=3)\nPASS       a1-launch-nospawn  nothing spawned on refusal: child marker file absent\nPASS       a1-launch-names-reason  refusal names itself loudly on stderr (ARBITER REFUSED)\nRED-CAUGHT a1-red  reserve-floor deleted -> mutant admits (rc=0); exit-3 assertion detects it\nPASS       a2-boundaries  wall-band boundaries match ram-policy.md §3.2 (observed rc=0)\nRED-CAUGHT a2-red  boundary shifted '< 600' -> '<= 600' (600 s under-declares); assertion detects it\nPASS       a3-wall-kill-exit124  silent child past --max-wall=2 exits runner 124 (observed rc=124)\nPASS       a3-wall-kill-named  stderr names the guard (wall ceiling ...)\nPASS       a3-record-exists  run record written\nPASS       a3-killed-by-wall  run record killed_by='wall' (observed 'wall')\nPASS       a3-signal-9  run record signal=9 (observed '9')\nPASS       a3-wall-budget-recorded  run record wall_budget=2 (observed '2')\nRED-CAUGHT a3-red  wall-ceiling disarmed -> child finishes (rc=0); exit-124 assertion detects it\nPASS       a4-clean-exit  injected pressure 4: child completes, runner exits 0 (observed rc=0)\nPASS       a4-alarm-line  stderr ALARM names level-4 pressure\nPASS       a4-record-host-alarms  run record host_alarms non-empty (observed count=1)\nPASS       a4-no-killed-by  pressure alarm never kills: killed_by absent/null (observed '')\nPASS       a4-record-exit-0  run record exit=0 (observed '0')\nPASS       a4-null-no-alarm  level 1 (normal): no ALARM line on stderr\nRED-CAUGHT a4-red  threshold 'level>=2' -> 'level>=5': critical pressure raises no alarm; assertion detects it\nPASS       a5-child-exit-forwarded  child exit 7 forwarded verbatim (observed rc=7)\nPASS       a5-record-exists  run record written\nPASS       a5-run-kind-dispatch  run record run_kind='dispatch' (observed 'dispatch')\nPASS       a5-run-kind-reason  run record run_kind_reason non-empty\nPASS       a5-attempt-1  run record attempt=1 (observed '1')\nPASS       a5-nested-rc  nested child exit 11 forwarded (observed rc=11)\nPASS       a5-nested-file  nested record exists under untracked/runs/nested/\nPASS       a5-nested-kind  nested record run_kind='nested' (observed 'nested')\nPASS       a5-dispatch-slot-kept  dispatch slot bare record kept with run_kind='dispatch' (observed 'dispatch')\nRED-CAUGHT a5-red  run_kind field removed -> assertion fails on mutant\n\nTOTAL green checks: 30  FAILED: 0\nTOTAL red controls: 5  MISSED: 0\nRESULT: PASS — all green arms held and all red controls caught.\nreal 22.85\nuser 5.52\nsys 3.02\nRC=0\n"
+    },
+    {
+      "task_id": "T920",
+      "model": "claude-sonnet-5",
+      "script": "untracked/race-j/sonnet/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 647.1,
+      "output": "==========================================================================\nassertion 1 — admission refuses a lane whose declared RAM does not fit\n(ram-policy.md §4.1); refused, not killed; the row stays dispatchable.\n==========================================================================\n    PASS: exact boundary (projected == RESERVE_MB == 4608) admits (exit 0, observed)\n    PASS: one MB over the boundary (projected == 4607) refuses (exit 3, observed — the same arithmetic caught on the opposite side)\n    PASS: full launch path: refused before spawn, nothing ran, row untouched (observed marker absent + exit 3)\n\n==========================================================================\nassertion 2 — the wall-band RAM declaration is correct at each band\nboundary (60s, 600s, 1800s) — bin/subagent._wall_band_ram_mb\n==========================================================================\n    PASS: all 6 boundary points (59/60/599/600/1799/1800) match ram-policy.md §3.2's table (observed, real bin/subagent)\n[subagent] T631 WARNING: pin failed (git show HEAD:tools/dispatch_verify.py exited 128) — importing the working-tree copy of tools/dispatch_verify.py; a mid-edit file CAN reach this verifier\n    PASS: seeded off-by-one (< 60 -> <= 60) caught: mutant returns 768 at wall=60 where 1792 is correct (observed red)\n\n==========================================================================\nassertion 3 — a lane exceeding --max-wall is terminated, attributably\n==========================================================================\n    PASS: lane finishing under --max-wall completes clean, killed_by unset (observed exit 0)\n    PASS: lane exceeding --max-wall is SIGKILLed, exit 124, killed_by=wall (observed, attributable)\n\n==========================================================================\nassertion 4 — the memory-pressure host guard, sustained past threshold\n(NOTE: current policy is ALARM-NEVER-KILL, not kill — see header note;\nchecked against the ratified contract, ram-policy.md §4.3-4.4/INV-1)\n==========================================================================\n    PASS: no injected pressure -> no alarm (observed exit 0, no ALARM line)\n    PASS: sustained kernel pressure (level=4, dwell>=2s) alarms, names a consumer, writes host_alarms, and never kills (observed)\n\n==========================================================================\nassertion 5 — a run record is written with its kind declared, so reap\nreads the dispatch record (run_kind: dispatch|nested)\n==========================================================================\n    PASS: a top-level launch records run_kind=dispatch, a launch inside its own dispatch (MANAGENT_RUN_IDENTITY match) records run_kind=nested (both observed)\n    PASS: seeded corruption caught: a record with run_kind stripped reads back as 'None', not 'dispatch' (observed red)\n\n==========================================================================\n=== regression-runner-guard (sonnet lane): ALL CHECKS PASSED ===\nreal 14.60\nuser 3.58\nsys 1.88\nRC=0\n"
+    },
+    {
+      "task_id": "T939",
+      "model": "gemini-3.7-flash",
+      "script": "untracked/race-j/gflash/regression-runner-guard.sh",
+      "executed": true,
+      "exit_code": 0,
+      "wall_s": 141.8,
+      "output": "======================================================================\n  T939 regression-runner-guard: tools/runner guard verification\n======================================================================\n\n── Arm 1: RAM Admission Refusal vs Fit (ram-policy.md §4.1) ────────\n  PASS 1a: declared RAM exceeding reserve is refused (exit 3, nothing spawned)\n  PASS 1b: declared RAM fitting reserve is admitted (exit 0, child executed)\n  PASS 1c: --override-admission allows launch despite tight RAM (exit 0)\n\n── Arm 2: Wall-Band RAM Declaration at Band Boundaries ─────────────\n  PASS 2: < 60s band (interior: 30s) (wall=30s) -> 768 MB (expected 768 MB)\n  PASS 2: < 60s band (boundary below: 59s) (wall=59s) -> 768 MB (expected 768 MB)\n  PASS 2: 60-600s band (exact lower boundary: 60s) (wall=60s) -> 1792 MB (expected 1792 MB)\n  PASS 2: 60-600s band (interior: 300s) (wall=300s) -> 1792 MB (expected 1792 MB)\n  PASS 2: 60-600s band (boundary below: 599s) (wall=599s) -> 1792 MB (expected 1792 MB)\n  PASS 2: 600-1800s band (exact lower boundary: 600s) (wall=600s) -> 3072 MB (expected 3072 MB)\n  PASS 2: 600-1800s band (interior: 1200s) (wall=1200s) -> 3072 MB (expected 3072 MB)\n  PASS 2: 600-1800s band (boundary below: 1799s) (wall=1799s) -> 3072 MB (expected 3072 MB)\n  PASS 2: >= 1800s band (exact lower boundary: 1800s) (wall=1800s) -> 4608 MB (expected 4608 MB)\n  PASS 2: >= 1800s band (long run incident case: 10800s) (wall=10800s) -> 4608 MB (expected 4608 MB)\n  PASS 2 (null): explicit --ram-mb=8192 overrides wall band default (got 8192 MB)\n\n── Arm 3: Wall Ceiling Termination (--max-wall) and Attribution ────\n  PASS 3a: command within --max-wall exits cleanly (exit 0)\n  PASS 3b: command exceeding --max-wall killed (exit 124, SIGKILL/signal 9, killed_by='wall')\n\n── Arm 4: Memory Overrun RSS Cap Kill & Pressure Alarm ─────────────\n  PASS 4a: process within RSS cap completes cleanly (exit 0)\n  PASS 4b: process exceeding RSS cap killed (exit 124, killed_by='rss', peak_rss=88MB > 30MB)\n  PASS 4c: L3 kernel memory pressure emits ALARM without killing task (exit 0, INV-1 satisfied)\n\n── Arm 5: Run Record Kind & Reap Safety (T895) ─────────────────────\n  PASS 5: dispatch record preserved as run_kind='dispatch', nested run isolated to untracked/runs/nested/ (run_kind='nested')\n\n── Arm 6: Zig Build Optimization Enforcement (ReleaseFast) ─────────\n  PASS 6: ReleaseFast prepended for zig build and zig run\n\n── Arm 7: Sleep Guard Caffeinate Assertion ─────────────────────────\n  PASS 7: sleep guard active and recorded (sleep_prevented=true)\n\n======================================================================\n  ALL ARMS PASSED (0 failures)\nreal 14.89\nuser 5.36\nsys 2.35\nRC=0\n"
+    }
+  ],
+  "independent_red_controls": [
+    {
+      "anchor": null,
+      "evidence": "{\"admit\": true, \"avail_mb\": 1000, \"committed_mb\": 0, \"reserve_mb\": 4608, \"projected_mb\": -9000, \"reason\": \"fits\"}\n[runner] ARBITER ADMITTED admission: ram_mb=10000 committed_mb=0 avail_mb=1000\n",
+      "id": "admission",
+      "mutant_rc": 0,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "[runner] WARNING: docs/infra/harness-p95.md unreadable — using fallback fuse thresholds (T659)\n[runner] argv = python3 -c 'import time;time.sleep(2)'\n[runner] guards: rss 12288 MB (default), no declar",
+      "id": "max-wall",
+      "mutant_rc": 0,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "[runner] WARNING: docs/infra/harness-p95.md unreadable — using fallback fuse thresholds (T659)\n[runner] argv = python3 -c 'import time;time.sleep(2)'\n[runner] guards: rss 12288 MB (default), no declar",
+      "id": "pressure-alarm",
+      "mutant_rc": 0,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "[runner] WARNING: docs/infra/harness-p95.md unreadable — using fallback fuse thresholds (T659)\n[runner] argv = python3 -c 'import time;time.sleep(3)'\n[runner] guards: rss 12288 MB (default), no declar",
+      "id": "pressure-never-kills",
+      "mutant_rc": 124,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "record run_kind=None",
+      "id": "run-kind",
+      "mutant_rc": 0,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "[runner] WARNING: docs/infra/harness-p95.md unreadable — using fallback fuse thresholds (T659)\n[runner] argv = python3 -c 'x=bytearray(200*1024*1024); import time; time.sleep(2)'\n[runner] guards: rss ",
+      "id": "rss-cap",
+      "mutant_rc": 0,
+      "red_observed": true
+    },
+    {
+      "anchor": null,
+      "evidence": "mutant wall=60 -> 768",
+      "id": "wall-band",
+      "mutant_rc": "n/a",
+      "red_observed": true
+    }
+  ],
+  "grading": {
+    "rubric": "proven-red assertions, weighted against the five named assertions; green alone is not credit",
+    "named_assertions": [
+      "RAM refusal",
+      "wall-band boundaries",
+      "max-wall termination",
+      "memory-pressure kill/alarm contract",
+      "run-record kind"
+    ],
+    "scores": [
+      {
+        "task_id": "T916",
+        "model": "oxalpha",
+        "proven_red": 5,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "winner-tie"
+      },
+      {
+        "task_id": "T917",
+        "model": "deepseek-v4-flash",
+        "proven_red": 5,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "winner-tie"
+      },
+      {
+        "task_id": "T918",
+        "model": "deepseek-v4-pro",
+        "proven_red": 4,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "second-tier"
+      },
+      {
+        "task_id": "T919",
+        "model": "kimi-k2.7",
+        "proven_red": 5,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "winner-tie"
+      },
+      {
+        "task_id": "T920",
+        "model": "claude-sonnet-5",
+        "proven_red": 2,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "partial"
+      },
+      {
+        "task_id": "T939",
+        "model": "gemini-3.7-flash",
+        "proven_red": 0,
+        "named_total": 5,
+        "green_script_exit": 0,
+        "mechanical_verdict": "unproven"
+      }
+    ],
+    "winner": "Tie: T916 oxalpha, T917 deepseek-v4-flash, and T919 kimi-k2.7 each proved red controls for all five named assertions. T916/oxalpha is the recommended landing candidate because its five-arm suite includes the broadest named checks and independently reproduced red controls; T917 is the best second candidate because it also includes the RSS-overrun extra. This tie is a mechanical tie, not a model capability ranking.",
+    "recommended_land": "Prefer the oxalpha script as the landing base, borrowing dsflash's RSS-overrun A7 arm and preserving only controls whose red behavior is retained. Do not land gflash, and do not land sonnet without adding seeded red controls for its uncovered named assertions."
+  },
+  "absent_arms": {
+    "T916": {
+      "classification": "served-and-completed",
+      "evidence": "untracked/runs/T916.json has task=T916, exit=0, wall=767.7, tokens_in=1963921, tokens_out=20329, and session_path=untracked/tokens/sessions/T916.1787653217776725000.42507.0.jsonl; the session has 1,141,135 bytes and the run record has run_kind=dispatch. This is not never-served or cut-off."
+    },
+    "all_six_present": true
+  },
+  "sealed_boundary_checks": [
+    {
+      "arm": "ox-alpha/T916",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    },
+    {
+      "arm": "dsflash/T917",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    },
+    {
+      "arm": "dspro/T918",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    },
+    {
+      "arm": "kimi/T919",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    },
+    {
+      "arm": "sonnet/T920",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    },
+    {
+      "arm": "gflash/T939",
+      "status": "pass",
+      "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
+    }
+  ],
+  "honesty": [
+    {
+      "arm": "oxalpha/T916",
+      "declared_gaps": "RSS cap, CPU ceiling, dispatch-layer row relisting, directives, progress/orphan/token paths.",
+      "assessment": "Candour accurate; the script covers only the declared runner scope."
+    },
+    {
+      "arm": "dsflash/T917",
+      "declared_gaps": "Reap join, provider liveness, token/session capture, orphan sweeper, directives, and RSS/other extras outside A7.",
+      "assessment": "Candour accurate; its A7 RSS arm is an extra and its five named mappings are explicit."
+    },
+    {
+      "arm": "dspro/T918",
+      "declared_gaps": "Wall-band A2 and reap join, plus literal obsolete kill wording.",
+      "assessment": "Candour accurate; A2 is intentionally not covered and must not score as proven."
+    },
+    {
+      "arm": "kimi/T919",
+      "declared_gaps": "RSS cap, CPU ceiling, row relisting, directives, progress/orphan/token paths.",
+      "assessment": "Candour accurate; it explicitly reports the untested RSS path."
+    },
+    {
+      "arm": "sonnet/T920",
+      "declared_gaps": "CPU ceiling, resident override, explicit RAM precedence, RSS path, reap reader, liveness fuses.",
+      "assessment": "Partly accurate but materially incomplete about red sensitivity: A1, A3, and A4 have no seeded red control in the script; only A2 and A5 are proven red."
+    },
+    {
+      "arm": "gflash/T939",
+      "declared_gaps": "Orphan/live-host/API/network scenarios.",
+      "assessment": "Not candid about sensitivity: findings claims fail controls were observed, but the script contains no mutation/red-control path (no mutate/mutant/red checks), so all seven assertions are green-only."
+    }
+  ],
+  "notes": "Identifier: gpt-5.6-luna-pro/T941 (leaf; no dispatch). Landmark: advances L1 (the dashboard tells the truth) by selecting a real runner-guard gate; no production tools/ files were changed. All six required arms were served: T916 was specifically classified served-and-completed from its session and run record, not treated as absent. Each script was run alone, sequentially, against its own scratch repository. Inbox polled at start, between runs, before findings, and before close; every poll was empty (no D0NN directive). Independent red-control audit used fresh scratch copies and reproduced admission, wall-ceiling, pressure-alarm threshold, pressure-never-kills, RSS-cap, and wall-band mutants; the run_kind mutation was also independently reproduced after correcting the audit anchor to the load-bearing record field. T920 and T939 are not green-gate recommendations despite exit 0: the house rule counts only demonstrated red controls. The recommended landing is T916/oxalpha as the mechanical winner tie-break, with T917/dsflash A7 RSS coverage retained if its red control remains passing."
+}
