@@ -92,6 +92,18 @@ does not read it.
    section prints `(none)`. Found by tripping it: four gate runs and a hand bisection over eight
    candidate paths to identify one citation. Fifth instance of a generic symptom hiding a specific
    cause, and the first one this landmark's own gate produced.
+5. **T925 reclassified DISCUSS → AUTO**, rank 8. It was held for "needs a format ruling", but items
+   1–3 are measurement and need nobody, and the ruling in item 4 cannot be made honestly until they
+   are done. Item 4 now says *recommend, with the RAM figure for both candidates; the ruling is the
+   operator's*. The row runs; the decision waits for its output.
+6. **T735 retired unrun** — ox-alpha shadow arm of race G. Its bundle pointed at a file that does
+   not exist; race G was contaminated on 2026-08-23 when T731 repaired the register from the BARE
+   arm mid-race and erased all four seeded canaries before this lane finished; and ox-alpha is off
+   the dispatch list under B4. Three independent reasons, none fixable by re-running it.
+
+**DISCUSS is now 15 rows, and 10 of them are races.** Whether the parked races (Race J's five arms,
+T830, T753, T782, T529) are still wanted under "model-perf is deprioritised" is the next question
+worth the operator's time — it is the largest block of held work and nobody has said keep or kill.
 
 ### Observed live: the T922 shared-writer sweep
 

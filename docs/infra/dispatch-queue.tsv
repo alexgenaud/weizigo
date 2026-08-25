@@ -27,7 +27,7 @@ T787	18	5400	AUTO	one home for sprint documents
 T715	19	1800	AUTO	record the incident in the guard doc
 T713	20	2700	AUTO	qwen-resident dispatch check
 T798	21	5400	AUTO	harness kill visible in kanban
-T925	22	3600	DISCUSS	5xN frontier: WZO1 vs WZO2 — needs a format ruling; cost of the folds is unmeasured
+T925	8	3600	AUTO	5xN frontier WZO1 vs WZO2 — RECLASSIFIED AUTO 2026-08-25 (T935): items 1-3 are measurement and need no ruling; item 4 now recommends with numbers and leaves the ruling to the operator
 T928	6	3600	AUTO	detached jobs: pid + log — RECLASSIFIED AUTO 2026-08-25 (T935): the brief already carries the operator's verbatim design and records that the over-built draft was rejected; there is no shape left to agree. Prerequisite for the 4x4 run.
 T936	7	7200	AUTO	4x4.D3 full run — detached compute; blocked on T928, controls-first, censored results reported as censored
 T937	7	3600	AUTO	C2 counts a dangling path it will not name — gate blocks with an unnamed integer
@@ -46,4 +46,3 @@ T753	35	3600	DISCUSS	race oxalpha against the field — race
 T782	36	3600	DISCUSS	race-w blind rejudge judge 3 — race
 T529	37	3600	DISCUSS	grand race P0 — race, and 5d old with a 558-byte brief
 T535	38	3600	DISCUSS	Stage-4 clean-story spec — spec work; needs the operator in the loop by design
-T735	39	3600	DISCUSS	BRIEF MISSING — write it or retire it - cannot be run either way
