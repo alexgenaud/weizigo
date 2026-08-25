@@ -1,0 +1,8 @@
+{
+  "task_id": "T975",
+  "date": "2026-08-25",
+  "model": "gpt-5.6-luna-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Spec-only sealed Race A arm; no build and no solve run. Wrote untracked/races/A-spec/gptluna/spec.md. The spec makes nine decisions with nine red-then-green acceptance arms: full population, uncapped per-root budget, explicit censoring, writes-off mode, 4x3 null, contiguous seeded scheduling defect, killed-run resume, 72-hour partial-stop policy, and detached provenance. Re-checked T924/T929/T930/T932 numbers against repository sources. Correctly distinguishes T924's 10,367,922 ko-sensitive side-slots from the finisher's orbit-representative work list and requires the latter to be measured. Inbox checked at claim, before writing, and before done; no directives were pending. No claim-status or register-row proposal. Test-first classification: not applicable to a specification-only deliverable; red-green acceptance arms are specified for T936's implementation/run. Landmark: advances L2 (proven 4x4 values) by defining the evidence-grade run gate."
+}
