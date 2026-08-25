@@ -132,6 +132,12 @@ make_managent_stub() { # $1 = dir
 case "$1" in
   reap) echo "orphans: 0" ;;
   assign) echo '{"id":"T9991","method":"stub","model":"stub-model","candidates":[],"reasons":[]}' ;;
+  dispatch)
+    # T961 (one door): pop-next calls `managent dispatch`, which records and
+    # then launches bin/dispatch. The stub delegates, so the refusal under
+    # test is still bin/dispatch's own message, unchanged.
+    shift; id=$1; shift
+    exec ./bin/dispatch "$id" stub-model "$@" ;;
 esac
 exit 0
 EOF
@@ -191,14 +197,14 @@ import sys, re
 p = sys.argv[1]
 s = open(p).read()
 # revert the fix exactly: drop the whole-refusal branch, keep the old tail -1
-fixed = '''  out=$(bin/dispatch "$pick" "$model" --wall=7200 2>&1); rc=$?
+fixed = '''  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 2>&1); rc=$?
   if [ "$rc" -eq 0 ]; then
     echo "$out" | tail -1
   else
     echo "pop-next: dispatch REFUSED $pick (rc=$rc) — full message follows:"
     echo "$out" | sed 's/^/  | /'
   fi'''
-old = '''  out=$(bin/dispatch "$pick" "$model" --wall=7200 2>&1); rc=$?
+old = '''  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 2>&1); rc=$?
   echo "$out" | tail -1'''
 if fixed in s:
     open(p, "w").write(s.replace(fixed, old))

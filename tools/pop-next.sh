@@ -103,6 +103,14 @@ for _,t in rows:
     if not v or v.get('status')!='dispatchable': continue
     if t in live:
         print("SKIP\t%s\tlive runner already (store not yet claimed)"%t); continue
+    import glob as _g
+    fails=0
+    for rf in _g.glob('untracked/runs/%s.*.json'%t)+['untracked/runs/%s.json'%t]:
+        try: rd=json.load(open(rf))
+        except Exception: continue
+        if rd.get('exit') not in (0,None) and (rd.get('wall') or 0) < 120: fails+=1
+    if fails >= 5:
+        print("FAILCAP\t%s\t%d"%(t,fails)); continue
     clash=[h for h in (v.get('holds') or []) if h in held]
     if clash:
         print("SKIP\t%s\t%s"%(t,','.join(clash))); continue
@@ -129,9 +137,19 @@ for _,t in rows:
     break
 PYP
 )
+  echo "$choice" | grep '^FAILCAP' | while IFS="$(printf '\t')" read -r _ t n; do
+    echo "pop-next: skip $t — $n fast failures already; not re-dispatching. Investigate, then delete its untracked/runs/$t.*.json attempts to clear."
+  done
   echo "$choice" | grep '^SKIP' | while IFS="$(printf '\t')" read -r _ t f; do
     echo "pop-next: skip $t — held file busy: $f"
   done
+  # ── retry cap ───────────────────────────────────────────────────────────
+  # T873 was re-dispatched 30 times in 30 minutes, once per tick, each attempt
+  # dying in 18.7 s with exit 1 and zero tokens, because Ollama's weekly limit
+  # had run out. The row reads `dispatchable` the whole time (the lane dies
+  # before it can claim), so nothing stopped the loop. A row with N recent
+  # failed attempts is skipped and named; the operator decides what to do
+  # about it, which is the whole point of surfacing rather than retrying.
   echo "$choice" | grep '^UNSPEC' | while IFS="$(printf '\t')" read -r _ t f; do
     echo "pop-next: skip $t — UNSPEC (no acceptance= in $f); specify it to make it runnable"
   done
@@ -189,7 +207,10 @@ PYP
   # at 2 against claude=3, deepseek=3, other=4. If the credit picture changes,
   # the lever is the CAP, not the exclusion: benching a whole provider is what
   # left three families covering eight lanes earlier today.
-  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-local}"
+  # ollama-cloud is OUT again: the weekly limit was exhausted 2026-08-25 and
+  # does not reset until Sunday. This is a fact about the provider, not a
+  # policy, so it stays until the reset regardless of the four-provider goal.
+  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-local,ollama-cloud}"
 
   # ── a pinned model wins over the mechanized draw ────────────────────────
   # A race arm is only a race arm if it runs on the model it is an arm FOR.
@@ -244,7 +265,10 @@ except Exception: print('')" 2>/dev/null)
   # operator asked whether it was working. The gate named its subject; this
   # line discarded it. On success bin/dispatch's last line is the summary, so
   # keep that shape for the success case only.
-  out=$(bin/dispatch "$pick" "$model" --wall=7200 2>&1); rc=$?
+  # T961 landed the one-door rule: bin/dispatch now REFUSES a direct call, and
+  # this script was calling it directly -- so the dispatcher was refused by the
+  # gate it had itself queued. Go through the door like everything else.
+  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 2>&1); rc=$?
   if [ "$rc" -eq 0 ]; then
     echo "$out" | tail -1
   else

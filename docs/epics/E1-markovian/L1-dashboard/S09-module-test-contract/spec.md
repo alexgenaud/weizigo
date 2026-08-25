@@ -672,6 +672,18 @@ test tools/regression-subagent-prompt.sh covers bin/subagent
 test tools/regression-task-id-archive.sh covers src/managent
 test tools/regression-task-identity.sh covers src/managent
 test tools/regression-window-resilience.sh covers tools/window_policy.py tools/fleet-keeper.sh
+test tools/regression-refusal-names-subject.sh covers src/claimlint.zig src/managent tools/regression-ollama-dispatcher.sh tools/regression-managent-duty.sh tools/hooks/pre-commit tools/pop-next.sh
+
+**Declared-and-absent (T953 D3, 2026-08-25):** the hook now verifies every SELECTED script
+exists before anything runs, and a missing one is refused **at contract level** —
+`declared and absent: <script> (declared in <contract>)` for a coverage line,
+`… (declared in the fast pool of tools/hooks/pre-commit)` for a pool entry. The
+refusal fires before the known-red baseline is consulted, so a baseline can never
+absorb a deleted suite. This is the failure the 2026-08-24 deletion of
+`tools/regression-store-census.sh` (232 lines) exposed: `sh: can't open` read as an
+opaque red name, the baseline called it KNOWN RED (non-blocking), and the commit
+landed with a suite silently gone. A declared suite that does not exist is a
+contract failure, not a red test.
 
 **Not declared** (deliberately — they run in `zig build test`, not pre-commit selection):
 `regression-argus-doctor` (state-dependent), `regression-battery-baselines`/`regression-battery-sweep`
@@ -721,9 +733,7 @@ Disposition vocabulary: `repair` (fix code/fixture) · `repoint` (re-aim the ass
 `deploy` (self-heals via `zig build deploy-*`) · `not-precommit` (slow/stateful; full-suite tier).
 
 <!-- machine: known-red (format: known-red <script> <owner> <disposition>; parsed at line start) -->
-known-red tools/regression-store-census.sh T953 repair
-known-red tools/regression-ollama-dispatcher.sh T953 repair
-known-red tools/regression-managent-duty.sh T953 repair
+known-red tools/regression-refusal-names-subject.sh T953 repair
 known-red tools/regression-argus-doctor.sh T442 repair
 known-red tools/regression-battery-baselines.sh stream2b-green not-precommit
 known-red tools/regression-battery-sweep.sh stream2b-green not-precommit
