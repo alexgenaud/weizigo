@@ -1,0 +1,35 @@
+[
+  {
+    "task_id": "T894",
+    "verdict": "pass-with-findings",
+    "work_actually_done": "complete",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "verified",
+    "useful": "yes",
+    "note": "queue-head readiness ordering live and 9/9 controls green, but the lane exited 0 without writing findings or closing — absorbed by T935.",
+    "reason": "verdict: pass-with-findings — the fix and regression are real and verified, but the worker never self-closed and its findings file was written post-hoc by seat T935.\nwork_actually_done: complete — src/managent/main.zig (+204) + tools/regression-queue-ordering.sh (9/9 green on re-run) + build.zig wiring all landed in b27c7f0.\nverdict_accurate_if_closed_pass: no — a plain pass elides the absent self-close and the honest-but-empty estimate column (UNKNOWN on all 37 dispatchable rows).\nabsorbed: yes — committed b27c7f0; fix live in src/managent/main.zig, regression wired into zig build test.\nself_reported_or_verified: verified — T935 independently re-ran the regression (9/9) and smoked the real queue; the worker's own assertion was never made.\nuseful: yes — the operator's queue-head complaint is fixed."
+  },
+  {
+    "task_id": "T924",
+    "verdict": "pass-with-findings",
+    "work_actually_done": "complete",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "verified",
+    "useful": "yes",
+    "note": "4x4.D3 measured (NOT tractable writes-off), but the lane was 429-cut-off before writing its deliverables and its headline projection was 7.585x high until T929 re-weighted it.",
+    "reason": "verdict: pass-with-findings — the measurement is real and the ruling holds, but the lane never self-delivered and its headline number was wrong.\nwork_actually_done: complete — 68-min ladder 2x2->4x4 with both writes-off/writes-on arms ran to completion; real per-root data committed in docs/evidence/T924/.\nverdict_accurate_if_closed_pass: no — a plain pass hides the 7.585x unweighted-mean sampling error in the 202.5-1620 h headline (corrected to 26.8-214.7 h by T929).\nabsorbed: yes — docs/research/4x4-d3-tractability.md + docs/evidence/T924/ + goban-scaling.jsonl committed; independently re-derived by T929.\nself_reported_or_verified: verified — recovered from the lane transcript by T914 and independently re-derived/corrected by T929.\nuseful: yes — moved 4x4.D3 off UNTESTED and activated the ADR-0013 Track-B branch."
+  },
+  {
+    "task_id": "T943",
+    "verdict": "pass-with-findings",
+    "work_actually_done": "complete",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "self-reported",
+    "useful": "mixed",
+    "note": "moving-parts inventory + hygiene gate + scratch cleanup delivered, but the gate false-positived on the harness's caffeinate and was closed pass with its own acceptance RED.",
+    "reason": "verdict: pass-with-findings — the auto-close recorded pass is wrong; the row's own declared acceptance was RED on the live host (false-positive on harness caffeinate, fixed by T952).\nwork_actually_done: complete — all three declared deliverables present and committed (1d40645).\nverdict_accurate_if_closed_pass: no — tools/runner auto-closed pass on exit 0 + deliverables present while the acceptance test was actively failing.\nabsorbed: yes — docs/infra/moving-parts.md + tools/regression-moving-parts.sh wired into build.zig + bin/subagent atexit scratch fix all committed.\nself_reported_or_verified: self-reported — the worker's 'ALL CONTROLS PASSED' was its own assertion and was not run at close; the red gate was found post-close by the seat.\nuseful: mixed — the inventory and scratch cleanup are exactly what the operator asked for, but the gate broke zig build test until T952."
+  }
+]

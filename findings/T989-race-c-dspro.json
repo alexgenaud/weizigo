@@ -1,0 +1,9 @@
+{
+  "task_id": "T989",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "audited_by": "deepseek-v4-pro/T989",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race C close record (sealed arm dspro) for three finished lanes. All three verdicts are pass-with-findings, and a plain pass is inaccurate for each: T894 (queue-head ordering) — the fix and 9/9-control regression are real and committed, but the lane exited 0 without writing findings or running managent done; the findings file was written post-hoc by seat claude-opus-5/T935, so it is verified not self-reported. T924 (4x4.D3 tractability) — a genuine 68-min ladder was 429-cut-off before the lane wrote its deliverables, and its headline 202.5-1620 h projection was an unweighted mean 7.585x too high (corrected to 26.8-214.7 h by T929); the not-tractable ruling holds. T943 (moving-parts inventory) — deliverables present and useful, but tools/runner auto-closed it pass while its own declared acceptance (tools/regression-moving-parts.sh) was RED on the live host from a false-positive on the Claude harness caffeinate, later fixed by T952. Evidence read: untracked/runs/{T894,T924.1,T943}.json, docs/evidence/T924/lane-cutoff.md, the three findings files, docs/research/4x4-d3-{tractability,weighted-projection}.md, docs/infra/moving-parts.md, docs/infra/managent/archive.json, and git log for the touching commits; tools/regression-queue-ordering.sh re-run green (9/9). No inbox directives were pending (0 acked)."
+}
