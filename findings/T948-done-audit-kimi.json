@@ -1,0 +1,8 @@
+{
+  "task_id": "T948",
+  "date": "2026-08-25",
+  "model": "kimi-k2.7",
+  "claims": [],
+  "new_rows": [],
+  "notes": "DONE audit arm for kimi-k2.7. Audited all 24 assigned rows (12 control + 12 disjoint). Deliverables: docs/audits/done-audit-2026-08-25/kimi/records.json and analysis.md. Verdicts judged accurate in 23/24 rows; T943 closed pass while its own acceptance command was red. 17/24 rows were fully absorbed; T683's complete landmark backfill is currently write-only. The single most important pattern: runner exit 0 and in-git deliverables do not prove a row succeeded. Collector script: docs/audits/done-audit-2026-08-25/kimi/collector.py."
+}
