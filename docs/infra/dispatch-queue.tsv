@@ -42,14 +42,14 @@ T933	6	5400	AUTO	token ledger session join
 T923	7	3600	AUTO	commit gate reads worktree not index
 T922	8	5400	AUTO	build.zig undeclared shared writer
 T915	9	5400	AUTO	tools/runner coverage, red-first
-T873	10	14400	AUTO	green-up fix-test wave, 21 entries
-T874	11	10800	AUTO	green-up fix-code wave, 10 entries
+T873	2	14400	AUTO	green-up fix-test wave, 21 entries — PINNED ollama (operator: race Ollama)
+T874	2	10800	AUTO	green-up fix-code wave, 10 entries — PINNED ollama (operator: race Ollama)
 T892	12	5400	AUTO	directives reach the worker
 T768	14	2700	AUTO	identifier defaults from model at claim
 T770	15	2700	AUTO	task-ID mint consults archive
 T767	17	2700	AUTO	findings schema queued_kanban_rows
 T787	18	5400	AUTO	one home for sprint documents
-T715	19	1800	AUTO	record the incident in the guard doc
+T715	2	1800	AUTO	record the incident in the guard doc — PINNED ollama (operator: race Ollama)
 T713	20	2700	AUTO	qwen-resident dispatch check
 T798	0	5400	AUTO	harness kill visible in the kanban — HEAD of the main.zig chain T798->T815->T816; T816 is the close contract the computed close needs
 T925	8	3600	AUTO	5xN frontier WZO1 vs WZO2 — RECLASSIFIED AUTO 2026-08-25 (T935): items 1-3 are measurement and need no ruling; item 4 now recommends with numbers and leaves the ruling to the operator
