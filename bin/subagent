@@ -5,7 +5,8 @@
   --provider ollama      dispatch via Ollama (requires --model <tag>)
   --provider pi          dispatch via the pi harness, openrouter backend (requires --model <serving tag>)
   --model <tag>          Ollama model tag, e.g. glm-5.2:cloud (ollama only)
-  --wall=N               wall-clock guard, default 1800s
+  --wall=N               wall-clock guard, default 1800s; also sizes the
+                         RAM declaration (T913, ram-policy.md §3.2 bands)
   --rss-cap-mb=N         RSS cap in MB, default 4096 (deepseek only)
   --dry-run              print the command, spawn nothing
   --override-window-cooldown=<reason>
@@ -19,8 +20,8 @@
                          gate only in bin/dispatch is advisory, and the
                          probe lane went around it tonight.
   --ram-mb=N             declared peak RSS need in MB (ORC-GD-1); overrides
-                         the per-provider default (T821,
-                         docs/infra/host/ram-policy.md).
+                         the wall-band default (T913,
+                         docs/infra/host/ram-policy.md §3.2/§3.3).
   --override-admission=<reason>
                          bypass an admission REFUSAL for THIS launch only,
                          with the operator's reason REQUIRED (printed
@@ -28,8 +29,8 @@
                          decision, the --allow-unisolated spirit).  T821
                          replaces the T713 local-model-only gate with
                          admission for EVERY lane: the declared need (a
-                         registry figure for a resident local model, a
-                         per-provider default otherwise) is checked against
+                         registry figure for a resident local model, the
+                         wall-band figure otherwise) is checked against
                          what tools/runner's arbiter has already admitted;
                          list-wait is the intended behaviour — killing a
                          running lane is not.
@@ -331,27 +332,52 @@ def _ollama_offered_tags():
 # SAME tools/runner invocation that already wraps every lane (T677/D040) —
 # it does not re-implement the arithmetic.
 #
-# Defaults (ram-policy.md §2a/§3.3): a resident local model (provider
+# Defaults (ram-policy.md §3.2/§3.3, T913): the declared need keys on
+# EXPECTED WALL, not provider.  §3.1 measured the confound: every provider
+# converges (deepseek p95 3207, claude p95 3380, ollama-cloud p95 3184) —
+# provider identity reads a distribution whose shape is set by duration.
+# §3.2: run duration separates the distribution monotonically in every
+# quantile, so the declaration uses the four duration bands below, each
+# default = ceil(band p95 / 256 MB) × 256 MB (the rounding rule, retained
+# from ORC-GD-2 and re-pointed to p95).  A resident local model (provider
 # ollama, no `:cloud` suffix) declares the REGISTRY figure
 # (docs/infra/model-registry.md: "local, 18 GB MLX") — never a `ps` sample,
 # which is exactly what let the 2026-08-23 15:19:09 incident's tenant go
-# unseen (D1).  Every other lane (cloud-API, or an ollama `:cloud` tag)
-# declares its measured per-provider default.  `--ram-mb=N` overrides
-# either default with a stated value (ram-policy.md §3.3's override rule).
+# unseen (D1); that figure is a declaration about a MODEL, not a lane, and
+# is untouched by this row.  `--ram-mb=N` overrides any default with a
+# stated value (ram-policy.md §3.3's override rule).
 RESIDENT_MODEL_RAM_MB = 18432             # docs/infra/model-registry.md:62
-PROVIDER_RAM_MB_DEFAULT = {               # ram-policy.md §2a's measured table
-    "claude": 1024,
-    "deepseek": 2816,
-    "pi": 1024,
-}
-OLLAMA_CLOUD_RAM_MB_DEFAULT = 3328        # remote ollama-served models
+
+# Expected wall (seconds) → declared peak RSS (MB).  The four bands and the
+# rounding rule exactly as written in ram-policy.md §3.2:
+#   expected wall     n    p95   default
+#   < 60 s            97    570   768
+#   60–600 s         104   1626  1792
+#   600–1800 s       119   2992  3072
+#   ≥ 1800 s          45   4574  4608
+# Boundary convention (T913 acceptance arm 2): a boundary value (60, 600,
+# 1800) lands in the band it STARTS — exactly 60 s → 1792, exactly 600 s →
+# 3072, exactly 1800 s → 4608.  An off-by-one at a band edge silently
+# under-declares a whole class of lanes (the T912 failure mode).
+def _wall_band_ram_mb(wall_seconds):
+    if wall_seconds < 60:
+        return 768
+    if wall_seconds < 600:
+        return 1792
+    if wall_seconds < 1800:
+        return 3072
+    return 4608
 
 
-def _declared_ram_mb(provider, raw_model, flags):
+def _declared_ram_mb(provider, raw_model, flags, wall_seconds):
     """The RAM (MB) this lane declares at admission (ORC-GD-1).  An
     explicit --ram-mb=N always wins; otherwise a resident local model
     (provider ollama, no :cloud tag) declares the registry figure, and
-    every other lane declares its per-provider default."""
+    every other lane — cloud-API, or an ollama `:cloud` tag — declares
+    the wall-band figure for its expected wall (ram-policy.md §3.2).  A
+    wall that cannot be parsed falls back to the default 1800 s band,
+    i.e. the top band: over-declaring refuses admission (the row stays
+    dispatchable), under-declaring repeats the T912 death."""
     override = flags.get("ram-mb")
     if override not in (None, True):
         try:
@@ -360,9 +386,18 @@ def _declared_ram_mb(provider, raw_model, flags):
             pass  # fall through to the computed default
     if provider == "ollama":
         if raw_model and ":cloud" in raw_model:
-            return OLLAMA_CLOUD_RAM_MB_DEFAULT
+            return _wall_band_ram_mb(_wall_int(wall_seconds))
         return RESIDENT_MODEL_RAM_MB
-    return PROVIDER_RAM_MB_DEFAULT.get(provider, 3072)
+    return _wall_band_ram_mb(_wall_int(wall_seconds))
+
+
+def _wall_int(wall_seconds):
+    """The wall value as an int for band arithmetic; the default 1800 when
+    unparseable (safe direction — the ≥ 1800 s band)."""
+    try:
+        return int(wall_seconds)
+    except (TypeError, ValueError):
+        return 1800
 
 
 # ── sampling diagnostics (T711/T713), demoted by T821 ──────────────────
@@ -806,7 +841,7 @@ def main(argv):
     # canonical-label input (e.g. kimi-k2.7) declares the CLOUD figure — its
     # live tag kimi-k2.7-code:cloud carries :cloud — not the resident 18 GB
     # figure the bare canonical would imply.
-    ram_mb = _declared_ram_mb(provider, live_tag, flags)
+    ram_mb = _declared_ram_mb(provider, live_tag, flags, wall)
     arbiter_id = target  # stable per dispatch: the T-id or the file path
     override_admission = flags.get("override-admission")
     if override_admission is True:   # bare flag, no value

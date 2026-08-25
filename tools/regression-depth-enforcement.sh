@@ -48,11 +48,29 @@ SUBAGENT="$ROOT/bin/subagent"
 # T527 (T428 Phase B): the bin/ollama-subagent wrapper is removed; the guarded
 # Ollama path IS bin/subagent --provider ollama. Same controls, same semantics.
 ollama_sub() { "$SUBAGENT" --provider ollama "$@"; }
+# T913: every arm below dry-runs bin/subagent to assert DEPTH semantics — a
+# deterministic property — but the dry-run reaches its command through the
+# admission preview, whose verdict depends on host free memory at the moment
+# of the run (observed 2026-08-25T04:5xZ: the pre-commit fast tier caught
+# this script red on ARBITER WOULD REFUSE — glm-5.2:cloud now declares the
+# wall-band 4608, up from the deleted provider-keyed 3328, so the refusal
+# band widened).  The overrides keep the arms testing what they test;
+# --dry-run records nothing anywhere (depth-cap arms 3/3c refuse at the
+# depth gate BEFORE the preview, so the flags are inert there).
+DEPTH_OVERRIDES=(--override-admission=t913-depth-arm --override-window-cooldown=t913-depth-arm)
+ollama_sub() { "$SUBAGENT" --provider ollama "$@" "${DEPTH_OVERRIDES[@]}"; }
 DOC="$ROOT/docs/infra/agents/subdelegation.md"
 FAIL=0
 
 # Synthetic bundle in untracked/ — the T-ID branch requires it
-BUNDLE="$ROOT/untracked/T996-regression-depth.md"
+# T913: fixture id renumbered T996 -> T1025.  The pre-commit fast tier
+# (T861) runs the subagent-coverage candidates CONCURRENTLY, and
+# regression-ollama-dispatcher.sh also uses a T996 bundle — two live
+# untracked/T996-*.md files made every subagent dry-run refuse with
+# "expected one bundle for T996, found 2" (observed 2026-08-25T05:0xZ,
+# reproduced by running both scripts in parallel).  T1025 is unused by
+# any other regression script.
+BUNDLE="$ROOT/untracked/T1025-regression-depth.md"
 # T448: refuse to run if a previous run left live-tree residue behind.
 # The pre-T448 `rm -f` here was exactly the silent-overwrite behaviour
 # T448 calls out: a SIGKILLed previous run's bundle was quietly removed
@@ -69,7 +87,7 @@ if [ -e "$BUNDLE" ]; then
     echo "and re-run. The script will not silently overwrite — that hides evidence (T445)." >&2
     exit 3
 fi
-printf '<!--managent set=C deliverables=findings/T996-test.json-->\n# T996 — depth-enforcement test bundle\n' > "$BUNDLE"
+printf '<!--managent set=C deliverables=findings/T1025-test.json-->\n# T1025 — depth-enforcement test bundle\n' > "$BUNDLE"
 # T448: trap on EXIT/INT/TERM/HUP — previously EXIT only. The startup
 # check above is the load-bearing guard; this trap is the safety net.
 cleanup() { rm -f "$BUNDLE" 2>/dev/null || true; }
@@ -79,7 +97,7 @@ echo "=== depth-enforcement regression (T321, option b) ==="
 
 # ── null-1: human depth (unset) is NOT refused ───────────────────────────
 echo "  1. null: the ollama provider path at depth unset is NOT refused"
-OUT=$( (unset WEIZIGO_AGENT_DEPTH; ollama_sub T996 --model glm-5.2:cloud --dry-run) 2>&1)
+OUT=$( (unset WEIZIGO_AGENT_DEPTH; ollama_sub T1025 --model glm-5.2:cloud --dry-run) 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "ollama launch pi --model glm-5.2:cloud"; then
     echo "    PASS: prints command, RC 0 (not refused)"
@@ -90,7 +108,7 @@ fi
 
 # ── null-2: depth 1 is NOT refused ──────────────────────────────────────
 echo "  2. null: the ollama provider path at depth 1 is NOT refused"
-OUT=$(WEIZIGO_AGENT_DEPTH=1 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=1 ollama_sub T1025 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=2"; then
     echo "    PASS: stamps child depth 2, RC 0 (not refused)"
@@ -103,7 +121,7 @@ fi
 # T431: the bound moved from 2 to 3 so a manager may delegate a manager. The
 # bound itself is the principle and must still fire; only its value moved.
 echo "  3. seeded: the ollama provider path at cap depth 3 IS refused"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=3 ollama_sub T1025 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: refused at depth 3 (RC=$RC)"
@@ -117,7 +135,7 @@ fi
 # its own phase audits. Pre-T431 this was REFUSED, which is why sprints had
 # to ask the human to paste their dispatches.
 echo "  3b. null: the ollama provider path at manager depth 2 is NOT refused, stamps 3"
-OUT=$(WEIZIGO_AGENT_DEPTH=2 ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=2 ollama_sub T1025 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=3"; then
     echo "    PASS: manager may dispatch; child stamped depth 3"
@@ -130,7 +148,7 @@ fi
 # Pre-T431 every child was stamped 2 regardless of the parent's depth, so
 # depth carried no information about how deep the chain actually was.
 echo "  3c. null: depth increments (1 -> 2), not stamped flat"
-OUT=$(WEIZIGO_AGENT_DEPTH=1 "$SUBAGENT" --provider deepseek T996 --dspro --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=1 "$SUBAGENT" --provider deepseek T1025 --dspro --dry-run "${DEPTH_OVERRIDES[@]}" 2>&1)
 RC=$?
 if [ "$RC" -eq 0 ] && echo "$OUT" | grep -q "^WEIZIGO_AGENT_DEPTH=2"; then
     echo "    PASS: depth-1 parent stamps child 2"
@@ -141,7 +159,7 @@ fi
 
 # ── seeded-2: unreadable depth fail-closes to worker ────────────────────
 echo "  4. seeded: the ollama provider path fail-closes on an unreadable depth"
-OUT=$(WEIZIGO_AGENT_DEPTH=garbage ollama_sub T996 --model glm-5.2:cloud --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=garbage ollama_sub T1025 --model glm-5.2:cloud --dry-run 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: garbage depth treated as worker (RC=$RC)"
@@ -152,7 +170,7 @@ fi
 
 # ── seeded-3: bin/subagent DeepSeek->DeepSeek refusal still fires (bar) ──
 echo "  5. seeded: bin/subagent STILL refuses DeepSeek dispatch at cap depth 3"
-OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" --provider deepseek T996 --dspro --dry-run 2>&1)
+OUT=$(WEIZIGO_AGENT_DEPTH=3 "$SUBAGENT" --provider deepseek T1025 --dspro --dry-run "${DEPTH_OVERRIDES[@]}" 2>&1)
 RC=$?
 if [ "$RC" -ne 0 ] && echo "$OUT" | grep -q "REFUSED"; then
     echo "    PASS: existing edge still guarded (RC=$RC)"

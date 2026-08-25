@@ -306,7 +306,17 @@ printf '<!--managent set=G deliverables=findings/T997-test.json-->\n# T997 — d
 # script init (cleanup, EXIT/INT/TERM/HUP) already covers $BUNDLE and
 # the worker-act-on log. Overriding it here would have re-introduced
 # the EXIT-only coverage gap that T448 fixes.
-OUT=$(ollama_sub T997 --model minimax-m3 --dry-run 2>&1)
+# T913: this arm asserts the PROMPT paragraph, a deterministic property —
+# but it reached it through the admission preview, whose verdict depends on
+# host free memory at the moment of the run (observed 2026-08-25T01:58Z:
+# ARBITER WOULD REFUSE T997 — avail 24819 - committed 17664 - candidate
+# 4608 = 2547 < reserve 4608 — with the OLD 3328 declaration also refusing:
+# 3827 < 4608).  The override makes the arm test what it tests, matching
+# the wall-band declaration regression's own guard (T913).  --dry-run
+# records nothing anywhere.
+OUT=$(ollama_sub T997 --model minimax-m3 --dry-run \
+        --override-admission=t913-inbox-loop-arm \
+        --override-window-cooldown=t913-inbox-loop-arm 2>&1)
 if echo "$OUT" | grep -q "INBOX LOOP" && \
    echo "$OUT" | grep -q "managent inbox T997 --ack"; then
     echo "    PASS: dry-run prompt includes 'INBOX LOOP' and 'managent inbox T997 --ack'"

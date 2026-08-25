@@ -20,9 +20,10 @@ via `main(argv)`.
                                   injectable, None on failure (inert path)     only; no decision caller                      (tools/runner) reads its own copy
  4  _resident_tenant_mb           resident MLX/Ollama tenant RSS (MB),          demoted `sample` diagnostic   2026-08-24 T821  NO — the resident charge is now a
                                   declared or auto-detected                     only; no decision caller                      registry declaration (§2a), never this
- 5  _declared_ram_mb (T821)       the declared peak RSS need for admission      main(), the --arbiter-preview 2026-08-24 T821  NO — every lane's --ram-mb goes
-                                  (registry figure, per-provider default,       subprocess call and the                       missing/wrong, admission mis-sizes
-                                  or an explicit --ram-mb override)            real launch's cmd
+ 5  _declared_ram_mb (T913)       the declared peak RSS need for admission      main(), the --arbiter-preview 2026-08-25 T913  NO — every lane's --ram-mb goes
+                                  (registry figure for a resident local model,   subprocess call and the                       missing/wrong, admission mis-sizes
+                                  the wall-band figure otherwise, or an          real launch's cmd
+                                  explicit --ram-mb override)
  7  _pi_session_path              unique per-attempt session-file path for      main() (deepseek/ollama)      2026-08-22 T662  NO — pi/ollama lanes lose --session, the
                                   the token meter                                                                              token meter goes UNKNOWN for those lanes
  8  run_worker                    spawn + stream the worker subprocess,         main()                        2026-08-07 T411  NO — no lane could ever run
@@ -427,34 +428,79 @@ class TestLaneIsMemoryHeavyRemoved(unittest.TestCase):
 
 
 class TestDeclaredRamMb(unittest.TestCase):
-    """SHOULD (T821, ram-policy.md §2a/§3.3): a resident local model
-    (provider ollama, no :cloud tag) declares the REGISTRY figure; every
-    other lane declares its per-provider default; an explicit --ram-mb
-    override always wins."""
+    """SHOULD (T913, ram-policy.md §3.2/§3.3): the declared peak RSS need
+    keys on EXPECTED WALL, not provider — provider identity reads a
+    distribution whose shape is set by duration (§3.1: all providers
+    converge, p95 ≈ 3.2 GB).  Four duration bands; default =
+    ceil(band p95 / 256 MB) × 256 MB.  A resident local model (provider
+    ollama, no :cloud tag) declares the REGISTRY figure; an explicit
+    --ram-mb override always wins."""
 
-    CASES = [
-        ("ollama", "qwen3.8:27b-mlx", {}, sa.RESIDENT_MODEL_RAM_MB),
-        ("ollama", "glm-5.2", {}, sa.RESIDENT_MODEL_RAM_MB),
-        ("ollama", "glm-5.2:cloud", {}, sa.OLLAMA_CLOUD_RAM_MB_DEFAULT),
-        ("ollama", "qwen3.8:27b-mlx:cloud", {}, sa.OLLAMA_CLOUD_RAM_MB_DEFAULT),
-        ("deepseek", None, {}, sa.PROVIDER_RAM_MB_DEFAULT["deepseek"]),
-        ("claude", "claude-opus-5", {}, sa.PROVIDER_RAM_MB_DEFAULT["claude"]),
-        ("pi", "stealth/ox-alpha", {}, sa.PROVIDER_RAM_MB_DEFAULT["pi"]),
+    # band arithmetic (T913 acceptance arm 2): a boundary value (60, 600,
+    # 1800) lands in the band it STARTS — exactly 60 s → 1792, exactly
+    # 600 s → 3072, exactly 1800 s → 4608.  An off-by-one at a band edge
+    # silently under-declares a whole class of lanes (the T912 failure).
+    BAND_CASES = [
+        (0, 768), (1, 768), (59, 768),
+        (60, 1792), (599, 1792),
+        (600, 3072), (1799, 3072),
+        (1800, 4608), (1801, 4608), (10800, 4608),
     ]
 
-    def test_defaults_table(self):
-        for provider, raw_model, flags, expected in self.CASES:
-            with self.subTest(provider=provider, raw_model=raw_model):
+    def test_wall_band_arithmetic(self):
+        for wall, expected in self.BAND_CASES:
+            with self.subTest(wall=wall):
+                self.assertEqual(sa._wall_band_ram_mb(wall), expected)
+
+    def test_provider_neutral_same_wall_same_figure(self):
+        # the brief's headline: two providers with the same wall declare
+        # the SAME figure (pre-T913: claude 1024 vs deepseek 2816 at the
+        # same wall — the confound ram-policy.md §3.1 measured).
+        for wall in (30, 60, 600, 1800, 10800):
+            with self.subTest(wall=wall):
+                figs = {
+                    sa._declared_ram_mb("deepseek", None, {}, wall),
+                    sa._declared_ram_mb("claude", "claude-opus-5", {}, wall),
+                    sa._declared_ram_mb("pi", "stealth/ox-alpha", {}, wall),
+                    sa._declared_ram_mb("ollama", "glm-5.2:cloud", {}, wall),
+                }
+                self.assertEqual(len(figs), 1)
                 self.assertEqual(
-                    sa._declared_ram_mb(provider, raw_model, flags), expected)
+                    sa._declared_ram_mb("deepseek", None, {}, wall),
+                    sa._wall_band_ram_mb(wall))
+
+    def test_resident_model_registry_figure_unchanged(self):
+        # a declaration about a MODEL, not a lane — untouched by T913
+        self.assertEqual(
+            sa._declared_ram_mb("ollama", "qwen3.8:27b-mlx", {}, 10800),
+            sa.RESIDENT_MODEL_RAM_MB)
+        self.assertEqual(
+            sa._declared_ram_mb("ollama", "qwen3.8:27b-mlx", {}, 30),
+            sa.RESIDENT_MODEL_RAM_MB)
+        # a :cloud tag is a normal lane → the wall band, never the 18 GB
+        # resident figure
+        self.assertEqual(
+            sa._declared_ram_mb("ollama", "glm-5.2:cloud", {}, 600),
+            3072)
+
+    def test_unparseable_wall_falls_back_to_top_band(self):
+        # over-declaring refuses admission (the row stays dispatchable);
+        # under-declaring repeats the T912 death — so a bad wall reads as
+        # the default 1800 s band.
+        self.assertEqual(
+            sa._declared_ram_mb("claude", "claude-opus-5", {}, "abc"),
+            4608)
+        self.assertEqual(
+            sa._declared_ram_mb("claude", "claude-opus-5", {}, None),
+            4608)
 
     def test_explicit_override_always_wins(self):
         self.assertEqual(
-            sa._declared_ram_mb("ollama", "qwen3.8:27b-mlx", {"ram-mb": "500"}),
+            sa._declared_ram_mb("ollama", "qwen3.8:27b-mlx", {"ram-mb": "500"}, 10800),
             500,
         )
         self.assertEqual(
-            sa._declared_ram_mb("claude", "claude-opus-5", {"ram-mb": "9999"}),
+            sa._declared_ram_mb("claude", "claude-opus-5", {"ram-mb": "9999"}, 1800),
             9999,
         )
 
@@ -704,6 +750,7 @@ class TestMainRouting(unittest.TestCase):
         "WEIZIGO_AGENT_DEPTH": "1",
         "WEIZIGO_HOST_MEM_AVAIL_MB": "25000",
         "WEIZIGO_HOST_TOTAL_MB": "49152",
+        "WEIZIGO_OLLAMA_OFFERED": "glm-5.2:cloud,qwen3.8:27b-mlx",  # T913: pin T890 arm B so an ollama dry-run cannot refuse on the live host's tag list
         "WEIZIGO_DISPATCH_VERIFY_UNPINNED": "1",
         "DEEPSEEK_API_KEY": "unit-test-not-real",
         "PATH": os.environ.get("PATH", ""),
@@ -765,15 +812,17 @@ class TestMainRouting(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("stealth/ox-alpha", out)
 
-    def test_ollama_cloud_tag_dry_run_declares_remote_default(self):
-        # T821: a :cloud tag declares the small remote default, never the
-        # 18 GB resident-model registry figure.
+    def test_ollama_cloud_tag_dry_run_declares_wall_band_figure(self):
+        # T913: a :cloud tag is a normal cloud lane → the wall-band figure
+        # (default wall 1800 s sits in the ≥ 1800 s band → 4608), never the
+        # 18 GB resident-model registry figure.  Pre-T913 this asserted the
+        # deleted per-provider default (3328).
         rc, out, err = _run_main(
             ["--provider", "ollama", "--model", "glm-5.2:cloud", self.target, "--dry-run"],
             self.BASE_ENV)
         self.assertEqual(rc, 0)
         self.assertIn("glm-5.2:cloud", out)
-        self.assertIn(f"ram_mb={sa.OLLAMA_CLOUD_RAM_MB_DEFAULT}", err)
+        self.assertIn("ram_mb=4608", err)
 
     def test_ollama_local_tag_dry_run_declares_resident_registry_figure(self):
         # T821: a LOCAL ollama tag declares the registry figure (18432 MB)
