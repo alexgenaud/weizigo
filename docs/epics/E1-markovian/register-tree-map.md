@@ -241,6 +241,8 @@ a known node or a disposition marker (`RETIRED`), and (b) the mapping document's
 | `QA-023` | Z-R-TIE | Markovian state-sufficiency under a constant tie — the roadmap's load-bearing claim, UNTESTED-for-want-of-contrast |
 | `QA-025` | Z-TABLE-FAITHFUL | alias of GLOBAL.MIGOS-RULE |
 | `QA-026` | Z-CONVERGE-FIX | median(L,TIE,H) V-derivation falsified at 3x2 |
+| `QA-T922` | Z-AUDIT | build.zig undeclared shared writer — a TOOLING defect, not a claim about the goban; T922 dispositioned it as not-a-register-claim in findings/rejections.json and the row should leave CLAIMS.md §2. Mapped to the node the register itself declares (Z-AUDIT) so C9's denominator is honest until the row leaves. |
+| `QA-T922-R1` | Z-AUDIT | same defect, T922's own re-statement; same disposition. |
 | `QA-027` | Z-CONVERGE-FIX | certified fraction 100%-by-construction falsified at 4x4 — the V-derivation, not state-sufficiency |
 | `SPRINT-M4a-ACCEPT` | Z-TABLE-CONSISTENCY | A3/A9 internal consistency (A5 round-trip covered separately); scope caveat: not completeness |
 | `WZO2-4X4-VALID` | Z-COMPLETE-ENUM | closure untested — the artifact is not a verified perfect oracle |
