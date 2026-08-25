@@ -2,39 +2,7 @@
   "task_id": "T983",
   "date": "2026-08-26",
   "model": "claude-haiku-4-5-20251001",
-  "audited_by": "",
-  "claims": [
-    {
-      "id": "T963-BLOCKER-1",
-      "proposed_status": "PROVEN",
-      "rationale": "Missing reporting field → refused contradicts the bundle and S10 ratified direction (always close, never strand); spec inconsistently refuses worker-close but records-not-provided auto-close.",
-      "evidence_path": "untracked/races/B-failtrans/haiku/resolution.md"
-    },
-    {
-      "id": "T963-BLOCKER-2",
-      "proposed_status": "PROVEN",
-      "rationale": "Pass rate misstated as 92% (S10 era) vs 96% (bundle baseline of 521 closes: 502 pass-or-findings); spec anchors Epoch 1 definition to wrong baseline.",
-      "evidence_path": "untracked/races/B-failtrans/haiku/resolution.md"
-    },
-    {
-      "id": "T963-BLOCKER-3",
-      "proposed_status": "PROVEN",
-      "rationale": "fail-found exemplar T948 is pass-with-findings, not fail-found; actual fail-found row is T959 (closed 2026-08-25T13:55:34Z).",
-      "evidence_path": "untracked/races/B-failtrans/haiku/resolution.md"
-    },
-    {
-      "id": "T963-BLOCKER-4",
-      "proposed_status": "PROVEN",
-      "rationale": "T940 was not auto-closed; it was worker-closed (has verdict_note and impression). Auto-close marker appears on T943 and T786, not T940. Commit 7d4c8a9 is worker commit.",
-      "evidence_path": "untracked/races/B-failtrans/haiku/resolution.md"
-    },
-    {
-      "id": "T963-BLOCKER-5",
-      "proposed_status": "PROVEN",
-      "rationale": "Armed count wrong in three places: §9.4 omits TW-1..TW-3 (38 should be 41); §11 ledger missing S10-ATTEMPT and S10-STORE; total arithmetic wrong (32+16≠38, and 32≠25 S10 arms).",
-      "evidence_path": "untracked/races/B-failtrans/haiku/resolution.md"
-    }
-  ],
+  "claims": [],
   "new_rows": [],
-  "notes": "All five blockers verified by direct repository inspection. Blocker 1 requires decision on reporting-field enforcement (refusal vs visibility); Blockers 2-5 are factual/arithmetic corrections. Three red flags flagged in spec as open: decision 3's runner-exit mechanism (design-phase scope), blocked/abandoned concern path unimplemented (TC-8 gating decision needed), and reporting-field encoding unspecified (design-phase scope). Spec core architecture sound; corrections are factual and notation errors. Ready for judge review and implementation dispatch once corrections land."
+  "notes": "T983 Race B fail-transparency resolution (Haiku model). Five blockers from deepseek-v4-pro/T964 audit of T963 spec verified by direct repository inspection: (1) Refusal on missing reporting fields contradicts bundle/S10 'always close, never strand' (load-bearing design decision: record-not-provided + audit-visibility replaces refusal); (2) Pass rate misstated 92% vs 96% (bundle: 502 of 521 = 96%, not 444/92%); (3) fail-found exemplar wrong (T948 is pass-with-findings, not fail-found; actual is T959); (4) T940 not auto-closed (was worker-close with verdict_note, auto-marker on T943/T786 only); (5) Armed count wrong and inconsistent (41 not 38: 25 cited + 16 new, spec omits TW-1..TW-3 and S10-ATTEMPT/STORE in ledger). Resolution document untracked/races/B-failtrans/haiku/resolution.md provides replacement sections for each blocker plus guidance on three red flags (decision 3's runner-exit mechanism, TC-8 concern-channel gating, reporting-field encoding). Spec architecture sound; corrections are factual/arithmetic errors and design-decision clarity. Ready for judge review."
 }
