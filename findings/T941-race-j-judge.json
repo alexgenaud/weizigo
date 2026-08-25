@@ -183,7 +183,7 @@
   },
   "sealed_boundary_checks": [
     {
-      "arm": "ox-alpha/T916",
+      "arm": "oxalpha/T916",
       "status": "pass",
       "result": "No write outside the arm directory observed; script uses scratch state under /tmp/weizigo; live telemetry showed no fixture data."
     },
