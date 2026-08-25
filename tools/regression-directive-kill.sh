@@ -365,6 +365,12 @@ if [ -f "$ROOT/untracked/log/t616.log" ] && [ -f "$ROOT/untracked/runs/t616.json
     seed "$(rec_inprog T616)"
     mkdir -p untracked/log untracked/runs
     cp "$ROOT/untracked/log/t616.log" untracked/log/t616.log
+    # T874 R4: the fixture log accumulates content from T616 re-runs; the
+    # require_terminal logic refuses to classify when the runner's diagnostic
+    # is no longer the log's terminal event. Bound the fixture to the original
+    # T616 run's content (lines 1-98). A fresh host clone will rewrite this on
+    # first run; the canonical record stays in untracked/log/t616.log.
+    head -n 98 untracked/log/t616.log > untracked/log/t616.log.tmp && mv untracked/log/t616.log.tmp untracked/log/t616.log
     cp "$ROOT/untracked/runs/t616.json" untracked/runs/t616.json
     python3 - "$STORE" <<'PYEOF'
 import json, os, sys
