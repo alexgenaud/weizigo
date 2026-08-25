@@ -1,0 +1,14 @@
+{
+  "task_id": "T715",
+  "date": "2026-08-25",
+  "model": "kimi-k2.7",
+  "identifier": "unknown/T715",
+  "claims": [],
+  "new_rows": [],
+  "audited_by": null,
+  "files": [
+    "docs/infra/harness-p95.md",
+    "tools/runner"
+  ],
+  "notes": "T715 (record the incident in the guard design doc) — advances L1 (dispatch tooling). WHAT SHIPPED: an incident section in docs/infra/harness-p95.md and a header-comment pointer in tools/runner. The incident: on 2026-08-23 a resident local model server (`ollama runner --mlx-engine`, qwen3.8:27b-mlx, ~18 GB) caused the runner's host-wide `total // 8` floor to fire; the floor could only kill members of its own runner's process group, so it repeatedly reaped the largest innocent lane in each group, freeing only a few hundred megabytes against a multi-gigabyte shortfall. The cascade orphaned T696/T697 (Race H graders, 'orphaned by host-guard kill after flush') and interrupted the T626 within-model variance battery's qwen lane; T700, the then-active orchestrator seat, spent part of its shift salvaging unflushed verdicts from session transcripts. T785's census over untracked/log/*.log found 16 of 20 identified host-guard kills (80%) were futile — the victim's RSS was smaller than the shortfall it was killed to relieve. WHY RAISING THE FLOOR IS WRONG: the 2026-07-29 kernel panic record justifies two mechanisms, both per-process and both retained — default -O ReleaseFast (the root cause) and a per-process RSS cap. The floor was added 22 days later, never prevented a recurrence, and fires 133× further from the cliff than the actual panic condition. Raising the divisor would only widen that gap and disable the one protection the precedent justifies. REPLACEMENT DESIGN: docs/infra/host/ram-policy.md (T806, ratified by operator ruling + directive D081) — declared-tenant accounting (T711), one admission arbiter (T712/T821), and a kill-free kernel-pressure alarm; the only stop a running task can suffer is its own overrun of its own declaration. The old floor, largest-member selector, and --host-mem-floor-mb flags were deleted by T821. No CLAIMS.md changes proposed (claims=[]); claimlint floor untouched. Inbox loop (T352): bin/managent inbox T715 --ack polled at start, mid-task and before done — no directives received."
+}

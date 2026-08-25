@@ -19,6 +19,14 @@
 # always an overrun of the stopped task's OWN declaration), and a kernel-
 # signalled ALARM backstop that names the real consumer and never kills.
 #
+# T715 (2026-08-25): the deletion is the lesson of the T626/T700 kill chain
+# and its T696/T697 neighbors — a resident `ollama runner --mlx-engine`
+# loaded ~18 GB, the floor read it as an emergency, and the runner killed the
+# largest innocent lane in each group for ~454 MB of relief against a
+# ~25 GB tenant. 80% of recorded host-guard kills were futile (victim RSS
+# below the shortfall). See docs/infra/harness-p95.md §Incident and
+# docs/infra/host/ram-policy.md for the declared-tenant + arbiter design.
+#
 # Guards:
 #   --ram-mb N          declared peak need in MB (ORC-GD-1).  Checked against
 #                       what is already admitted BEFORE the child is spawned

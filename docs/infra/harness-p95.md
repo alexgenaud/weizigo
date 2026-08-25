@@ -138,3 +138,68 @@ at read, because:
 }
 ```
 <!-- END harness-p95 -->
+
+## Incident: the T626/T700 kill chain and T696/T697 neighbors (T715, 2026-08-23)
+
+The p95 table excludes killed attempts for a reason: a kill measures when we
+stopped a lane, not how long its work takes. On 2026-08-23 that reason became
+operational. A resident local model server (`ollama runner --mlx-engine`,
+`qwen3.8:27b-mlx`) loaded an ~18 GB engine inside the host. The runner's
+host-wide floor (`total // 8`, ~6 GB on a 48 GB host) treated that footprint as
+a memory emergency. Because the floor could only see and kill members of its
+own runner's process group, it repeatedly picked the largest *innocent* lane in
+each group, reaped it, and freed only a few hundred megabytes against a
+shortfall measured in gigabytes. The cascade intersected Race H grading work:
+T696 (Opus grader) and T697 (Sonnet grader) were orphaned after flush with the
+verdict note *"Race H grade complete; orphaned by host-guard kill after flush"*,
+and the T626 within-model variance battery lost its qwen lane mid-run. T700,
+the then-active orchestrator seat, spent part of its shift salvaging unflushed
+verdicts from session transcripts rather than dispatching.
+
+Quantitatively, the incident is not an outlier. A census over
+`untracked/log/*.log` at the time (T785, 2026-08-23) found 20 host-guard kills
+that named a member; **16 of 20 (80%) killed a member smaller than the
+shortfall they were killed to relieve**. Total victim RSS recovered: ~3 GB.
+Total shortfall: ~11 GB. The largest shortfall any "sufficient" kill relieved
+was 176 MB — 2.9 % below the floor, on a host whose real panic condition was 46
+MB free. See `findings/T785-guard-reliability-spec.json` and
+`findings/T806-ram-redesign.json` for the per-kill table.
+
+### Why raising the floor is the wrong fix
+
+The floor was introduced after the 2026-07-29 watchdog-timeout kernel panic
+(`docs/infra/host/incident-2026-07-29.md`), but the incident record itself names
+two mechanisms as the fixes: default `-O ReleaseFast` (the root cause — Debug
+LLVM is the memory hog) and a per-process RSS cap. The floor was added 22 days
+later and never prevented a recurrence, because no recurrence occurred in that
+window. The floor fires at ~6 GB free; the panic happened at ~46 MB free — the
+floor is 133× further from the cliff than the cliff. Raising the divisor would
+only widen that gap and disable the one protection the precedent justifies:
+the per-process cap that actually bounds a single runaway process. It would not
+stop the resident model server (structurally outside every runner group), it
+would not stop a foreign consumer, and it would keep killing innocent lanes.
+
+### What replaces it
+
+The redesign is in `docs/infra/host/ram-policy.md` (T806, 2026-08-23), ratified
+by operator ruling and directive D081:
+
+1. **Declared-tenant accounting** (T711). A task that asks for a resident local
+   model declares its footprint (read from the registry, not sampled from a
+   racing `ps`) before launch. The admission arithmetic subtracts that charge
+   from available-to-the-fleet, so a 25 GB tenant is no longer an "emergency."
+2. **One admission arbiter** (T712 / T821). A single component owns the
+   *admission* decision: does the declared need fit, including the tenant
+   charge? If not, the row stays dispatchable — idle is acceptable, killing a
+   running task is not.
+3. **No host-condition kill.** The only stop a running task can suffer is its
+   own overrun of its own declaration (per-process RSS cap). Kernel memory
+   pressure becomes a **kill-free alarm** that names the real consumer and stops
+   admission, never a signal to an in-budget worker.
+
+The old `total // 8` floor, the largest-member selector, and the
+`--host-mem-floor-mb` / `--no-host-guard` flags were deleted by T821
+(2026-08-24). The p95 table remains the source of wall/CPU fuse thresholds; it
+is not a memory policy instrument. See the runner header comment in
+`tools/runner` for the same history in the code, and see
+`docs/infra/host/ram-policy.md` §1–§7 for the full policy and disposition.
