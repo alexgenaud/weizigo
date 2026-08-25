@@ -201,6 +201,17 @@ PYP
   # rule is no ollama for SINGULAR task work, and comparative race data is the
   # stated exception ("I would prefer to accumulate comparative race data than
   # use Ollama models for singular task work", 2026-08-25).
+  # Models already holding a lane. `assign --exclude` matches a family OR an
+  # exact canonical model, so feeding it the live set gives ONE LANE PER MODEL.
+  # Family caps alone do not: `other` is capped at 4 and qwen3.8-27b took three
+  # of five lanes on its own, because least-data keeps picking whoever has the
+  # fewest rows and that is the same model until its count moves. The operator
+  # asked for at least four models delegating, not four lanes.
+  LIVE_MODELS=$(python3 -c "
+import json
+t=json.load(open('docs/infra/managent/tasks.json'))
+print(','.join(sorted({v.get('model') for v in t.values() if isinstance(v,dict) and v.get('status')=='in_progress' and v.get('model')})))" 2>/dev/null)
+
   model=$(python3 -c "
 import json,sys
 v=json.load(open('docs/infra/managent/tasks.json')).get('$pick') or {}
@@ -213,7 +224,8 @@ print(v.get('model') or '')" 2>/dev/null)
   # check sat after the assign call. A preview that mutates the store is not a
   # preview. `assign --dry-run` prints the same choice and writes nothing.
   assign_dry=""; [ "$DRY" = 1 ] && assign_dry="--dry-run"
-  model=$(bin/managent assign "$pick" --json --exclude "$EXCLUDE_FAMILIES" $assign_dry 2>/dev/null | python3 -c "import sys,json
+  EXCL="$EXCLUDE_FAMILIES"; [ -n "$LIVE_MODELS" ] && EXCL="$EXCL,$LIVE_MODELS"
+  model=$(bin/managent assign "$pick" --json --exclude "$EXCL" $assign_dry 2>/dev/null | python3 -c "import sys,json
 try: print(json.load(sys.stdin).get('model') or '')
 except Exception: print('')" 2>/dev/null)
   fi
