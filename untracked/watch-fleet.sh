@@ -308,6 +308,56 @@ for base in (sys.argv[3],sys.argv[4] or ''):
         fresh[t]=nmt
         if start>0: ss[t]=start
         if toks>0: tx[t]=toks
+# T908/D094: claude lanes carry no --session, so the pi scan above finds no
+# transcript for them. The Claude Code harness writes a complete growing JSONL
+# per session at <claude_dir>/<session_id>.jsonl, where session_id comes from
+# the run record (T552, written at finalize) and claude_dir is
+# $WEIZIGO_CLAUDE_TRANSCRIPT_DIR (test hook) or ~/.claude/projects/<slug(cwd)>.
+# Open ONLY that single file (the dir holds every claude session on the
+# machine — a scan would cross lanes); a null session_id (a running or killed
+# lane whose envelope has not been emitted) means the path is unknowable, so
+# the rate stays UNKNOWN — the honest answer, never a fabricated scan (D094
+# CAUTION). Claude session lines repeat per message.id (content blocks), so
+# dedup by message.id and sum message.usage.output_tokens (verified:
+# T912's session dedup sum 102681 == its envelope tokens_out 102681).
+def _slug(p): return re.sub(r'[^A-Za-z0-9]','-',os.path.abspath(p))
+claude_dir = sys.argv[4] or os.path.join(os.path.expanduser('~'),'.claude','projects',_slug(os.getcwd()))
+runs_dir = os.path.join(os.getcwd(),'untracked','runs')
+def read_claude_session(path):
+    toks=0; start=0; seen=set()
+    try: fh=open(path,errors='replace')
+    except Exception: return 0,0
+    with fh:
+        for line in fh:
+            line=line.strip()
+            if not line: continue
+            try: d=json.loads(line)
+            except Exception: continue
+            if not isinstance(d,dict): continue
+            if isinstance(d.get('timestamp'),str) and not start:
+                start=epo(d.get('timestamp') or '')
+            if d.get('type')=='assistant' and isinstance(d.get('message'),dict):
+                m=d['message']
+                if m.get('role')=='assistant' and isinstance(m.get('usage'),dict):
+                    mid=m.get('id')
+                    if mid in seen: continue
+                    seen.add(mid)
+                    toks += int(m['usage'].get('output_tokens') or 0)
+    return toks,start
+for t in set(want) - set(fresh):
+    sid=None
+    try:
+        with open(os.path.join(runs_dir,t+'.json')) as rf: rec=json.load(rf)
+        sid=rec.get('session_id')
+    except Exception: sid=None
+    if not sid: continue
+    cpath=os.path.join(claude_dir,str(sid)+'.jsonl')
+    try: st=os.stat(cpath)
+    except Exception: continue
+    toks,start=read_claude_session(cpath)
+    fresh[t]=int(st.st_mtime)
+    if start>0: ss[t]=start
+    if toks>0: tx[t]=toks
 with open(sys.argv[6],'w') as f:
     for t,v in store.items():
         a=(v or {}).get('agent') or ''

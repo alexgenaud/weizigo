@@ -350,9 +350,9 @@ row971=$(wait_prog_row "$STORE" "$CP" T971)
 dd_fail=0
 r971=$(field5 "$row971")
 f971=$(field6 "$row971")
-FR=$(frame "$STORE" "$CP")
-r970=$(field5 "$(prog_row "$FR" T970)")
-printf '%s\n' "$FR" | awk '/^PROGRESS$/{p=1;next} p && /^[A-Z][A-Z]+$/{p=0} p' | grep -q '^  T970 ' || { echo "    FAIL: T970 (in_progress) missing from PROGRESS"; dd_fail=1; }
+row970=$(wait_prog_row "$STORE" "$CP" T970)
+r970=$(field5 "$row970")
+[ -n "$row970" ] || { echo "    FAIL: T970 (in_progress) never appeared in PROGRESS"; dd_fail=1; }
 [ -n "$row971" ] || { echo "    FAIL: T971 (closed-but-alive) never appeared in PROGRESS"; dd_fail=1; }
 case "$r970" in *[0-9]/s) ;; *) echo "    FAIL: T970 in_progress rate should be a labelled number, got '$r970'"; dd_fail=1;; esac
 [ "$r971" = "closed" ] || { echo "    FAIL: T971 closed-but-alive rate should be 'closed', got '$r971'"; dd_fail=1; }
@@ -394,6 +394,77 @@ case "$r980" in
     *) echo "    FAIL: T980 post-spawn rate should be a labelled number, got '$r980'"; e_fail=1;;
 esac
 if [ "$e_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
+
+# ── Arm F: claude lane (run-record session_id -> ~/.claude transcript) ────
+# D094: the claude lane has no --session; its transcript is the Claude Code
+# harness JSONL at <claude_dir>/<session_id>.jsonl, session_id from the run
+# record. The dashboard opens ONLY that file (the dir holds every claude
+# session on the machine) and dedups by message.id (claude session lines
+# repeat per content block — naive sum over-counts 3x here). A null
+# session_id (a running or killed lane whose envelope has not been emitted)
+# leaves the rate UNKNOWN, the honest answer. This arm proves the dashboard
+# reads the claude transcript location and dedups correctly; the running-lane
+# gap (session_id is null until the runner finalizes) is documented in the
+# findings and needs a runner-side live session_id write to close.
+echo "  F. claude lane: run-record session_id -> claude transcript, deduped by message.id"
+d=$(mkscratch "f"); STORE="$d/docs/infra/managent/tasks.json"; CP="$d/untracked/watch-fleet-live.sh"; cp "$LIVE" "$CP"
+id=T990; SID="fake-claude-session-0001"
+printf '<!--managent -->\n# %s — claude lane\n\n**Landmark:** L1 (the dashboard tells the truth)\n' "$id" > "$d/untracked/$id-bundle.md"
+NOW=$(date +%s); CLAIM=$(date -u -r $((NOW-60)) '+%Y-%m-%dT%H:%M:%SZ')
+printf '{"%s":{"status":"in_progress","agent":"claude-opus-5","model":"claude-opus-5","bundle":"untracked/%s-bundle.md","set":"A","holds":[],"needs":[],"caps":[],"added":"2026-08-01T00:00:00Z","claimed":"%s","done":null,"dispatched":null,"dispatched_to":null,"note":null,"verdict":null,"verdict_note":null,"acceptance":null,"skip_acceptance_reason":null,"claim_count":1},"_sys":{"next_id":9900,"directive_next":1,"assertion_next":1}}\n' "$id" "$id" "$CLAIM" > "$STORE"
+weizigo_reset_census "$STORE"
+mkdir -p "$d/untracked/runs"
+# run record with the session_id (the shape a FINALIZED claude lane carries)
+python3 - "$d/untracked/runs/$id.json" "$id" "$SID" "$CLAIM" <<'PY'
+import json,sys
+json.dump({"task":sys.argv[2],"run_kind":"dispatch","model":"claude-opus-5",
+  "pid":1,"pgid":1,"launcher_pid":1,"start":sys.argv[4],"start_epoch":0,
+  "command":"claude -p Follow untracked/%s-bundle.md" % sys.argv[2],
+  "session_id":sys.argv[3]}, open(sys.argv[1],'w'))
+PY
+# the claude transcript: the captured real fixture (dedup shape), placed at
+# <claude_dir>/<session_id>.jsonl with a fresh session timestamp.
+CDIR="$d/claude-sessions"; mkdir -p "$CDIR"
+now_ts=$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')
+python3 - "$FIX/claude-real.jsonl" "$CDIR/$SID.jsonl" "$now_ts" <<'PY'
+import json,sys
+src,dst,ts=sys.argv[1],sys.argv[2],sys.argv[3]
+o=open(dst,"w")
+for line in open(src):
+    d=json.loads(line)
+    if isinstance(d.get("timestamp"),str): d["timestamp"]=ts
+    m=d.get("message")
+    if isinstance(m,dict) and isinstance(m.get("timestamp"),str): m["timestamp"]=ts
+    o.write(json.dumps(d)+"\n")
+o.close()
+PY
+touch "$CDIR/$SID.jsonl"
+# true total = deduped sum (242+215=457); naive sum = 1371 (3x over-count)
+ctt=$(python3 - "$FIX/claude-real.jsonl" <<'PY'
+import json,sys
+seen=set(); tot=0
+for line in open(sys.argv[1]):
+    d=json.loads(line)
+    if d.get("type")=="assistant":
+        m=d["message"]; mid=m.get("id")
+        if mid in seen: continue
+        seen.add(mid); tot+=int(m.get("usage",{}).get("output_tokens") or 0)
+print(tot)
+PY
+)
+naive=$(python3 -c "import json; print(sum(json.loads(l)['message']['usage']['output_tokens'] for l in open('$FIX/claude-real.jsonl') if json.loads(l).get('type')=='assistant'))")
+bash -c "cd '$d' && exec -a 'claude --model claude-opus-5 -p Follow untracked/$id-bundle.md' sleep 90" & PIDS="$PIDS $!"
+wait_worker "$id" || { echo "    FAIL: $id worker never appeared"; f_fail=1; }
+FR=$(env -u WATCH_FLEET_SOURCE MANAGENT_STORE="$STORE" WEIZIGO_CLAUDE_TRANSCRIPT_DIR="$CDIR" FLEET_COLS=200 sh "$CP" </dev/null 2>/dev/null)
+row=$(prog_row "$FR" "$id")
+f_fail=0
+[ -n "$row" ] || { echo "    FAIL: $id (claude) never appeared in PROGRESS"; f_fail=1; }
+rate=$(field5 "$row"); eld=$(printf '%s' "$row" | awk '{print $4; exit}'); esec=$(dur_to_secs "$eld")
+printf '    %s claude-real: dedup_true_total=%s naive_sum=%s elapsed=%s(%ss) rate=%s\n' "$id" "$ctt" "$naive" "$eld" "$esec" "$rate"
+[ "$naive" -gt "$ctt" ] || { echo "    FAIL: claude naive sum ($naive) should exceed dedup total ($ctt) — the over-count the dedup prevents"; f_fail=1; }
+rate_matches "$ctt" "$esec" "$rate" || { echo "    FAIL: $id rate '$rate' not in rate_of($ctt, esec±1) — claude dedup did not yield the true total"; f_fail=1; }
+case "$rate" in UNKNOWN|''|0*) echo "    FAIL: $id rate must be a labelled non-zero number, got '$rate'"; f_fail=1;; esac
+if [ "$f_fail" = "1" ]; then FAIL=1; else echo "    PASS"; fi
 
 if [ "$FAIL" = "1" ]; then
     echo "=== T908 live-rate regression: FAIL ==="
