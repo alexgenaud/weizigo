@@ -1275,6 +1275,23 @@ pub fn build(b: *std.Build) void {
     title_gate_regression.cwd = b.path(".");
     test_step.dependOn(&title_gate_regression.step);
 
+    // ── T894: the queue-head lie — dispatch-readiness ordering ────────
+    // `status`/`orient` sorted the dispatchable/blocked lists by task id,
+    // so a duty, a standing trigger, or a row registered months ago sat
+    // at the head forever. Controls: a duty/standing row never precedes
+    // a ready row and is excluded from the dispatchable section itself
+    // (both `status` and `orient` — orient never checked ts.duty at
+    // all); a cold row (holds-conflicted or missing brief) sorts after
+    // ready-now despite losing alphabetically; a blocked row sorts by
+    // unmet-need count, not id; the estimate column reads UNKNOWN /
+    // expected / elapsed and never fabricates a number; `add` refuses a
+    // positional id beginning with '-' (the shape that let `--bundle`
+    // register as a task id) by name; a queue of only ready rows loses
+    // none of them (count in == count out).
+    const queue_ordering_regression = b.addSystemCommand(&.{ "sh", "tools/regression-queue-ordering.sh" });
+    queue_ordering_regression.cwd = b.path(".");
+    test_step.dependOn(&queue_ordering_regression.step);
+
     // ── T542: grand-race bake-off gate controls (G1/G2/G3/G4) ─────
     // G5 already held; G6 is T522's. Controls pin: G1 tokens (trailer
     // reading wins over token-capture.py; null + reason when absent; the
@@ -1751,6 +1768,23 @@ pub fn build(b: *std.Build) void {
     run_record_scale_regression.cwd = b.path(".");
     run_record_scale_regression.step.dependOn(&b.addInstallArtifact(managent_exe, .{}).step);
     test_step.dependOn(&run_record_scale_regression.step);
+
+    // ── T932: finishParallel round-robin partition controls ──────
+    // T930 measured the production finishParallel at 5.1x (18 cores) because
+    // its contiguous chunking is load-imbalanced (deepest-first work list ->
+    // expensive roots pile onto one thread; the wall is the busiest thread).
+    // T932 changes the partition to round-robin (root i -> thread i % N).
+    // Two controls: null (single-threaded and parallel agree byte-for-byte on
+    // the same root set — the partition must not change node counts/values)
+    // and seeded-defect (RETRO_PARTITION=contig, the legacy imbalanced
+    // chunking, must be detectable by the per-thread node-count imbalance
+    // ratio — otherwise the regression cannot tell 5.1x from 11.5x). The
+    // script builds src/retro.zig itself and drives RETRO_3X3=1
+    // RETRO_PARALLEL=1 (622 orbit reps, ~0.3 s/run) so the control is fast
+    // enough for `zig build test`.
+    const finishparallel_partition_regression = b.addSystemCommand(&.{ "sh", "tools/regression-finishparallel-partition.sh" });
+    finishparallel_partition_regression.cwd = b.path(".");
+    test_step.dependOn(&finishparallel_partition_regression.step);
 
     // ── verify-battery (M1 harness, T168) ──────────────────────────
     const verify_battery_exe = b.addExecutable(.{

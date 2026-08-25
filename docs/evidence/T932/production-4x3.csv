@@ -1,0 +1,14 @@
+# T932 production finishParallel 4x3 re-measurement — deepseek-v4-pro/T932, 2026-08-25
+# rung: 4x3, writes-off (RETRO_SOUND=1), budget=20,000,000 nodes/root, orbit-dedup work list
+# binary: zig build-exe -O ReleaseFast src/retro.zig  (post round-robin change)
+# deterministic work: 21,578 roots, 183,065,016 nodes, 0 bracket-fail, 0 orbit-clash on every run
+# wall = finishParallel summary (NNNms) = nowMs() around the solve only (build excluded; build ~5.2 s)
+# host: Apple M5 Max (6 Super + 12 Performance), 48 GB, caffeinate -i -s held, runs serial
+#
+# T930 harness comparison (same rung): contig 16 = 6889 ms / 5.10x; rr 16 = 2903 ms / 11.54x;
+#                                    rr 18 = 3083 ms / 10.87x
+partition,threads,finish_ms,speedup
+serial,1,35670,1.000
+contig,16,6985,5.107
+rr,16,3064,11.640
+rr,18,3124,11.416

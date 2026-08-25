@@ -1,0 +1,19 @@
+{
+  "task_id": "T932",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T932",
+  "landmark": "L2 (proven 4x4 values)",
+  "claims": [
+    {
+      "id": "4x4.D3",
+      "was": "UNTESTED",
+      "now": "MEASURED — the 5.1x parallel-finisher ceiling was a partition bug, now fixed in production: finishParallel partitions round-robin (root i -> thread i % N) and the PRODUCTION binary reproduces T930's 11.5x at the 4x3 rung (11.64x @ 16 threads vs T930 harness 11.54x; contiguous 5.11x @ 16 vs 5.10x). Determinism preserved: byte-identical 21,578 roots / 183,065,016 nodes / 0 bracket-fail / 0 orbit-clash / symmetry PASS across 1/16/18 threads. The residual loss is memory latency (~11.5x ceiling at 16 threads; 18 does not beat 16), which no scheduler fixes.",
+      "evidence": "docs/evidence/T932/PROVENANCE.md; docs/evidence/T932/production-4x3.csv; docs/evidence/T932/per-thread-16.txt; src/retro.zig; tools/regression-finishparallel-partition.sh",
+      "note": "Presence-only (no proposed_status): the register row keeps its status and the promotion path is absorption, not a leaf edit. This is a CODE change + production re-measurement, not a new tractability verdict: the honest parallel wall stays ~1-6 days (T930's accounting) and it still does NOT reach D3's <= 8 h target."
+    }
+  ],
+  "new_rows": [],
+  "answer": "finishParallel now partitions round-robin in production and reproduces T930's 11.5x at 4x3 (11.64x @ 16 threads vs 5.11x contiguous), with byte-identical node counts across thread counts — the 5.1x ceiling was the contiguous-chunk load-imbalance bug, not a hardware limit; the remaining ~2x gap to linear is memory latency.",
+  "notes": "Implemented round-robin partition in RT.finishParallel (src/retro.zig): root i -> thread i % N via a permuted flat buffer, replacing the contiguous chunks. Two deliberate testing seams, no solver/orbit/writes-off change: RETRO_PARTITION=contig restores the legacy contiguous chunking (the seeded-defect control + A/B), and finishParallel now emits one per-thread node-count line to stderr (the regression's imbalance detector reads it). RETRO_4X3=1 added so the 4x3 re-measurement drives the production pipeline, not T930's throwaway harness. Regression tools/regression-finishparallel-partition.sh wired into zig build test: null control (2 serial + 2 parallel 3x3 runs byte-identical: solved=622 filled=8698 skipped=0 single-ko=11 nodes=315484, bracket-fails=0 orbit-clashes=0 symmetry=PASS) + seeded-defect control (3x3 @ 3 threads: round-robin max/mean=1.119 <= 1.40 PASS; contiguous max/mean=1.619 > 1.40 DETECTED). RED-first: a throwaway copy with the default flipped back to contiguous produced max/mean=1.619, tripping the balanced arm (<= 1.40) — the guard is not vacuous. Production 4x3 re-measurement (ReleaseFast, caffeinate held): serial 35,670 ms; rr16 3,064 ms (11.64x, T930 11.54x); contig16 6,985 ms (5.11x, T930 5.10x); rr18 3,124 ms (11.42x, T930 10.87x). Inbox checked at checkpoint (bin/managent inbox T932 --ack): no directives."
+}

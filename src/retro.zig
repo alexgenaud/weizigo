@@ -1491,6 +1491,7 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             memo_writes: bool,
             deps: bool,
             num_threads: u8,
+            round_robin: bool,
         ) !FinishStats {
             const nt: u8 = if (num_threads == 0)
                 @as(u8, @intCast((std.Thread.getCpuCount() catch 1)))
@@ -1556,10 +1557,18 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
                 return FinishStats{};
             }
 
-            p("finishParallel: {d} orbit reps -> {d} threads.\n", .{ total_work, nt });
+            p("finishParallel: partition={s} ({d} orbit reps -> {d} threads)\n", .{
+                if (round_robin) "round-robin" else "contiguous", total_work, nt,
+            });
 
             // ── Step 2: partition work ──
-            const chunk_size = (total_work + nt - 1) / nt;
+            // Round-robin (root i -> thread i % nt) is the default: the work
+            // list is deepest-first and per-root cost is correlated with list
+            // position, so contiguous chunks concentrate same-cost roots on one
+            // thread (T930 measured a 3.34x busiest-thread imbalance at 18
+            // threads; the wall is set by the busiest thread). round_robin=false
+            // restores the legacy contiguous chunking (RETRO_PARTITION=contig;
+            // the seeded-defect control and A/B measurement use it).
 
             // ── Step 3: allocate per-thread output buffers ──
             var outs = try gpa.alloc(ThreadOut, nt);
@@ -1589,41 +1598,71 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
             };
 
             if (nt == 1) {
-                // single-threaded path: no spawn overhead
-                const chunk = work_list.items[0..total_work];
-                worker(&shared, chunk, @as(u8, 0), &outs[0], gpa);
+                // single-threaded path: no spawn overhead, no permutation
+                worker(&shared, work_list.items, @as(u8, 0), &outs[0], gpa);
             } else {
                 var threads = try gpa.alloc(std.Thread, nt - 1);
                 defer gpa.free(threads);
 
-                // spawn workers 1..nt-1 on their own chunks
-                for (1..nt) |tid| {
-                    const start = tid * chunk_size;
-                    if (start >= total_work) {
-                        // fewer work items than threads — this thread gets nothing
-                        threads[tid - 1] = try std.Thread.spawn(.{}, worker, .{
-                            &shared,
-                            work_list.items[0..0], // empty slice
-                            @as(u8, @intCast(tid)),
-                            &outs[tid],
-                            gpa,
-                        });
-                    } else {
-                        const end = @min(start + chunk_size, total_work);
-                        threads[tid - 1] = try std.Thread.spawn(.{}, worker, .{
-                            &shared,
-                            work_list.items[start..end],
-                            @as(u8, @intCast(tid)),
-                            &outs[tid],
-                            gpa,
-                        });
+                // Per-thread slices. Round-robin needs a permuted flat buffer
+                // (Zig slices have no stride) so each thread still sees a
+                // contiguous slice; contiguous chunks index work_list directly.
+                // Both must live until after the join below, hence this scope.
+                var rr_items: []WorkItem = &.{};
+                defer if (rr_items.len != 0) gpa.free(rr_items);
+                var rr_offsets: []usize = &.{};
+                defer if (rr_offsets.len != 0) gpa.free(rr_offsets);
+                const chunk_size = (total_work + nt - 1) / nt;
+
+                if (round_robin) {
+                    // thread t handles items t, t+nt, t+2nt, ...
+                    const counts = try gpa.alloc(usize, nt);
+                    defer gpa.free(counts);
+                    @memset(counts, 0);
+                    for (work_list.items, 0..) |_, k| counts[k % nt] += 1;
+
+                    rr_offsets = try gpa.alloc(usize, nt + 1);
+                    rr_offsets[0] = 0;
+                    for (0..nt) |ti| rr_offsets[ti + 1] = rr_offsets[ti] + counts[ti];
+
+                    rr_items = try gpa.alloc(WorkItem, total_work);
+                    const cursors = try gpa.alloc(usize, nt);
+                    defer gpa.free(cursors);
+                    @memcpy(cursors, rr_offsets[0..nt]);
+                    for (work_list.items, 0..) |item, k| {
+                        const tid = k % nt;
+                        rr_items[cursors[tid]] = item;
+                        cursors[tid] += 1;
                     }
+                }
+
+                // spawn workers 1..nt-1 on their own slices
+                for (1..nt) |tid| {
+                    const items: []WorkItem = if (round_robin)
+                        rr_items[rr_offsets[tid]..rr_offsets[tid + 1]]
+                    else blk: {
+                        const start = tid * chunk_size;
+                        break :blk if (start >= total_work)
+                            work_list.items[0..0] // fewer items than threads
+                        else
+                            work_list.items[start..@min(start + chunk_size, total_work)];
+                    };
+                    threads[tid - 1] = try std.Thread.spawn(.{}, worker, .{
+                        &shared,
+                        items,
+                        @as(u8, @intCast(tid)),
+                        &outs[tid],
+                        gpa,
+                    });
                 }
 
                 // worker 0 runs on the calling thread
                 {
-                    const end = @min(chunk_size, total_work);
-                    worker(&shared, work_list.items[0..end], @as(u8, 0), &outs[0], gpa);
+                    const items0: []WorkItem = if (round_robin)
+                        rr_items[rr_offsets[0]..rr_offsets[1]]
+                    else
+                        work_list.items[0..@min(chunk_size, total_work)];
+                    worker(&shared, items0, @as(u8, 0), &outs[0], gpa);
                 }
 
                 // join all spawned workers
@@ -1634,6 +1673,14 @@ pub fn Retro(comptime w: usize, comptime h: usize) type {
 
             if (shared.quit.load(.acquire)) {
                 p("finishParallel: INTERRUPTED — merging partial results.\n", .{});
+            }
+
+            // per-thread node totals (diagnostic; the regression's imbalance
+            // detector reads these to tell round-robin from contiguous)
+            for (0..nt) |tid| {
+                p("finishParallel: thread {d}: solved={d} skipped={d} nodes={d}\n", .{
+                    tid, outs[tid].st.solved, outs[tid].st.budget_skipped, outs[tid].st.nodes,
+                });
             }
 
             // ── Step 5: merge per-thread outputs into the main table ──
@@ -3198,8 +3245,10 @@ fn run4x4(gpa: std.mem.Allocator) void {
 ///   RETRO_PARALLEL_OUT=path    — output artifact path
 ///   RETRO_4X4=1                — run on 4x4 (alongside RETRO_PARALLEL)
 ///   RETRO_3X3=1                — run on 3x3 (test: 1 vs N threads)
+///   RETRO_4X3=1                — run on 4x3 (the T930 measured rung)
 ///   RETRO_SOUND=1              — Track A writes-off (memo_writes=false)
 ///   RETRO_DEPS=1               — Track B dependency-guarded reuse
+///   RETRO_PARTITION=contig     — legacy contiguous chunks (default round-robin)
 ///   RETRO_PARALLEL_BUDGET=N    — per-root node budget (default: 20M)
 fn runParallel(gpa: std.mem.Allocator) void {
     const num_threads: u8 = if (std.c.getenv("RETRO_PARALLEL_THREADS")) |s|
@@ -3209,6 +3258,12 @@ fn runParallel(gpa: std.mem.Allocator) void {
 
     const deps = std.c.getenv("RETRO_DEPS") != null;
     const memo_writes = deps or (std.c.getenv("RETRO_SOUND") == null);
+    // RETRO_PARTITION=contig restores the legacy contiguous chunking (the
+    // seeded-defect control and A/B measurement); the default is round-robin.
+    const round_robin = if (std.c.getenv("RETRO_PARTITION")) |s|
+        !std.mem.eql(u8, std.mem.span(s), "contig")
+    else
+        true;
     const budget: u64 = if (std.c.getenv("RETRO_PARALLEL_BUDGET")) |b|
         (std.fmt.parseInt(u64, std.mem.span(b), 10) catch 20_000_000)
     else
@@ -3227,9 +3282,11 @@ fn runParallel(gpa: std.mem.Allocator) void {
 
     // Dispatch by goban size
     if (std.c.getenv("RETRO_3X3") != null) {
-        parallelBoard(3, 3, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every);
+        parallelBoard(3, 3, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every, round_robin);
+    } else if (std.c.getenv("RETRO_4X3") != null) {
+        parallelBoard(4, 3, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every, round_robin);
     } else {
-        parallelBoard(4, 4, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every);
+        parallelBoard(4, 4, gpa, io, dir, budget, memo_writes, deps, num_threads, progress_every, round_robin);
     }
 }
 
@@ -3246,6 +3303,7 @@ fn parallelBoard(
     deps: bool,
     num_threads: u8,
     progress_every: u64,
+    round_robin: bool,
 ) void {
     const RT = Retro(w, h);
     const p = std.debug.print;
@@ -3335,7 +3393,7 @@ fn parallelBoard(
     const t1 = nowMs();
     parallel_interrupt.store(false, .release);
 
-    const fin = RT.finishParallel(&t, gpa, budget, true, progress_every, memo_writes, deps, num_threads) catch |err| {
+    const fin = RT.finishParallel(&t, gpa, budget, true, progress_every, memo_writes, deps, num_threads, round_robin) catch |err| {
         p("finishParallel FAILED: {t}\n", .{err});
         return;
     };

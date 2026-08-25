@@ -1,0 +1,50 @@
+{
+  "task_id": "T932",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T932",
+  "description": "Context dump for T932: production finishParallel round-robin partition — re-measurement walls, per-thread node counts, and the regression's measured imbalance ratios.",
+  "claims": [],
+  "new_rows": [],
+  "instrument": {
+    "path": "src/retro.zig (RT.finishParallel)",
+    "build": "zig build-exe -O ReleaseFast -femit-bin=<tmp>/retro_fast src/retro.zig",
+    "zig": "0.16.0",
+    "env_knobs": {
+      "RETRO_4X3": "dispatch the production pipeline on 4x3 (the T930 rung)",
+      "RETRO_PARTITION=contig": "restore the legacy contiguous chunking (seeded-defect control)",
+      "RETRO_PARALLEL_THREADS": "thread count",
+      "RETRO_SOUND=1": "writes-off (memo_writes=false)"
+    }
+  },
+  "production_remeasurement_4x3": {
+    "rung": "4x3, writes-off, budget 20,000,000, orbit-dedup work list",
+    "serial_ms": 35670,
+    "rows": [
+      {"partition": "rr", "threads": 16, "finish_ms": 3064, "speedup": 11.64, "t930_speedup": 11.54},
+      {"partition": "contig", "threads": 16, "finish_ms": 6985, "speedup": 5.11, "t930_speedup": 5.10},
+      {"partition": "rr", "threads": 18, "finish_ms": 3124, "speedup": 11.42, "t930_speedup": 10.87}
+    ],
+    "determinism": "21,578 roots / 183,065,016 nodes / 0 bracket-fail / 0 orbit-clash / symmetry PASS on every run (1/16/18 threads)"
+  },
+  "per_thread_nodes_16": {
+    "total": 183065016,
+    "balanced_share": 11441563,
+    "rr": {
+      "max": 13776627,
+      "max_over_mean": 1.204
+    },
+    "contig": {
+      "max": 34841506,
+      "max_over_mean": 3.045
+    }
+  },
+  "regression_3x3": {
+    "null_control": "2 serial + 2 parallel runs byte-identical: solved=622 filled=8698 skipped=0 single-ko=11 nodes=315484; validate bracket-fails=0 orbit-clashes=0 symmetry=PASS unfilled=0",
+    "imbalance_threshold": 1.40,
+    "rr_3_threads": {"per_thread_nodes": [88099, 117708, 109677], "max_over_mean": 1.119},
+    "contig_3_threads": {"per_thread_nodes": [170282, 77519, 67683], "max_over_mean": 1.619},
+    "red_first": "throwaway copy with default flipped to contiguous -> max/mean=1.619 -> balanced arm trips (<= 1.40)"
+  },
+  "notes": "No solver, orbit-dedup, or writes-off semantics changed; partition only. The two testing seams (RETRO_PARTITION=contig, per-thread node-count diagnostic) are the minimum needed to let the regression exercise the production code rather than a copy."
+}
