@@ -1,0 +1,35 @@
+[
+  {
+    "task_id": "T894",
+    "verdict": "pass-with-findings",
+    "work_actually_done": "complete",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "verified",
+    "useful": "yes",
+    "note": "Work real and live (readiness ordering + regression, 9/9 green at HEAD), but the lane exited 0 without writing findings or closing and the absorbing seat reconstructed both; the clean pass-with-findings reads as a close the lane never made.",
+    "reason": "verdict: recorded pass-with-findings, closed 09:31:16Z by T935 15 min after the lane's exit 0 (09:16:44Z) — archive.json row + findings file. | work_actually_done: complete — src/managent/main.zig readiness-ordering and tools/regression-queue-ordering.sh are at HEAD (b27c7f0); script mtime 09:11Z is inside the lane's 09:00-09:16Z window; my own run of the regression at HEAD: 9/9 PASS. | verdict_accurate_if_closed_pass: no — the lane exited 0 without a findings file and without `managent done`; the findings file self-declares 'written post-hoc by the absorbing seat (claude-opus-5/T935)'; the recorded verdict presents a normal close (T934 class: exit 0 is not evidence of completion), and the commit message's build.zig-wiring claim was also wrong (wiring already landed via T932's cb5a307, per the 09:32:51Z amendment). | absorbed: yes — fix live in managent at HEAD, regression wired into build.zig:1410, live `orient` output shows the new ordering (duties/triggers sectioned off, real rows at the head). | self_reported_or_verified: verified — the worker never self-reported (no close, no findings); the outcome was established by T935's re-run (09:27Z, 9/9) and by my re-run (9/9) plus observable live output. | useful: yes — the queue head no longer lies (duties and STANDING- triggers excluded from the dispatchable list, ready-before-blocked, cold last, leading-dash ids refused), and the regression guards it."
+  },
+  {
+    "task_id": "T924",
+    "verdict": "pass-with-findings",
+    "work_actually_done": "partial",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "verified",
+    "useful": "mixed",
+    "note": "Measurement real but the lane was cut off by provider 429s having written neither deliverable; its headline 202.5-1620 h was 7.585x overstated until T929 re-derived it, and the findings file still carries the stale 'excluded from the mean' claim at HEAD.",
+    "reason": "verdict: recorded pass-with-findings, closed 09:32:04Z — archive.json row. | work_actually_done: partial — the lane ran the full 2x2->4x4 ladder and both arms (real probe output, recovered as docs/evidence/T924/per-root.csv + summary.csv), but was cut off by provider 429s at 04:57:22Z (lane-cutoff.md) mid-correction of its own sampling weights, wrote neither declared deliverable, and its projection was 7.585x too high until T929 corrected it (8d5d163, 2614391); CLAIMS.md:510 still reads UNTESTED for 4x4.D3. | verdict_accurate_if_closed_pass: no — the verdict reads as a sound measurement, but the lane never finished and its headline number was wrong until a second row fixed it; the findings file at HEAD still claims the 125 capped roots were 'excluded from the mean' (wrong: sum_nodes includes them at cap, per 2614391). | absorbed: yes — doc, findings, evidence CSVs, probe source and ledger rows all committed (62b27bd/4a80255/4fd16e0/2614391) and T929/T930 built on the data; caveat: the 4x4.D3 register row itself was never updated. | self_reported_or_verified: verified — every number is a line the probe printed (recovered from the lane transcript), and T929 independently re-derived the weighted projection and corrected the floor argument; the worker asserted nothing. | useful: mixed — the measurement outcome (not tractable under writes-off -> Track B becomes blocking) is load-bearing for L2 and stands after correction, but the row's own headline was 7.6x overstated, the floor argument was wrong, and the findings file retains the stale claim; the value came from the recovery + correction chain, not from the row as closed."
+  },
+  {
+    "task_id": "T943",
+    "verdict": "pass",
+    "work_actually_done": "complete",
+    "verdict_accurate_if_closed_pass": "no",
+    "absorbed": "yes",
+    "self_reported_or_verified": "self-reported",
+    "useful": "mixed",
+    "note": "Closed pass by runner auto-close with its own declared acceptance RED on a clean host (arm A false-positived on the Claude harness's caffeinate -i -t 300, breaking the suite whenever a Claude console is open); the gate was broken until T952's ancestry fix.",
+    "reason": "verdict: recorded pass, auto-close at 11:17:50Z on exit 0 (verdict_note: 'worker exited 0 without closing; all declared deliverables present; ... automatic, on process evidence'). | work_actually_done: complete — moving-parts.md inventory (18 parts with dispositions), tools/regression-moving-parts.sh gate, scratch root cause (2ea6f80's t631-pinned mkdtemp with no cleanup) and atexit fixes in bin/subagent + others, all committed (1d40645); my run at HEAD: arms B-F pass, arm A red only on genuinely live-host findings (stale T961 runner past max-wall, orphaned watch-fleet-live trees) — the gate doing its job after T952. | verdict_accurate_if_closed_pass: no — the row closed pass while its own declared acceptance was RED on a clean host (caffeinate false positive; S10-CLOSE-2: nothing ran the acceptance at close time), recorded in the post-close amendment (11:26:23Z), 35fd322, and the T958/T951 DONE audit ('verdict inaccurate'). | absorbed: yes — inventory committed, gate wired into build.zig:750, subagent cleanup fix committed, and T952 built the ancestry fix on top (be06fdb/35a7c40; harness caffeinate now exempt — arm C passes in my run). | self_reported_or_verified: self-reported — the worker's findings claim 'ALL CONTROLS PASSED' but nothing ran the acceptance at close time and the claim was false on a clean host (suite red whenever a Claude console was open); verification arrived only via T935's post-close check and T952's fix. | useful: mixed — the inventory and scratch hygiene are genuinely useful (3,917 leaked t631-pinned dirs root-caused and fixed), but the delivered gate shipped with a false positive that broke `zig build test` on this host until T952's fix; the mechanism was defective as delivered."
+  }
+]
