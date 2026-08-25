@@ -1,0 +1,146 @@
+{
+ "task_id": "T924",
+ "date": "2026-08-25",
+ "model": "ox-alpha",
+ "identifier": "ox-alpha/T924",
+ "recovered_by": "claude-opus-5/T914 from the lane transcript; the lane exited 0 without writing its deliverables and the runner's auto-close correctly declined (T862 3)",
+ "landmark": "L2 (proven 4x4 values)",
+ "claims": [
+  {
+   "id": "4x4.D3",
+   "was": "UNTESTED",
+   "now": "MEASURED \u2014 NOT TRACTABLE under writes-off",
+   "evidence": "docs/research/4x4-d3-tractability.md; docs/infra/host/goban-scaling.jsonl; src/t924_d3_probe.zig @4a80255",
+   "note": "projected 202.5-1620 h single-threaded, floor not estimate (125 of 1287 sampled roots unsolved at a 20,000,001-node cap, excluded from the mean)"
+  }
+ ],
+ "new_rows": [],
+ "answer": "NOT tractable. 4x4 writes-off finisher projects 202.5-1620 h single-threaded wall; 9.7% of sampled roots do not solve within a 20M-node cap. ADR-0013 branch applies: Track B becomes blocking rather than a follow-up.",
+ "ladder_writes_off": [
+  {
+   "board": "2x2",
+   "ko_pop": 82,
+   "samples": 9,
+   "solved": 9,
+   "skipped": 0,
+   "nodes": 4554,
+   "ms": 0
+  },
+  {
+   "board": "3x2",
+   "ko_pop": 378,
+   "samples": 57,
+   "solved": 57,
+   "skipped": 0,
+   "nodes": 37568,
+   "ms": 3
+  },
+  {
+   "board": "3x3",
+   "ko_pop": 8698,
+   "samples": 620,
+   "solved": 620,
+   "skipped": 0,
+   "nodes": 323692,
+   "ms": 40
+  },
+  {
+   "board": "4x3",
+   "ko_pop": 170276,
+   "samples": 20878,
+   "solved": 20878,
+   "skipped": 0,
+   "nodes": 183442515,
+   "ms": 35178
+  },
+  {
+   "board": "4x4",
+   "ko_pop": 10367922,
+   "samples": 1287,
+   "solved": 1162,
+   "skipped": 125,
+   "nodes": 2700272692,
+   "ms": 709889
+  }
+ ],
+ "build_phase": [
+  {
+   "board": "2x2",
+   "legal": 57,
+   "sweeps": 2,
+   "ko_per_side": 41,
+   "ms": 0
+  },
+  {
+   "board": "3x3",
+   "legal": 12675,
+   "sweeps": 12,
+   "ko_per_side": 4349,
+   "ms": 117
+  },
+  {
+   "board": "4x3",
+   "legal": 321689,
+   "sweeps": 17,
+   "ko_per_side": 85138,
+   "ms": 4936
+  },
+  {
+   "board": "4x4",
+   "legal": 24318165,
+   "sweeps": 19,
+   "ko_per_side": 5183961,
+   "ms": 509191
+  }
+ ],
+ "arms_4x4": {
+  "writes-off": {
+   "solved": 1162,
+   "samples": 1287,
+   "skipped": 125,
+   "sum_nodes": 2700272692,
+   "max_root": 20000001,
+   "mean_nodes_per_nontrivial_root": 2139677.3,
+   "ns_per_node": 262.9,
+   "projected_finisher_nodes": [
+    2773000856714,
+    22184006853713
+   ],
+   "projected_wall_h": [
+    202.502,
+    1620.02
+   ]
+  },
+  "writes-on": {
+   "solved": 1287,
+   "samples": 1287,
+   "skipped": 0,
+   "sum_nodes": 18240863,
+   "max_root": 252205,
+   "mean_nodes_per_nontrivial_root": 14453.9,
+   "ns_per_node": 372.84,
+   "projected_finisher_nodes": [
+    18732155784,
+    149857246273
+   ],
+   "projected_wall_h": [
+    1.94,
+    15.52
+   ]
+  },
+  "note": "writes-on is a CALIBRATION CONTROL, not an option: T912 established memo-reuse is unsound under superko (differs from writes-off on 170 of 378 ko-sensitive 3x2 pairs)."
+ },
+ "host": {
+  "cores": 18,
+  "ram_gb": 48,
+  "solve_threaded": false
+ },
+ "unresolved": [
+  "projection is unweighted over 1287 of 10367922 roots (0.012%); the lane was computing a layer-population-weighted re-estimate when it stopped and did not report it",
+  "bracketed range spans 8x and nothing here narrows it",
+  "solve is single-threaded; 18 cores idle; a parallel finisher over 10.4M independent roots is unmeasured and could move the 202 h floor materially",
+  "the 20,000,001-node cap is a choice; how far the 125 skipped roots would run is unmeasured",
+  "an empty-root escalation ladder was launched (pid 2538) and never reported"
+ ],
+ "notes": "Directive D095 acknowledged and acted on: the lane wrapped its solves in tools/goban-scaling-capture.sh. Two defects in that tool, authored by the seat: peak_rss_mb under-reports (a 3x2 probe observed live at 1440 MB against 46 MB recorded), and rows are appended only on completion so killed runs vanish. The ledger's 4x4 rows also carry regime=writes-off for both arms, which is wrong for the writes-on arm; corrected in the same commit as this file."
+}
