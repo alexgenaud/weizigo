@@ -1,0 +1,116 @@
+{
+  "task_id": "T919",
+  "date": "2026-08-25",
+  "model": "kimi-k2.7",
+  "lane": "race-j/kimi (sealed; no other lane's work read)",
+  "deliverable": "untracked/race-j/kimi/regression-runner-guard.sh",
+  "claims": [
+    {
+      "id": "T919-A1-admission-refusal",
+      "proposed_status": "CLAIMED",
+      "rationale": "The L2 admission gate refuses an over-declaring lane pre-spawn (exit 3), spawns nothing, mutates no ledger entry, counts already-admitted lanes against later candidates, and admits when the need fits — proven by five green arms and a reserve-floor-deletion red control.",
+      "evidence_path": "untracked/race-j/kimi/regression-runner-guard.sh"
+    },
+    {
+      "id": "T919-A2-wall-band-boundaries",
+      "proposed_status": "CLAIMED",
+      "rationale": "bin/subagent's _wall_band_ram_mb honors the band-start convention at every boundary (1/59->768, 60/599->1792, 600/1799->3072, 1800/3600->4608) and an unparseable wall declares the safe top band — and a one-second boundary shift is caught by the assertion.",
+      "evidence_path": "untracked/race-j/kimi/regression-runner-guard.sh"
+    },
+    {
+      "id": "T919-A3-wall-kill-attributable",
+      "proposed_status": "CLAIMED",
+      "rationale": "A silent child past --max-wall is SIGKILLed with runner exit 124, stderr naming the guard, and a run record carrying killed_by=wall + signal=9 + wall_budget — and disarming the ceiling turns the assertion red.",
+      "evidence_path": "untracked/race-j/kimi/regression-runner-guard.sh"
+    },
+    {
+      "id": "T919-A4-pressure-alarm-never-kills",
+      "proposed_status": "CLAIMED",
+      "rationale": "Sustained kernel pressure (level 4) fires exactly one dwell-gated ALARM naming the largest host consumer, records host_alarms in the run record, exits clean with no killed_by (INV-1: never kills), level 1 alarms nothing, and a threshold mutant is caught.",
+      "evidence_path": "untracked/race-j/kimi/regression-runner-guard.sh"
+    },
+    {
+      "id": "T919-A5-run-record-kind-declared",
+      "proposed_status": "CLAIMED",
+      "rationale": "Every run writes a record whose run_kind (+ reason + attempt number) is stamped by the writer; child exit is forwarded verbatim; nested runs are segregated under runs/nested/ leaving the dispatch slot untouched; removing the stamp is caught.",
+      "evidence_path": "untracked/race-j/kimi/regression-runner-guard.sh"
+    }
+  ],
+  "assertions": [
+    {
+      "id": "A1",
+      "claim": "tools/runner refuses a lane whose declared RAM does not fit the host per ram-policy.md §4.1 — refused before spawn, nothing spawned, ledger unmutated (row stays dispatchable); committed lanes count against later candidates; fits -> admitted.",
+      "pass_control": {
+        "observed_exit": [3, 3, 3, 3, 0],
+        "detail": "standalone refuse rc=3; launch-path refuse rc=3; committed-sum candidate rc=3; null control (fits) rc=0. Marker-file child absent on refusal; ARBITER REFUSED named on stderr; identity absent from arbiter-state ledger after refusal."
+      },
+      "fail_control": {
+        "observed_exit": 0,
+        "detail": "Mutant with ARBITER_RESERVE_MB=-999999 admits the same over-declaration (rc=0) -> the exit-3 assertion fires on it. RED-CAUGHT."
+      }
+    },
+    {
+      "id": "A2",
+      "claim": "Wall-band RAM declaration correct at every band boundary (60 s, 600 s, 1800 s): band-start convention (exactly 60->1792, 600->3072, 1800->4608); unparseable expected-wall declares the top band (safe direction).",
+      "pass_control": {
+        "observed_exit": 0,
+        "detail": "10-point table (1,59,60,61,599,600,601,1799,1800,3600) matches ram-policy §3.2 exactly; _declared_ram_mb(pi,x/y,{},None)=4608."
+      },
+      "fail_control": {
+        "observed_exit": 1,
+        "detail": "Mutant 'wall_seconds < 600' -> '<= 600' shifts exactly-600 s lanes to 1792 MB (the T912 under-declaration shape); the boundary table detects it. RED-CAUGHT."
+      }
+    },
+    {
+      "id": "A3",
+      "claim": "--max-wall terminates a silent child and the termination is attributable: runner exit 124, stderr names 'wall ceiling', run record killed_by='wall', signal=9, wall_budget recorded.",
+      "pass_control": {
+        "observed_exit": 124,
+        "detail": "silent python sleep(30) child killed at max-wall=2; record fields verified: killed_by=wall, signal=9, wall_budget=2."
+      },
+      "fail_control": {
+        "observed_exit": 0,
+        "detail": "Mutant disarming the ceiling branch ('elif False and args.max_wall ...') lets the child finish normally (rc=0) -> the exit-124/attribution assertion fires. RED-CAUGHT."
+      }
+    },
+    {
+      "id": "A4",
+      "claim": "Memory-pressure backstop fires on sustained kernel pressure (level>=2 held across 3 polls spanning >=2 s), names the largest host process in the ALARM line and the record's host_alarms, and NEVER kills (clean exit, no killed_by). Level 1 produces no alarm.",
+      "pass_control": {
+        "observed_exit": 0,
+        "detail": "WEIZIGO_KERNEL_PRESSURE_LEVEL=4: child completes (rc=0), ALARM on stderr, host_alarms=1 with consumer named, record exit=0 and no killed_by. Null arm level=1: no alarm."
+      },
+      "fail_control": {
+        "observed_exit": 0,
+        "detail": "Mutant threshold 'level >= 2' -> 'level >= 5': critical pressure raises NO alarm -> the alarm-present assertion fails on the mutant. RED-CAUGHT."
+      }
+    },
+    {
+      "id": "A5",
+      "claim": "A run record is written for every run with its kind declared by the writer (run_kind='dispatch' + run_kind_reason + attempt); child exit forwarded verbatim; a nested run (env marker == identity) lands under runs/nested/ and the dispatch slot stays a dispatch record (T895).",
+      "pass_control": {
+        "observed_exit": [7, 11],
+        "detail": "sh -c 'exit 7' forwarded as rc=7; record carries run_kind=dispatch, non-empty reason, attempt=1. Nested arm: child exit 11 forwarded, one record under runs/nested/T919GRD-A5N.* with run_kind=nested, dispatch slot kept as dispatch."
+      },
+      "fail_control": {
+        "observed_exit": 7,
+        "detail": "Mutant replacing '\"run_kind\": run_kind,' stamps 'run_kind_deleted': True -> record lacks the run_kind field -> declaration assertion fails. RED-CAUGHT."
+      }
+    }
+  ],
+  "could_not_verify": [
+    "RSS-cap kill (--rss-cap-mb) not exercised end-to-end: a real memory balloon needs a memory-hog child that risks the host (the 2026-07-29 precedent forbids it) and the runner exposes no RSS injection hook (unlike WEIZIGO_HOST_MEM_AVAIL_MB / WEIZIGO_KERNEL_PRESSURE_LEVEL). Left out deliberately.",
+    "CPU-ceiling kill (--max-cpu) not exercised: spinning CPU to exceed a ceiling inside the wall budget is flaky on a shared host. The code path is adjacent to A3's and lower risk; left out.",
+    "'Row stays dispatchable' is asserted at the layer the runner controls (ledger unmutated, nothing spawned, nothing signalled). Whether bin/dispatch re-lists the row is dispatch-layer behaviour outside tools/runner's contract; not tested here."
+  ],
+  "not_covered": [
+    "Directive channel (launch/mid-run pause+kill via managent tell) — a separate mechanism with its own policy module (directive_policy); would double this script's size for a second subsystem's coverage.",
+    "Progress watchdog tier ([progress]-emitting children) — same kill machinery as A3, different trigger; covered indirectly by tests/unit/test_runner.py upstream.",
+    "Orphan sweeper (--reap-orphans) and --sweep modes — standalone diagnostics, not launch-path guards; the brief's five load-bearing behaviours are all launch-path.",
+    "Arbiter concurrency (two co-launching runners racing one ledger) — regression-arbiter.sh already owns that control; re-testing it here adds runtime, not coverage.",
+    "Token capture / claude JSON lane — measurement plumbing, not a guard.",
+    "bin/subagent window-cooldown and serving-tag canonicalization — orthogonal to the runner guard; covered by their own regression suites."
+  ],
+  "method_notes": "House rule honored: all 5 red controls were RUN against mutated copies (never against tools/, which was only executed, never written), each observed to fail its assertion. Green arms: 30/30 PASS; red controls: 5/5 CAUGHT; full run ~25 s under tools/runner, exit 0. Scratch isolation: throwaway git repo under TMPDIR so live untracked/ records, heartbeats and the arbiter ledger are untouched. Denominators stated: 30 green-arm checks + 5 red controls; zero skipped-on-silent-failure paths — a missing anchor string is reported as a FAIL (harness error), never silently passed.",
+  "notes": "Inbox checked at start and close: no pending directives. Landmark: advances L1 (the dashboard tells the truth) — tools/runner regains declared test coverage after T872 deleted the old script at 12e7055; this script is the replacement gate, living in the sealed race lane until a build row installs it under tools/."
+}
