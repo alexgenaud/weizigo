@@ -26,6 +26,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PROJECT="$(cd "$HERE/.." && pwd)"
 MG="$PROJECT/bin/managent"
+. "$PROJECT/tools/lib/scratch-repo.sh"   # T873: weizigo_reset_census for direct store writes
 
 FAIL=0
 
@@ -118,6 +119,7 @@ cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
   }
 }
 JSONEOF
+weizigo_reset_census "$TMPDIR/docs/infra/managent/tasks.json"   # T873: direct write bypasses the S10 census
 
 # Snapshot the store for the byte-identity guard (arm 4).
 STORE_BEFORE="$(cat "$TMPDIR/docs/infra/managent/tasks.json")"
@@ -129,7 +131,7 @@ echo "  T516 regression: status --json added/claim_count"
 echo "        1. claimed task exposes added + claim_count==1"
 
 STATUS_JSON=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
-python3 - "$STATUS_JSON" <<'PYEOF'
+if ! python3 - "$STATUS_JSON" <<'PYEOF'
 import sys, json
 data = json.loads(sys.argv[1])
 by_id = {d["id"]: d for d in data}
@@ -152,12 +154,14 @@ if fails:
     sys.exit(1)
 print("           PASS: T700 added + claim_count==1 present and correct")
 PYEOF
-if [ $? -ne 0 ]; then FAIL=1; fi
+then
+    FAIL=1
+fi
 
 # ── Arm 2: dispatchable (unclaimed) task exposes added + claim_count==0 ──
 echo "        2. dispatchable task exposes added + claim_count==0"
 
-python3 - "$STATUS_JSON" <<'PYEOF'
+if ! python3 - "$STATUS_JSON" <<'PYEOF'
 import sys, json
 data = json.loads(sys.argv[1])
 by_id = {d["id"]: d for d in data}
@@ -180,7 +184,9 @@ if fails:
     sys.exit(1)
 print("           PASS: T701 added + claim_count==0 present and correct")
 PYEOF
-if [ $? -ne 0 ]; then FAIL=1; fi
+then
+    FAIL=1
+fi
 
 # ── Arm 3: a task claimed twice exposes claim_count==2 ──────────────────
 echo "        3. re-claimed task exposes claim_count==2"
@@ -213,9 +219,10 @@ cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
 }
 JSONEOF
 echo "# T702 — claimed twice" > "$TMPDIR/untracked/T702-bundle.md"
+weizigo_reset_census "$TMPDIR/docs/infra/managent/tasks.json"   # T873: direct write bypasses the S10 census
 
 STATUS_JSON2=$(cd "$TMPDIR" && "$MG" status --json 2>/dev/null)
-python3 - "$STATUS_JSON2" <<'PYEOF'
+if ! python3 - "$STATUS_JSON2" <<'PYEOF'
 import sys, json
 data = json.loads(sys.argv[1])
 by_id = {d["id"]: d for d in data}
@@ -234,7 +241,9 @@ if fails:
     sys.exit(1)
 print("           PASS: T702 claim_count==2 present and correct")
 PYEOF
-if [ $? -ne 0 ]; then FAIL=1; fi
+then
+    FAIL=1
+fi
 
 # ── Arm 4: byte-identity guard — status --json never mutates the store ────
 echo "        4. byte-identity guard — status --json does not mutate tasks.json"
@@ -268,6 +277,7 @@ cat > "$TMPDIR/docs/infra/managent/tasks.json" <<'JSONEOF'
   }
 }
 JSONEOF
+weizigo_reset_census "$TMPDIR/docs/infra/managent/tasks.json"   # T873: direct write bypasses the S10 census
 SNAP="$(cat "$TMPDIR/docs/infra/managent/tasks.json")"
 (cd "$TMPDIR" && "$MG" status --json 2>/dev/null) >/dev/null
 AFTER="$(cat "$TMPDIR/docs/infra/managent/tasks.json")"
