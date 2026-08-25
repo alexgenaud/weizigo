@@ -87,9 +87,45 @@ PYP
   done
   pick=$(echo "$choice" | grep '^PICK' | head -1 | cut -f2)
   [ -z "$pick" ] && { echo "pop-next: no AUTO row is dispatchable right now"; return 3; }
-  model=$(bin/managent assign "$pick" --json 2>/dev/null | python3 -c "import sys,json
+  # ── no ollama-cloud for single-model work (operator, 2026-08-25) ────────
+  # "Do not dispatch single model tasks to Ollama. We will soon run out of
+  #  Ollama weekly token credits. I would prefer to accumulate comparative
+  #  race data than use Ollama models for singular task work."
+  # The family name managent knows is `ollama-cloud`; bin/dispatch and
+  # fleet_caps call the same family `ollama`. Passing the WRONG name here is
+  # silent -- `--exclude ollama` is accepted and ignored, and the popper would
+  # go on assigning kimi/glm/minimax while looking configured. Verified live:
+  # --exclude ollama-cloud drops all three with "excluded by row (family
+  # ollama-cloud)". Local mlx (family `local`) is unaffected and is
+  # PROBE-gated anyway; it spends no cloud credit.
+  EXCLUDE_FAMILIES="${EXCLUDE_FAMILIES:-ollama-cloud}"
+
+  # ── a pinned model wins over the mechanized draw ────────────────────────
+  # A race arm is only a race arm if it runs on the model it is an arm FOR.
+  # Race J pins ox-alpha / dsflash / dspro / kimi / sonnet / gemini-flash onto
+  # T916-T920 and T939; letting `assign` redraw them would silently turn six
+  # sealed lanes into six lanes of whatever was cheapest, and the judge would
+  # never know. `managent agent <id> <model>` is how a row gets pinned, and
+  # the pin also carries kimi past EXCLUDE_FAMILIES on purpose: the operator's
+  # rule is no ollama for SINGULAR task work, and comparative race data is the
+  # stated exception ("I would prefer to accumulate comparative race data than
+  # use Ollama models for singular task work", 2026-08-25).
+  model=$(python3 -c "
+import json,sys
+v=json.load(open('docs/infra/managent/tasks.json')).get('$pick') or {}
+print(v.get('model') or '')" 2>/dev/null)
+  if [ -n "$model" ]; then
+    echo "pop-next: $pick is pinned to $model (not redrawn)"
+  else
+  # --dry-run must not RECORD an assignment. It did: the first dry run of this
+  # script pinned claude-haiku onto T931 as a side effect, because the DRY
+  # check sat after the assign call. A preview that mutates the store is not a
+  # preview. `assign --dry-run` prints the same choice and writes nothing.
+  assign_dry=""; [ "$DRY" = 1 ] && assign_dry="--dry-run"
+  model=$(bin/managent assign "$pick" --json --exclude "$EXCLUDE_FAMILIES" $assign_dry 2>/dev/null | python3 -c "import sys,json
 try: print(json.load(sys.stdin).get('model') or '')
 except Exception: print('')" 2>/dev/null)
+  fi
   [ -z "$model" ] && model=dspro
   if [ "$DRY" = 1 ]; then
     echo "pop-next: WOULD dispatch $pick -> $model"

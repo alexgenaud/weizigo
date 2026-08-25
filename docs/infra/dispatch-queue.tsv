@@ -6,6 +6,11 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T934	2	3600	AUTO	a provider refusing service must not exit 0 — the instrument behind the B4 misdiagnosis; gates trustworthy race judging
+T938	0	5400	AUTO	wire gemini-3.7-flash (gflash) into the fleet — enables the race arm T939
+T940	0	3600	AUTO	API keys live in pi; the DEEPSEEK_API_KEY guard is a false refusal waiting for a profile edit
+T939	1	1800	AUTO	Race J sealed arm, model PINNED (gemini-3.7-flash) — blocked on T938
+T941	2	5400	AUTO	judge Race J — blocked on all six arms; classifies never-served arms separately
 T926	1	3600	AUTO	capture tool RSS + killed-run rows
 T927	2	3600	AUTO	sleep guard around runs
 T894	3	5400	AUTO	queue head + dispatch estimates
@@ -36,11 +41,11 @@ T709	25	3600	DISCUSS	reconcile rc=0 with deliverables — edits dispatch verific
 T772	26	3600	DISCUSS	cost ladder quality gate — needs a policy ruling on what 'quality' gates on
 T833	27	3600	DISCUSS	qwen appetite down to 1 — roster config; operator's call
 T837	28	3600	DISCUSS	C3 toward zero — 42 register rows; a wrong absorb corrupts the epistemic ledger
-T916	29	3600	DISCUSS	Race J arm ox-alpha — race: needs blind adjudication after, and model-perf is deprioritised
-T917	30	3600	DISCUSS	Race J arm dsflash — race
-T918	31	3600	DISCUSS	Race J arm dspro — race
-T919	32	3600	DISCUSS	Race J arm kimi — race
-T920	33	3600	DISCUSS	Race J arm sonnet — race
+T916	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (ox-alpha; may 429 — T941 classifies never-served separately)
+T917	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (deepseek-v4-flash)
+T918	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (deepseek-v4-pro)
+T919	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (kimi-k2.7 — ollama is allowed HERE: race data is the stated exception)
+T920	1	3600	AUTO	Race J sealed arm, model PINNED — operator asked for this race 2026-08-25; judged by T941 (claude-sonnet-5)
 T830	34	3600	DISCUSS	diff race: nonce vs no-work — race
 T753	35	3600	DISCUSS	race oxalpha against the field — race
 T782	36	3600	DISCUSS	race-w blind rejudge judge 3 — race

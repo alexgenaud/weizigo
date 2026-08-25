@@ -37,6 +37,7 @@ rate was 18 claims in nine hours, so the pressure is other users of the shared p
 **B4 as previously written was a wrong diagnosis that stood for weeks**, and the seat acted on it
 by putting waypoint 1 on ox-alpha (T924: 4,110 s, complete ladder, neither deliverable written).
 The instrument defect is registered as **T934** — a provider refusing service must not exit 0. **Decision (T914 seat): ox-alpha is off the dispatch list** until lane telemetry can distinguish provider death from model behaviour. Work quality is the best in the field (37/40, race C3) — this is a lane-reliability finding, not a capability one. | `docs/evidence/T926/` (run record + lane log, preserved), `findings/T924-4x4-d3-tractability.json` |
+| B4-corr | **B4 CORRECTED 2026-08-25 (T935 seat) — the two ox-alpha events are not the same event, and the bench was never mechanized.** B4 merged T926's death with T924's, and they have opposite causes. **T926: never served.** 37.4 s, `tokens_out: 0`, row never claimed — the 429 case, exactly as B4 says. **T924: served, and served well.** 4,110.6 s wall, **2,560.4 s CPU (62% utilisation)**, **4,886,579 tokens in / 44,877 out**, 1,440 MB RSS, **66 successful assistant turns**, and its stderr log holds **zero** 429s. It ran the full ladder and both arms. The 429s arrive only at the very end: last served turn **04:57:08Z**, then `Provider returned error` at 04:57:22Z and three `429 upstream_provider_shared_pool` refusals at 04:57:29 / 04:57:40 / 04:57:57Z, run over at 04:57:58Z. **It was cut off fifty seconds after its last served turn, mid-analysis, before it could write its deliverables.** Its final thinking block is it catching its own sampling-weight error — the same 7.6x error T929 later found independently. So "did excellent science, then exited 0 having written neither deliverable" understates it: it did not neglect to write, **it was interrupted while still correcting itself.** Consequence: **the T914 decision to take ox-alpha off the dispatch list is withdrawn.** It was (a) founded on a merged reading of two different failures, and (b) never implemented anyway — `managent assign` still lists ox-alpha in every candidate set, verified today. Benching a model on a telemetry defect is the B4 error repeating one level up. The fix is **T934** (a provider refusing service must not exit 0), now ranked 2. | `docs/evidence/T924/lane-cutoff.md` and `docs/evidence/T924/lane-run-record.json` — committed by this seat; the session file itself is volatile |
 | B4-old | **ox-alpha does not reliably echo the dispatch nonce** — three instances (T770, T776 via raw pi; T818 through `bin/dispatch`, so the door is not the explanation). Work quality high, protocol compliance unreliable. | T818 findings |
 | B5 | **`dispatch_verify` cannot distinguish "nonce not echoed" from "work absent."** T818 was complete — 12/12 chunks, 579 rows — and read as *orphaned* for two hours. | the diff race (T826–T831) fixes this |
 | B6 | **A findings file citing volatile paths now fails the commit gate**, which is correct — but corpus-mining tasks must read `untracked/` sources. They must cite the committed corpus they produced, not the volatile sources they read. | T814's C10-NEW gate, hit by T818 |
@@ -104,6 +105,49 @@ does not read it.
 **DISCUSS is now 15 rows, and 10 of them are races.** Whether the parked races (Race J's five arms,
 T830, T753, T782, T529) are still wanted under "model-perf is deprioritised" is the next question
 worth the operator's time — it is the largest block of held work and nobody has said keep or kill.
+
+### Operator direction, 2026-08-25 afternoon — acted on
+
+**1. gemini-3.7-flash is coming in as `gflash`.** Verified before writing anything:
+`env -u OPENROUTER_API_KEY pi --provider openrouter --model google/gemini-3.7-flash -p '…'` → `rc 0`.
+**T938** wires it, ox-alpha's shape exactly: canonical label `gemini-3.7-flash` (what the ledger
+stores), serving tag `google/gemini-3.7-flash` (what pi launches), input alias `gflash` (what a
+human types, alongside `dspro`/`dsflash`). The shortname does not become the stored label — the
+kanban and the perf ledger read a name that explains itself. Thirteen surfaces enumerated in the
+brief so the worker does not have to rediscover them.
+
+**2. No ollama-cloud for singular work; ollama for races is the exception.** `tools/pop-next.sh`
+now passes `--exclude ollama-cloud` on every mechanized draw. **The family name is a trap:**
+managent calls it `ollama-cloud` while `bin/dispatch` and `fleet_caps` call the same family
+`ollama`, and `--exclude ollama` is **accepted and silently ignored** — the popper would have gone
+on assigning kimi/glm/minimax while looking configured. Verified live with the correct name; local
+mlx (family `local`) is unaffected and spends no cloud credit. A pinned model overrides the
+exclusion, which is what lets the kimi race arm run.
+
+**3. Race J is the race.** It already had five sealed lanes — ox-alpha, deepseek-v4-flash,
+deepseek-v4-pro, kimi-k2.7, claude-sonnet-5 — writing a regression for `tools/runner`, which today
+has **zero declared test coverage**. Added **T939** (gemini-3.7-flash arm, blocked on T938) and
+**T941** (the judge, which the race never had). All six arms **pinned** to their model, and
+`pop-next.sh` now honours a pin instead of redrawing — otherwise six sealed lanes quietly become
+six lanes of whatever was cheapest and the judge never knows. They run serially, one per lane,
+which gives each arm a clean host rather than six contending.
+
+**4. The API keys are already redundant, all three of them.** Measured, key removed from the
+environment each time: openrouter → `rc 0`, ollama cloud → `rc 0`, **deepseek → `rc 0`**.
+`OPENROUTER_API_KEY` is not even set in the live environment and ox-alpha has been served all
+along. **The one thing standing in the way is ours:** `bin/subagent:983-985` exits with
+"DEEPSEEK_API_KEY is not set" — so the moment that variable leaves the profile, every deepseek
+dispatch (121 ledger tasks, the bulk workhorse) dies naming a cause that is not the cause. **T940**
+removes it, with a seeded-defect control that a genuinely bad credential still fails *attributably*.
+
+### Two defects found in this seat's own popper
+
+- **`--dry-run` was not a preview.** The DRY check sat after the assign call, so the first dry run
+  recorded a model pin onto T931 as a side effect. Fixed: `assign --dry-run` is passed through.
+  T931's haiku pin is left as-is — it is what a correct draw gives anyway — but its provenance was
+  an artifact, not a decision.
+- **`--exclude` takes an unknown family silently.** `--exclude ollama` looked applied and did
+  nothing. Noted against T775 (refuse unknown flags loudly), which is the row that owns the shape.
 
 ### Observed live: the T922 shared-writer sweep
 
