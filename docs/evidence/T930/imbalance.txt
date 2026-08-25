@@ -1,0 +1,15 @@
+# T930 — per-thread node counts (contig partition), proving load imbalance
+# 4x3, writes-off, 183,065,016 total nodes, deepest-first work list, contiguous chunks
+# "slowest/mean" = busiest thread's nodes / (total / N) — the factor that sets the wall.
+#
+# threads=6  (balanced share = 30,510,836;  slowest/mean = 2.07)
+63297873 29492075 27460592 25478108 15791250 21545118
+#
+# threads=16 (balanced share = 11,441,563;  slowest/mean = 3.05)
+34841506 16930407 16802259 10324534 10632219 12359406 10820092 7540154 7333974 8530644 9915354 7108814 5372792 9571035 6533065 8448761
+#
+# threads=18 (balanced share = 10,170,278;  slowest/mean = 3.34)
+33976769 13347101 15974003 10087615 10529181 8875279 12595203 8547499 6317890 6378002 6627075 12473031 4424154 5516141 5850955 8030568 5157251 8357299
+#
+# round-robin for contrast (threads=2, balanced share = 91,532,508; slowest/mean = 1.03)
+89119923 93945093

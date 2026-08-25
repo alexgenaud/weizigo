@@ -1,0 +1,16 @@
+{
+  "task_id": "T930",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "claims": [
+    {
+      "id": "4x4.D3",
+      "was": "MEASURED — NOT TRACTABLE under writes-off (T924: 202.5–1620 h single-threaded)",
+      "now": "MEASURED — parallel cost added. Production finishParallel (contiguous chunks) scales to only 5.10× at 18 cores because its static partition is load-imbalanced (busiest thread does 3.34× the balanced share; wall = busiest thread). A round-robin partition recovers 11.54× at 16 cores (72% eff) / 10.87× at 18. Residual loss is memory latency (total CPU-seconds flat ~40–45 s across 1→18 cores; saturates ~14–15 streams). Parallel 4×4 wall = [17.5, 140] h optimistic (11.54× on T924's bracket), realistically ~1–6 days once 4×4's ~1 GB working set is counted. Parallel does NOT reach D3's ≤8 h target; it moves writes-off from 'dead' to 'a long weekend'.",
+      "evidence": "docs/research/parallel-finisher-cost.md; docs/evidence/T930/sweep.csv; docs/evidence/T930/imbalance.txt; docs/evidence/T930/PROVENANCE.md; src/t930_parallel_finisher_cost.zig",
+      "note": "Presence-only (no proposed_status): the register row keeps its T924 MEASUREMENT status and the promotion path is absorption, not a leaf edit. Secondary correction surfaced: T924's projection divides the ko-sensitive slot count by num_syms (8) but the finisher's orbit dedup also uses colour inversion (2×), so T924's low end is ~2× high — the true serial low end is ≈101 h, not 202.5 h (4×3 witness: T924's /num_syms low end predicts 42,569 reps, the actual orbit-rep count is 21,578)."
+    }
+  ],
+  "new_rows": [],
+  "notes": "Costing row, not a production change: the deliverable is a throwaway harness (src/t930_parallel_finisher_cost.zig) driving the existing RT.finishParallel / worker solve, plus the scaling measurement. Host-exclusive (arbiter admitted only T930), caffeinate -i -s asserted, results flushed per core-count. Deterministic work (21,578 roots / 183,065,016 nodes / 0 bracket-fail / 0 orbit-clash on every run) so the sweep compares walls only. Serial fidelity vs T924: 34.0 s vs 35.2 s. Key actionable: the 5.1× ceiling is a partitioning bug, fixable with round-robin to ~11.5×; the rest is memory-latency-bound and not fixable by scheduling."
+}

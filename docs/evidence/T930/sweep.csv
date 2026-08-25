@@ -1,0 +1,24 @@
+# T930 4x3 writes-off finisher scaling sweep — deepseek-v4-pro/T930, 2026-08-25
+# rung: 4x3, memo_writes=false, budget=20,000,000 nodes/root, orbit-dedup work list
+# deterministic work: 21,578 roots, 183,065,016 nodes, 0 bracket-fail, 0 orbit-clash on every run
+# host: Apple M5 Max (6 Super + 12 Performance), 48 GB, fleet drained, caffeinate -i -s held
+# wall = clock_gettime(MONOTONIC) around the solve only (build excluded); serial build ~5.0 s
+#
+# partition=contig is the production finishParallel (contiguous chunks, deepest-first order)
+partition,threads,finish_ms,speedup
+contig,1,34022,1.000
+contig,2,22466,1.514
+contig,4,14941,2.277
+contig,6,11876,2.865
+contig,8,9884,3.442
+contig,12,7834,4.343
+contig,16,6889,4.938
+contig,18,6671,5.100
+rr,1,33497,1.000
+rr,2,18067,1.854
+rr,4,9359,3.579
+rr,6,6400,5.234
+rr,8,5066,6.612
+rr,12,3774,8.876
+rr,16,2903,11.539
+rr,18,3083,10.865
