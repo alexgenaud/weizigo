@@ -1,0 +1,11 @@
+{
+  "task_id": "T979",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T979",
+  "landmark": "L1 (the dashboard tells the truth)",
+  "claims": [],
+  "new_rows": [],
+  "answer": "Resolved the T963 spec audit (round 1, BLOCKERS (5)) as a sealed Race B arm. The auditor is right on all five blockers: (1) missing-field-refusal contradicts the bundle's 'a missing field cannot simply refuse' and S10's measured refusal=stranding — replaced with a recorded 'reporting-gap' that lets the close land; (2) the bundle's pass rate is 502/521 = 96%, not 92% (444/92% is S10's 2026-08-24 number); (3) the single fail-found row is T959, not T948 (T948 is pass-with-findings); (4) T940 was worker-closed, not auto-closed (real verdict_note+impression; the auto-close marker is on T943/T786 only); (5) the armed count is 25 cited + 16 new = 41, not 38/32/48. The three red flags are each decided (runner-exit mechanism is an implementation detail, not a ruling; blocked/abandoned concern requirement lands atomically with the T490 channel so no stranding path; reporting-field encoding is design-phase with normative shape). One audit NOTE is wrong: the spec says 'live host', not 'clean host', so no change.",
+  "notes": "Sealed arm — wrote only untracked/races/B-failtrans/dspro/ and findings/. Every fact re-checked against the repo: bundle untracked/T963-close-contract-spec.md (502/521=96%, 'a refused close strands so a missing field cannot simply refuse'), S10 spec §1.2/§6 ledger (21 arms + 4 smoke = 25), docs/infra/managent/tasks.json (T948 verdict=pass-with-findings), docs/infra/managent/archive.json (T959 verdict=fail-found; T940 verdict_note='Removed DEEPSEEK_API_KEY env guard' + impression, no auto-close marker; T943 verdict_note='tools/runner auto-close...'; T786 same auto-close marker), src/managent/main.zig:673 (only 'concern' hit is a comment), concerns.jsonl absent. No claims or register rows proposed (spec-audit resolution, not a measurement). Inbox checked (bin/managent inbox T979 --ack) at claim and pre-done: no directives."
+}
