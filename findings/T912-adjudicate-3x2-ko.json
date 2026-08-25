@@ -1,0 +1,293 @@
+{
+  "task_id": "T912",
+  "date": "2026-08-25",
+  "model": "claude-opus-5",
+  "identifier": "adjudicate-3x2-ko",
+  "claims": [],
+  "new_rows": [],
+  "question": "Where writes-off and the committed 3x2 table disagree on the 62 ko-sensitive (slot,side) pairs, which one is right?",
+  "answer": "Writes-off, on 62 of 62 adjudicable pairs. The 807d530 artifact generation is refuted on all 62; writes-off on none. The adjudicator is the minimax identity under a fixed root history (ADR-0013), not the history-exact solver, which resolved 0 of 62.",
+  "denominators": {
+    "colex_slots_3x2": 729,
+    "legal_slots": 489,
+    "all_legal_slot_side_values": 978,
+    "ko_sensitive_slot_side_pairs": 378,
+    "ko_sensitive_black": 189,
+    "ko_sensitive_white": 189
+  },
+  "reproduction": {
+    "the_62_reproduce": true,
+    "writes_off_vs_artifact_807d530_ko_sensitive": [
+      62,
+      378
+    ],
+    "writes_off_vs_artifact_807d530_whole_table": [
+      62,
+      978
+    ],
+    "writes_off_vs_artifact_HEAD_ko_sensitive": [
+      0,
+      378
+    ],
+    "writes_off_vs_artifact_HEAD_whole_table": [
+      0,
+      978
+    ],
+    "writes_off_vs_memo_reuse_ko_sensitive": [
+      170,
+      378
+    ],
+    "writes_off_vs_deps_guarded_ko_sensitive": [
+      0,
+      378
+    ],
+    "artifact_generations": {
+      "807d530": {
+        "sha256": "6725b335cd4708f88b59eac2c84eb1a6e0f77a2468cef074797a6d5022e25da1",
+        "role": "the audit's 'old'; the 62 are against this"
+      },
+      "ae39978": {
+        "sha256": "d4d22c0d9f1d771bfcb1d99fc43a4f19f652205113ff599123b189097b3bb523",
+        "role": "HEAD; matches artifacts/SHA256SUMS"
+      }
+    },
+    "shortfall": "The audit's third method ('new', MTD + bounds memo, empty goban -2) is not reproducible from any committed artifact -- no committed 3x2 .wzo carries -2 at idx 0. It reproduces only as a live code path: memo_writes=ON yields parent=-2 best-option=0 at idx 0 Black, which identifies 'new' with cross-branch memo reuse.",
+    "disputed_by_stone_count": {
+      "0": 2,
+      "3": 12,
+      "4": 16,
+      "5": 32
+    }
+  },
+  "controls": {
+    "order": "Every null control ran BEFORE the adjudication it calibrates (acceptance item 3).",
+    "null_bracket_on_agreeing": {
+      "fires": 0,
+      "pool": 316
+    },
+    "null_symmetry_on_agreeing": {
+      "fires": 0,
+      "pool": 316
+    },
+    "null_identity_on_agreeing_vs_807d530": {
+      "agree": 316,
+      "disagree": 0,
+      "pool": 316
+    },
+    "null_identity_on_whole_region_vs_HEAD": {
+      "agree": 378,
+      "disagree": 0,
+      "pool": 378
+    },
+    "null_history_exact_on_agreeing": {
+      "resolved": 0,
+      "sampled": 24,
+      "pool": 316,
+      "note": "The history-exact judge could not be calibrated at all -- it resolved none of its own null-control pairs."
+    },
+    "seeded_defect_table_comparator": {
+      "baseline_diffs": 62,
+      "after_diffs": 63,
+      "verdict": "CAUGHT"
+    },
+    "seeded_defect_bracket": "CAUGHT",
+    "seeded_defect_symmetry": "CAUGHT",
+    "seeded_defect_identity": "CAUGHT",
+    "known_bad_generator_control": {
+      "description": "The convicted memo_writes=ON table is a REAL seeded defect (ADR-0013). Adjudicate every pair where it differs from writes-off.",
+      "pairs": 170,
+      "writes_off_matches": 170,
+      "reuse_matches": 0,
+      "neither": 0
+    },
+    "instrument_defect_the_null_control_caught": "The first cut of the identity adjudicator seeded its search context from the FINISHED writes-off table, marking every ko-sensitive slot as a clean history-free memo entry -- the exact reuse under audit. Null control: 52 disagreements of 316, and a plausible-looking 42/20 split on the 62. Re-seeding from the certified-only table (seed/converge/finalize, no finisher), as retro.zig:2984 does, took the null control to 316/316 and the verdict to 62/0. Had the control run after the adjudication, this row would have shipped the 42/20."
+  },
+  "adjudication": {
+    "history_exact": {
+      "instrument": "retro.Exact(3,2), ban-set-keyed, sound by construction",
+      "resolved": 0,
+      "disputed": 62,
+      "unresolved": 62,
+      "null_control_resolved": 0,
+      "null_control_sampled": 24,
+      "nodes": 1720000086,
+      "wall_seconds": 330,
+      "peak_rss_bytes": 1739587584,
+      "memo_entry_cap": 6000000,
+      "memo_saturated": true,
+      "single_root_escalation": {
+        "idx": 480,
+        "side": "B",
+        "pos": "BBBWW.",
+        "stones": 5,
+        "node_budget": 400000000,
+        "wall_seconds": 74,
+        "peak_rss_bytes": 1739587584,
+        "verdict": "UNRESOLVED"
+      },
+      "growth_probe_uncapped_memo": [
+        {
+          "nodes": 1000001,
+          "states": 543560,
+          "bytes_per_node": 75
+        },
+        {
+          "nodes": 2000001,
+          "states": 1083442,
+          "bytes_per_node": 74
+        },
+        {
+          "nodes": 4000001,
+          "states": 2164212,
+          "bytes_per_node": 74
+        },
+        {
+          "nodes": 8000001,
+          "states": 4331620,
+          "bytes_per_node": 74
+        },
+        {
+          "nodes": 16000001,
+          "states": 8659340,
+          "bytes_per_node": 74
+        }
+      ],
+      "growth_verdict": "0.541 new ban-set states per node, flat across five doublings, no plateau. Extrapolating 74 B/node, the 400M-node escalation needs about 29.6 GB -- and 400M nodes did not resolve it, so that is a lower bound on an unknown cost.",
+      "reading": "3x2.EXACT (Finding 3: 68 of 600 roots) read correctly -- the roots that complete are the settled ones, and every ko-sensitive slot is unsettled (L<H) by definition."
+    },
+    "brackets_and_symmetry": {
+      "why_these": "src/retro.zig:2637 -- 'Ko-sensitive region is NOT spot-checked here: forward search cannot tractably reach it (Finding 3/6) -- it is validated by the [L,H] brackets + symmetry instead.'",
+      "bracket_refutations": 0,
+      "symmetry_refutations": 0,
+      "resolved": 0,
+      "disputed": 62,
+      "symmetry_violations_over_region": {
+        "writes_off": [
+          0,
+          378
+        ],
+        "artifact_807d530": [
+          0,
+          378
+        ],
+        "memo_reuse": [
+          0,
+          378
+        ],
+        "deps_guarded": [
+          0,
+          378
+        ]
+      },
+      "zero_discriminating_power": "writes-off and memo-reuse differ on 170 of 378 pairs, so at most one can be right -- and brackets plus symmetry accept BOTH tables completely, 0 violations each. The two validators the engine names for this region cannot detect a generator ADR-0013 has already proven buggy."
+    },
+    "minimax_identity": {
+      "instrument": "V(P,side,[P]) == opt over children V(c,-side,[P,c]) and the pass branch; ADR-0013 / docs/research/consistency-audit.md",
+      "retro_consist_reproduced": {
+        "memo_writes_ON": [
+          45,
+          378,
+          "PROVABLY BUGGY"
+        ],
+        "writes_off": [
+          0,
+          378,
+          "self-consistent"
+        ],
+        "deps_guarded": [
+          0,
+          378,
+          "self-consistent"
+        ],
+        "wall_seconds": 0.35,
+        "peak_rss_bytes": 2801664
+      },
+      "why_retro_consist_could_not_answer_this_row": "RETRO_CONSIST audits a GENERATOR -- it solves the parent with the variant under test. The generator that produced the 62 disputed values is not in the repository any more. This row computes only the identity's right-hand side (children and pass branch re-solved independently under H=[P,c] by the sound variant) and tests BOTH candidate parent values against it.",
+      "writes_off_matches": 62,
+      "artifact_matches": 0,
+      "both_violate": 0,
+      "unresolved": 0,
+      "disputed": 62,
+      "wall_ms_for_the_62": 7,
+      "whole_program_wall_seconds": 0.31,
+      "whole_program_peak_rss_bytes": 16728064,
+      "overlap_with_the_45": {
+        "in_both": 17,
+        "in_45_only": 28,
+        "in_62_only": 45,
+        "note": "On none of the 17 does the 807d530 value equal the memo-ON parent value -- the old artifact is a third generation, distinct from both live variants."
+      },
+      "assumption": "Children and pass branch are valued by the sound finisher variant (memo_writes=false) reading certified seeds and [L,H] brackets over the real positional-superko history. A refutation says 'this stored value contradicts the sound solver's independently re-solved children one ply deeper', not 'this value is false in the absolute'. Same standing as the ADR-0013 conviction, applied to numbers instead of to a code path."
+    }
+  },
+  "both_wrong_check": {
+    "asked_by": "acceptance item 4 -- a pair refuting BOTH methods would indict the [L,H] brackets or the certified seeds beneath them",
+    "both_out_of_bracket": 0,
+    "both_symmetry_refuted": 0,
+    "both_wrong_history_exact": 0,
+    "both_violate_identity": 0,
+    "verdict": "Four independent opportunities tested, all four empty. Brackets and certified seeds are not implicated at 3x2 on this evidence. (The history-exact line is vacuous -- it resolved nothing.)"
+  },
+  "what_this_licenses": [
+    "Writes-off is right on 62 of 62 adjudicable pairs; the 807d530 values are refuted on all 62.",
+    "Across the whole region, writes-off equals the independently re-solved best option at 378 of 378 ko-sensitive pairs.",
+    "The dependency-guarded (Track B) generator agrees with writes-off at 378/378 and 978/978 and is self-consistent at 0/378.",
+    "Cross-branch memo reuse is refuted at 45 of 378 by the project's own auditor and at 170 of 170 of its disagreements here."
+  ],
+  "what_this_does_not_license": [
+    "No independent oracle resolved a single disputed pair. retro.Exact returned 0 of 62 and 0 of 24. Everything above is a NECESSARY test; consistency-audit.md says a solver can be self-consistent at a wrong fixpoint and the identity never yields the true score.",
+    "'Writes-off is the correct generator' remains unproven. What is established: of the candidates testable at 3x2, writes-off is the only one not refuted, and the artifact generation it replaced is refuted on every disputed slot.",
+    "The identity's right-hand side is computed by the sound variant, so it shares that variant's dependence on bracket validity, certified-seed history-freeness and eye-prune soundness -- weaker than trusting the whole writes-off table, but not zero.",
+    "Nothing here transfers to 4x4 by itself. It removes an objection to Track A; it does not discharge the 4x4 tractability question.",
+    "This row proposes no claim status change and edits no register, per the brief."
+  ],
+  "track_a_premise_at_3x2": {
+    "already_met": true,
+    "evidence": "artifacts/oracle-3x2.wzo at HEAD agrees with a fresh writes-off rebuild on all 978 (slot,side) values, and its SHA-256 matches artifacts/SHA256SUMS. The 62 were repaired by the regeneration at ae39978, the same commit that landed ADR-0013.",
+    "caveat": "This says the numbers on disk are the writes-off numbers. It is not evidence that the regeneration was verified at the time, and it settles nothing at 4x4."
+  },
+  "cost_comparison": {
+    "asked_by": "the bundle amendment -- 'if the existing tooling makes this cheap, say by how much'",
+    "hand_rolled_python_attempt_3": {
+      "wall_seconds": 212.7,
+      "peak_rss_mb": 7685,
+      "pairs_adjudicated": 0
+    },
+    "existing_engine_identity_adjudicator": {
+      "wall_seconds": 0.31,
+      "peak_rss_mb": 16.0,
+      "pairs_adjudicated": 62
+    },
+    "existing_engine_retro_consist_as_is": {
+      "wall_seconds": 0.35,
+      "peak_rss_mb": 2.7,
+      "pairs_adjudicated": null
+    },
+    "existing_engine_history_exact_judge": {
+      "wall_seconds": 330,
+      "peak_rss_mb": 1659,
+      "pairs_adjudicated": 0
+    },
+    "speedup": "about 690x faster and 460x less memory, with the answer instead of without it. The reproduce-plus-controls stage costs 12 ms of generator time.",
+    "honest_other_half": "The existing tooling does NOT make the history-exact route cheap. Zig buys nothing there: the engine's Exact solver hits the same wall for the same structural reason (0.541 new ban-set states per node, no reuse), at 74 bytes per node instead of a Python frame. The earlier attempts' error was choosing an intractable judge and then scaling the machine at it, not the language."
+  },
+  "missing_instrument": {
+    "name": "a TABLE-level (artifact-level) minimax-identity check",
+    "why": "RETRO_CONSIST audits generators and cannot be pointed at a .wzo. That is why a fourth attempt was needed to adjudicate values the project's own instrument could have refuted in milliseconds since 2026-07-23.",
+    "prototype": "src/t912_adjudicate.zig phase 1b-2 -- load an artifact, take its stored value as the parent, test it against independently re-solved children.",
+    "recommendation_for_the_operator": "Promote it into the standing battery so every committed artifact's ko-sensitive region is identity-checked at commit time. This row does not make that decision."
+  },
+  "instrument": {
+    "path": "src/t912_adjudicate.zig",
+    "engine_files_edited": "none -- src/retro.zig, src/artifact.zig and src/managent/main.zig are untouched (one writer per engine file)",
+    "memory_discipline": "One shared ban-set-keyed memo across all roots (sound; retro.zig:1738), bounded by ctx.entry_cap; per-root node budget in the groundTruth style; recursion on one spawned thread with an explicit 256 MB stack. This is what the three RSS deaths lacked."
+  },
+  "evidence": [
+    "docs/research/ko-sensitive-adjudication-3x2.md",
+    "docs/evidence/T912/adjudication-old-807d530.txt",
+    "docs/evidence/T912/adjudication-current.txt",
+    "docs/evidence/T912/consist-3x2.txt",
+    "src/t912_adjudicate.zig"
+  ],
+  "notes": "Inbox polled at four checkpoints (bin/managent inbox T912 --ack): empty every time, no directive IDs to record. No claim status proposed and no register edited, per the brief's constraint. All figures carry their denominator; committed paths only -- the 'old' artifact is extracted from git at 807d530, not read from any loose working-tree copy."
+}

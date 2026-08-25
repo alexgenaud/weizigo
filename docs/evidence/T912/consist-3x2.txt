@@ -1,0 +1,82 @@
+weizigo retrograde engine (ADR-0009) -- L/H value iteration + finisher + battery
+
+consist: 3x2 self-consistency audit (build 2 ms)
+  identity: V(P,side,[P]) == opt over children V(c,-side,[P,c]) and pass
+  a violation is a PROOF of a bug; zero = necessary (not sufficient) pass
+
+=== variant: new (memo_writes ON) ===
+  VIOLATION idx     479 w stones 5: parent=6 best-option=3  (min: parent > best is the bug)
+  VIOLATION idx     488 w stones 5: parent=6 best-option=3  (min: parent > best is the bug)
+  VIOLATION idx     513 w stones 5: parent=-2 best-option=-3  (min: parent > best is the bug)
+  VIOLATION idx     520 b stones 5: parent=2 best-option=3  (max: parent < best is the bug)
+  VIOLATION idx     521 w stones 5: parent=-2 best-option=-3  (min: parent > best is the bug)
+  VIOLATION idx     528 b stones 5: parent=2 best-option=3  (max: parent < best is the bug)
+  VIOLATION idx     528 w stones 5: parent=6 best-option=3  (min: parent > best is the bug)
+  VIOLATION idx     540 w stones 5: parent=6 best-option=3  (min: parent > best is the bug)
+  VIOLATION idx     545 w stones 5: parent=3 best-option=0  (min: parent > best is the bug)
+  VIOLATION idx     560 b stones 5: parent=-3 best-option=0  (max: parent < best is the bug)
+  VIOLATION idx     560 w stones 5: parent=6 best-option=3  (min: parent > best is the bug)
+  VIOLATION idx     571 w stones 5: parent=6 best-option=0  (min: parent > best is the bug)
+  VIOLATION idx     572 w stones 5: parent=2 best-option=-1  (min: parent > best is the bug)
+  VIOLATION idx     598 b stones 5: parent=-6 best-option=0  (max: parent < best is the bug)
+  VIOLATION idx     634 w stones 5: parent=6 best-option=0  (min: parent > best is the bug)
+  VIOLATION idx     636 w stones 5: parent=2 best-option=-1  (min: parent > best is the bug)
+  VIOLATION idx     661 b stones 5: parent=0 best-option=1  (max: parent < best is the bug)
+  VIOLATION idx     663 b stones 5: parent=-6 best-option=0  (max: parent < best is the bug)
+  VIOLATION idx     256 b stones 4: parent=1 best-option=0  (max: parent < best is the bug)
+  VIOLATION idx     257 w stones 4: parent=-1 best-option=0  (min: parent > best is the bug)
+  VIOLATION idx     300 w stones 4: parent=2 best-option=1  (min: parent > best is the bug)
+  VIOLATION idx     309 b stones 4: parent=-2 best-option=-1  (max: parent < best is the bug)
+  VIOLATION idx     313 b stones 4: parent=1 best-option=3  (max: parent < best is the bug)
+  VIOLATION idx     313 w stones 4: parent=3 best-option=1  (min: parent > best is the bug)
+  VIOLATION idx     328 b stones 4: parent=-3 best-option=-1  (max: parent < best is the bug)
+  VIOLATION idx     328 w stones 4: parent=-1 best-option=-3  (min: parent > best is the bug)
+  VIOLATION idx     360 b stones 4: parent=-3 best-option=-1  (max: parent < best is the bug)
+  VIOLATION idx     360 w stones 4: parent=-6 best-option=-3  (min: parent > best is the bug)
+  VIOLATION idx     372 b stones 4: parent=3 best-option=6  (max: parent < best is the bug)
+  VIOLATION idx     380 w stones 4: parent=2 best-option=1  (min: parent > best is the bug)
+  VIOLATION idx     389 b stones 4: parent=-2 best-option=-1  (max: parent < best is the bug)
+  VIOLATION idx     472 b stones 4: parent=-1 best-option=6  (max: parent < best is the bug)
+  VIOLATION idx     472 w stones 4: parent=-1 best-option=-6  (min: parent > best is the bug)
+  VIOLATION idx     108 b stones 3: parent=0 best-option=1  (max: parent < best is the bug)
+  VIOLATION idx     109 w stones 3: parent=0 best-option=-1  (min: parent > best is the bug)
+  VIOLATION idx     124 b stones 3: parent=0 best-option=1  (max: parent < best is the bug)
+  VIOLATION idx     125 w stones 3: parent=0 best-option=-1  (min: parent > best is the bug)
+  VIOLATION idx     138 w stones 3: parent=6 best-option=2  (min: parent > best is the bug)
+  VIOLATION idx     210 w stones 3: parent=6 best-option=2  (min: parent > best is the bug)
+  VIOLATION idx       7 b stones 1: parent=2 best-option=6  (max: parent < best is the bug)
+  VIOLATION idx       8 w stones 1: parent=-2 best-option=-6  (min: parent > best is the bug)
+  VIOLATION idx      11 b stones 1: parent=2 best-option=6  (max: parent < best is the bug)
+  VIOLATION idx      12 w stones 1: parent=-2 best-option=-6  (min: parent > best is the bug)
+  VIOLATION idx       0 b stones 0: parent=-2 best-option=0  (max: parent < best is the bug)
+  VIOLATION idx       0 w stones 0: parent=2 best-option=-1  (min: parent > best is the bug)
+  RESULT new (memo_writes ON): checked=378 violations=45 skipped=0  -> PROVABLY BUGGY
+
+=== variant: soundish (writes OFF) ===
+  RESULT soundish (writes OFF): checked=378 violations=0 skipped=0  -> self-consistent (necessary pass only)
+
+=== variant: deps (guarded reuse, Track B) ===
+  RESULT deps (guarded reuse, Track B): checked=378 violations=0 skipped=0  -> self-consistent (necessary pass only)
+
+reading:
+  new inconsistent, soundish consistent -> cross-branch writes are the bug; go to #3
+  both inconsistent -> hole deeper than writes (brackets/seeds); widen #3 guard
+  both consistent -> inconclusive; #3 still required for the true values
+        0.35 real         0.12 user         0.00 sys
+             2801664  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 352  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                 184  involuntary context switches
+          1871900969  instructions retired
+           529370666  cycles elapsed
+             2031952  peak memory footprint

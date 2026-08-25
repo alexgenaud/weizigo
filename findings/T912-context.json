@@ -1,0 +1,1082 @@
+{
+  "task_id": "T912",
+  "date": "2026-08-25",
+  "model": "claude-opus-5",
+  "identifier": "adjudicate-3x2-ko-context",
+  "description": "Context dump for T912: the full per-pair record behind findings/T912-adjudicate-3x2-ko.json.",
+  "claims": [],
+  "new_rows": [],
+  "instrument": {
+    "path": "src/t912_adjudicate.zig",
+    "build": "zig build-exe -O ReleaseFast src/t912_adjudicate.zig",
+    "zig": "0.16.0",
+    "env_knobs": {
+      "T912_ART": "artifact path",
+      "T912_BUDGET": "per-root Exact node budget",
+      "T912_ENTRIES": "shared memo entry cap",
+      "T912_NULL_N": "null-control sample size",
+      "T912_MAX_ADJ": "cap on disputed pairs attempted (0 = all)",
+      "T912_GROWTH": "run the uncapped growth probe",
+      "T912_GROWTH_MAX": "largest growth-probe budget"
+    }
+  },
+  "commands_as_run": [
+    "git show 807d530:artifacts/oracle-3x2.wzo > <scratch>/old-3x2   (the audit's 'old' generation, extracted from git, not from any loose copy)",
+    "T912_ART=<scratch>/old-3x2 T912_GROWTH=1 T912_GROWTH_MAX=16000000 T912_BUDGET=20000000 T912_ENTRIES=6000000 T912_NULL_N=24 ./t912_adjudicate  -> docs/evidence/T912/adjudication-old-807d530.txt",
+    "T912_ART=artifacts/oracle-3x2.wzo T912_BUDGET=1000 T912_ENTRIES=100000 T912_NULL_N=0 ./t912adj  -> docs/evidence/T912/adjudication-current.txt",
+    "RETRO_CONSIST=1 ./retro  -> docs/evidence/T912/consist-3x2.txt"
+  ],
+  "the_62": [
+    {
+      "idx": 480,
+      "side": "B",
+      "pos": "BBBWW.",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 488,
+      "side": "B",
+      "pos": "BBBBW.",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 488,
+      "side": "W",
+      "pos": "BBBBW.",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 489,
+      "side": "B",
+      "pos": "WWWWB.",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 489,
+      "side": "W",
+      "pos": "WWWWB.",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 497,
+      "side": "W",
+      "pos": "WWWBB.",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 513,
+      "side": "W",
+      "pos": "WWWB.W",
+      "writes_off": -6,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 520,
+      "side": "B",
+      "pos": "BBBB.W",
+      "writes_off": 6,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 521,
+      "side": "W",
+      "pos": "WWWW.B",
+      "writes_off": -6,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 528,
+      "side": "B",
+      "pos": "BBBW.B",
+      "writes_off": 6,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 544,
+      "side": "B",
+      "pos": "BBB.WW",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 545,
+      "side": "B",
+      "pos": "WWW.BW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 545,
+      "side": "W",
+      "pos": "WWW.BW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 560,
+      "side": "B",
+      "pos": "BBB.WB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 560,
+      "side": "W",
+      "pos": "BBB.WB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 561,
+      "side": "W",
+      "pos": "WWW.BB",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 571,
+      "side": "B",
+      "pos": "WB.WWW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 571,
+      "side": "W",
+      "pos": "WB.WWW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 572,
+      "side": "W",
+      "pos": "BB.WWW",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 597,
+      "side": "B",
+      "pos": "WW.BBB",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 598,
+      "side": "B",
+      "pos": "BW.BBB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 598,
+      "side": "W",
+      "pos": "BW.BBB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 602,
+      "side": "W",
+      "pos": "B.WWWW",
+      "writes_off": -6,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 603,
+      "side": "W",
+      "pos": "W.BWWW",
+      "writes_off": -6,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 630,
+      "side": "B",
+      "pos": "B.WBBB",
+      "writes_off": 6,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 631,
+      "side": "B",
+      "pos": "W.BBBB",
+      "writes_off": 6,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 634,
+      "side": "B",
+      "pos": ".BWWWW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 634,
+      "side": "W",
+      "pos": ".BWWWW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 636,
+      "side": "W",
+      "pos": ".BBWWW",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 5,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 661,
+      "side": "B",
+      "pos": ".WWBBB",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 5,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 663,
+      "side": "B",
+      "pos": ".WBBBB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 663,
+      "side": "W",
+      "pos": ".WBBBB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 5,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 240,
+      "side": "W",
+      "pos": "BBBW..",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 4,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 241,
+      "side": "B",
+      "pos": "WWWB..",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 4,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 288,
+      "side": "B",
+      "pos": "B.BBW.",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 289,
+      "side": "W",
+      "pos": "W.WWB.",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 320,
+      "side": "W",
+      "pos": "BBB..W",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 4,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 321,
+      "side": "B",
+      "pos": "WWW..B",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 4,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 331,
+      "side": "W",
+      "pos": "WB.W.W",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 342,
+      "side": "B",
+      "pos": "BW.B.B",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 362,
+      "side": "W",
+      "pos": ".BWW.W",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 375,
+      "side": "B",
+      "pos": ".WBB.B",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 397,
+      "side": "W",
+      "pos": "W.W.BW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 404,
+      "side": "B",
+      "pos": "B.B.WB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 4,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 426,
+      "side": "B",
+      "pos": "B..WWW",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 4,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 439,
+      "side": "W",
+      "pos": "W..BBB",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 4,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 458,
+      "side": "B",
+      "pos": "..BWWW",
+      "writes_off": -1,
+      "artifact_807d530": -3,
+      "stones": 4,
+      "identity_best_option": -3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 471,
+      "side": "W",
+      "pos": "..WBBB",
+      "writes_off": 1,
+      "artifact_807d530": 3,
+      "stones": 4,
+      "identity_best_option": 3,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 73,
+      "side": "B",
+      "pos": "WWW...",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 80,
+      "side": "W",
+      "pos": "BBB...",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 89,
+      "side": "B",
+      "pos": "W.WW..",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 96,
+      "side": "W",
+      "pos": "B.BB..",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 161,
+      "side": "B",
+      "pos": "W.W..W",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 168,
+      "side": "W",
+      "pos": "B.B..B",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 177,
+      "side": "B",
+      "pos": "W..W.W",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 184,
+      "side": "W",
+      "pos": "B..B.B",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 193,
+      "side": "B",
+      "pos": "..WW.W",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 200,
+      "side": "W",
+      "pos": "..BB.B",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 225,
+      "side": "B",
+      "pos": "...WWW",
+      "writes_off": 1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 232,
+      "side": "W",
+      "pos": "...BBB",
+      "writes_off": -1,
+      "artifact_807d530": 0,
+      "stones": 3,
+      "identity_best_option": 0,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 0,
+      "side": "B",
+      "pos": "......",
+      "writes_off": 0,
+      "artifact_807d530": 1,
+      "stones": 0,
+      "identity_best_option": 1,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    },
+    {
+      "idx": 0,
+      "side": "W",
+      "pos": "......",
+      "writes_off": 0,
+      "artifact_807d530": -1,
+      "stones": 0,
+      "identity_best_option": -1,
+      "verdict": "WRITES_OFF_MATCHES_IDENTITY"
+    }
+  ],
+  "retro_consist_45_violations": [
+    {
+      "idx": 479,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 488,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 513,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -3
+    },
+    {
+      "idx": 520,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 521,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -3
+    },
+    {
+      "idx": 528,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 528,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 540,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 545,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 3,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 560,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": -3,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 560,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 571,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 572,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 2,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 598,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": -6,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 634,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 636,
+      "side": "W",
+      "stones": 5,
+      "memo_on_parent": 2,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 661,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": 0,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 663,
+      "side": "B",
+      "stones": 5,
+      "memo_on_parent": -6,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 256,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": 1,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 257,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": -1,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 300,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 309,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 313,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": 1,
+      "memo_on_best_option": 3
+    },
+    {
+      "idx": 313,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": 3,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 328,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": -3,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 328,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": -1,
+      "memo_on_best_option": -3
+    },
+    {
+      "idx": 360,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": -3,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 360,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": -6,
+      "memo_on_best_option": -3
+    },
+    {
+      "idx": 372,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": 3,
+      "memo_on_best_option": 6
+    },
+    {
+      "idx": 380,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 389,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 472,
+      "side": "B",
+      "stones": 4,
+      "memo_on_parent": -1,
+      "memo_on_best_option": 6
+    },
+    {
+      "idx": 472,
+      "side": "W",
+      "stones": 4,
+      "memo_on_parent": -1,
+      "memo_on_best_option": -6
+    },
+    {
+      "idx": 108,
+      "side": "B",
+      "stones": 3,
+      "memo_on_parent": 0,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 109,
+      "side": "W",
+      "stones": 3,
+      "memo_on_parent": 0,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 124,
+      "side": "B",
+      "stones": 3,
+      "memo_on_parent": 0,
+      "memo_on_best_option": 1
+    },
+    {
+      "idx": 125,
+      "side": "W",
+      "stones": 3,
+      "memo_on_parent": 0,
+      "memo_on_best_option": -1
+    },
+    {
+      "idx": 138,
+      "side": "W",
+      "stones": 3,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 2
+    },
+    {
+      "idx": 210,
+      "side": "W",
+      "stones": 3,
+      "memo_on_parent": 6,
+      "memo_on_best_option": 2
+    },
+    {
+      "idx": 7,
+      "side": "B",
+      "stones": 1,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 6
+    },
+    {
+      "idx": 8,
+      "side": "W",
+      "stones": 1,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -6
+    },
+    {
+      "idx": 11,
+      "side": "B",
+      "stones": 1,
+      "memo_on_parent": 2,
+      "memo_on_best_option": 6
+    },
+    {
+      "idx": 12,
+      "side": "W",
+      "stones": 1,
+      "memo_on_parent": -2,
+      "memo_on_best_option": -6
+    },
+    {
+      "idx": 0,
+      "side": "B",
+      "stones": 0,
+      "memo_on_parent": -2,
+      "memo_on_best_option": 0
+    },
+    {
+      "idx": 0,
+      "side": "W",
+      "stones": 0,
+      "memo_on_parent": 2,
+      "memo_on_best_option": -1
+    }
+  ],
+  "overlap_45_and_62": {
+    "count": 17,
+    "in_45_only": 28,
+    "in_62_only": 45,
+    "pairs": [
+      {
+        "idx": 0,
+        "side": "B"
+      },
+      {
+        "idx": 0,
+        "side": "W"
+      },
+      {
+        "idx": 488,
+        "side": "W"
+      },
+      {
+        "idx": 513,
+        "side": "W"
+      },
+      {
+        "idx": 520,
+        "side": "B"
+      },
+      {
+        "idx": 521,
+        "side": "W"
+      },
+      {
+        "idx": 528,
+        "side": "B"
+      },
+      {
+        "idx": 545,
+        "side": "W"
+      },
+      {
+        "idx": 560,
+        "side": "B"
+      },
+      {
+        "idx": 560,
+        "side": "W"
+      },
+      {
+        "idx": 571,
+        "side": "W"
+      },
+      {
+        "idx": 572,
+        "side": "W"
+      },
+      {
+        "idx": 598,
+        "side": "B"
+      },
+      {
+        "idx": 634,
+        "side": "W"
+      },
+      {
+        "idx": 636,
+        "side": "W"
+      },
+      {
+        "idx": 661,
+        "side": "B"
+      },
+      {
+        "idx": 663,
+        "side": "B"
+      }
+    ],
+    "note": "On none of the overlapping pairs does the 807d530 stored value equal the memo-ON parent value; the old artifact is a third generation, distinct from both live variants."
+  },
+  "history_exact_growth_probe": [
+    {
+      "nodes": 1000001,
+      "states": 543560,
+      "bytes_per_node": 75,
+      "ms": 223,
+      "verdict": "UNRESOLVED"
+    },
+    {
+      "nodes": 2000001,
+      "states": 1083442,
+      "bytes_per_node": 74,
+      "ms": 480,
+      "verdict": "UNRESOLVED"
+    },
+    {
+      "nodes": 4000001,
+      "states": 2164212,
+      "bytes_per_node": 74,
+      "ms": 987,
+      "verdict": "UNRESOLVED"
+    },
+    {
+      "nodes": 8000001,
+      "states": 4331620,
+      "bytes_per_node": 74,
+      "ms": 2094,
+      "verdict": "UNRESOLVED"
+    },
+    {
+      "nodes": 16000001,
+      "states": 8659340,
+      "bytes_per_node": 74,
+      "ms": 4422,
+      "verdict": "UNRESOLVED"
+    }
+  ],
+  "notes": "Immutable per-task record. Denominators: 729 colex slots, 489 legal, 978 (slot,side) values, 378 ko-sensitive pairs. The 'artifact_807d530' column is the value stored in artifacts/oracle-3x2.wzo as committed at 807d530 (sha256 6725b335...), extracted from git. 'identity_best_option' is the right-hand side of the ADR-0013 minimax identity, children and pass branch re-solved independently under H=[P,c] by the sound (memo_writes=false) variant seeded from the certified-only table."
+}

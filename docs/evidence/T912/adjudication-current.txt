@@ -1,0 +1,47 @@
+# T912 adjudicate 3x2 — root_budget=1000 entry_cap=100000 null_n=0 max_adj=0 artifact=artifacts/oracle-3x2.wzo
+# Exact key size = 136 bytes; cap therefore bounds the memo at ~13 MB
+# build variant memo_writes=false deps=false: legal=489 ko_sens_b=189 ko_sens_w=189 solved=57 skipped=0 bracket_fail=0
+# build variant memo_writes=true deps=false: legal=489 ko_sens_b=189 ko_sens_w=189 solved=57 skipped=0 bracket_fail=0
+# build variant memo_writes=true deps=true: legal=489 ko_sens_b=189 ko_sens_w=189 solved=57 skipped=0 bracket_fail=0
+TIMING	generators_ms	13
+# artifact artifacts/oracle-3x2.wzo: w=3 h=2 total=729 legal=489
+KSDENOM	ko_sensitive_pairs	378
+DIFFCOUNT	writes_off_vs_artifact	0	378
+DIFFCOUNT	writes_off_vs_reuse	170	378
+DIFFCOUNT	writes_off_vs_deps	0	378
+UNDEF	writes_off	0	artifact	0
+FULLDIFF	writes_off_vs_artifact	0	978
+SYMCENSUS	writes_off	0	artifact	0	reuse	0	deps	0	of	378
+CHEAPNULL	pool	378	bracket_fires_wo	0	bracket_fires_artifact	0	sym_fires_wo	0	sym_fires_artifact	0
+CHEAPSEED	idx	473	side	B	orig	-6	seeded	7	bracket	CAUGHT	symmetry	CAUGHT
+CHEAPSUM	artifact_refuted	0	writes_off_refuted	0	both_refuted	0	unresolved	0	disputed	0
+IDNULL	pool	378	agree	378	disagree	0	skipped	0	ms	23
+IDSEED	idx	473	side	B	best_option	-6	seeded	0	CAUGHT
+IDSUM	writes_off_matches	0	artifact_matches	0	both_violate	0	unresolved	0	disputed	0	ms	0
+REUSECTL	pairs	170	writes_off_matches	170	reuse_matches	0	neither	0	ms	12
+NULLSUM	agree	0	disagree	0	unresolved	0	sampled	0	pool	378
+TIMING	null_control_ms	0
+SEEDJUDGE	NA	no_resolved_null_control_pair
+ADJSUM	writes_off_correct	0	artifact_correct	0	both_wrong	0	unresolved	0	attempted	0	disputed	0
+TIMING	adjudication_ms	0
+JUDGE	nodes	0	states	0	entry_cap	100000	saturated	false
+SEEDCTL	idx	473	side	B	orig	-6	seeded	0	baseline_diffs	0	after_diffs	1	CAUGHT
+# done
+        0.05 real         0.05 user         0.00 sys
+             3686400  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 477  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                  66  involuntary context switches
+           786409096  instructions retired
+           222237955  cycles elapsed
+             2998632  peak memory footprint
