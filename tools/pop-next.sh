@@ -279,7 +279,28 @@ except Exception: print('')" 2>/dev/null)
   # arm 7). Production never sets it.
   test_worker_args=""
   [ -n "${FLEET_TEST_WORKER:-}" ] && test_worker_args="--test-worker=$FLEET_TEST_WORKER"
-  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 $test_worker_args 2>&1); rc=$?
+  # A row can carry a `dispatched` timestamp while reading `dispatchable`, if
+  # the lane died before it could claim. managent then REJECTS the redispatch
+  # ("already dispatched to X at T") and the popper retries it every tick
+  # forever -- the T873 monopoly in a different costume. Two rows were stuck
+  # this way tonight, T925 and T973, each consuming a whole tick while thirty
+  # race arms waited.
+  #
+  # The condition is deliberately precise: a dispatch was recorded, no run
+  # record exists, AND no live process holds the id. That combination means
+  # the lane never started, so --force is the correct escape and not a
+  # second-console risk. Anything looser must NOT auto-force: --force over a
+  # genuinely live console is how T350/T376/T389 duplicated.
+  FORCE=""
+  never_ran=$(python3 -c "
+import json,glob
+v=json.load(open('docs/infra/managent/tasks.json')).get('$pick') or {}
+print('1' if v.get('dispatched') and not glob.glob('untracked/runs/$pick*.json') else '')" 2>/dev/null)
+  if [ -n "$never_ran" ] && ! pgrep -f -- "--arbiter-id $pick" >/dev/null 2>&1; then
+    FORCE="--force"
+    echo "pop-next: $pick has a dispatch record but nothing ran — forcing once (no run record, no live process)"
+  fi
+  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 $FORCE $test_worker_args 2>&1); rc=$?
   if [ "$rc" -eq 0 ]; then
     # The data line is the one that starts with "dispatched " on stdout — the
     # door adds its own stderr diagnostics AFTER the callee's data line, so
