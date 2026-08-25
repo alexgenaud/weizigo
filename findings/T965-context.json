@@ -1,0 +1,61 @@
+{
+  "task_id": "T965",
+  "date": "2026-08-25",
+  "model": "qwen3.8-27b",
+  "brief": "T965 context dump — raw measurements and command outputs; the interpreted record is findings/T965-store-archive-done-rows.json",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Duplicate of findings/T965-store-archive-done-rows.json (no claims of its own). Raw data below: before/after timings, store shape before/after the 507-row move, regression transcripts, and the live archive run summary.",
+  "store_shape": {
+    "before": {"live_rows": 584, "done_rows": 539, "dispatchable": 36, "in_progress": 6, "blocked": 3, "tasks_json_bytes": 1605929, "archive_json_bytes": 192220, "live_sys": "next_id 968 / directive_next 21 / closes 113 (pre-move values; the archive file carried the STALE next_id 963 / closes 91)"},
+    "after": {"live_rows": 79, "archive_rows": 648, "rows_moved": 507, "tasks_json_bytes": 184668, "archive_json_bytes": 1627792, "census_row_count": 79, "census_written_by": "archive (retired: <507 ids>)", "live_sys_preserved": "next_id 968 / directive_next 97 / closes 118 — archive _sys now matches live (SysSnapshot fix)"}
+  },
+  "timings": {
+    "method": "status/orient: /usr/bin/time, 3 runs each, output discarded. watch-fleet: bash time around `sh untracked/watch-fleet.sh > /dev/null` (piped stdout => ONESHOT one-draw-then-exit), 3 runs each. Host: operator's Mac, same day ~3.5h apart, live store in between.",
+    "before": {
+      "status_s": [0.11, 0.12, 0.13],
+      "orient_s": [1.05, 1.09, 1.10],
+      "watch_fleet_one_shot_s": [6.82, 7.15, 6.86]
+    },
+    "after": {
+      "status_s": [0.02, 0.02, 0.02],
+      "orient_s": [0.98, 1.09, 1.10],
+      "watch_fleet_one_shot_s": [2.92, 2.91, 2.63]
+    },
+    "watch_fleet_component_probe_after": {
+      "managent_status_json_s": 0.03,
+      "managent_liveness_s": 0.21,
+      "meter_join_4_live_tasks_s": 0.08,
+      "process_scan_5_lanes_s": 0.03,
+      "residual_explanation": "~2.4s across ~10 python3 interpreter starts per frame + per-row brief/transcript reads (OPEN/PROGRESS sections). Not the store."
+    },
+    "watch_fleet_component_probe_before": {
+      "managent_status_json_s": 0.114,
+      "managent_liveness_s": 0.284,
+      "meter_join_6_live_tasks_s": 0.075,
+      "note": "The before-run DONE-section re-scan (539 done rows x per-row untracked/runs + sessions globs over 2,926 run records / 184 session files, 146 MB) was not isolated pre-move; its disappearance in the after-run is the dominant watch-fleet delta. Profiled by component subtraction, not by an isolated pre-move arm — stated so the denominator is honest."
+    }
+  },
+  "live_archive_run": {
+    "archivable_dry_run_before": "500 row(s) refused: 44 not done/failed, 32 live dependents, 8 uncommitted holds, 0 unabsorbed, 0 non-conforming",
+    "real_run": "archived 507 row(s) (7 more completed in the interim: incl. T955, T958, T963, T933, T934, T964, T711, T715, T789-class); refused: 40 not done/failed, 31 live dependents, 8 uncommitted holds, 0 unabsorbed findings, 0 non-conforming findings; cleaned needs of: T757 T939 T546 T541",
+    "orient_after": "rc=0, stderr silent (no store-loss detector noise)"
+  },
+  "regression_transcripts": {
+    "red_first_run_summary": "A1 PASS, A2 PASS (both arms), A3 PASS (all three), A4 FAIL (show T9002 rc=1 'error: task T9002 not found'; show T9005 lacks store naming), A5 FAIL (unarchive rc=1 'unknown command: unarchive'), A6 PASS — the red the implementation had to clear",
+    "green_run_summary": "ALL 6 ARMS PASSED (A1..A6), re-verified green AFTER the live 507-row move",
+    "round_trip_red_before_sys_fix": "A5 byte-diff on the pre-fix binary: next_id 9006 (pre-archive snapshot) vs 9007 (post round trip) + missing trailing newline — the T204 heal + the _sys clobber; both cleared by the SysSnapshot fix + snapshot-after-canonical-write"
+  },
+  "claim_wipe_verification": "git show <c>:docs/infra/managent/tasks.json for fc406aa/b4b879b/34a5c8c/aec3e81 — all four commits (17:04-18:19 local, spanning the 17:14 claim) show T965 status=dispatchable, claimed=None, agent=None; working tree at 18:20 shows claim_count=0. Re-claim at 18:20Z: 'REJECTED: holds conflict on file — T961 is in progress'.",
+  "directive_log": ["D096 — managent tell T961 amend --from T965 (main.zig hunk handoff; see main findings main_zig_commit_state)"],
+  "commands": [
+    "bin/managent claim T965 --agent qwen3.8-27b",
+    "bin/managent archive --dry-run",
+    "tools/runner -- zig build -Doptimize=ReleaseSafe deploy-managent",
+    "tools/runner -- zig test src/managent/main.zig",
+    "tools/regression-store-archive.sh (red run, then green run, then post-move green run)",
+    "tools/regression-store-census.sh + tools/regression-store-loss.sh (pre and post)",
+    "bin/managent archive",
+    "bin/managent tell T961 amend --from T965 --note <handoff>"
+  ]
+}

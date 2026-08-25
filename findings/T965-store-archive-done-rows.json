@@ -1,0 +1,72 @@
+{
+  "task_id": "T965",
+  "date": "2026-08-25",
+  "model": "qwen3.8-27b",
+  "brief": "The live store keeps every closed row — archive the closed partition under the store-loss census, with the round trip and the store-loss detector as preconditions",
+  "landscape_advances": "L1 (the dashboard tells the truth) — the three fleet surfaces (status, orient, watch-fleet) measured before and after the first bulk archive run in the store's life (584 -> 79 live rows); the answer to 'why does every surface that reads the kanban get slower every day' is split: the store was one cause (status 0.12s -> 0.02s, watch-fleet 7.0s -> 2.8s), but orient's slowness (1.05s -> 1.09s, unchanged) is NOT the store — claimlint + git log + resume composition dominate there",
+  "partition_rule": "The T319 archive rule, defended as-is and not replaced: status done or failed + no live dependents + holds paths committed (git ls-files) + findings absorbed (claimlint c7 --json: 0 unabsorbed, 0 non-conforming on this run). Read STANDING-ABSORB.md first as the brief required: it specifies the FINDINGS closed partition (claimlint C7 per-file drift), not the kanban row partition — different partition, same name; T319's row rule already encodes 'closed and absorbed' via the c7 refusal, so nothing new was designed. What a reader loses when a row moves: the row leaves `managent status`/`orient`/watch-fleet's DONE section (they read the live store only) and `managent show <id>` (before this task: not found). What they get back: `managent show <id>` now resolves the row from the archive and names which store answered, and `managent unarchive <id>` moves it back (new, this task) — proven byte-identical in tools/regression-store-archive.sh A5.",
+  "before_after": {
+    "note": "Real wall seconds, /usr/bin/time (status/orient) and bash time (watch-fleet one-shot draw, piped => ONESHOT), 3 runs each, live store. Before: 584 live rows, tasks.json 1,605,929 bytes, archive.json 192,220 bytes, measured 2026-08-25T15:15Z. After: 79 live rows, tasks.json 184,668 bytes, archive.json 1,627,792 bytes, measured 2026-08-25T18:37Z. Same three commands; binary also changed (T965 hunks) but the store-size delta is the effect under test and each command's code path is otherwise unchanged.",
+    "status":  {"before_s": [0.11, 0.12, 0.13], "after_s": [0.02, 0.02, 0.02]},
+    "orient":  {"before_s": [1.05, 1.09, 1.10], "after_s": [0.98, 1.09, 1.10]},
+    "watch_fleet_one_shot": {"before_s": [6.82, 7.15, 6.86], "after_s": [2.92, 2.91, 2.63]}
+  },
+  "controls": {
+    "regression": "tools/regression-store-archive.sh — test-first (written red on the pre-change binary: A4 show-archive failed with 'task not found', A5 unarchive failed with 'unknown command'); ALL 6 ARMS PASSED after the change, re-run green AFTER the live 507-row move. Arms: A1 null (no-op archive leaves store+census byte-identical), A2 bulk shrink registers as explained (census 'archive (retired: ...)', zero alarm), A3 seeded defect (a move that drops a live row: add REFUSED naming the id, orient ALARMS, reasoned escape proceeds), A4 resolution (show names archive vs live store; unknown id still exits 1), A5 round trip (archive -> unarchive byte-identical tasks.json, including _sys — see sys_clobber_fix; non-archived and live-colliding ids refused), A6 both pre-existing store-loss regressions (T848/T944) stay green.",
+    "round_trip_byte_identical_caveat": "The snapshot is taken AFTER a canonical managent write (a no-op `set`), because managent's pre-existing T204 self-heal rewrites _sys.next_id on EVERY read+write cycle (next_id <= max T-ID healed to max+1) and its serializer owns the file's exact shape. Comparing against a hand/python-rewritten snapshot would test the heal, not the archive. The heal is pre-existing and happens on any verb (add/claim/set).",
+    "pre_and_post_move": "Both regression-store-census.sh and regression-store-loss.sh green BEFORE any change, green AFTER the 507-row move, and re-run green inside arm A6."
+  },
+  "the_move": {
+    "command": "bin/managent archive (deployed binary 34a5c8c-dirty built 2026-08-25T16:03:14Z with the T965 hunks)",
+    "rows_moved": 507,
+    "rows_left_live": 79,
+    "refused": "40 not done/failed, 31 live dependents, 8 uncommitted holds, 0 unabsorbed findings, 0 non-conforming findings",
+    "needs_edges_cleaned": ["T757", "T939", "T546", "T541"],
+    "census": "store-census.json rewritten in the same locked wave: row_count=79, written_by='archive (retired: <507 ids>)' — an explained shrink (A19), never an alarm, never silent; orient rc=0 silent after the move",
+    "sys_after": "live _sys preserved (next_id 968, directive_next 97, closes 118) — see sys_clobber_fix; the archive _sys now also carries the live values (previously the archive's stale snapshot, next_id 963 / closes 91, was one write away from being written back into tasks.json)"
+  },
+  "defects_found": [
+    {
+      "id": "T965-SYS-CLOBBER",
+      "defect": "parseStateJson loads the _sys of EVERY parsed file into process globals, and serializeState writes whatever the globals hold. archive, retire and unarchive each read the live store THEN the archive and then write BOTH — so every archive/retire run since T319 has been writing the archive's STALE _sys snapshot into tasks.json (measured: archive.json carried next_id 963 / closes 91 against the live 968 / 113). T204's self-heal masks next_id on the next parse (healed to max-id+1), which is why no alarm ever fired; closes and directive_next would have been silently rewound. Fixed in the T965 hunks (SysSnapshot.capture/restore around the archive read, in all three verbs) and pinned by A5's byte-identical round trip (which is RED on the pre-fix binary — observed during this task).",
+      "status": "fixed in uncommitted T965 hunks (see main_zig_commit_state)"
+    },
+    {
+      "id": "T965-CLAIM-WIPE",
+      "defect": "T965's claim (made 2026-08-25T15:14Z) was wiped by another console's stale read-modify-write on tasks.json before T961 claimed the same file hold at 16:14Z: no commit ever contained the claim (verified across fc406aa/b4b879b/34a5c8c/aec3e81: all show T965 dispatchable, claim_count 0), and the re-claim at 18:20Z was REJECTED (holds conflict, T961 in progress). The S10 detector cannot see this — a claim wipe is not a row loss (row count unchanged). The T337 lock serializes writes but not stale reads. This is the same incident class as 2026-08-24, one severity down: the row survived, the claim didn't.",
+      "status": "recorded; T965 proceeded under the original claim's work, coordination via directive D096"
+    },
+    {
+      "id": "T965-ORIENT-NOT-STORE",
+      "defect": "orient is NOT the store: 1.05-1.10s before, 0.98-1.10s after a 86% row-count cut — invariant. Its cost is claimlint + git log + resume composition + fleet reads, not the 1.6 MB parse. Registering this so nobody re-architects the store for orient's sake.",
+      "status": "finding (brief scope item 5: 'if the win is small, say so and stop — 1.6 MB is not obviously the bottleneck')"
+    },
+    {
+      "id": "T965-WF-RESIDUAL",
+      "defect": "watch-fleet's residual ~2.8s is not the store: status --json 0.03s, liveness 0.21s, meter-join 0.08s (4 live tasks), process scan 0.03s (5 lanes). The rest is ~10 python3 interpreter starts per frame plus per-row brief/transcript reads in the OPEN and PROGRESS sections. The archive's watch-fleet win came mostly from EMPTYING the live DONE partition that the DONE section re-scans (per-row untracked/runs + sessions globs, 2,937 run records) on every refresh — the same 'closed rows re-worked forever' disease, inside the pane.",
+      "status": "finding; follow-up belongs to watch-fleet.sh's owner (not T965's holds)"
+    },
+    {
+      "id": "T965-WF-DONE-SECTION",
+      "defect": "BEHAVIOUR CHANGE the operator must see: watch-fleet's DONE section reads done rows from the LIVE store only; after the first bulk archive it renders EMPTY until new rows complete. The pane's DONE history is now 'since last archive'. A follow-up row (watch-fleet DONE section joins archive.json for recent done rows) should be registered by the Orchestrator; T965 does not hold untracked/watch-fleet.sh and did not touch it.",
+      "status": "finding + follow-up needed"
+    },
+    {
+      "id": "T965-STANDING-DUP",
+      "defect": "STANDING-ABSORB now exists in BOTH stores: a stale archive copy (done 2026-08-03, deepseek-v4-flash, verdict pass) and the re-registered live dispatchable row. Pre-existing (the archive copy predates this run; this run did NOT move STANDING-ABSORB — it was refused as not done/failed). Standing-tier re-registration under the same id leaves the closed copy in the archive forever. Minor; noted for archive hygiene.",
+      "status": "finding"
+    }
+  ],
+  "main_zig_commit_state": "The T965 hunks in src/managent/main.zig (SysSnapshot fix + cmdUnarchive + cmdShow archive resolution + help line + mutating_verbs registration; 135 insertions, 3 deletions, all T965-marked) are BUILT, DEPLOYED to bin/managent (34a5c8c-dirty built 2026-08-25T16:03:14Z), and GREEN (zig test src/managent/main.zig + tools/regression-store-archive.sh + both store-loss regressions), but are UNCOMMITTED on purpose: T961 (one door to dispatch, claimed 16:14Z) holds src/managent/main.zig in the kanban and the one-writer rule forbids me committing that file under that hold. Directive D096 (managent tell T961 amend) tells T961 the hunks exist, are deployed and tested, and asks it to commit them under a T965 message with its own work or to signal done so T965 can reclaim and commit. Until that commit lands, the deployed binary is AHEAD of the tree — flag this to the Orchestrator: a `git checkout -- src/managent/main.zig` by any console would silently revert the _sys clobber fix from source while the binary keeps running it.",
+  "deliverables": [
+    "tools/regression-store-archive.sh (new; 6 arms; green)",
+    "findings/T965-store-archive-done-rows.json (this file)",
+    "findings/T965-context.json (raw measurements)",
+    "src/managent/main.zig T965 hunks (uncommitted — see main_zig_commit_state)"
+  ],
+  "test_first": "Yes — tools/regression-store-archive.sh was written and shown RED on the pre-change binary (A4: show T9002 'task not found'; A5: unarchive 'unknown command') before any implementation; A1-A3 were green pre-change because the bulk-archive-under-census machinery (T319+T848) already existed and was sound.",
+  "directives": ["D096 (sent to T961, amend — main.zig hunk handoff)"],
+  "claims": [],
+  "new_rows": [],
+  "notes": "Claim wipe incident (T965-CLAIM-WIPE) and the deployed-binary-ahead-of-tree state (main_zig_commit_state) are the two things the Orchestrator must act on: the former is a standing detector gap (S10 sees row loss, not claim loss), the latter is a live hazard while T961 holds the file."
+}
