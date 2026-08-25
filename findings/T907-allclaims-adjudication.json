@@ -1,0 +1,1870 @@
+{
+ "task_id": "T907",
+ "date": "2026-08-25",
+ "model": "claude-fable-5",
+ "claims": [],
+ "new_rows": [],
+ "notes": "Adjudication of the all-claims evidence race (lanes T903 deepseek-v4-pro, T904 ox-alpha, T905 glm-5.2). No claim status changed. Verdicts over 233 rows: BACKED 145, ADJACENT 3, PROSE-ONLY 85, DANGLING 0, UNCHECKABLE 0, UNKNOWN 0. Defects (non-BACKED on PROVEN/MEASUREMENT/FALSE/SUPERSEDED rows): 53 of 150 — rerunnable 42, lost 8, report 2, stale-at-HEAD 1. Seat's measurement confirmed within ±1 (233 all-three, 97/95/41, pairwise 43/66/57%, 70 straight BACKED-vs-PROSE-ONLY; the ±1 is one duplicated oxalpha row). Boundary finding: 67 of the 70 disagreements are the same artifact under different rules (stipulations, research notes that report numbers, text/argument claims, status-relative grading) — the brief left 'establishes' undefined; 3 are oxalpha crediting uncited artifacts. Model finding: dspro's what_i_checked was one template on 194/233 rows — it graded by citation type without opening artifacts. Lane agreement with this adjudication: oxalpha 169/233, glm 166/233, dspro 125/233; defect recall 27/46/49 of 53; false flags 2/25/42. Canary recall 2/2 for every lane (GLOBAL.H1-CENSUS, CODE.RESOLVER-CONTROLS); fabricated_citations 0 for every lane (hand-checked). Most load-bearing least-backed family: the uncommitted 3x3 E2 range-aware self-play output (3x3.C3, 3x3.E2-RUN1/RUN2, 3x3.E3, GLOBAL.E2-SANITY, GLOBAL.C3, GLOBAL.C4). --thinking caveat carried: lanes ran before the flag was threaded; rankings are of models-as-served on 2026-08-24. Inbox polled at every checkpoint; no directives received. Deliverable: docs/epistemic/claims-evidence-audit.md.",
+ "verdict_counts": {
+  "BACKED": 145,
+  "ADJACENT": 3,
+  "PROSE-ONLY": 85,
+  "DANGLING": 0,
+  "UNCHECKABLE": 0,
+  "UNKNOWN": 0
+ },
+ "defect_count": 53,
+ "evidential_rows": 150,
+ "defects": [
+  {
+   "id": "GLOBAL.C3",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 6,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.C4",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 6,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.FP2-bounded",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 4,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.S1",
+   "status": "PROVEN",
+   "indegree": 3,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.C2",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 3,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.C3",
+   "status": "PROVEN",
+   "indegree": 3,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.E2-SANITY",
+   "status": "PROVEN",
+   "indegree": 3,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "2x2.C1",
+   "status": "PROVEN",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.E3",
+   "status": "PROVEN",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.E2-RUN1",
+   "status": "MEASUREMENT",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.E2-RUN2",
+   "status": "MEASUREMENT",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "GLOBAL.ADR0005-CACHE",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.F1",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.M2",
+   "status": "MEASUREMENT",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "2x2.EXACT",
+   "status": "MEASUREMENT",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x2.EXACT",
+   "status": "MEASUREMENT",
+   "indegree": 2,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.S1",
+   "status": "PROVEN",
+   "indegree": 1,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.S2-impl",
+   "status": "PROVEN",
+   "indegree": 1,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.LEAK",
+   "status": "PROVEN",
+   "indegree": 1,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.P3",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 1,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.B43",
+   "status": "MEASUREMENT",
+   "indegree": 1,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x3.S1",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "CODE.S4-XVAL",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.B1-MULTIFIX",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x3.FP3",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.CERTCORE",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "2x2.C3",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x2.C3",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.E1",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "2x2.F2",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.F2",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.F4",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x3.F4",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "GLOBAL.MEMO-XROOT",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "GLOBAL.ADR0004-TERM",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "GLOBAL.P1",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.P3",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "GLOBAL.T06",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.B39",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.B43-DIV",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x4.B16-GAME",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "4x3.M2",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x3.FWD-SPOT",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "CODE.ADR0011-GATE",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "3x2.I5-CAL",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "report"
+  },
+  {
+   "id": "4x4.V1-INVSYM-BROKEN",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "CODE.BATTERY-STUBBED",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "CODE.M4A-HARNESS",
+   "status": "PROVEN",
+   "indegree": 0,
+   "verdict": "ADJACENT",
+   "subclass": "source"
+  },
+  {
+   "id": "CODE.VB-STUBS",
+   "status": "SUPERSEDED",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "report"
+  },
+  {
+   "id": "CODE.PARALLEL-FIXPOINT-MEASURED",
+   "status": "MEASUREMENT",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "QA-004",
+   "status": "FALSE",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "rerunnable"
+  },
+  {
+   "id": "QA-009",
+   "status": "FALSE",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  },
+  {
+   "id": "GLOBAL.CORPUS-B-METER-GAPS",
+   "status": "FALSE-AS-SCOPED",
+   "indegree": 0,
+   "verdict": "PROSE-ONLY",
+   "subclass": "lost"
+  }
+ ],
+ "lane_scores": {
+  "deepseek-v4-pro": {
+   "lane": "T903",
+   "agree_233": 125,
+   "agree_evidential_150": 103,
+   "defect_recall": 49,
+   "defects_total": 53,
+   "false_flags": 42,
+   "right_on_70": 22,
+   "repointed_backed_18": 17,
+   "canary_recall_num": 2,
+   "canary_recall_den": 2,
+   "fabricated_citations": 0,
+   "verdict_counts": {
+    "PROSE-ONLY": 125,
+    "BACKED": 92,
+    "ADJACENT": 13,
+    "UNCHECKABLE": 3
+   },
+   "confidence_counts": {
+    "medium": 147,
+    "low": 43,
+    "high": 43
+   },
+   "median_what_i_checked": 81,
+   "templated_what_i_checked_rows": 194,
+   "verdict_entropy": 0.57
+  },
+  "ox-alpha": {
+   "lane": "T904",
+   "agree_233": 169,
+   "agree_evidential_150": 119,
+   "defect_recall": 27,
+   "defects_total": 53,
+   "false_flags": 2,
+   "right_on_70": 49,
+   "repointed_backed_18": 18,
+   "canary_recall_num": 2,
+   "canary_recall_den": 2,
+   "fabricated_citations": 0,
+   "verdict_counts": {
+    "PROSE-ONLY": 31,
+    "BACKED": 172,
+    "ADJACENT": 30
+   },
+   "confidence_counts": {
+    "medium": 86,
+    "high": 147
+   },
+   "median_what_i_checked": 119,
+   "templated_what_i_checked_rows": 7,
+   "verdict_entropy": 0.47
+  },
+  "glm-5.2": {
+   "lane": "T905",
+   "agree_233": 166,
+   "agree_evidential_150": 116,
+   "defect_recall": 46,
+   "defects_total": 53,
+   "false_flags": 25,
+   "right_on_70": 42,
+   "repointed_backed_18": 18,
+   "canary_recall_num": 2,
+   "canary_recall_den": 2,
+   "fabricated_citations": 0,
+   "verdict_counts": {
+    "PROSE-ONLY": 100,
+    "BACKED": 102,
+    "ADJACENT": 31
+   },
+   "confidence_counts": {
+    "medium": 124,
+    "high": 109
+   },
+   "median_what_i_checked": 154,
+   "templated_what_i_checked_rows": 9,
+   "verdict_entropy": 0.62
+  }
+ },
+ "per_claim": [
+  {
+   "id": "GLOBAL.S1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.S1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x3.S1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.S2",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "3x3.S2-impl",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.S2-impl",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.S2-impl",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.S2",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.S3a",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.S3a",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x3.S3a",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.S4",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.S4",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.S4",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "CODE.S4-XVAL",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.Z-R-MOVE-B1-EQUIV",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.FP1",
+   "verdict": "BACKED",
+   "kind": "proof",
+   "defect": false
+  },
+  {
+   "id": "2x2.B1",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": false
+  },
+  {
+   "id": "3x2.B1",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": false
+  },
+  {
+   "id": "3x3.B1",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.B1-MULTIFIX",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.B1-AUDIT",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "4x4.FP1",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "4x4.FP1-C1",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x4.FP1-C2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x4.FP1-C3",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x3.FP1",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.FP2",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.FP2-bounded",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.FP2-general",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.FP3",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.FP3",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.FP3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.CERTCORE",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0009-HONESTY",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.INVSYM",
+   "verdict": "BACKED",
+   "kind": "proof",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0020-LH-CORRECT",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0020-VERIFY-PASS",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.C1",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "2x2.C1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x2.C1",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.C1",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.C2",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "2x2.T12",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x2.T13",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.C2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.C2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x4.C2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "2x2.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x2.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x3.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x3.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x4.C3",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.C4",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.LEAK",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.E1",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.BRUTE-ALIASING",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.E3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.E2-SANITY",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.E2-POLICY",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.E2-VERDICT",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "3x3.E2-RUN1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x3.E2-RUN2",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0005-CACHE",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0008-HOLE",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.F1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x2.F1",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.F1",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x3.F1",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0010-SOUND",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "2x2.F2",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x3.F2",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x3.F2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "4x4.F2",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "3x2.F3",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.F3",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "3x2.F4",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.F4",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x3.F4",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "4x4.F4",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AUDITOR",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.MEMO-XROOT",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0006-EYE",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0006-PRED",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0006-LEMMAS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0006-TEST",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0006-PRUNEALL",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0009-NOEYE",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0007-TENSION",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0004-TERM",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0005-DBLPASS",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0005-PASS",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0003-AREA",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.P1",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.P2",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.P3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.P3",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.T06",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.B39",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.B43",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.B43-DIV",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x4.B16-GAME",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.MIGOS-RULE",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.REFRAME",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.Z",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-GEOM",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-STONE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-CAPTURE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-SUICIDE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-PASS",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-FORCEDPASS",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-BASICKO",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-KOSTATE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-KOPASS",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-TERMINAL",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-AREA",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-TIE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-SCORESIGN",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-STATE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-FRESHSTART",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-PASSSTATE",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-BELLMAN",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-LH",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-BRACKET",
+   "verdict": "BACKED",
+   "kind": "stipulation",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.TIE-MIGOS",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.FIXPOINT-VS-SEARCH",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-AMEND1",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-AMEND2",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.AXIOM-AMEND4",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "4x4.M2",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "4x3.M2",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "2x2.EXACT",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x2.EXACT",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "3x3.FWD-SPOT",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "2x2.BASICKO-TIE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x2.BASICKO-TIE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.BASICKO-TIE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.BASICKO-TIE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.PASS-NOKO",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H1-MARKOV",
+   "verdict": "ADJACENT",
+   "kind": "probe",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H1-COMPUTABLE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H1-CENSUS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.H1-CENSUS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x3.H1-CENSUS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.G-CENSUS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.LONGCYCLE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H4",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H4a",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.H4b",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ONEMISMATCH-CURE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.A-2",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.CALIB-LESSON",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "CODE.ADR0011-FMT",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.ADR0011-GATE",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.ADR0012-PAR",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "4x4.I5-FEAS",
+   "verdict": "BACKED",
+   "kind": "design",
+   "defect": false
+  },
+  {
+   "id": "3x2.I5-CAL",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": true
+  },
+  {
+   "id": "CODE.WZO2-PASSBIT",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "SPRINT-M4a-ACCEPT",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "WZO2-4X4-VALID",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.WZO2-INCOMPLETE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "WZO2.I2-CLEAN",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.WZO2-PASS1-LAW",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.ACCEPT-KOKEY",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.CLAIMLINT-C7-NEWROWS",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.GTP-KOKEY",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "4x4.V1-INVSYM-BROKEN",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "CODE.BATTERY-STUBBED",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "CODE.M4A-HARNESS",
+   "verdict": "ADJACENT",
+   "kind": "source",
+   "defect": true
+  },
+  {
+   "id": "CODE.VB-STUBS",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": true
+  },
+  {
+   "id": "CODE.VB-BLINDGAPS",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0014-PURE",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0016-INHERIT",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ADR0015-BURDEN",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.F2-REMEDY",
+   "verdict": "BACKED",
+   "kind": "design",
+   "defect": false
+  },
+  {
+   "id": "4x4.D3",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.BATTERY-GAPS",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.BATTERY-PASS1-ACCEPTANCE",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "CODE.KEY-AGREEMENT",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "4x4.WZO2-A2-EXHAUSTIVE",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "4x4.WZO2-A5-EXHAUSTIVE",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "4x4.WZO2-A8-EXHAUSTIVE",
+   "verdict": "PROSE-ONLY",
+   "kind": "report",
+   "defect": false
+  },
+  {
+   "id": "CODE.WZO2-BUILD-REPRO",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.T312-PARALLEL-FIXPOINT",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.WZO2-RELEASESAFE-INV",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.PARALLEL-FIXPOINT-MEASURED",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "GLOBAL.I5-SCC-CONTAIN",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": false
+  },
+  {
+   "id": "4x4.NEW-ENGINE-MIRROR",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.THIRD-PARTY-ZERO",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.BRACKET-NOT-KO",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "4x4.KO-CLUSTER-MAX-2",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.PATHOLOGY-GRADIENT",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "CODE.I5-INSTRUMENT-ADJUDICATION",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.INSTRUMENT-COVERAGE",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "3x3.BRACKET-NOT-KO",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "4x4.SELF-PLAY-BRACKET-CONSISTENT",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.PSK-GRAFT-COHERENT",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.LIFE-CERTIFIES",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.TWO-LIFE-ONSET",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "3x3.LIFE-NO-CENTRE",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.CAPTURE-BUDGET-DAG",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.ROOT-SINGLE-IFF-FORCIBLE-LIFE",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.DRAWLOOP-CONFINED",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.NEITHER-FORCE-MOSTLY-DECISIVE",
+   "verdict": "BACKED",
+   "kind": "record",
+   "defect": false
+  },
+  {
+   "id": "CODE.PROPERTY-OWNERSHIP",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "QA-001",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "QA-003",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "QA-004",
+   "verdict": "PROSE-ONLY",
+   "kind": "rerunnable",
+   "defect": true
+  },
+  {
+   "id": "QA-009",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  },
+  {
+   "id": "QA-011",
+   "verdict": "PROSE-ONLY",
+   "kind": "locator",
+   "defect": false
+  },
+  {
+   "id": "QA-012",
+   "verdict": "ADJACENT",
+   "kind": "probe",
+   "defect": false
+  },
+  {
+   "id": "QA-013",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "QA-015",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "QA-019",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "QA-021",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "QA-022",
+   "verdict": "BACKED",
+   "kind": "text",
+   "defect": false
+  },
+  {
+   "id": "QA-023",
+   "verdict": "BACKED",
+   "kind": "argument",
+   "defect": false
+  },
+  {
+   "id": "QA-025",
+   "verdict": "BACKED",
+   "kind": "literature",
+   "defect": false
+  },
+  {
+   "id": "QA-026",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "QA-027",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "3x3.OPTIMAL-CYCLE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.OPTIMAL-CYCLE",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "CODE.RESOLVER-INTERFACE",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.RESOLVER-BUDGET-QUARANTINE",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "CODE.RESOLVER-CONTROLS",
+   "verdict": "BACKED",
+   "kind": "source",
+   "defect": false
+  },
+  {
+   "id": "3x3.LOOPY-TAXONOMY",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.LOOPY-TAXONOMY",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.REACH-P4-CENSUS",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.LEAK-TIEBREAK",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "4x4.WRITESOFF-DUP",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.CORPUS-B",
+   "verdict": "BACKED",
+   "kind": "output",
+   "defect": false
+  },
+  {
+   "id": "GLOBAL.CORPUS-B-METER-GAPS",
+   "verdict": "PROSE-ONLY",
+   "kind": "lost",
+   "defect": true
+  }
+ ]
+}
