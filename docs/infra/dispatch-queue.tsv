@@ -6,6 +6,14 @@
 #               stops the fleet. Never popped automatically; raised for discussion.
 # Estimates are the seat's (T914, 2026-08-25) and often wrong. A wrong estimate that
 # gets corrected beats none. T894 makes rank+estimate live in managent instead.
+T944	0	7200	AUTO	S10 pass 1a: STORE-LOSS DETECTOR — highest-severity open item; spec+21 arms ratified, arms S10-STORE-1..4 + SMOKE-4
+T945	0	5400	AUTO	DONE-audit corpus + sealed answer key — 120 rows, 5 disjoint slices + a 12-row control slice
+T946	1	1800	AUTO	DONE audit arm (dspro) — PINNED, blocked on T945
+T947	1	1800	AUTO	DONE audit arm (dsflash) — PINNED, blocked on T945
+T948	1	1800	AUTO	DONE audit arm (kimi) — PINNED, ollama allowed: race data
+T949	1	1800	AUTO	DONE audit arm (haiku) — PINNED, blocked on T945
+T950	1	1800	AUTO	DONE audit arm (gemini-flash) — PINNED, blocked on T945
+T951	2	5400	AUTO	judge the DONE audit — control slice scored BEFORE the key is opened
 T943	0	5400	AUTO	moving-parts inventory + a check that fails on an undocumented process — operator: no undocumented moving parts
 T942	2	3600	AUTO	DONE rate divides one run's tokens by another run's wall — T924 read 14476/s, true 10.9/s
 T934	2	3600	AUTO	a provider refusing service must not exit 0 — the instrument behind the B4 misdiagnosis; gates trustworthy race judging
