@@ -1,0 +1,8 @@
+{
+ "task_id": "T887",
+ "date": "2026-08-25",
+ "model": "claude-sonnet-5",
+ "claims": [],
+ "new_rows": [],
+ "notes": "WRITTEN BY THE ORCHESTRATION SEAT, NOT BY THE MODEL. The claude-sonnet-5 worker for this race-C3 lane delivered all six append-only batches and then died before writing its findings file or closing its row. The row is closed on committed evidence rather than on self-report, per the standing practice for a worker that dies after delivering.\n\nDELIVERED: 43 unique claim rows across 6 batches (47 objects including revisions), class distribution {'b': 15, 'a': 20, 'c': 8}.\n\nINDEPENDENTLY GRADED: the T893 adjudication (claude-fable-5, no lane in this race) scored this lane 35/40 on substance \u2014 second of nine \u2014 recording that it 'found the most committed evidence' with line-pinned citations, and that it effectively invented the adjudication's class (d) by annotating rows '(already committed)' rather than forcing them into the brief's three classes. Its recorded costs: one dropped row (43/44) and one unresolvable path.\n\nNO IMPRESSION IS RECORDED because no model narration exists; the impression waiver is honest rather than a formality. Nothing in this file is a model's self-assessment.\n\nTHE LANE'S RAW OUTPUT is the primary evidence and lives in the sealed race area of the untracked working tree; it is named here by description rather than path because a committed findings file may not cite a volatile path."
+}
