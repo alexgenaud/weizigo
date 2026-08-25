@@ -1,0 +1,35 @@
+# T924 build/total/projection lines, recovered from the lane transcript by T914
+T924,build,2x2,legal=57,sweeps=2,ko_b=41,ko_w=41,ms=0
+T924,build,3x2,legal=489,sweeps=6,ko_b=189,ko_w=189,ms=2
+T924,build,3x3,legal=12675,sweeps=12,ko_b=4349,ko_w=4349,ms=117
+T924,build,4x3,legal=321689,sweeps=17,ko_b=85138,ko_w=85138,ms=4936
+T924,build,4x4,legal=24318165,sweeps=19,ko_b=5183961,ko_w=5183961,ms=509191
+T924,build,4x4,legal=24318165,sweeps=19,ko_b=5183961,ko_w=5183961,ms=510650
+T924,build,{d}x{d},legal={d},sweeps={d},ko_b={d},ko_w={d},ms={d}", .{ w, h, t.legal_count, t.sweeps, t.ko_sensitive_b, t.ko_sensitive_w, build_ms });
+T924,projection,selftest-defect,mean_nodes_per_nontrivial_root=695.7,ns_per_node=79.86,projected_finisher_nodes=[65744,262976],projected_wall_h=[0.000,0.000]
+T924,projection,selftest-off-clean,mean_nodes_per_nontrivial_root=695.7,ns_per_node=79.86,projected_finisher_nodes=[65744,262976],projected_wall_h=[0.000,0.000]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=2139677.3,ns_per_node=262.90,projected_finisher_nodes=[2773000856714,22184006853713],projected_wall_h=[202.502,1620.020]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=2139677.3,ns_per_node=264.29,projected_finisher_nodes=[2773000856714,22184006853713],projected_wall_h=[203.576,1628.605]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=506.0,ns_per_node=0.00,projected_finisher_nodes=[5187,41492],projected_wall_h=[0.000,0.000]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=531.5,ns_per_node=123.57,projected_finisher_nodes=[577889,4623108],projected_wall_h=[0.000,0.000]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=695.7,ns_per_node=79.86,projected_finisher_nodes=[65744,262976],projected_wall_h=[0.000,0.000]
+T924,projection,writes-off,mean_nodes_per_nontrivial_root=8874.0,ns_per_node=191.77,projected_finisher_nodes=[377755632,1511022527],projected_wall_h=[0.020,0.080]
+T924,projection,writes-on,mean_nodes_per_nontrivial_root=128.0,ns_per_node=128.31,projected_finisher_nodes=[139138,1113101],projected_wall_h=[0.000,0.000]
+T924,projection,writes-on,mean_nodes_per_nontrivial_root=14453.9,ns_per_node=372.84,projected_finisher_nodes=[18732155784,149857246273],projected_wall_h=[1.940,15.520]
+T924,projection,writes-on,mean_nodes_per_nontrivial_root=421.6,ns_per_node=0.00,projected_finisher_nodes=[4321,34568],projected_wall_h=[0.000,0.000]
+T924,projection,writes-on,mean_nodes_per_nontrivial_root=556.3,ns_per_node=66.57,projected_finisher_nodes=[52574,210294],projected_wall_h=[0.000,0.000]
+T924,projection,{s},mean_nodes_per_nontrivial_root={d:.1},ns_per_node={d:.2},projected_finisher_nodes=[{d:.0},{d:.0}],projected_wall_h=[{d:.3},{d:.3}]", .{
+T924,total,selftest-defect,pop=378,samples=57,solved=57,skipped=0,single_ko=3,sum_nodes=37568,max_root=4528,sum_ms=3
+T924,total,selftest-off-clean,pop=378,samples=57,solved=57,skipped=0,single_ko=3,sum_nodes=37568,max_root=4528,sum_ms=3
+T924,total,selftest-off-clean,pop=378,samples=57,solved=57,skipped=0,single_ko=3,sum_nodes=37568,max_root=4528,sum_ms=4
+T924,total,writes-off,pop=10367922,samples=1287,solved=1162,skipped=125,single_ko=25,sum_nodes=2700272692,max_root=20000001,sum_ms=709889
+T924,total,writes-off,pop=10367922,samples=1287,solved=1162,skipped=125,single_ko=25,sum_nodes=2700272692,max_root=20000001,sum_ms=713651
+T924,total,writes-off,pop=170276,samples=20878,solved=20878,skipped=0,single_ko=206,sum_nodes=183442515,max_root=2105309,sum_ms=35178
+T924,total,writes-off,pop=378,samples=57,solved=57,skipped=0,single_ko=3,sum_nodes=37568,max_root=4528,sum_ms=3
+T924,total,writes-off,pop=82,samples=9,solved=9,skipped=0,single_ko=0,sum_nodes=4554,max_root=1019,sum_ms=0
+T924,total,writes-off,pop=8698,samples=620,solved=620,skipped=0,single_ko=11,sum_nodes=323692,max_root=28581,sum_ms=40
+T924,total,writes-on,pop=10367922,samples=1287,solved=1287,skipped=0,single_ko=25,sum_nodes=18240863,max_root=252205,sum_ms=6801
+T924,total,writes-on,pop=378,samples=57,solved=57,skipped=0,single_ko=3,sum_nodes=30042,max_root=3229,sum_ms=2
+T924,total,writes-on,pop=82,samples=9,solved=9,skipped=0,single_ko=0,sum_nodes=3794,max_root=692,sum_ms=0
+T924,total,writes-on,pop=8698,samples=620,solved=620,skipped=0,single_ko=11,sum_nodes=77935,max_root=1283,sum_ms=10
+T924,total,{s},pop={d},samples={d},solved={d},skipped={d},single_ko={d},sum_nodes={d},max_root={d},sum_ms={d}", .{

@@ -5,7 +5,10 @@
 findings. The runner's auto-close correctly declined (T862 ·3) and left the row open. Every number
 below is a line the probe printed; none is re-derived.
 
-**Instrument:** `src/t924_d3_probe.zig` (committed, `4a80255`). **Host:** 18 cores (6P+12E), 48 GB,
+**Instrument:** `src/t924_d3_probe.zig` (committed, `4a80255`). **Raw evidence:**
+`docs/evidence/T924/per-root.csv` (1,354 per-root rows) and `docs/evidence/T924/summary.csv` (34
+build/total/projection lines) — both recovered from the lane transcript, which was the only place
+they existed until this commit. **Host:** 18 cores (6P+12E), 48 GB,
 single-threaded solve. **Ledger:** `docs/infra/host/goban-scaling.jsonl`.
 
 ## Answer
@@ -87,8 +90,8 @@ becomes the blocking path rather than a follow-up, exactly as ADR-0013 anticipat
 
 ## Follow-on, in the order that matters
 
-1. Re-do the projection **layer-population-weighted** from the committed per-root CSV rather than
-   the unweighted mean. Cheap; the lane had already identified this as the correction needed.
+1. Re-do the projection **layer-population-weighted** from `docs/evidence/T924/per-root.csv` (1,354
+   rows, recovered from the lane transcript and committed) rather than the unweighted mean. Cheap; the lane had already identified this as the correction needed.
 2. Cost a **parallel finisher** before accepting 202 hours. 10.4 M independent roots on 18 cores is
    the obvious shape, and nobody has measured it.
 3. Then take Track B's dependency-guarded arm to 4×4 and compare against this row's numbers.
