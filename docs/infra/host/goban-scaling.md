@@ -79,6 +79,33 @@ discarded. The 8 rows captured by T924 pre-date the guard and carry
 was recorded, so whether any spanned a sleep is unknowable (see
 findings/T927-sleep-unprotected-runs.json).
 
+**T926 ledger fields (2026-08-25):** every row now carries
+`regime_claimed` (the wrapper's positional arg), `regime_observed` (what
+the command actually did, derived from `RETRO_SOUND`/`RETRO_DEPS` in
+the command line), and `regime_mismatch` (true when the two disagree).
+A disagreement is reported on stderr during the run so the operator
+sees it in real time; the row still lands, since losing it would be
+the worse failure.  Every row also carries `killed_by` (none | signal
+| wall | rss | cap) and `partial` (true when the row was written
+without a clean wait); a killed run that previously dropped the row
+entirely now lands one with these fields, so a kill is visible in the
+ledger rather than reading as "not measured".  See
+`findings/T926-capture-tool-defects.json` for the full defect list and
+the regression that guards it.
+
+**T926 retired fields (2026-08-25):** the 8 T924 rows predate the
+tree-RSS fix and were stamped `peak_rss_mb_suspect: "under-reports;
+see T926"`.  Per the ruling "a suspect number in an authoritative
+ledger must end up corrected or gone, not annotated forever", the
+8 rows were RE-STAMPED in place: `peak_rss_mb` is now `null`,
+`peak_rss_mb_retired_value` preserves the pre-T926 number for
+archaeology, `peak_rss_mb_retired_reason` is the explanation, and
+`peak_rss_mb_suspect` is gone.  The wall_s, nodes, exit, head, and
+artifact_bytes fields are SOUND (they came from the run's own
+output and from a wall clock) and remain unchanged.  The re-stamp
+script lives at `docs/infra/host/restamp-T926.py` and is
+one-shot — do not re-run it against post-T926 rows.
+
 ## WZO1 vs WZO2 — the two artifact formats
 
 Both are committed and both are live. They are not versions of one thing; they answer different

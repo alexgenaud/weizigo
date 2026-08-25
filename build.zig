@@ -492,6 +492,25 @@ pub fn build(b: *std.Build) void {
     sleep_guard_regression.cwd = b.path(".");
     test_step.dependOn(&sleep_guard_regression.step);
 
+    // ── T926: goban-scaling capture tool controls ────────────────────
+    // The T914 capture wrapper (tools/goban-scaling-capture.sh) had
+    // three defects: peak_rss_mb under-reported (read $CMDPID only, not
+    // the descendant tree), killed runs left no row, and the regime
+    // arg was trusted without checking the command.  The post-T926
+    // wrapper walks the tree, exits via a trap that always appends,
+    // and observes the regime from RETRO_SOUND/RETRO_DEPS.  The
+    // regression is hermetic: scratch repo + per-arm scratch ledgers
+    // via WEIZIGO_SCALING_LEDGER, never touches the live ledger.
+    // Arms: A null (clean child), B tree RSS (parent+grandchild ≥
+    // 400 MB), C killed (SIGKILL'd child -> row with rc=137 +
+    // killed_by=signal + partial=true), D regime mismatch (claim
+    // writes-off, no RETRO_SOUND -> regime_mismatch=true + stderr
+    // warning).  Each arm tests ONE defect; the seeded arms are
+    // red-first against the pre-T926 script.
+    const scaling_capture_regression = b.addSystemCommand(&.{ "sh", "tools/regression-goban-scaling-capture.sh" });
+    scaling_capture_regression.cwd = b.path(".");
+    test_step.dependOn(&scaling_capture_regression.step);
+
     // ── T572: load-test store-pollution controls ─────────────────────────
     // The T559 load test left six dummy lanes (TL1A..TL1F) in_progress in
     // the LIVE kanban: the runner auto-claims `--task-id` rows at launch,

@@ -1,0 +1,91 @@
+{
+  "task_id": "T926",
+  "date": "2026-08-25",
+  "model": "minimax-m3",
+  "identifier": "minimax-m3/T926",
+  "landmark": "L1 (the dashboard tells the truth)",
+  "claims": [],
+  "new_rows": [],
+  "answer": "Three defects in tools/goban-scaling-capture.sh FIXED.  Re-stamp of the 8 T924 rows APPLIED (peak_rss_mb retired to null; regime_claimed/observed/mismatch stamped on every row; the wall_s/nodes/exit/head/artifact_bytes fields were verified sound and remain).  Regression tools/regression-goban-scaling-capture.sh WIRED into zig build test.  The 8-row ledger is now self-describing: every row carries the truth of what happened, not a guess.",
+  "defects": [
+    {
+      "id": "T926.D1",
+      "name": "peak_rss_mb under-reports",
+      "symptom": "3x2 probe live at 1,440 MB recorded as 46 MB; 4x4 at 50x the same.  Same order of discrepancy across the 8 T924 rows.",
+      "cause": "The sampler read `ps -axo pid=,rss=` filtered to $CMDPID (the direct child), then took the max over 1-second polls.  A child that forks (a zig solve has a thread pool, a python solve may have a child, a build has at least 1 sub-process) under-reports by 1-2 orders of magnitude because the rest of the tree is invisible.",
+      "fix": "Mirror the runner's walker (tools/runner:1239 _descendant_pids_ps): one `ps -axo pid=,ppid=,rss=` per poll, build a ppid->[pid] map, BFS from $CMDPID, sum RSS over the descendant set.  Peak across the run is the metric.  Single awk pass per poll — no fork, no extra processes, no extra latency.",
+      "regression_arm": "B (peak_rss_mb >= 400 MB floor when the child forks a 300 MB grandchild)",
+      "red_first": "Pre-T926: peak=309 MB (parent alone is ~300 MB; pre-T926 read only the parent).  Post-T926: peak=612 MB (parent + grandchild).  Regression exits 1 on the pre-T926 shape, 0 on the post-T926 shape."
+    },
+    {
+      "id": "T926.D2",
+      "name": "killed run writes no row",
+      "symptom": "A wall-killed, RSS-capped, or signal-killed run produced nothing.  Reading 'not measured' when the work was measured-and-lost — the exact loss shape the tractability question exists to surface.",
+      "cause": "The wrapper appended the row AFTER `wait $CMDPID` returned.  Any kill that fired during the run (most wall kills, all RSS-cap kills, all signal kills from the lane orchestrator) means `wait` never returned cleanly, the script aborted under set -e, and the append never ran.",
+      "fix": "An EXIT trap appends the row with whatever was sampled up to the kill.  killed_by is stamped (none | signal | wall | rss | cap) and partial is true when the row was written without a clean wait.  A clean exit stamps killed_by=none, partial=false.  The trap is idempotent (APPENDED_ flag) so a signal-then-exit sequence cannot double-write.  set -e + the wait line is wrapped in `wait $CMDPID_ || RC_=$? || true` so a signal-kill's exit code survives into the trap.  A degraded-mode stderr message fires when the python heredoc itself fails (e.g. WEIZIGO_SCALING_LEDGER points at a directory), so the data is recoverable by hand even when the append is lost.",
+      "regression_arm": "C (child SIGKILLs itself -> row with rc=137, killed_by=signal, partial=true)",
+      "red_first": "Pre-T926: no row at all in the scratch ledger.  Post-T926: row with the kill fields populated.  Regression exits 1 on the pre-T926 shape (no row), 0 on the post-T926 shape."
+    },
+    {
+      "id": "T926.D3",
+      "name": "regime comes from the arg, not the run",
+      "symptom": "T924 invoked the wrapper with `writes-off` for BOTH arms of its 4x4 comparison, so the writes-on arm was recorded as writes-off.  Corrected by hand in 4a80255's successor (regime_corrected: 'T914: wrapper was invoked with writes-off for both arms; this node count is the writes-on arm').  The defect would re-fire the next time a comparison is run.",
+      "cause": "The wrapper trusted the positional regime argument.  Nothing read the command line to verify the regime matched the solver's actual mode.  A caller passing the wrong arg (intentionally or by copy-paste) silently corrupted the row.",
+      "fix": "Parse the command for RETRO_SOUND (drives memo_writes=false in src/retro.zig:3260) and RETRO_DEPS (memo_writes=deps).  Stamp regime_claimed (the arg), regime_observed (from the command), and regime_mismatch (true on disagreement).  A disagreement is reported on stderr in real time so the operator sees it during the run.  The row STILL LANDS on mismatch — losing it would be the worse failure.",
+      "regression_arm": "D (claim writes-off, command does NOT set RETRO_SOUND -> regime_mismatch=true + 'REGIME MISMATCH' on stderr)",
+      "red_first": "Pre-T926: the row had no regime_observed or regime_mismatch field at all (KeyError on read).  Post-T926: row carries observed=memo-reuse, mismatch=True, and a stderr warning.  Regression exits 1 on the pre-T926 shape, 0 on the post-T926 shape."
+    }
+  ],
+  "regression": {
+    "path": "tools/regression-goban-scaling-capture.sh",
+    "wired_into": "zig build test (added under the T926 label; siblings T927, T572, etc.)",
+    "arms": [
+      {"id": "A", "name": "null (clean child, no forks, no kill)", "expected": "row with rc=0, killed_by=none, partial=false, regime_mismatch=false, peak_rss_mb matches child's actual RSS"},
+      {"id": "B", "name": "seeded-defect: TREE RSS — child forks a 300 MB grandchild", "expected": "peak_rss_mb >= 400 MB (parent ~300 + grandchild ~300); pre-T926 reads only the parent and records ~310 MB"},
+      {"id": "C", "name": "seeded-defect: KILLED RUN — child SIGKILLs itself mid-run", "expected": "row with rc=137, killed_by=signal, partial=true; pre-T926 writes nothing"},
+      {"id": "D", "name": "seeded-defect: REGIME MISMATCH — claim writes-off, no RETRO_SOUND in command", "expected": "regime_claimed=writes-off, regime_observed=memo-reuse, regime_mismatch=true, AND a 'REGIME MISMATCH' warning on stderr; pre-T926 has no fields at all"}
+    ],
+    "exit_codes": {
+      "pre_T926_broken_script": 1,
+      "post_T926_fixed_script": 0
+    },
+    "isolation": "Scratch git repo + per-arm scratch ledgers via WEIZIGO_SCALING_LEDGER.  Live docs/infra/host/goban-scaling.jsonl is NEVER touched by the regression.  The CAP env var overrides the capture script path so the regression can be re-run against any earlier shape (e.g. for the red-first confirmation).",
+    "red_first_proof": "The pre-T926 broken script (reconstructed by hand from the original task brief, stored at /tmp/weizigo/t926-confirm/capture-broken.sh during validation) was run with `CAP=/tmp/weizigo/t926-confirm/capture-broken.sh tools/regression-goban-scaling-capture.sh` and exited 1; all four arms failed with the exact defect symptoms.  The same command against the live capture script (post-T926) exits 0; all four arms pass."
+  },
+  "ledger_restamp": {
+    "script": "docs/infra/host/restamp-T926.py",
+    "input": "docs/infra/host/goban-scaling.jsonl (8 T924 rows)",
+    "changes": [
+      "peak_rss_mb: numerical value -> null (retired; cannot re-measure historical runs)",
+      "peak_rss_mb_suspect: removed (annotation retired, not perpetuated)",
+      "peak_rss_mb_retired_value: original value preserved for archaeology",
+      "peak_rss_mb_retired_reason: explanation string ('Ruling: a suspect number in an authoritative ledger must end up corrected or gone, not annotated forever')",
+      "regime_claimed: stamped from the original regime field",
+      "regime_observed: derived from the command (memo-reuse for all 8 — none of the T924 invocations set RETRO_SOUND, so all 8 actually ran in memo-reuse mode regardless of the arg)",
+      "regime_mismatch: 7 of 8 are True (T924's 'writes-off' arg vs the actual 'memo-reuse' command); the 1 writes-on row carries the T914 hand-correction (regime_corrected) and is also regime_mismatch=True (its observed mode is memo-reuse, not writes-on — a truth the hand-correction papered over, since the solver was actually run in memo-reuse)"
+    ],
+    "preserved_unchanged": [
+      "wall_s — sound (date +%s delta)",
+      "nodes — sound (from command stdout, nodes=<n> parser)",
+      "exit — sound (wait $CMDPID)",
+      "head — sound (git rev-parse --short HEAD)",
+      "artifact_bytes — sound (ls -l artifacts/oracle-NxM.wzo)",
+      "sleep_prevented, sleeps_during_run — sound (T927)",
+      "regime — original value preserved (so any reader still finds it on the field name they expect)",
+      "regime_corrected on the 4x4 writes-on row — preserved (T914's hand-correction is the actual ground truth for that row's recorded regime)"
+    ]
+  },
+  "deliverables": {
+    "tools/goban-scaling-capture.sh": "FIXED — three defects in capture",
+    "tools/regression-goban-scaling-capture.sh": "NEW — red-first regression, wired into zig build test",
+    "docs/infra/host/goban-scaling.jsonl": "RE-STAMPED — 8 T924 rows retired, regime_claimed/observed/mismatch stamped, peak_rss_mb nulled with reason",
+    "docs/infra/host/restamp-T926.py": "NEW — one-shot re-stamp script, idempotent only on the pre-T926 shape (do NOT re-run against post-T926 rows)",
+    "docs/infra/host/goban-scaling.md": "UPDATED — T926 fields section, T926 retired-fields section",
+    "build.zig": "UPDATED — T926 regression wired into zig build test"
+  },
+  "what_still_stands": [
+    "The 4x4 row's regime_corrected annotation (T914's hand-correction) is now in tension with the post-T926 regime_observed=memo-reuse: the wrapper's regime arg was writes-off (and hand-corrected to writes-on by T914), but the SOLVE actually ran in memo-reuse mode (no RETRO_SOUND).  Neither the wrapper's arg nor T914's hand-fix matches what happened.  A future task may want to re-measure that 4x4 node count to settle which is right.",
+    "The 8 retired peak_rss_mb values cannot be re-measured.  The wall_s and nodes columns are sound, so any tractability question that keys on those (e.g. the L2 (proven 4x4 values) landmark) is unaffected.  Any tractability question that KEYS on peak_rss_mb has no historical data and must wait for a fresh solve.",
+    "The 4x4 wall (1231s, 1971s) is still the only measured wall at 4x4.  T929's 4x4.D3 projection sits on it.  A fresh 4x4 measurement with the fixed wrapper would yield a real peak_rss_mb, but the wall column would be re-sampled too (deterministic given the same build, but worth re-running for the wrapper's own future ledger row)."
+  ]
+}
