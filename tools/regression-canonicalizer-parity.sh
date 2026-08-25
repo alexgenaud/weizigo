@@ -193,8 +193,9 @@ print("    %d reject cases checked" % len(reject_cases))
 # ── (4) seeded arm: fake serving tag maps through every reader; removing it ─
 # rejects it.  Uses the WEIZIGO_CANONICALIZER_JSON fixture seam.
 print("  4. seeded arm: injected serving tag maps; removing it rejects")
-import tempfile
+import atexit, shutil, tempfile
 d = tempfile.mkdtemp(prefix="t801-parity-")
+atexit.register(shutil.rmtree, d, ignore_errors=True)
 def write_fixture(serving_tags):
     path = os.path.join(d, "canon.json")
     json.dump({
@@ -226,6 +227,7 @@ if set(unseeded.values()) != {"REJECT"}:
 
 del os.environ["WEIZIGO_CANONICALIZER_JSON"]
 mt._CACHE.clear()
+shutil.rmtree(d, ignore_errors=True)
 print("    seeded map + unseed-reject both hold across the four implementations")
 
 # ── (5) the runner's write-time canonicalization (the RED arm pre-T801) ──

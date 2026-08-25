@@ -1,0 +1,8 @@
+{
+  "claims": [],
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "new_rows": [],
+  "notes": "Context dump for T943 (one documented inventory of moving parts).\n\n1. Target problem:\n   Operator requested a strict census of all moving parts running on the host, with simplicity and reliability prioritized. An undocumented daemon or orphaned process is an unmanaged liability (e.g. fleet-keeper running for ~5 days while paused; orphaned test trees from T932; thousands of leaked scratch directories).\n\n2. Findings and Root Cause Analysis:\n   - `t631-pinned-*` explosion: 3,917 directories accumulated in /private/tmp/weizigo. Commit 2ea6f80 (T631) added _load_pinned_dispatch_verify() in bin/subagent using mkdtemp without any atexit cleanup handler.\n   - Fixed `bin/subagent` to register atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True).\n   - Fixed tempdir leaks in `tools/regression-canonicalizer-parity.sh`, `tests/unit/test_dispatch_verify.py`, and `tests/unit/test_token_capture.py`.\n\n3. Deliverables:\n   - `docs/infra/moving-parts.md`: Comprehensive table and process hygiene policy.\n   - `tools/regression-moving-parts.sh`: 6-arm regression test verifying live process compliance, seeded rogue process detection, prohibited timed caffeinate detection, stale/orphan detection, scratch directory zero-growth, and launchd job cleanliness.\n   - `build.zig`: Wired `tools/regression-moving-parts.sh` as `moving_parts_regression`.\n   - `findings/T943-moving-parts-inventory.json` + `findings/T943-context.json`.\n\n4. Verification:\n   - `sh tools/regression-moving-parts.sh`: ALL 6 CONTROLS PASSED.\n   - `sh tools/regression-canonicalizer-parity.sh`: PASS.\n   - `zig build`: PASS.",
+  "task_id": "T943"
+}

@@ -105,7 +105,9 @@ def _load_pinned_dispatch_verify():
     forces the fallback for a developer editing the module (T629/T630) who
     wants to test through bin/subagent without committing first.
     """
+    import atexit
     import importlib.util
+    import shutil
     import tempfile
 
     if os.environ.get("WEIZIGO_DISPATCH_VERIFY_UNPINNED") == "1":
@@ -128,6 +130,7 @@ def _load_pinned_dispatch_verify():
             tmp_dir = tempfile.mkdtemp(
                 prefix="t631-pinned-",
                 dir="/tmp/weizigo" if os.path.isdir("/tmp/weizigo") else None)
+            atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
             path = os.path.join(tmp_dir, "dispatch_verify.py")
             with open(path, "w") as f:
                 f.write(proc.stdout)

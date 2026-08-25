@@ -30,8 +30,10 @@ What each tested function SHOULD do (intent, not current behaviour):
 Stdlib only; tempfile for any file touch.  Loaded through tests/unit/_load.py
 because the module name is hyphenated.
 """
+import atexit
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -336,6 +338,7 @@ class TestReadPiSession(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="t794-pi-")
+        self.addCleanup(shutil.rmtree, self.dir, True)
 
     def _path(self, content):
         p = os.path.join(self.dir, "s.jsonl")
@@ -411,6 +414,7 @@ class TestLedgerJoin(unittest.TestCase):
 
     def _root(self, lines):
         d = tempfile.mkdtemp(prefix="t794-ledger-")
+        atexit.register(shutil.rmtree, d, ignore_errors=True)
         tokdir = tc.tokens_dir(d)
         os.makedirs(tokdir)
         with open(tc.ledger_path(d), "w") as f:
@@ -433,6 +437,7 @@ class TestLedgerJoin(unittest.TestCase):
 
     def test_append_ledger_roundtrip(self):
         d = tempfile.mkdtemp(prefix="t794-append-")
+        atexit.register(shutil.rmtree, d, ignore_errors=True)
         self.assertTrue(tc.append_ledger(d, {"b": 1, "a": 2}))
         self.assertTrue(tc.append_ledger(d, {"c": 3}))
         entries, bad = tc.load_ledger(d)
@@ -448,6 +453,7 @@ class TestWriteTees(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="t794-tee-")
+        self.addCleanup(shutil.rmtree, self.dir, True)
 
     def test_tee_writes_both_streams_verbatim(self):
         out_p, err_p = tc.write_tees(self.dir, "T1", "20260820T1000", "deepseek",
@@ -475,6 +481,7 @@ class TestParseSession(unittest.TestCase):
 
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="t794-parse-")
+        self.addCleanup(shutil.rmtree, self.dir, True)
 
     def test_full_record(self):
         body = "\n".join([

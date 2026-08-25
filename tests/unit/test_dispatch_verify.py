@@ -74,8 +74,10 @@ expected failure owned by T793 (see TestVerifyDispatchEmptyDeliverables).
 Stdlib only; tempfile for every file touch; no network; no subprocess (the one
 subprocess user, heal_dispatch, is tested with a mocked subprocess.run).
 """
+import atexit
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -92,6 +94,7 @@ dv = load("tools/dispatch_verify.py")
 def make_root():
     """A hermetic repo-shaped root: untracked/{log,runs} present, nothing else."""
     root = tempfile.mkdtemp(prefix="t793-")
+    atexit.register(shutil.rmtree, root, ignore_errors=True)
     os.makedirs(os.path.join(root, "untracked", "log"), exist_ok=True)
     os.makedirs(os.path.join(root, "untracked", "runs"), exist_ok=True)
     return root
@@ -170,6 +173,7 @@ class TestParseDeliverables(unittest.TestCase):
 
     def _bundle(self, first_line):
         root = tempfile.mkdtemp(prefix="t793-dl-")
+        atexit.register(shutil.rmtree, root, ignore_errors=True)
         p = os.path.join(root, "bundle.md")
         with open(p, "w") as f:
             f.write(first_line + "\n# title\n")
@@ -246,6 +250,7 @@ class TestVerifyFindingsFile(unittest.TestCase):
     """SHOULD: [] for a conform record; error strings otherwise."""
 
     def _write(self, root, content):
+        atexit.register(shutil.rmtree, root, ignore_errors=True)
         p = os.path.join(root, "rec.json")
         with open(p, "w") as f:
             f.write(content)

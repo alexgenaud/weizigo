@@ -708,6 +708,17 @@ pub fn build(b: *std.Build) void {
     no_key_env_guard_regression.cwd = b.path(".");
     test_step.dependOn(&no_key_env_guard_regression.step);
 
+    // ── T943: moving parts inventory and process hygiene ─────────────
+    // Inventory and process hygiene gate:
+    // (1) Every running project-owned process is documented in
+    // docs/infra/moving-parts.md; (2) Undocumented processes, orphaned test
+    // trees, and prohibited daemons fail loudly; (3) Scratch directories
+    // under /tmp/weizigo do not leak across runs; (4) Background launchd
+    // plists are verified unloaded.
+    const moving_parts_regression = b.addSystemCommand(&.{ "sh", "tools/regression-moving-parts.sh" });
+    moving_parts_regression.cwd = b.path(".");
+    test_step.dependOn(&moving_parts_regression.step);
+
     // ── T890: one serving-tag path (bin/subagent) ─────────────────────
     // The 2026-08-24 defect: `bin/subagent --provider ollama --model
     // kimi-k2.7:cloud` was accepted (both kimi tags canonicalize to
