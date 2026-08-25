@@ -57,7 +57,12 @@ done
 # OpenRouter model lands (google, openai, alibaba, nvidia, upstage, oxalpha),
 # so 4 bounds the credit the operator says is going fastest while still
 # letting four different OpenRouter models run at once.
-export FLEET_FAMILY_CAP="${FLEET_FAMILY_CAP:-claude=3,deepseek=3,other=4,ollama=2,fable=1}"
+# claude=4, not 3: the cap counts STORE ROWS, not processes, and T935 -- the
+# orchestration seat -- is an in_progress row with no lane behind it. It ate a
+# claude slot and refused a real race arm ("Running now: T935, T971, T972").
+# Four restores three usable claude lanes. The underlying defect is that a
+# row with no process should not consume a family slot; noted, not fixed here.
+export FLEET_FAMILY_CAP="${FLEET_FAMILY_CAP:-claude=4,deepseek=3,other=4,ollama=2,fable=1}"
 
 lanes_now() { pgrep -f -- '--arbiter-id T[0-9]' 2>/dev/null | wc -l | tr -d ' '; }
 
@@ -268,9 +273,19 @@ except Exception: print('')" 2>/dev/null)
   # T961 landed the one-door rule: bin/dispatch now REFUSES a direct call, and
   # this script was calling it directly -- so the dispatcher was refused by the
   # gate it had itself queued. Go through the door like everything else.
-  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 2>&1); rc=$?
+  # FLEET_TEST_WORKER is the test seam (the fleet-keeper convention): when set,
+  # it is forwarded to the door as --test-worker=<cmd> so the e2e regression
+  # launches a stub instead of a real lane (the regression-one-door-dispatch
+  # arm 7). Production never sets it.
+  test_worker_args=""
+  [ -n "${FLEET_TEST_WORKER:-}" ] && test_worker_args="--test-worker=$FLEET_TEST_WORKER"
+  out=$(bin/managent dispatch "$pick" --to "$model" --wall 7200 $test_worker_args 2>&1); rc=$?
   if [ "$rc" -eq 0 ]; then
-    echo "$out" | tail -1
+    # The data line is the one that starts with "dispatched " on stdout — the
+    # door adds its own stderr diagnostics AFTER the callee's data line, so
+    # `tail -1` would surface a diagnostic, not the launch (T953's failure
+    # mode, one door deeper).
+    echo "$out" | grep '^dispatched ' | head -1
   else
     echo "pop-next: dispatch REFUSED $pick (rc=$rc) — full message follows:"
     echo "$out" | sed 's/^/  | /'
