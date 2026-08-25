@@ -38,7 +38,7 @@ run_worker() {
     local brief="$2"
     # Use runner with a small pi-based worker; the fixture injects stderr
     # provider errors we can check.
-    local cmd=("$ROOT/tools/runner" --ram-mb 256 --max-wall 60 --max-cpu 60
+    local cmd=("$HERE/tools/runner" --ram-mb 256 --max-wall 60 --max-cpu 60
                 --task-id T934 -- -p "$brief")
     "${cmd[@]}" 2>/tmp/t934-stderr.txt
     local rc=$?
