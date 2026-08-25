@@ -78,12 +78,25 @@ for _,t in rows:
     clash=[h for h in (v.get('holds') or []) if h in held]
     if clash:
         print("SKIP\t%s\t%s"%(t,','.join(clash))); continue
+    # unspec is a BLOCKER (operator, 2026-08-25): "If we wonder why such-or-such
+    # task is not running, we should be able to reliably see and declare. 'oh,
+    # it's unspecified, let's specify now'." A row with no acceptance= in its
+    # bundle header has no bar to be judged against, so it is not dispatchable
+    # work -- it is work waiting to be specified. Same test watch-fleet uses.
+    b=v.get('bundle') or ''
+    try: head=open(b).read()[:400]
+    except Exception: head=''
+    if 'acceptance=' not in head:
+        print("UNSPEC\t%s\t%s"%(t,b)); continue
     print("PICK\t%s\t%s"%(t,v.get('bundle') or ''))
     break
 PYP
 )
   echo "$choice" | grep '^SKIP' | while IFS="$(printf '\t')" read -r _ t f; do
     echo "pop-next: skip $t — held file busy: $f"
+  done
+  echo "$choice" | grep '^UNSPEC' | while IFS="$(printf '\t')" read -r _ t f; do
+    echo "pop-next: skip $t — UNSPEC (no acceptance= in $f); specify it to make it runnable"
   done
   pick=$(echo "$choice" | grep '^PICK' | head -1 | cut -f2)
   [ -z "$pick" ] && { echo "pop-next: no AUTO row is dispatchable right now"; return 3; }
