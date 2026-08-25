@@ -1,0 +1,11 @@
+{
+  "task_id": "T969",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "identifier": "deepseek-v4-pro/T969",
+  "landmark": "L2 (proven 4x4 values)",
+  "claims": [],
+  "new_rows": [],
+  "answer": "Authored the spec for T936 (run 4x4.D3 to completion) as a sealed Race A arm: uncapped node budget (RETRO_PARALLEL_BUDGET=0), censored roots reported as set membership never folded into a mean, three 4x3 controls (null / seeded-defect / killed-run) green before any 4x4 number, a 72h finisher-wall stop with partial, 16-thread detached run per T928, and an 8-arm acceptance gate. Two numbers in the T936 brief were corrected against the repo: the 4x4 work list is ~6.5e5 orbit reps (not 10,367,922 — '480x' mixed the slot count with the 4x3 orbit-rep count), and RETRO_4X4=1 routes to the census path, not the parallel finisher.",
+  "notes": "Spec-only task: no solve run, no engine change, no claims or register rows proposed (no auditor required by C11). Every number re-derived from committed evidence (docs/evidence/T924/summary.csv, docs/evidence/T929/per-layer-recovery.csv, docs/evidence/T930/sweep.csv, docs/evidence/T932/production-4x3.csv + per-thread-16.txt, src/enumerate.zig:57 num_syms, src/retro.zig:452 budget==0 unlimited, src/retro.zig:3284 parallel dispatch). Sealed arm: wrote only untracked/races/A-spec/dspro/. Inbox checked (bin/managent inbox T969 --ack): no directives."
+}
