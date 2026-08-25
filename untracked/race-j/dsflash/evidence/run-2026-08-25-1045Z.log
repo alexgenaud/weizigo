@@ -1,0 +1,45 @@
+=== A1 — admission refusal: refused, not killed, nothing spawned, row stays dispatchable ===
+    PASS: refused before spawn (exit 3), nothing killed, nothing spawned, row stays dispatchable
+    RED confirmed: defected runner admitted+spawned (rc=0, marker=yes) — the refusal assertion catches the break
+
+    PASS: fit admits, runs, completes, and its admission entry is released on exit
+
+=== A2 — wall-band RAM declaration at each boundary (60/600/1800 s; T913 §3.2) ===
+    PASS: 59→768 60→1792 599→1792 600→3072 1799→3072 1800→4608 1801→4608
+    RED confirmed: off-by-one at 60 s shifts every boundary (rc=1: BAND-MISMATCH: [(60, 1792, 768)]) — the boundary assertion catches the T912 class
+
+=== A3 — --max-wall ceiling: silent child terminated, termination attributable ===
+    PASS: killed at the ceiling, exit 124, record killed_by=wall signal=9
+    RED confirmed: defected runner let the silent child finish (rc=0) — the wall-ceiling assertion catches the break
+
+=== A4 — L3 kernel-pressure alarm (ram-policy §4.4): fires, never kills (INV-1) ===
+    NOTE (canary): the brief's literal 'kills the lane when the host crosses
+    its pressure threshold' is FALSE-AS-SCOPED — T821 deleted the host-
+    condition kill verb; the guard now ALARMS (names the consumer, appends
+    host_alarms) and per INV-1 never kills.  This arm asserts the alarm;
+    A7 asserts the only memory kill that exists (the RSS overrun stop).
+    PASS: alarm fired (level 2, consumer named, host_alarms recorded) and the lane survived — fired, never killed
+    RED confirmed (half 1): defected runner never alarmed on sustained pressure — the alarm-fire assertion catches the break
+    RED confirmed (half 2): a pressure-kill defect makes the lane die (rc=124, no survivor) — the never-kills assertion catches the T821-deleted behaviour returning
+
+=== A5 — run record written with kind declared (T364/T895), so reap reads the dispatch record ===
+    PASS: record written with task, run_kind=dispatch, exit, end, pid — the shape reap reads
+    RED confirmed: defected runner wrote no run record (rc=0) — the record-kind assertion catches the F6 class
+
+=== A7 — RSS-cap overrun stop (INV-4): the only memory kill, and it is the task's OWN overrun ===
+    PASS: 200 MB over a declared 100 MB (cap 125) → stopped, killed_by=rss, released
+    RED confirmed: defected runner let the 200 MB overrun complete (rc=0) — the overrun-stop assertion catches the break
+
+==========================================================================
+assertion summary (green rc = real tools/runner, red rc = seeded-defect copy):
+  A1 admission-refusal        green=3 (3=refused)   red=0   RED=YES
+  A1 null (fit+release)       green=0
+  A2 band-boundaries          green=0 (0)           red=1   RED=YES
+  A3 wall-ceiling             green=124 (124)         red=0   RED=YES
+  A4 alarm-fires              green=0 (0)           red1=0 RED=YES
+  A4 never-kills              green=0               red2=124 RED=YES
+  A5 record-kind              green=0 (0)           red=0   RED=YES
+  A7 rss-overrun-stop         green=124 (124)         red=0   RED=YES
+==========================================================================
+=== regression-runner-guard (dsflash): ALL CONTROLS PASSED — every assertion green, every red reproduced ===
+    PASS: live heartbeat.jsonl — no lines appended during the run
