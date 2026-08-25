@@ -134,6 +134,7 @@ fi
 
 ARGUS="$PROJECT/bin/argus"
 MG="$PROJECT/bin/managent"
+. "$PROJECT/tools/lib/scratch-repo.sh"   # T873: weizigo_reset_census for remove_row direct writes
 CLAIMLINT="$PROJECT/bin/weizigo-claimlint"
 LIVE_STORE="$PROJECT/docs/infra/managent/tasks.json"
 
@@ -293,6 +294,7 @@ with open(store, "w") as f:
     json.dump(d, f, indent=1)
     f.write("\n")
 PYEOF
+    weizigo_reset_census "$store"   # T873: direct removal bypasses the S10 census
 }
 
 # Helper: count lines under a given doctor group matching a pattern
@@ -441,9 +443,9 @@ SEED_BUNDLE_REL="tools/regression-argus-doctor-fixture.md"
 SEED_BUNDLE="$PROJECT/$SEED_BUNDLE_REL"
 ARM2_ROW_ID="T425-DOCTOR-2-$(basename "$WORK")"
 rm -f "$SEED_BUNDLE"
-cat > "$SEED_BUNDLE" <<'EOF'
+cat > "$SEED_BUNDLE" <<EOF
 <!--managent set=G type=infra-->
-# T425 doctor arm 2 — bundle
+# $ARM2_ROW_ID — fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 # DO NOT commit. Leave it untracked so the doctor's "dispatchable row +
@@ -524,15 +526,29 @@ else
 fi
 
 # ── arm 6: null — deployed binary staleness ──────────────────────────
-# Live tree was deployed at T424 (smoke zero STALE per T424's notes).
-# Doctor should report CLEAN here.
-echo "  6. null control: deployed bin/ matches zig-out"
+# T873/R11: the original arm hard-coded CLEAN, asserting the deploy-
+# staleness reading appears there. That is only true when bin/ is freshly
+# deployed — an environmental precondition the arm does not establish, so
+# it was red whenever bin/ lagged zig-out (the classification's diagnosis).
+# The arm's subject is "the doctor surfaces the deploy-staleness reading";
+# assert it appears under the group matching the ACTUAL deploy state, so the
+# verdict depends on the code under test, not on whether someone deployed.
+echo "  6. null control: doctor surfaces deploy-staleness reading"
 REPORT=$(run_doctor)
-n=$(group_count "$REPORT" "CLEAN" "deployed|stale|bin/")
-if [ "$n" -ge 1 ]; then
-    echo "    PASS: doctor reports deploy staleness status under CLEAN"
+n_clean=$(group_count "$REPORT" "CLEAN" "deployed|stale|bin/")
+n_needs=$(group_count "$REPORT" "NEEDS ACTION" "deployed|stale|bin/")
+# Determine the honest group: CLEAN iff bin/managent matches zig-out.
+DEPLOYED=0
+if [ -x "$PROJECT/bin/managent" ] && [ -x "$PROJECT/zig-out/bin/managent" ] \
+   && cmp -s "$PROJECT/bin/managent" "$PROJECT/zig-out/bin/managent"; then
+    DEPLOYED=1
+fi
+if [ "$DEPLOYED" -eq 1 ] && [ "$n_clean" -ge 1 ]; then
+    echo "    PASS: bin deployed -> doctor reports deploy staleness under CLEAN"
+elif [ "$DEPLOYED" -eq 0 ] && [ "$n_needs" -ge 1 ]; then
+    echo "    PASS: bin stale -> doctor reports deploy staleness under NEEDS ACTION"
 else
-    echo "    FAIL: doctor did NOT surface deploy staleness under CLEAN"
+    echo "    FAIL: doctor did NOT surface deploy staleness (deployed=$DEPLOYED clean=$n_clean needs=$n_needs)"
     FAIL=1
 fi
 
@@ -549,9 +565,9 @@ ARM7_BUNDLE_REL="untracked/T425-DOCTOR-7-$(basename "$WORK").md"
 ARM7_BUNDLE="$PROJECT/$ARM7_BUNDLE_REL"
 rm -f "$ARM7_BUNDLE"
 track_fixture "$ARM7_BUNDLE"   # T448: trap must remove on signal
-cat > "$ARM7_BUNDLE" <<'EOF'
+cat > "$ARM7_BUNDLE" <<EOF
 <!--managent set=A type=infra-->
-# T425 doctor arm 7
+# $ARM7_ROW_ID — fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 "$MG" add "$ARM7_ROW_ID" --bundle "$ARM7_BUNDLE_REL" >/dev/null 2>&1 || true
@@ -670,7 +686,7 @@ cp "$LIVE_STORE" "$FAKE/docs/infra/managent/tasks.json"
 git -C "$FAKE" add docs/infra/managent/tasks.json
 cat > "$FAKE/tools/regression-argus-doctor-fixture.md" <<'EOF'
 <!--managent set=G type=infra-->
-# T427 guard fixture
+# T427 — guard fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 ARM12_BASE="T425-DOCTOR-12-$(basename "$WORK")"
@@ -687,9 +703,9 @@ rc_b=$?
 # (c) positive control: the SAME add against a scratch store must succeed.
 ARM12_C="$ARM12_BASE-c"
 GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
-cat > "$GUARD_FIXTURE" <<'EOF'
+cat > "$GUARD_FIXTURE" <<EOF
 <!--managent set=G type=infra-->
-# T427 guard fixture (scratch positive control)
+# $ARM12_C — fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 "$MG" add "$ARM12_C" --bundle "untracked/T427-guard-fixture.md" >/dev/null 2>&1
@@ -726,9 +742,9 @@ rc_a2=$?
 # (b) mutating verb + MANAGENT_TEST + SCRATCH store → allowed (tests own
 #     their substrate)
 GUARD_FIXTURE="$PROJECT/untracked/T427-guard-fixture.md"
-cat > "$GUARD_FIXTURE" <<'EOF'
+cat > "$GUARD_FIXTURE" <<EOF
 <!--managent set=G type=infra-->
-# T427 guard fixture (scratch positive control)
+# $ARM13_ROW_ID — fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 MANAGENT_TEST=1 "$MG" add "$ARM13_ROW_ID" --bundle "untracked/T427-guard-fixture.md" >/dev/null 2>&1
@@ -757,15 +773,36 @@ else
     FAIL=1
 fi
 
-# ── arm 15: null — THE null control: live tasks.json byte-identical ──
-# The whole run must leave the live kanban byte-identical. This is the
-# deliverable check for T427 — the proof the regression wrote nothing.
-echo "  15. null control: live tasks.json byte-identical after the full run"
-LIVE_HASH_AFTER="$(shasum -a 256 "$LIVE_STORE" | cut -d' ' -f1)"
-if [ "$LIVE_HASH_BEFORE" = "$LIVE_HASH_AFTER" ]; then
-    echo "    PASS: live tasks.json byte-identical before/after ($LIVE_HASH_AFTER)"
+# ── arm 15: null — THE null control: this run wrote nothing to live ──
+# T873/R11: the original arm asserted the live tasks.json was byte-identical
+# before/after the run. That proves "this regression wrote nothing" ONLY when
+# no other console writes to the live store meanwhile -- an ambient condition
+# this script does not control. Under live fleet activity (observed
+# 2026-08-25: 5 in_progress lanes) the live store legitimately changes during
+# the ~90 s run and the byte-identity check fails for a cause that is not the
+# regression's. The honest subject is "this script wrote no FIXTURE-SHAPED row
+# to the live store" (the T425 leak shape); assert that none of the ids this
+# run minted (ARM2/ARM7/ARM11/ARM12/ARM13/ARM24) appear in the live store
+# afterwards, which is the actual contract and does not depend on other
+# consoles' activity.
+echo "  15. null control: no fixture row (arms 0-15) leaked to the live store"
+LIVE_FIXTURE_LEAKED=$(python3 - "$LIVE_STORE" "${ARM2_ROW_ID:-}" "${ARM7_ROW_ID:-}" "${ARM11_ROW_ID:-}" <<'PYEOF'
+import json, sys
+store = sys.argv[1]
+ids = [i for i in sys.argv[2:] if i]
+try:
+    with open(store) as f:
+        d = json.load(f)
+except Exception:
+    print(1); sys.exit(0)
+leaked = [i for i in ids if i in d]
+print(1 if leaked else 0)
+PYEOF
+)
+if [ "$LIVE_FIXTURE_LEAKED" = "0" ]; then
+    echo "    PASS: no fixture row minted so far appears in the live store"
 else
-    echo "    FAIL: live tasks.json CHANGED during the run (before=$LIVE_HASH_BEFORE after=$LIVE_HASH_AFTER)"
+    echo "    FAIL: a fixture row minted so far leaked into the live store"
     FAIL=1
 fi
 
@@ -1081,9 +1118,9 @@ git -C "$FAKE" add docs/infra/managent/tasks.json
 # (mktemp argus-doctor-XXXXXX) so it must NOT appear in the id.
 ARM24_ID="T430LIVE-OK-$(date +%s)$$"
 ARM24_BUNDLE="$FAKE/untracked/T430-live-ok-bundle.md"
-cat > "$ARM24_BUNDLE" <<'EOF'
+cat > "$ARM24_BUNDLE" <<EOF
 <!--managent set=G type=infra-->
-# T430 live-add positive control
+# $ARM24_ID — fixture
 **Landmark:** none directly; unblocks regression fixture
 EOF
 ( cd "$FAKE" && env -u MANAGENT_STORE "$MG" add "$ARM24_ID" --bundle "untracked/T430-live-ok-bundle.md" >/dev/null 2>&1 )
@@ -1103,6 +1140,37 @@ if [ "$rc_24" = "0" ] && [ "$fake_wrote" = "1" ]; then
     echo "    PASS: non-fixture add on live store succeeded (rc=$rc_24) and wrote the row"
 else
     echo "    FAIL: non-fixture add on live store (rc=$rc_24 wrote=$fake_wrote) — a guard refusing every live write breaks fleet registration"
+    FAIL=1
+fi
+
+# ── arm 25: final null — no fixture row (whole run) leaked to live ──
+# T873/R11: arm 15 runs mid-script (before arms 12-24 mint their ids), so it
+# cannot cover the leak-prone live-add arms. This final check, after every
+# arm has minted and tidied its ids, asserts the comprehensive contract:
+# none of the ids this run minted (across all arms) appears in the live
+# store. It replaces the original byte-identity null control, which could
+# not distinguish this run's writes from other consoles' concurrent writes.
+echo "  25. final null: no fixture row (whole run) leaked to the live store"
+LIVE_FIXTURE_LEAKED_FINAL=$(python3 - "$LIVE_STORE" \
+    "${ARM2_ROW_ID:-}" "${ARM7_ROW_ID:-}" "${ARM11_ROW_ID:-}" \
+    "${ARM12_A:-}" "${ARM12_B:-}" "${ARM12_C:-}" "${ARM13_ROW_ID:-}" \
+    "${ARM24_ID:-}" <<'PYEOF'
+import json, sys
+store = sys.argv[1]
+ids = [i for i in sys.argv[2:] if i]
+try:
+    with open(store) as f:
+        d = json.load(f)
+except Exception:
+    print(1); sys.exit(0)
+leaked = [i for i in ids if i in d]
+print(1 if leaked else 0)
+PYEOF
+)
+if [ "$LIVE_FIXTURE_LEAKED_FINAL" = "0" ]; then
+    echo "    PASS: no fixture row this run minted appears in the live store"
+else
+    echo "    FAIL: a fixture row this run minted leaked into the live store"
     FAIL=1
 fi
 
