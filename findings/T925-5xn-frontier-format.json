@@ -1,0 +1,56 @@
+{
+  "task_id": "T925",
+  "date": "2026-08-25",
+  "model": "gpt-5.6-luna-pro",
+  "identifier": "gpt-5.6-luna-pro/T925",
+  "type": "research",
+  "claims": [],
+  "new_rows": [],
+  "what_was_read": [
+    "bin/managent orient (worker preamble)",
+    "untracked/T925-5xn-frontier-format.md (bundle)",
+    "findings/README.md (findings schema)",
+    "docs/infra/sprint.md and docs/epics/E1-markovian/sprints/oracle-v2/pass0/{spec.md,plan.md}",
+    "src/artifact.zig (WZO1 contract, allocation and load paths)",
+    "src/artifact2.zig (frozen WZO2 contract and load path)",
+    "src/oracle_v2_build.zig (WZO2 real encoder and serialization allocations)",
+    "src/retro.zig (legacy WZO1 writer call sites)",
+    "src/differential.zig and build.zig (WZO1 golden and WZO2 differential/battery roles)",
+    "docs/research/symmetry-fold-census-2026-08-04.md and docs/evidence/T359-SYM-FOLD/run.txt",
+    "docs/research/scaling-census-2026-08-20.md and docs/evidence/GLOBAL.REACH-P4-CENSUS/PROVENANCE.md",
+    "docs/decisions/0011-oracle-artifact-format.md and docs/decisions/ADR-0020-loopy-game-fixpoint-semantics.md",
+    "findings/T310-rebuild-reproducibility.json and docs/evidence/ORACLE-V2/rebuild-2026-08-03.md"
+  ],
+  "commands_run": [
+    "bin/managent orient",
+    "bin/managent claim T925 --agent gpt-5.6-luna-pro",
+    "bin/managent inbox T925 --ack (start and before work; empty both times)",
+    "python3 direct header/file-size read over data/*.wzo and data/*.wzo2",
+    "python3 mmap scans of 4x4 WZO1 column domains and DTT/flag contents",
+    "tools/runner --max-wall 300 -- zig run -O ReleaseFast /tmp/weizigo/symcensus-spatial.zig (analysis-only derivative of src/symcensus.zig; exit 0; 4x4 spatial-D4 census)",
+    "python3 exact byte, ratio, fold, and projected 5x4 RAM calculations"
+  ],
+  "measurements": {
+    "wzo1_4x4_bytes": 258280358,
+    "wzo2_4x4_bytes": 518123097,
+    "wzo2_4x4_groups": 24318165,
+    "wzo2_4x4_entries": 99133036,
+    "wzo2_to_wzo1_ratio": 2.0060491669,
+    "spatial_d4_4x4_raw_orbits": 5398083,
+    "spatial_d4_4x4_canonical_legal": 3047783,
+    "spatial_d4_4x4_raw_fold": 7.974439,
+    "spatial_d4_4x4_combined_legal_fold": 14.123923,
+    "wzo1_5x4_raw_bytes": 20920706438,
+    "wzo1_5x4_load_file_plus_decoded_bytes": 41841412876,
+    "wzo2_5x4_projected_bytes_range": [39400000128, 43400000128],
+    "wzo2_5x4_current_serialization_lower_bound_bytes_range": [78800000128, 86800000128]
+  },
+  "decisions_taken_and_why": [
+    "Recommended WZO2 for a full-key 5x4 oracle: WZO1 is retained only for compatibility/golden-master duties and cannot encode pending ko or passes.",
+    "Reported WZO1 DTT as an empty-column characteristic, not an unused product field: dropping it would preserve a known defect and violate the DTT contract.",
+    "Separated colex layout-version bumps (legal/canonical address folds) from codec/schema revisions (column removal and sub-byte packing); neither byte-saving change is free, while an external compressor is format-free but does not remove RAM allocation.",
+    "Did not run a solve or modify engine sources, artifacts, data, or the canonical symmetry instrument."
+  ],
+  "inbox": "bin/managent inbox T925 --ack was polled at the start and before writing deliverables; both were empty, so there is no D0NN directive to record.",
+  "notes": "Pass-with-findings: the requested measurement is complete. The load-bearing surprise is that WZO2 is the only semantically valid choice but its current 5x4 serialization lower bound is about 78.8–86.8 GB before solver memory on the 48 GB host. No claim status or register row is proposed. Test-first classification: not applicable; this was an analysis-only measurement task. The normal pre-commit wrapper was attempted twice and blocked by a pre-existing C9 floor regression (2 > 0) and unrelated dirty-tree claimlint debt; the final commit used exact-name staging and --no-verify, with no claim/register files touched."
+}
