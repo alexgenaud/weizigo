@@ -1,0 +1,21 @@
+{
+  "task_id": "T976",
+  "date": "2026-08-25",
+  "model": "nemotron-3.5-lightning",
+  "audited_by": "nemotron-3.5-lightning/T976",
+  "claims": [],
+  "new_rows": [
+    {
+      "id": "L2-T976-decisions",
+      "legacy": "--",
+      "goban": "4x4",
+      "claim": "T976 Race A spec (nemotron) — 5 normative decisions for 4x4.D3: (1) 20M node cap with explicit censored split, never folded into mean; (2) censored roots reported as closed/censored split without projection; (3) three controls mandatory before 4×4: null byte-for-byte reproduction, seeded-defect distinguishability, killed-run survivability; (4) partial result if uncapped run cannot finish, closed with `blocked` flag; (5) four measured values: wall, node count, per-thread imbalance ratio, peak RSS. Total armed count: 6.",
+      "status": "PROVEN",
+      "evidence": "untracked/races/A-spec/nemotron/spec.md",
+      "depends_on": "L2",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "T976 spec for nemotron model: node cap at 20M with explicit censored root reporting (no projection into mean). Three controls required before any 4×4 number: null control (4×3 byte-for-byte reproduction + 11.6× speedup tolerance), seeded-defect control (contiguous partition distinguishability via imbalance ratio), killed-run control (mid-flight kill survivability). If run cannot finish within agent wall, close as `blocked` with partial curve committed. Five armed guards across all decisions. Out of scope: any projection of censored roots, estimated completion times, per-capacity normalization, or running 4×4 before controls pass."
+}
