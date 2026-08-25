@@ -1,0 +1,8 @@
+{
+  "task_id": "T978",
+  "date": "2026-08-25",
+  "model": "ox-alpha",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race A sealed arm: wrote untracked/races/A-spec/oxalpha/spec.md, the spec for T936 (run 4x4.D3 writes-off to completion). Six normative decisions, all decided, none deferred: D1 staged budget ladder (20M bulk -> x8 tail passes with closure-yield gates and a 240h global deadline) instead of one flat cap or an uncapped run; D2 censored roots always reported as a closed/censored split, never folded into means (the exact mechanism of T924's 7.585x error); D3 three controls (null = 4x3 byte-identical 183065016 nodes + imbalance ~1.20 + speedup in [9.3x,13.9x]; seeded defect = contig slowest/mean >=2.5 vs rr <=1.35; killed-run resume) mandatory before any 4x4 number; D4 detached per T928 via job_start, wrapped in tools/runner --rss-cap-mb 32768 (argued exception: 480x work items, unmeasured RSS profile, kernel-panic precedent) with caffeinate -i -s inside the job; D5 stop rule closing blocked with partial curve per T936 acceptance 3; D6 recording set under docs/evidence/T936/ so a non-runner can check the answer. Five acceptance arms (A1-A5), red-then-green each, armed count 5 arms / 7 checks. Every number re-derived from committed evidence during writing: recounted per-root.csv (1351 rows - 64 contamination = 1287; 125 capped at exactly 20000001; capped nodes 2500000125/2700272692 = 92.6%); reproduced weighted projection arithmetic (214.8h high end, /8 = 26.8h); verified flag logic RETRO_SOUND=1 & !RETRO_DEPS => memo_writes=false in runParallel (src/retro.zig); host measured 18 cores / 48 GiB. No directives received (inbox polled twice). Landmark: advances L2 (proven 4x4 values) - spec decides whether the 4x4 run is worth starting."
+}
