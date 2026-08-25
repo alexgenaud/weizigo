@@ -140,8 +140,27 @@ along. **The one thing standing in the way is ours:** `bin/subagent:983-985` exi
 dispatch (121 ledger tasks, the bulk workhorse) dies naming a cause that is not the cause. **T940**
 removes it, with a seeded-defect control that a genuinely bad credential still fails *attributably*.
 
+### Ruling: cooldown, not a kill switch (operator, 2026-08-25)
+
+The seat killed a live minimax-m3 lane on T938 four minutes after the ollama instruction, and
+braked the whole dispatcher with it. **Corrected:** *"I should have said cooldown with Ollama. I
+would prefer ollama agents in races only to collect data. But I did not mean for you to kill an
+ongoing task, unless it was thrashing."*
+
+**The rule, for the next seat:** a policy instruction governs the **next** dispatch. Change the
+*draw*; leave live lanes alone. The bar for killing a running lane is that it is **thrashing** — no
+output growth, repeated identical failures, runaway retries — not that it is on a model that has
+just gone out of favour. What that kill actually bought: the minute of credit already spent, spent
+again on the redispatch, plus a reopened row and a store that briefly disagreed with itself about
+whether T938 was claimed.
+
 ### Two defects found in this seat's own popper
 
+- **A running `--loop` ignored every edit to its own script.** `sh` parses the file at launch, so
+  the ollama exclusion was in `pop-next.sh` and not in the loop that was running — the next pop
+  drew minimax anyway. The loop is now a **supervisor**: each tick re-execs the script for exactly
+  one pop, so an edit, a queue change and the stop-file are all re-read every minute. Verified: the
+  brake now stops a running supervisor, and `--dry-run` propagates to the child.
 - **`--dry-run` was not a preview.** The DRY check sat after the assign call, so the first dry run
   recorded a model pin onto T931 as a side effect. Fixed: `assign --dry-run` is passed through.
   T931's haiku pin is left as-is — it is what a correct draw gives anyway — but its provenance was

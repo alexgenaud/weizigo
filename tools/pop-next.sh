@@ -135,9 +135,26 @@ except Exception: print('')" 2>/dev/null)
   bin/dispatch "$pick" "$model" --wall=7200 2>&1 | tail -1
 }
 
+# ── the loop runs a FRESH child each tick ────────────────────────────────
+# It used to call pop_once in-process. A `--loop 240` therefore ran for hours
+# against the copy of this file that `sh` had already parsed, so editing the
+# script did nothing to the loop that was running. That is not theoretical:
+# on 2026-08-25 the ollama-cloud exclusion above was added while a loop was
+# live, and the next pop still drew minimax-m3 -- the operator's instruction
+# was in the file and not in the running process. The lane was killed and the
+# row reopened.
+#
+# So the loop is now a supervisor: each tick re-execs this script for exactly
+# one pop, which re-reads the file, the queue, and the stop-file every time.
+# A single pop (`--loop 1`, the default) still runs in-process -- that is the
+# child the supervisor spawns, and it must not recurse.
 i=0
 while [ "$i" -lt "$LOOPS" ]; do
-  pop_once || true
+  if [ "$LOOPS" -eq 1 ]; then
+    pop_once || true
+  else
+    if [ "$DRY" = 1 ]; then sh "$0" --dry-run || true; else sh "$0" || true; fi
+  fi
   i=$((i+1))
   [ "$i" -lt "$LOOPS" ] && sleep 60
 done
