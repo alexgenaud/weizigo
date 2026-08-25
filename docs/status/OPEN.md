@@ -140,6 +140,27 @@ along. **The one thing standing in the way is ours:** `bin/subagent:983-985` exi
 dispatch (121 ledger tasks, the bulk workhorse) dies naming a cause that is not the cause. **T940**
 removes it, with a seeded-defect control that a genuinely bad credential still fails *attributably*.
 
+### Decision: no late arms on Race J — the seal is already broken
+
+Fable asked for four late Race J arms on the sealed T916 brief, with T941's needs extended and the
+judge kept blind. **I declined that specific step**, and the operator's own qualifier is the reason
+— *"if harmless"*. It is not harmless.
+
+All five Race J arms' work is **committed and on disk**: `untracked/race-j/{oxalpha,dspro,dsflash,
+kimi,sonnet}/` holds 11 tracked files including each arm's complete `regression-runner-guard.sh`
+and `findings.json`. A late arm dispatched today opens its brief, runs `ls`, and finds five worked
+answers to the identical question. Keeping the *judge* blind does not restore the seal; the seal
+was on the *arms*.
+
+**What happens instead:** the four new models get their comparative data from the **DONE audit**,
+which is genuinely fresh — nine disjoint slices, one shared control slice, a sealed answer key
+opened only by the judge and only after the control slice is scored. That satisfies "introduce more
+models into ongoing and future races" without buying a result we would have to discount.
+
+A fresh sealed race for the four is worth having; it needs a **new target**, not this one. Not
+registered yet, deliberately — the backlog is the thing being watched and a fourth race with no
+target is a row that would sit.
+
 ### Ruling: cooldown, not a kill switch (operator, 2026-08-25)
 
 The seat killed a live minimax-m3 lane on T938 four minutes after the ollama instruction, and
