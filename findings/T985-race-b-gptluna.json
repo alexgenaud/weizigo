@@ -1,0 +1,8 @@
+{
+  "task_id": "T985",
+  "date": "2026-08-26",
+  "model": "gpt-5.6-luna-pro",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Race B fail-transparency resolution completed by gpt-5.6-luna-pro/T985. Independently checked T964's five blockers against the repository: the T963 bundle's 521-close baseline is 502 pass-like / 521 = 96.35% (rounded 96%), not 92%; T948 is pass-with-findings while T959 is the fail-found row; T940 has a worker verdict note and impression and no auto-close marker, while T943 carries the tools/runner auto-close marker and the red-acceptance amendment; and S10's 21 unit arms + 4 smoke arms (25 cited) plus T963's 8 TC + 3 TW + 5 SMOKE-T963 arms (16 new) total 41. Resolution also decides the three audit red flags: omitted reporting fields are recorded as not-provided/reporting_gaps rather than refusing; until T490 lands, non-empty existing --note is the explicit inline concern compatibility path for blocked/abandoned; and reporting uses a specified JSON --report path with an attempt-local auto-close sidecar. Runner close behavior is decided as no signal/no wait, PID+start-token lease, positive exit evidence only, and visible holds on unknown liveness. No claim status changes or new register rows proposed. Inbox polled before drafting and empty; no directive IDs to record. No code or implementation tests run because this was a specification-resolution task; implementation must amend T963 rather than this sealed deliverable. Overall result: pass-with-findings (all five blockers resolved; implementation remains future work)."
+}
