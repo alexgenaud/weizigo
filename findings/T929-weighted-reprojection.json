@@ -1,0 +1,53 @@
+{
+ "task_id": "T929",
+ "date": "2026-08-25",
+ "model": "deepseek-v4-flash",
+ "identifier": "deepseek-v4-flash/T929",
+ "landmark": "L2 (proven 4x4 values)",
+ "claims": [
+  {
+   "id": "4x4.D3",
+   "was": "UNTESTED",
+   "now": "MEASURED - NOT TRACTABLE under writes-off (confirmed on the population-weighted re-projection; bracket 7.6x narrower than T924's)",
+   "evidence": "docs/research/4x4-d3-weighted-projection.md; docs/evidence/T929/per-layer-recovery.csv; docs/evidence/T924/per-root.csv; docs/evidence/T924/summary.csv",
+   "note": "Presence-only (no proposed_status): the register row is still UNTESTED and the promotion path is absorption, not a leaf edit. Weighted as-measured mean 282,104.8 nodes/root -> 26.8-214.7 h single-threaded (lower bound; capped roots counted at their 20,000,001-node cap). T924's unweighted 202.5-1,620 h was 7.585x inflated by the per-layer sampling caps. Verdict confirmed: not tractable under T924's criterion, but the margin is ~1-9 days and the parallel-finisher follow-on is strengthened. 125 capped roots = 9.71% of samples but 92.6% of measured nodes; their true cost is unmeasured (empty-root ladder never reported). Correction to T924's doc: the mean does NOT exclude the capped roots - sum_nodes includes them at the cap; the floor property holds because true cost >= cap."
+  }
+ ],
+ "new_rows": [],
+ "answer": "Weighted 4x4.D3 re-projection CONFIRMS T924's not-tractable verdict: population-weighted mean 282,104.8 nodes/root (7.585x below T924's unweighted 2,139,677.3) projects 26.8-214.7 h single-threaded wall as a LOWER bound (capped roots included at their 20,000,001-node minimum). The 125 capped roots are 9.71% of samples but 92.6% of measured nodes; the true cost sits above the bracket by an unmeasured amount. The correction narrows T924's margin by ~7.6x and reframes the cost as a pathological tail on a cheap bulk population - strengthening the parallel-finisher follow-on (T930).",
+ "stratification": {
+  "source": "lane transcript log for T924 (host-local; the probe-printed T924,summary,writes-off lines for run 2) — NOT recoverable from the committed per-root.csv/summary.csv alone; committed verbatim to docs/evidence/T929/per-layer-recovery.csv",
+  "layers": "colex stone-count layers 0-15 (src/colex.zig: layer k size C(16,k)*2^k, offsets cumulative)",
+  "verification": "per-root.csv layers 4-15 match the transcript per-layer summary exactly (samples/solved/skipped/single_ko/node sums); layers 0-3 carry 64 contaminated selftest rows (44,784 nodes = 0.0017% of the total); csv totals 1,351 rows / 2,700,317,476 nodes / 713,657 ms vs transcript run 2: 1,287 / 2,700,272,692 / 713,651"
+ },
+ "per_layer": [
+  {"layer": 0, "pop_b": 1, "pop_w": 1, "pop": 2, "samples": 1, "solved": 0, "skipped": 1, "single_ko": 0, "mean_as_measured": 20000001.0, "mean_capped_excluded": null, "sum_ms": 5617},
+  {"layer": 1, "pop_b": 20, "pop_w": 20, "pop": 40, "samples": 4, "solved": 2, "skipped": 2, "single_ko": 0, "mean_as_measured": 10012417.5, "mean_capped_excluded": 24834.0, "sum_ms": 10423},
+  {"layer": 2, "pop_b": 264, "pop_w": 264, "pop": 528, "samples": 40, "solved": 25, "skipped": 15, "single_ko": 0, "mean_as_measured": 8123286.9, "mean_capped_excluded": 997258.4, "sum_ms": 83764},
+  {"layer": 3, "pop_b": 1928, "pop_w": 1928, "pop": 3856, "samples": 93, "solved": 83, "skipped": 10, "single_ko": 0, "mean_as_measured": 2882496.2, "mean_capped_excluded": 820146.2, "sum_ms": 69676},
+  {"layer": 4, "pop_b": 11370, "pop_w": 11370, "pop": 22740, "samples": 94, "solved": 90, "skipped": 4, "single_ko": 0, "mean_as_measured": 1048306.2, "mean_capped_excluded": 206008.6, "sum_ms": 25335},
+  {"layer": 5, "pop_b": 50412, "pop_w": 50412, "pop": 100824, "samples": 97, "solved": 96, "skipped": 1, "single_ko": 0, "mean_as_measured": 584730.1, "mean_capped_excluded": 382487.7, "sum_ms": 14363},
+  {"layer": 6, "pop_b": 165046, "pop_w": 165046, "pop": 330092, "samples": 97, "solved": 96, "skipped": 1, "single_ko": 0, "mean_as_measured": 373871.8, "mean_capped_excluded": 169432.9, "sum_ms": 9700},
+  {"layer": 7, "pop_b": 418056, "pop_w": 418056, "pop": 836112, "samples": 96, "solved": 96, "skipped": 0, "single_ko": 0, "mean_as_measured": 6961.7, "mean_capped_excluded": 6961.7, "sum_ms": 165},
+  {"layer": 8, "pop_b": 801358, "pop_w": 801358, "pop": 1602716, "samples": 97, "solved": 96, "skipped": 1, "single_ko": 0, "mean_as_measured": 367091.1, "mean_capped_excluded": 162581.7, "sum_ms": 8858},
+  {"layer": 9, "pop_b": 1154036, "pop_w": 1154036, "pop": 2308072, "samples": 97, "solved": 95, "skipped": 2, "single_ko": 0, "mean_as_measured": 413697.3, "mean_capped_excluded": 1354.0, "sum_ms": 9977},
+  {"layer": 10, "pop_b": 1197748, "pop_w": 1197748, "pop": 2395496, "samples": 97, "solved": 96, "skipped": 1, "single_ko": 0, "mean_as_measured": 275955.6, "mean_capped_excluded": 70496.8, "sum_ms": 6854},
+  {"layer": 11, "pop_b": 873880, "pop_w": 873880, "pop": 1747760, "samples": 97, "solved": 97, "skipped": 0, "single_ko": 0, "mean_as_measured": 3898.8, "mean_capped_excluded": 3898.8, "sum_ms": 103},
+  {"layer": 12, "pop_b": 399794, "pop_w": 399794, "pop": 799588, "samples": 97, "solved": 97, "skipped": 0, "single_ko": 0, "mean_as_measured": 155.6, "mean_capped_excluded": 155.6, "sum_ms": 5},
+  {"layer": 13, "pop_b": 98684, "pop_w": 98684, "pop": 197368, "samples": 97, "solved": 91, "skipped": 6, "single_ko": 10, "mean_as_measured": 1379369.2, "mean_capped_excluded": 63.2, "sum_ms": 31738},
+  {"layer": 14, "pop_b": 9500, "pop_w": 9500, "pop": 19000, "samples": 95, "solved": 58, "skipped": 37, "single_ko": 15, "mean_as_measured": 9250479.7, "mean_capped_excluded": 891.7, "sum_ms": 197798},
+  {"layer": 15, "pop_b": 1864, "pop_w": 1864, "pop": 3728, "samples": 88, "solved": 44, "skipped": 44, "single_ko": 0, "mean_as_measured": 10137329.1, "mean_capped_excluded": 274657.3, "sum_ms": 239275}
+ ],
+ "projections": {
+  "ns_per_node": 264.29,
+  "pop_total": 10367922,
+  "orbit_bracket": "pop/8 (maximal orbits) to pop*1 (trivial orbits)",
+  "unweighted": {"mean": 2139677.3, "wall_h": [203.58, 1628.61]},
+  "weighted_as_measured": {"mean": 282104.8, "wall_h": [26.84, 214.72]},
+  "weighted_capped_excluded": {"mean": 52976.1, "wall_h": [5.04, 40.32]},
+  "ratio_weighted_vs_unweighted": 7.585,
+  "single_ko_correction": "1.94% of samples are single-ko (0 nodes); correcting the as-measured mean gives ~276,625 -> 26.3-210.5 h (-1.9%)",
+  "capped_roots": {"count": 125, "share_of_samples": 0.0971, "share_of_measured_nodes": 0.9258, "true_cost": "unmeasured; >= 20,000,001 each; empty-root escalation ladder (pid 2538) output never captured"}
+ },
+ "notes": "Inbox checked at checkpoints (bin/managent inbox T929 --ack): no directives. T924 doc correction: 'its mean excludes the 125 roots' is inaccurate - the probe's sum_nodes includes capped roots at 20,000,001 (src/t924_d3_probe.zig walkLayers); the floor property holds because true cost >= cap. The stratification (per-layer ko-sensitive populations) was recoverable ONLY from the host-local T924 lane transcript log, not from the committed evidence; committed to docs/evidence/T929/per-layer-recovery.csv. No solve or probe re-run performed."
+}

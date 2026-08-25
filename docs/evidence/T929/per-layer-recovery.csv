@@ -1,0 +1,47 @@
+# T929 — recovered per-layer stratification for the 4×4 writes-off probe run 2 (T924)
+#
+# Source: the lane transcript untracked/log/t924.log — the probe's own
+# `T924,summary,writes-off,{layer},...` lines, printed by src/t924_d3_probe.zig
+# summarize() and NOT recovered by T914 into docs/evidence/T924/summary.csv
+# (which carries only the build/total/projection lines).
+#
+# These lines are the ONLY committed-in-git copy of the per-layer ko-sensitive
+# populations (pop_b, pop_w) and per-layer sample stats. They are the
+# stratification that the committed per-root.csv + summary.csv alone cannot
+# reconstruct: per-root rows carry no population counts and summary.csv has no
+# per-layer lines. Reproduced here verbatim from the transcript so the T929
+# weighted projection is reproducible from git.
+#
+# Columns (probe source, summarize()): layer, pop_b, pop_w, samples, solved,
+# skipped, single_ko, mean_nodes, max_nodes, sum_ms
+#   pop_b/pop_w  = ko-sensitive legal slots in this stone-count layer, Black/White side
+#                  (equal by colour-inversion symmetry; sums: 5,183,961 + 5,183,961
+#                  = 10,367,922 = the probe's build ko_b + ko_w)
+#   samples      = roots measured in this layer (cap 48 per layer per side, orbit-deduped)
+#   solved       = samples that returned a value (incl. single_ko)
+#   skipped      = samples that hit the 20,000,001-node budget cap (nodes = cap,
+#                  value -128). These are INCLUDED in mean_nodes at their cap value.
+#   single_ko    = solved via solveSingleKo (0 nodes)
+#   mean_nodes   = sum_nodes / (samples - single_ko), sum_nodes includes skipped at cap
+#   sum_ms       = measured wall ms for this layer's samples
+#
+# This is run 2 (sum_ms total 713,651; the per-layer sum_ms below totals 713,651).
+# per-root.csv aggregates to 713,657 ms / 2,700,317,476 nodes (run-2 rows plus 64
+# contaminated selftest rows in layers 0-3, 0.0017% of nodes).
+layer,pop_b,pop_w,samples,solved,skipped,single_ko,mean_nodes,max_nodes,sum_ms
+0,1,1,1,0,1,0,20000001.0,20000001,5617
+1,20,20,4,2,2,0,10012417.5,20000001,10423
+2,264,264,40,25,15,0,8123286.9,20000001,83764
+3,1928,1928,93,83,10,0,2882496.2,20000001,69676
+4,11370,11370,94,90,4,0,1048306.2,20000001,25335
+5,50412,50412,97,96,1,0,584730.1,20000001,14363
+6,165046,165046,97,96,1,0,373871.8,20000001,9700
+7,418056,418056,96,96,0,0,6961.7,303753,165
+8,801358,801358,97,96,1,0,367091.1,20000001,8858
+9,1154036,1154036,97,95,2,0,413697.3,20000001,9977
+10,1197748,1197748,97,96,1,0,275955.6,20000001,6854
+11,873880,873880,97,97,0,0,3898.8,216236,103
+12,399794,399794,97,97,0,0,155.6,7048,5
+13,98684,98684,97,91,6,10,1379369.2,20000001,31738
+14,9500,9500,95,58,37,15,9250479.7,20000001,197798
+15,1864,1864,88,44,44,0,10137329.1,20000001,239275
