@@ -61,8 +61,17 @@ ko-sensitive region, which is **5,183,961 slots per side — 10.4 million (slot,
 | projected finisher nodes | 2.77 × 10¹² – 2.22 × 10¹³ | 1.87 × 10¹⁰ – 1.50 × 10¹¹ |
 | **projected wall** | **202.5 – 1,620 h** | 1.94 – 15.52 h |
 
-**148× more nodes per root**, and the writes-off arm is additionally *truncated* — its mean excludes
-the 125 roots that never finished, so 202 hours is a floor, not an estimate of the true cost.
+**148× more nodes per root.** 202 hours is a floor, not an estimate — but **not for the reason
+first written here.** T929 corrected it: the probe's `sum_nodes` *includes* the 125 capped roots at
+their 20,000,001-node cap (`src/t924_d3_probe.zig` `walkLayers`), so nothing is excluded. The floor
+property holds because a capped root's true cost is **≥** its cap, not because it was dropped.
+
+**Superseded by T929 (`docs/research/4x4-d3-weighted-projection.md`):** the unweighted mean above is
+distorted by per-layer sampling caps. Population-weighted, the mean is **282,104.8 nodes/root —
+7.585× lower** — projecting **26.8 – 214.7 h**. The verdict stands, but the margin is ~7.6× smaller
+and the shape is different: **the 125 capped roots are 9.71% of samples and 92.6% of measured
+nodes.** The cost is a pathological tail on a cheap bulk population, which is precisely the shape
+that parallelises across independent roots.
 
 This is the mechanism T912 measured at 3×2 showing up at scale: 0.541 new states per node, flat
 across five doublings with no plateau. Nearly every path is a distinct ban set, so the memo has
