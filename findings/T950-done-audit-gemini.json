@@ -1,0 +1,45 @@
+{
+  "task_id": "T950",
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "audited_by": "gemini-3.7-flash/T950",
+  "claims": [],
+  "new_rows": [],
+  "census": {
+    "total_audited": 24,
+    "rows_not_reached": 0,
+    "work_actually_done": {
+      "complete": 18,
+      "partial": 2,
+      "none": 4
+    },
+    "verdict_accurate": {
+      "yes": 23,
+      "no": 1,
+      "unverifiable": 0
+    },
+    "absorbed": {
+      "yes": 18,
+      "partial": 2,
+      "no": 4
+    },
+    "self_reported_or_verified": {
+      "verified": 24,
+      "self-reported": 0,
+      "unverifiable": 0
+    },
+    "useful": {
+      "yes": 18,
+      "mixed": 2,
+      "no": 4
+    }
+  },
+  "audited_rows": [
+    "T932", "T927", "T894", "T924", "T921", "T943",
+    "T842", "T841", "T907", "T387", "T929", "T421",
+    "T462", "T674", "T519", "T746", "T514", "T432",
+    "T548", "T702", "T872", "T488", "T326", "T361"
+  ],
+  "rows_not_reached": [],
+  "notes": "DONE audit arm for gemini-3.7-flash (T950). Audited all 24 assigned rows (12 shared control rows + 12 disjoint gemini slice rows: T462, T674, T519, T746, T514, T432, T548, T702, T872, T488, T326, T361). Deliverables: docs/audits/done-audit-2026-08-25/gemini/records.json (24 rows with full mechanical and reasoned judgment fields per corpus schema), analysis.md (summary census, control calibration, stratum D analysis, re-opening recommendations, and pattern analysis), and collector.py script. All 24 rows were audited with zero unexamined rows. Findings: 18/24 tasks achieved complete work; 23/24 recorded verdicts were accurate, with 1 inaccurate close (T943 auto-closed pass while its declared acceptance command was failing); 18/24 results were durably absorbed in git; 24/24 rows were verified against git history and test runs rather than self-reported assertions. Single most important pattern: automated process-presence gates (exit 0 + deliverable files present on disk) mask semantic and acceptance failures, allowing broken tests (T943) or distorted headline numbers (T924) to pass unchecked."
+}
