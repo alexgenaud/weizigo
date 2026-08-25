@@ -1,0 +1,8 @@
+{
+  "task_id": "T944",
+  "date": "2026-08-25",
+  "model": "gemini-3.7-flash",
+  "claims": [],
+  "new_rows": [],
+  "notes": "Context dump for T944 (S10 pass 1a: store-loss detector).\n\n1. Target problem:\n   On 2026-08-24 tasks.json was reverted to a pre-T785 snapshot and 59 tasks vanished silently. S10 §2.4 specifies store-loss detection (arms S10-STORE-1..4 [A16..A19] + SMOKE-4 end-to-end incident scenario) so that an unexplained store shrink is caught at read time (orient alarms loudly and exits non-zero) and write time (managent mutations refuse and alarm, preserving store on disk).\n\n2. Implementation details:\n   - `src/managent/main.zig`: Census maintenance and verification logic in `writeStateLocked`, `checkCensusBeforeWrite`, `checkCensusRead`, `writeCensus`, `retire`, `purge`, `archive`. Also fixed assign unit tests to account for 10-model spend roster with gemini-3.7-flash (T938).\n   - `tools/regression-store-loss.sh`: Authored and verified 5-arm test covering A16, A17, A18, A19, and SMOKE-4 using isolated scratch repo via `tools/lib/scratch-repo.sh`.\n   - `build.zig`: Updated store loss regression test wiring to point to `tools/regression-store-loss.sh`.\n\n3. Verification:\n   - `sh tools/regression-store-loss.sh`: ALL 5 ARMS PASSED.\n   - `zig test src/managent/main.zig`: 59/59 unit tests PASSED.\n   - Live store census (`docs/infra/managent/store-census.json`) reconciles 100% with `docs/infra/managent/tasks.json`.\n   - `bin/managent orient` on intact store is clean (exit 0).\n   - `bin/managent orient` on hand-reverted scratch store alarms on stderr and exits 1.\n   - `tools/regression-precommit.sh`: ALL CONTROLS PASSED."
+}
