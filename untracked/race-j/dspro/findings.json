@@ -1,0 +1,92 @@
+{
+  "task_id": "T918",
+  "date": "2026-08-25",
+  "model": "deepseek-v4-pro",
+  "claims": [],
+  "assertions": [
+    {
+      "id": "A1-admission-refusal",
+      "claim": "tools/runner refuses a lane whose declared --ram-mb does not fit the host before spawning anything: exit 3, 'ARBITER REFUSED' on stderr naming 'row stays dispatchable', no process spawned (ram-policy.md §4.1 / ORC-GD-3 / INV-3).",
+      "how_it_can_fail": "Seeded defect: a mutated copy of tools/runner with `_arbiter_decide`'s condition `if projected_mb >= ARBITER_RESERVE_MB:` replaced by `if True:` admits the same candidate. The standalone --arbiter-admit check then observes exit 0 and `\"admit\": true` where it requires exit 3 and `\"admit\": false` — the assertion flips from PASS to FAIL.",
+      "green": {
+        "instrument": "standalone --arbiter-admit (avail injected 5000 MB, declared 4608 MB)",
+        "exit_code_observed": 3,
+        "evidence": "\"admit\": false on stdout; 'ARBITER REFUSED' + 'row stays dispatchable' on stderr"
+      },
+      "green_full_launch": {
+        "instrument": "full launch --ram-mb 4608 under injected avail 5000 MB, child would write a marker file",
+        "exit_code_observed": 3,
+        "evidence": "marker file absent — nothing was spawned"
+      },
+      "red": {
+        "instrument": "same standalone --arbiter-admit against the seeded-admit mutant",
+        "exit_code_observed": 0,
+        "evidence": "\"admit\": true — the assertion detects the regression"
+      },
+      "verified": true
+    },
+    {
+      "id": "A3-max-wall-termination",
+      "claim": "A silent child that outlives --max-wall is terminated with exit 124, the kill line names the wall ceiling, and the run record stamps killed_by == \"wall\" (attributable).",
+      "how_it_can_fail": "Seeded defect: a mutated copy with the fallback wall condition `elif args.max_wall and elapsed >= args.max_wall:` disabled to `elif args.max_wall and False:` lets the child run to completion. The check then observes exit 0 where it requires 124.",
+      "green": {
+        "instrument": "--max-wall 2 -- sleep 60 (silent non-agent child), MANAGENT_TASK_ID set",
+        "exit_code_observed": 124,
+        "evidence": "'wall ceiling 2s' kill line; run record killed_by == \"wall\""
+      },
+      "red": {
+        "instrument": "--max-wall 1 -- python3 sleep(3) against the seeded wall-disabled mutant",
+        "exit_code_observed": 0,
+        "evidence": "child completed; no kill line — the assertion detects the regression"
+      },
+      "verified": true
+    },
+    {
+      "id": "A4-l3-pressure-alarm-never-kills",
+      "claim": "Under sustained kernel memory pressure (injected level 4), the L3 backstop ALARMS, names the largest host-wide consumer, records host_alarms on the run record, and NEVER kills: the child completes with exit 0 (ram-policy.md §4.2 INV-1 / §4.3-4.4 — the T821 replacement for the deleted host-guard kill).",
+      "how_it_can_fail": "Seeded defect: a mutated copy re-introduces a kill verb on the pressure alarm (`kill_reason` set when the alarm fires). The check then observes exit 124 and a `[runner] KILL:` line where it requires exit 0 and no kill — the 'never kills' assertion detects exactly the INV-1 regression T821 deleted.",
+      "green": {
+        "instrument": "WEIZIGO_KERNEL_PRESSURE_LEVEL=4 -- python3 sleep(4)",
+        "exit_code_observed": 0,
+        "evidence": "'ALARM: host memory pressure level 4 sustained' + 'never killed' on stderr; run record host_alarms[] with level 4 and a named consumer; no `[runner] KILL:` line"
+      },
+      "red": {
+        "instrument": "same, against the seeded kill-on-pressure mutant",
+        "exit_code_observed": 124,
+        "evidence": "a `[runner] KILL:` line appeared — the assertion detects the regression"
+      },
+      "verified": true
+    },
+    {
+      "id": "A5-run-record-kind-declared",
+      "claim": "A dispatch writes its run record to the bare untracked/runs/<task>.json path that `reap` keys on, with run_kind == \"dispatch\" and a non-empty run_kind_reason (T895 — the kind is stated by the writer, never inferred by a reader).",
+      "how_it_can_fail": "Seeded defect: a mutated copy drops the `\"run_kind\": run_kind,` entry from the launch record. The check then reads run_kind == null where it requires \"dispatch\".",
+      "green": {
+        "instrument": "MANAGENT_TASK_ID set, child python3 print + exit 0",
+        "exit_code_observed": 0,
+        "evidence": "untracked/runs/<task>.json present with run_kind == \"dispatch\" and non-empty run_kind_reason"
+      },
+      "red": {
+        "instrument": "same, against the seeded kind-less-record mutant",
+        "exit_code_observed": 0,
+        "evidence": "record present but run_kind == null — the assertion detects the regression"
+      },
+      "verified": true
+    }
+  ],
+  "not_covered": [
+    {
+      "item": "A2 — wall-band RAM declaration (60/600/1800 s)",
+      "why": "That is bin/subagent behaviour (`_wall_band_ram_mb` / `_declared_ram_mb`), not a tools/runner surface. tools/runner RECEIVES the already-resolved --ram-mb; it contains no band table to assert. The band arithmetic and its boundaries are already covered by tools/regression-ram-declaration.sh (T913), which drives the real bin/subagent --dry-run path and asserts 59/60/599/600/1799/1800/10800 s. Duplicating it here would assert a file that is not the module under test."
+    },
+    {
+      "item": "The `reap` join itself (managent reading the run record and closing a row)",
+      "why": "managent behaviour, not tools/runner. A5 asserts the record shape reap depends on (bare path, task field, run_kind, run_kind_reason); the join is covered by tools/regression-runner-run-records.sh. I did not drive bin/managent reap from this sealed lane."
+    },
+    {
+      "item": "Assertion #4's literal 'host guard kills the lane' wording from the brief",
+      "why": "That wording describes the T362 host-guard KILL, which T821 DELETED (ram-policy.md §6 items 1-6; the floor's 16-of-20 futile kills). The current L3 backstop alarms and never kills. A4 asserts the current semantics and, as its red control, seeds the exact kill-on-pressure defect that a regression back toward the deleted guard would reintroduce."
+    }
+  ],
+  "notes": "Identifier: deepseek-v4-pro/T918 (leaf; no dispatch). Race J sealed lane — read only my own untracked/race-j/dspro/ directory; did not read any other lane's work. Sealed-lane constraint honored: wrote only untracked/race-j/dspro/regression-runner-guard.sh and this findings.json; did not touch tools/ (including tools/runner, which was read only), did not commit. The script is runnable standalone (resolves PROJECT via git rev-parse from its own dir; every arm runs from a scratch git repo under /tmp/weizigo with MANAGENT_TASK_ID env and --arbiter-state-file into scratch, so no live telemetry/kanban is touched — closing isolation check passed). All four assertions (A1, A3, A4, A5) have OBSERVED green and red exit codes, not predicted ones; a fifth listed assertion (A2, wall-band RAM) is not a runner surface and is declared not-covered above with its existing coverage pointer. Red controls are seeded-defect mutations of a scratch COPY of tools/runner (never the real file), each applied by exact single-occurrence string substitution that fails the arm loudly if the target is absent or ambiguous. Inbox: polled bin/managent inbox T918 --ack once before done — no pending directives (acked 0). Wall usage: the whole script completes in well under 60 s."
+}
