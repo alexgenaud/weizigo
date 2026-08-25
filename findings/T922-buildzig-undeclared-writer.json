@@ -1,0 +1,28 @@
+{
+  "task_id": "T922",
+  "date": "2026-08-25",
+  "model": "nemotron-3.5-lightning",
+  "audited_by": "",
+  "claims": [
+    {
+      "id": "QA-T922",
+      "proposed_status": "FALSE-AS-SCOPED",
+      "rationale": "build.zig is an undeclared shared writer: multiple lanes edit it without declaring holds, silently invalidating suite measurements and creating latent work-loss bugs. The blast radius requires quantification before a mechanism can be chosen.",
+      "evidence_path": "untracked/T922-buildzig-undeclared-writer.md"
+    }
+  ],
+  "new_rows": [
+    {
+      "id": "QA-T922-R1",
+      "legacy": "—",
+      "goban": "n/a",
+      "claim": "build.zig is an undeclared shared writer across infra lanes; editing without declaring holds silently invalidates suite measurements and creates latent work-loss bugs.",
+      "status": "FALSE-AS-SCOPED",
+      "evidence": "untracked/T922-buildzig-undeclared-writer.md",
+      "depends_on": "QA-T922",
+      "narrowed": 0,
+      "wrong_answer_pass_rate": "?"
+    }
+  ],
+  "notes": "T922 observation: T908 (glm-5.2) and T910 (deepseek-v4-pro) both had uncommitted edits to build.zig without declaring it in their holds. The one-writer hold rule (T500) never engaged because build.zig is the file that decides what zig build test runs, and nearly every regression row wires a new test_step dependOn as its last step. Two lanes editing one file with no serialization means one lane's wiring can vanish under the other's write, and the loss is silent — the row still closes pass, its script exists, and only the missing dependOn line says otherwise."
+}
